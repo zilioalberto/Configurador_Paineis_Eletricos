@@ -1,0 +1,1 @@
+docker compose -f infra/docker/docker-compose.yml exec backend python manage.py createsuperuser
