@@ -17,6 +17,20 @@ class TipoPartidaMotorChoices(models.TextChoices):
     SOFT_STARTER = "SOFT_STARTER", "Soft Starter"
     INVERSOR = "INVERSOR", "Inversor"
     SERVO_DRIVE = "SERVO_DRIVE", "Servo Drive"
+    
+class TipoProtecaoMotorChoices(models.TextChoices):
+    DISJUNTOR_MOTOR = "DISJUNTOR_MOTOR", "Disjuntor Motor"
+    RELE_SOBRECARGA = "RELE_SOBRECARGA", "Relé de Sobrecarga"
+    FUSIVEL = "FUSIVEL", "Fusível"
+    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
+    OUTRO = "OUTRO", "Outro"
+    
+
+class TipoConexaoCargaPainelChoices(models.TextChoices):
+    CONEXAO_BORNES_COM_PE = "CONEXAO_BORNES_COM_PE", "Conexão a bornes com PE"
+    CONEXAO_BORNES_SEM_PE = "CONEXAO_BORNES_SEM_PE", "Conexão a bornes sem PE"
+    CONEXAO_DIRETO_COMPONENTE = "CONEXAO_DIRETO_COMPONENTE", "Conexão direta ao componente"
+    OUTROS = "OUTROS", "Outros"
 
 
 class TipoValvulaChoices(models.TextChoices):
@@ -48,4 +62,11 @@ class TipoTransdutorChoices(models.TextChoices):
     CORRENTE = "CORRENTE", "Corrente"
     TENSAO = "TENSAO", "Tensão"
     OUTRO = "OUTRO", "Outro"
+    
+class TipoClimatizacaoPainelChoices(models.TextChoices):
+    VENTILADOR = "VENTILADOR", "Ventilador"
+    EXAUSTOR = "EXAUSTOR", "Exaustor"
+    AR_CONDICIONADO = "AR_CONDICIONADO", "Ar Condicionado"
+    OUTRO = "OUTRO", "Outro"
+    
     

@@ -6,6 +6,7 @@ from django.db import models
 
 from core.calculos.conversoes import normalizar_para_kw
 
+
 from core.calculos.eletrica import (
     calcular_corrente_monofasica,
     calcular_corrente_trifasica,
@@ -15,7 +16,11 @@ from core.choices import (
     TipoPartidaMotorChoices,
     UnidadePotenciaCorrenteChoices,
     NumeroFasesChoices,
+    TipoProtecaoMotorChoices,
+    TipoConexaoCargaPainelChoices,
 )
+
+
 from .base import Carga
 
 
@@ -66,6 +71,13 @@ class CargaMotor(models.Model):
         choices=TipoPartidaMotorChoices.choices,
         default=TipoPartidaMotorChoices.DIRETA,
     )
+    
+    tipo_protecao = models.CharField(
+    max_length=30,
+    choices=TipoProtecaoMotorChoices.choices,
+    default=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
+    help_text="Tipo de proteção elétrica do motor.",
+)
 
     reversivel = models.BooleanField(default=False)
     freio_motor = models.BooleanField(default=False)
@@ -77,6 +89,13 @@ class CargaMotor(models.Model):
         blank=True,
         validators=[MinValueValidator(Decimal("0.00"))],
     )
+
+    tipo_conexao_painel = models.CharField(
+        max_length=50,
+        choices=TipoConexaoCargaPainelChoices.choices,
+        default=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+        help_text="Define como a carga será conectada ao painel elétrico.",
+    )                                                        
 
     potencia_kw_calculada = models.DecimalField(
         max_digits=10,

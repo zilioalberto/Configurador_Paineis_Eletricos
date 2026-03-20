@@ -1,9 +1,12 @@
 from .cargas import (
     TipoCargaChoices,
     TipoPartidaMotorChoices,
+    TipoProtecaoMotorChoices,
     TipoValvulaChoices,
     TipoSensorChoices,
     TipoTransdutorChoices,
+    TipoConexaoCargaPainelChoices,
+    TipoClimatizacaoPainelChoices,
 )
 
 from .eletrica import (
@@ -25,6 +28,14 @@ from .produtos import (
     UnidadeMedidaChoices,
 )
 
+from .paineis import (
+    TipoPainelChoices,
+    TipoSeccionamentoChoices,
+    TipoConexaoAlimetacaoChoices,
+    StatusProjetoChoices,
+    
+)
+
 __all__ = [
   # ELÉTRICA
     "TensaoChoices",
@@ -38,9 +49,13 @@ __all__ = [
     # CARGAS
     "TipoCargaChoices",
     "TipoPartidaMotorChoices",
+    "TipoProtecaoMotorChoices",
     "TipoValvulaChoices",
     "TipoSensorChoices",
     "TipoTransdutorChoices",
+    "TipoConexaoCargaPainelChoices",
+    "TipoClimatizacaoPainelChoices",
+    
 
     # PRODUTOS
     "CategoriaProdutoNomeChoices",
@@ -49,4 +64,12 @@ __all__ = [
     "TipoFixacaoSeccionadoraChoices",
     "CorManoplaChoices",
     "UnidadeMedidaChoices",
+    
+    # PAINÉIS
+    "TipoPainelChoices",
+    "TipoSeccionamentoChoices",
+    "TipoConexaoAlimetacaoChoices",
+    "StatusProjetoChoices",
+      
+    
 ]
