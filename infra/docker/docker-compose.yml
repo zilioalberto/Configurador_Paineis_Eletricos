@@ -14,7 +14,7 @@ services:
     env_file:
       - ../../.env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -67,7 +67,7 @@ services:
     env_file:
       - ../../.env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER} -d ${SONAR_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10

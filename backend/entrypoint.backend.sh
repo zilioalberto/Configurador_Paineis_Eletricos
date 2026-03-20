@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "Aguardando banco de dados da aplicação..."
+echo "Aguardando banco de dados..."
 
 while ! nc -z db 5432; do
   sleep 1
