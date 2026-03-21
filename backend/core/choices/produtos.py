@@ -8,10 +8,13 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini disjuntor"
     SECCIONADORA = "SECCIONADORA", "Seccionadora"
     FONTE = "FONTE", "Fonte"
+    PLC = "PLC", "PLC"
+    EXPANSAO_PLC = "EXPANSAO_PLC", "Expansão PLC"
     BORNE = "BORNE", "Borne"
     CABO = "CABO", "Cabo"
     CANALETA = "CANALETA", "Canaleta"
     PAINEL = "PAINEL", "Painel"
+    CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
     OUTROS = "OUTROS", "Outros"
     
     

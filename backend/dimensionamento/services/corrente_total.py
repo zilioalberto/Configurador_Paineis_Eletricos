@@ -9,11 +9,10 @@ MODELOS_COM_CORRENTE = [
 ]
 
 
-def calcular_e_salvar_corrente_total_painel(projeto) -> ResumoDimensionamento:
+def calcular_corrente_total_painel(projeto) -> Decimal:
     """
     Soma a corrente calculada de todas as cargas ativas do projeto
-    que possuam o atributo corrente_calculada_a e salva o resultado
-    em ResumoDimensionamento.corrente_total_painel_a.
+    que possuam o atributo corrente_calculada_a.
     """
     corrente_total = Decimal("0.00")
 
@@ -28,8 +27,11 @@ def calcular_e_salvar_corrente_total_painel(projeto) -> ResumoDimensionamento:
             if corrente is not None:
                 corrente_total += corrente
 
-    resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
-    resumo.corrente_total_painel_a = corrente_total
-    resumo.save()
+    return corrente_total
 
+
+def calcular_e_salvar_corrente_total_painel(projeto) -> ResumoDimensionamento:
+    resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
+    resumo.corrente_total_painel_a = calcular_corrente_total_painel(projeto)
+    resumo.save()
     return resumo

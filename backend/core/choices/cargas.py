@@ -9,6 +9,8 @@ class TipoCargaChoices(models.TextChoices):
     TRANSDUTOR = "TRANSDUTOR", "Transdutor"
     TRANSMISSOR = "TRANSMISSOR", "Transmissor"
     OUTRO = "OUTRO", "Outro"
+    
+    
 
 
 class TipoPartidaMotorChoices(models.TextChoices):

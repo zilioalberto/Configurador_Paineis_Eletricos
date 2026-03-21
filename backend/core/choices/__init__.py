@@ -36,6 +36,11 @@ from .paineis import (
     
 )
 
+from .gerais import (
+    OrigemItem,
+    StatusSugestao,
+)   
+
 __all__ = [
   # ELÉTRICA
     "TensaoChoices",
@@ -70,6 +75,11 @@ __all__ = [
     "TipoSeccionamentoChoices",
     "TipoConexaoAlimetacaoChoices",
     "StatusProjetoChoices",
+    'PartesPainelChoices'
+    
+    # GERAIS
+    "OrigemItem",
+    "StatusSugestao",
       
     
 ]
