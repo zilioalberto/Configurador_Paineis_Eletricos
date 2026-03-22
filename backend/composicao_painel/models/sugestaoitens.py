@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 from core.models import BaseModel
 from core.choices import PartesPainelChoices, StatusSugestaoChoices
@@ -11,7 +12,15 @@ class SugestaoItem(BaseModel):
         on_delete=models.CASCADE,
         related_name="sugestoes_itens",
     )
-
+    
+    carga = models.ForeignKey(
+        "cargas.Carga",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="sugestoes_itens",
+    )
+    
     produto = models.ForeignKey(
         "catalogo.Produto",
         on_delete=models.CASCADE,
@@ -54,8 +63,14 @@ class SugestaoItem(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["projeto", "parte_painel"],
-                name="uq_sugestao_item_projeto_parte",
-            )
+                condition=Q(carga__isnull=True),
+                name="uq_sugestao_item_projeto_parte_sem_carga",
+            ),
+            models.UniqueConstraint(
+                fields=["projeto", "parte_painel", "carga"],
+                condition=Q(carga__isnull=False),
+                name="uq_sugestao_item_projeto_parte_carga",
+            ),
         ]
 
     def __str__(self):

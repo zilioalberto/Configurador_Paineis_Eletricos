@@ -1,10 +1,10 @@
 from django.contrib import admin, messages
 
 from projetos.models import Projeto
+from composicao_painel.models import SugestaoItem
 from composicao_painel.services.sugestoes.orquestrador import (
     gerar_sugestoes_painel,
 )
-from composicao_painel.models import SugestaoItem
 
 
 @admin.action(description="Gerar sugestões de composição do painel (teste)")
@@ -33,6 +33,19 @@ def gerar_sugestoes_painel_teste_action(modeladmin, request, queryset):
 
         print(f"[ADMIN ACTION] Resultado do orquestrador: {resultado}")
 
+        total_sugestoes = resultado.get("total_sugestoes", 0)
+        total_erros = len(resultado.get("erros", []))
+
+        if resultado.get("sugestoes"):
+            print("[ADMIN ACTION] Sugestões geradas:")
+            for sugestao in resultado["sugestoes"]:
+                print(
+                    f"  - id={sugestao.id} | "
+                    f"parte={sugestao.parte_painel} | "
+                    f"carga={getattr(sugestao, 'carga', None)} | "
+                    f"produto={sugestao.produto}"
+                )
+
         if resultado.get("erros"):
             for erro in resultado["erros"]:
                 print(f"[ADMIN ACTION] Erro encontrado: {erro}")
@@ -42,14 +55,24 @@ def gerar_sugestoes_painel_teste_action(modeladmin, request, queryset):
                     level=messages.WARNING,
                 )
 
-        modeladmin.message_user(
-            request,
-            (
-                f"Projeto ID {projeto.id}: "
-                f"{resultado['total_sugestoes']} sugestão(ões) gerada(s)."
-            ),
-            level=messages.SUCCESS,
-        )
+        if total_sugestoes > 0:
+            modeladmin.message_user(
+                request,
+                (
+                    f"Projeto ID {projeto.id}: "
+                    f"{total_sugestoes} sugestão(ões) gerada(s) com sucesso."
+                ),
+                level=messages.SUCCESS,
+            )
+        elif total_erros == 0:
+            modeladmin.message_user(
+                request,
+                (
+                    f"Projeto ID {projeto.id}: "
+                    "nenhuma sugestão foi gerada."
+                ),
+                level=messages.INFO,
+            )
 
     except Exception as exc:
         print(f"[ADMIN ACTION] Exceção geral: {exc}")
@@ -69,23 +92,89 @@ class SugestaoItemAdmin(admin.ModelAdmin):
         "id",
         "projeto",
         "parte_painel",
+        "carga",
         "produto",
         "quantidade",
+        "corrente_referencia_a",
         "status",
         "ordem",
     )
+
     list_filter = (
         "parte_painel",
         "status",
+        "projeto",
     )
+
     search_fields = (
         "projeto__nome",
         "produto__nome",
+        "produto__descricao",
         "produto__codigo",
+        "carga__nome",
+        "carga__descricao",
     )
+
     readonly_fields = (
         "memoria_calculo",
+        "observacoes",
     )
+
+    autocomplete_fields = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    list_select_related = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    ordering = ("projeto", "ordem", "parte_painel", "id")
+
+    fieldsets = (
+        (
+            "Identificação",
+            {
+                "fields": (
+                    "projeto",
+                    "parte_painel",
+                    "carga",
+                    "produto",
+                )
+            },
+        ),
+        (
+            "Dados da sugestão",
+            {
+                "fields": (
+                    "quantidade",
+                    "corrente_referencia_a",
+                    "status",
+                    "ordem",
+                )
+            },
+        ),
+        (
+            "Rastreabilidade",
+            {
+                "fields": (
+                    "memoria_calculo",
+                    "observacoes",
+                )
+            },
+        ),
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "projeto",
+            "produto",
+            "carga",
+        )
 
 
 try:
