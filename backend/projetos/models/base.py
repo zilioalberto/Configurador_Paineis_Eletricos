@@ -61,8 +61,7 @@ class Projeto(BaseModel, AtivacaoMixin):
 
     tensao_nominal = models.IntegerField(
         choices=TensaoChoices.choices,
-        null=True,
-        blank=True,
+        default=TensaoChoices.V380,
         help_text="Tensão principal do projeto/painel.",
     )
 
@@ -123,7 +122,7 @@ class Projeto(BaseModel, AtivacaoMixin):
 
     tensao_comando = models.IntegerField(
         choices=TensaoChoices.choices,
-        default=TensaoChoices.V24CC,
+        default=TensaoChoices.V24,
         help_text="Tensão de alimentação do comando.",
     )
     
@@ -227,9 +226,9 @@ class Projeto(BaseModel, AtivacaoMixin):
                 errors["frequencia"] = "Para alimentação CA, informe a frequência."
 
             if self.tensao_nominal in [
-                TensaoChoices.V12CC,
-                TensaoChoices.V24CC,
-                TensaoChoices.V48CC,
+                TensaoChoices.V12,
+                TensaoChoices.V24,
+                TensaoChoices.V48,
             ]:
                 errors["tensao_nominal"] = "Para alimentação CA, selecione uma tensão compatível com CA."
 
@@ -238,32 +237,15 @@ class Projeto(BaseModel, AtivacaoMixin):
             self.frequencia = None
 
             if self.tensao_nominal in [
-                TensaoChoices.V110CA,
-                TensaoChoices.V127CA,
-                TensaoChoices.V220CA,
-                TensaoChoices.V380CA,
-                TensaoChoices.V440CA,
+                TensaoChoices.V110,
+                TensaoChoices.V127,
+                TensaoChoices.V220,
+                TensaoChoices.V380,
+                TensaoChoices.V440,
             ]:
                 errors["tensao_nominal"] = "Para alimentação CC, selecione uma tensão compatível com CC."
 
-        # Alimentação de comando
-        if self.tipo_corrente_comando == TipoCorrenteChoices.CA and self.tensao_comando in [
-            TensaoChoices.V12CC,
-            TensaoChoices.V24CC,
-            TensaoChoices.V48CC,
-        ]:
-            errors["tensao_comando"] = "Para comando em CA, selecione uma tensão compatível com CA."
-
-        if self.tipo_corrente_comando == TipoCorrenteChoices.CC and self.tensao_comando in [
-            TensaoChoices.V110CA,
-            TensaoChoices.V127CA,
-            TensaoChoices.V220CA,
-            TensaoChoices.V380CA,
-            TensaoChoices.V440CA,
-        ]:
-            errors["tensao_comando"] = "Para comando em CC, selecione uma tensão compatível com CC."
-
-        # Seccionamento
+         # Seccionamento
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
         else:

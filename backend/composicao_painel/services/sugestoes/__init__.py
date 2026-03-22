@@ -1,19 +1,8 @@
-from .base import (
-    BaseGeradorSugestao,
-    criar_sugestao_item,
-    existe_sugestao_equivalente,
-    limpar_sugestoes_pendentes,
-)
-from .protecao_motor import (
-    GeradorProtecaoMotor,
-    gerar_sugestoes_protecao_motor,
-)
+from .seccionamento import gerar_sugestao_seccionamento
+from .orquestrador import gerar_sugestoes_painel, limpar_sugestoes_projeto
 
 __all__ = [
-    "BaseGeradorSugestao",
-    "criar_sugestao_item",
-    "existe_sugestao_equivalente",
-    "limpar_sugestoes_pendentes",
-    "GeradorProtecaoMotor",
-    "gerar_sugestoes_protecao_motor",
+    "gerar_sugestao_seccionamento",
+    "gerar_sugestoes_painel",
+    "limpar_sugestoes_projeto",
 ]
