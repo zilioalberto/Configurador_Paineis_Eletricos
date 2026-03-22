@@ -1,11 +1,16 @@
 from django.core.exceptions import ValidationError
 
 from cargas.models import Carga, CargaMotor
-from composicao_painel.models import SugestaoItem
+from composicao_painel.models import SugestaoItem, PendenciaItem
 
 from catalogo.selectors.disjuntores_motor import selecionar_disjuntores_motor
 
-from core.choices import PartesPainelChoices, StatusSugestaoChoices
+from core.choices import (
+    PartesPainelChoices,
+    StatusSugestaoChoices,
+    StatusPendenciaChoices,
+    CategoriaProdutoNomeChoices,
+)
 from core.choices.cargas import TipoCargaChoices, TipoProtecaoMotorChoices
 
 
@@ -27,13 +32,23 @@ def gerar_sugestoes_disjuntores_motor(projeto):
     print("[DISJUNTORES MOTOR] Iniciando gerar_sugestoes_disjuntores_motor")
     print(f"[DISJUNTORES MOTOR] Projeto: id={projeto.id} | projeto={projeto}")
 
-    deletados, _ = SugestaoItem.objects.filter(
+    deletados_sugestoes, _ = SugestaoItem.objects.filter(
         projeto=projeto,
         parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
     ).filter(
         carga__tipo=TipoCargaChoices.MOTOR
     ).delete()
-    print(f"[DISJUNTORES MOTOR] Sugestões antigas removidas: {deletados}")
+    print(f"[DISJUNTORES MOTOR] Sugestões antigas removidas: {deletados_sugestoes}")
+
+    deletados_pendencias, _ = PendenciaItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+    ).filter(
+        carga__tipo=TipoCargaChoices.MOTOR
+    ).delete()
+    print(f"[DISJUNTORES MOTOR] Pendências antigas removidas: {deletados_pendencias}")
 
     cargas = Carga.objects.filter(
         projeto=projeto,
@@ -53,7 +68,30 @@ def gerar_sugestoes_disjuntores_motor(projeto):
             carga_motor = CargaMotor.objects.get(carga=carga)
             print(f"[DISJUNTORES MOTOR] CargaMotor encontrada: id={carga_motor.id}")
         except CargaMotor.DoesNotExist:
-            print("[DISJUNTORES MOTOR] CargaMotor não encontrada. Pulando carga.")
+            descricao = "Carga do tipo MOTOR sem registro correspondente em CargaMotor."
+
+            memoria_calculo = (
+                f"[DISJUNTOR MOTOR]\n"
+                f"Carga: {carga}\n"
+                f"Tipo de carga: {carga.tipo}\n"
+                f"Motivo: registro CargaMotor não encontrado."
+            )
+
+            PendenciaItem.objects.update_or_create(
+                projeto=projeto,
+                parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+                categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+                carga=carga,
+                defaults={
+                    "descricao": descricao,
+                    "corrente_referencia_a": None,
+                    "memoria_calculo": memoria_calculo,
+                    "status": StatusPendenciaChoices.ABERTA,
+                    "ordem": 30,
+                },
+            )
+
+            print("[DISJUNTORES MOTOR] Pendência criada: CargaMotor não encontrada.")
             continue
 
         print(f"[DISJUNTORES MOTOR] Tipo proteção: {carga_motor.tipo_protecao}")
@@ -68,7 +106,31 @@ def gerar_sugestoes_disjuntores_motor(projeto):
         print(f"[DISJUNTORES MOTOR] Corrente de referência: {corrente_referencia}")
 
         if corrente_referencia is None:
-            print("[DISJUNTORES MOTOR] Corrente calculada não encontrada. Pulando carga.")
+            descricao = "Corrente calculada não encontrada para seleção do disjuntor motor."
+
+            memoria_calculo = (
+                f"[DISJUNTOR MOTOR]\n"
+                f"Carga: {carga}\n"
+                f"Tipo de carga: {carga.tipo}\n"
+                f"Tipo de proteção do motor: {carga_motor.tipo_protecao}\n"
+                f"Motivo: corrente_calculada_a não encontrada."
+            )
+
+            PendenciaItem.objects.update_or_create(
+                projeto=projeto,
+                parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+                categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+                carga=carga,
+                defaults={
+                    "descricao": descricao,
+                    "corrente_referencia_a": None,
+                    "memoria_calculo": memoria_calculo,
+                    "status": StatusPendenciaChoices.ABERTA,
+                    "ordem": 30,
+                },
+            )
+
+            print("[DISJUNTORES MOTOR] Pendência criada: corrente calculada ausente.")
             continue
 
         opcoes = selecionar_disjuntores_motor(
@@ -82,13 +144,6 @@ def gerar_sugestoes_disjuntores_motor(projeto):
             f"[DISJUNTORES MOTOR] Quantidade de opções retornadas pelo selector: {len(opcoes_lista)}"
         )
 
-        if not opcoes_lista:
-            print("[DISJUNTORES MOTOR] Nenhum disjuntor motor compatível encontrado.")
-            continue
-
-        produto_selecionado = opcoes_lista[0]
-        print(f"[DISJUNTORES MOTOR] Produto selecionado: {produto_selecionado}")
-
         memoria_calculo = (
             f"[DISJUNTOR MOTOR]\n"
             f"Carga: {carga}\n"
@@ -100,9 +155,41 @@ def gerar_sugestoes_disjuntores_motor(projeto):
             f"Critério final: primeiro item compatível retornado pelo selector"
         )
 
+        if not opcoes_lista:
+            descricao = (
+                f"Nenhum disjuntor motor compatível encontrado para a carga {carga}."
+            )
+
+            observacoes = (
+                f"Corrente requerida: {corrente_referencia} A | "
+                f"Tipo de proteção: {carga_motor.tipo_protecao}"
+            )
+
+            PendenciaItem.objects.update_or_create(
+                projeto=projeto,
+                parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+                categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+                carga=carga,
+                defaults={
+                    "descricao": descricao,
+                    "corrente_referencia_a": corrente_referencia,
+                    "memoria_calculo": memoria_calculo,
+                    "observacoes": observacoes,
+                    "status": StatusPendenciaChoices.ABERTA,
+                    "ordem": 30,
+                },
+            )
+
+            print("[DISJUNTORES MOTOR] Pendência criada: nenhum disjuntor motor compatível encontrado.")
+            continue
+
+        produto_selecionado = opcoes_lista[0]
+        print(f"[DISJUNTORES MOTOR] Produto selecionado: {produto_selecionado}")
+
         sugestao, created = SugestaoItem.objects.update_or_create(
             projeto=projeto,
             parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+            categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
             carga=carga,
             defaults={
                 "produto": produto_selecionado,

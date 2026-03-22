@@ -39,6 +39,7 @@ from .paineis import (
 from .gerais import (
     OrigemItemChoices,
     StatusSugestaoChoices,
+    StatusPendenciaChoices,
 )   
 
 __all__ = [
@@ -79,6 +80,7 @@ __all__ = [
     # GERAIS
     "OrigemItem",
     "StatusSugestao",
+    "StatusPendencia",
       
     
 ]

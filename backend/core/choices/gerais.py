@@ -9,3 +9,8 @@ class StatusSugestaoChoices(models.TextChoices):
         APROVADA = "APROVADA", "Aprovada"
         REJEITADA = "REJEITADA", "Rejeitada"
         SUBSTITUIDA = "SUBSTITUIDA", "Substituída"
+        
+class StatusPendenciaChoices(models.TextChoices):
+        ABERTA = "ABERTA", "Aberta"
+        RESOLVIDA = "RESOLVIDA", "Resolvida"
+        IGNORADA = "IGNORADA", "Ignorada"
