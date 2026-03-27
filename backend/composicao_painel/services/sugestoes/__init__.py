@@ -1,19 +1,20 @@
-from .base import (
-    BaseGeradorSugestao,
-    criar_sugestao_item,
-    existe_sugestao_equivalente,
-    limpar_sugestoes_pendentes,
-)
-from .protecao_motor import (
-    GeradorProtecaoMotor,
-    gerar_sugestoes_protecao_motor,
-)
+from .seccionadoras import gerar_sugestao_seccionamento
+from .contatoras import gerar_sugestoes_contatoras
+from .disjuntores_motor import gerar_sugestoes_disjuntores_motor
+from .orquestrador import gerar_sugestoes_painel, limpar_sugestoes_projeto
+from .orquestrador_pendencias import reavaliar_pendencias_projeto
+from .aprovacao_sugestoes import aprovar_sugestao_item, aprovar_sugestoes
+
+
 
 __all__ = [
-    "BaseGeradorSugestao",
-    "criar_sugestao_item",
-    "existe_sugestao_equivalente",
-    "limpar_sugestoes_pendentes",
-    "GeradorProtecaoMotor",
-    "gerar_sugestoes_protecao_motor",
+    "gerar_sugestao_seccionamento",
+    "gerar_sugestoes_contatoras",
+    "gerar_sugestoes_disjuntores_motor",
+    "aprovar_sugestao_item",
+    "aprovar_sugestoes",
+
+    "gerar_sugestoes_painel",
+    "reavaliar_pendencias_projeto",
+    "limpar_sugestoes_projeto",
 ]

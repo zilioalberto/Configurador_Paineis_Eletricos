@@ -1,3 +1,6 @@
-from .conjuntos import ConjuntoPainel
-from .itens_composicao import ItemComposicao    
-from .sugestoes import SugestaoItem
+from .sugestaoitens import SugestaoItem
+from .pendenciaitens import PendenciaItem
+from .composicaoitens import ComposicaoItem
+
+
+

@@ -1,407 +1,593 @@
-from __future__ import annotations
-
 from django.contrib import admin, messages
-from django.utils.html import format_html
+from django.db import transaction
 
-from composicao_painel.models import ConjuntoPainel, ItemComposicao, SugestaoItem
-from composicao_painel.services import (
-    aprovar_sugestao,
-    garantir_conjuntos_padrao,
-    gerar_sugestoes_projeto,
-    regerar_sugestoes_projeto,
-    rejeitar_sugestao,
-    resumo_pendencias_projeto,
+from projetos.models import Projeto
+from composicao_painel.models import (
+    SugestaoItem,
+    PendenciaItem,
+    ComposicaoItem,
+)
+from composicao_painel.services.sugestoes.orquestrador import (
+    gerar_sugestoes_painel,
+)
+from composicao_painel.services.sugestoes.orquestrador_pendencias import (
+    reavaliar_pendencias_projeto,
+)
+from composicao_painel.services.sugestoes.aprovacao_sugestoes import (
+    aprovar_sugestao_item,
+    aprovar_sugestoes,
+)
+
+from core.choices import (
+    StatusPendenciaChoices,
+    StatusSugestaoChoices,
 )
 
 
-# ==========================================================
-# INLINES
-# ==========================================================
+@admin.action(description="Gerar sugestões de composição do painel (teste)")
+def gerar_sugestoes_painel_teste_action(modeladmin, request, queryset):
+    print("\n" + "=" * 100)
+    print("[ADMIN ACTION] Iniciando gerar_sugestoes_painel_teste_action")
+    print(f"[ADMIN ACTION] Total de projetos selecionados: {queryset.count()}")
 
-class ItemComposicaoInline(admin.TabularInline):
-    model = ItemComposicao
-    extra = 0
-    fields = (
-        "produto",
-        "quantidade",
-        "unidade",
-        "origem",
-        "carga",
-        "descricao_complementar",
-        "observacoes",
-    )
-    readonly_fields = ()
-    autocomplete_fields = ("produto", "carga")
+    if queryset.count() != 1:
+        print("[ADMIN ACTION] Falha: mais de um projeto ou nenhum projeto selecionado")
+        modeladmin.message_user(
+            request,
+            "Selecione exatamente 1 projeto para teste.",
+            level=messages.WARNING,
+        )
+        return
 
+    projeto = queryset.first()
+    print(f"[ADMIN ACTION] Projeto selecionado: id={projeto.id} | projeto={projeto}")
 
-class SugestaoItemInline(admin.TabularInline):
-    model = SugestaoItem
-    extra = 0
-    fields = (
-        "tipo_sugestao",
-        "produto",
-        "carga",
-        "quantidade",
-        "unidade",
-        "status",
-        "descricao",
-    )
-    readonly_fields = ()
-    autocomplete_fields = ("produto", "carga")
+    try:
+        resultado = gerar_sugestoes_painel(
+            projeto=projeto,
+            limpar_antes=True,
+        )
 
+        print(f"[ADMIN ACTION] Resultado do orquestrador: {resultado}")
 
-# ==========================================================
-# CONJUNTO PAINEL
-# ==========================================================
+        total_sugestoes = resultado.get("total_sugestoes", 0)
+        total_erros = len(resultado.get("erros", []))
+        total_pendencias = PendenciaItem.objects.filter(projeto=projeto).count()
 
-@admin.register(ConjuntoPainel)
-class ConjuntoPainelAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "projeto",
-        "nome",
-        "ordem",
-        "descricao_resumida",
-        "quantidade_itens",
-        "quantidade_sugestoes",
-    )
-    list_filter = ("nome",)
-    search_fields = (
-        "projeto__nome",
-        "descricao",
-    )
-    ordering = ("projeto", "ordem", "id")
-    autocomplete_fields = ("projeto",)
-    inlines = [ItemComposicaoInline, SugestaoItemInline]
+        if resultado.get("sugestoes"):
+            print("[ADMIN ACTION] Sugestões geradas:")
+            for sugestao in resultado["sugestoes"]:
+                print(
+                    f"  - id={sugestao.id} | "
+                    f"parte={sugestao.parte_painel} | "
+                    f"categoria={getattr(sugestao, 'categoria_produto', None)} | "
+                    f"carga={getattr(sugestao, 'carga', None)} | "
+                    f"produto={sugestao.produto}"
+                )
 
-    def descricao_resumida(self, obj):
-        if not obj.descricao:
-            return "-"
-        return obj.descricao[:60]
-    descricao_resumida.short_description = "Descrição"
+        if resultado.get("erros"):
+            for erro in resultado["erros"]:
+                print(f"[ADMIN ACTION] Erro encontrado: {erro}")
+                modeladmin.message_user(
+                    request,
+                    f"Etapa {erro['etapa']}: {erro['erro']}",
+                    level=messages.WARNING,
+                )
 
-    def quantidade_itens(self, obj):
-        return obj.itens.count()
-    quantidade_itens.short_description = "Itens"
+        if total_sugestoes > 0 or total_pendencias > 0:
+            modeladmin.message_user(
+                request,
+                (
+                    f"Projeto ID {projeto.id}: "
+                    f"{total_sugestoes} sugestão(ões) gerada(s) e "
+                    f"{total_pendencias} pendência(s) encontrada(s)."
+                ),
+                level=messages.SUCCESS if total_erros == 0 else messages.WARNING,
+            )
+        elif total_erros == 0:
+            modeladmin.message_user(
+                request,
+                (
+                    f"Projeto ID {projeto.id}: "
+                    "nenhuma sugestão nem pendência foi gerada."
+                ),
+                level=messages.INFO,
+            )
 
-    def quantidade_sugestoes(self, obj):
-        return obj.sugestoes.count()
-    quantidade_sugestoes.short_description = "Sugestões"
+    except Exception as exc:
+        print(f"[ADMIN ACTION] Exceção geral: {exc}")
+        modeladmin.message_user(
+            request,
+            f"Erro ao gerar sugestões: {str(exc)}",
+            level=messages.ERROR,
+        )
 
-
-# ==========================================================
-# ITEM COMPOSIÇÃO
-# ==========================================================
-
-@admin.register(ItemComposicao)
-class ItemComposicaoAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "projeto",
-        "conjunto",
-        "produto",
-        "quantidade",
-        "unidade",
-        "origem",
-        "carga",
-    )
-    list_filter = (
-        "conjunto__nome",
-        "origem",
-    )
-    search_fields = (
-        "projeto__nome",
-        "produto__codigo",
-        "produto__descricao",
-        "descricao_complementar",
-        "carga__nome",
-    )
-    ordering = ("projeto", "conjunto__ordem", "id")
-    autocomplete_fields = (
-        "projeto",
-        "conjunto",
-        "produto",
-        "carga",
-    )
-
-    fieldsets = (
-        ("Vínculos", {
-            "fields": ("projeto", "conjunto", "produto", "carga")
-        }),
-        ("Quantidades", {
-            "fields": ("quantidade", "unidade", "origem")
-        }),
-        ("Complementos", {
-            "fields": ("descricao_complementar", "observacoes")
-        }),
-    )
+    print("[ADMIN ACTION] Finalizando gerar_sugestoes_painel_teste_action")
+    print("=" * 100 + "\n")
 
 
-# ==========================================================
-# AÇÕES DE SUGESTÃO
-# ==========================================================
+@admin.action(description="Reavaliar pendências do projeto (teste)")
+def reavaliar_pendencias_teste_action(modeladmin, request, queryset):
+    print("\n" + "=" * 100)
+    print("[ADMIN ACTION] Iniciando reavaliar_pendencias_teste_action")
+    print(f"[ADMIN ACTION] Total de projetos selecionados: {queryset.count()}")
+
+    if queryset.count() != 1:
+        print("[ADMIN ACTION] Falha: mais de um projeto ou nenhum projeto selecionado")
+        modeladmin.message_user(
+            request,
+            "Selecione exatamente 1 projeto para reavaliar pendências.",
+            level=messages.WARNING,
+        )
+        return
+
+    projeto = queryset.first()
+    print(f"[ADMIN ACTION] Projeto selecionado: id={projeto.id} | projeto={projeto}")
+
+    try:
+        total_antes = PendenciaItem.objects.filter(
+            projeto=projeto,
+            status=StatusPendenciaChoices.ABERTA,
+        ).count()
+
+        print(f"[ADMIN ACTION] Pendências abertas antes da reavaliação: {total_antes}")
+
+        resultado = reavaliar_pendencias_projeto(projeto)
+        print(f"[ADMIN ACTION] Resultado do orquestrador_pendencias: {resultado}")
+
+        total_depois = PendenciaItem.objects.filter(
+            projeto=projeto,
+            status=StatusPendenciaChoices.ABERTA,
+        ).count()
+
+        print(f"[ADMIN ACTION] Pendências abertas após reavaliação: {total_depois}")
+
+        categorias_reavaliadas = resultado.get("categorias_reavaliadas", [])
+        categorias_nao_mapeadas = resultado.get("categorias_nao_mapeadas", [])
+        erros = resultado.get("erros", [])
+
+        if categorias_reavaliadas:
+            print("[ADMIN ACTION] Categorias reavaliadas:")
+            for categoria in categorias_reavaliadas:
+                print(f"  - {categoria}")
+
+        if categorias_nao_mapeadas:
+            print("[ADMIN ACTION] Categorias não mapeadas:")
+            for categoria in categorias_nao_mapeadas:
+                print(f"  - {categoria}")
+                modeladmin.message_user(
+                    request,
+                    f"Categoria não mapeada para reavaliação: {categoria}",
+                    level=messages.WARNING,
+                )
+
+        if erros:
+            print("[ADMIN ACTION] Erros na reavaliação:")
+            for erro in erros:
+                print(f"  - {erro}")
+                modeladmin.message_user(
+                    request,
+                    (
+                        f"Erro na categoria {erro['categoria_produto']}: "
+                        f"{erro['erro']}"
+                    ),
+                    level=messages.WARNING,
+                )
+
+        modeladmin.message_user(
+            request,
+            (
+                f"Projeto ID {projeto.id}: "
+                f"pendências abertas antes={total_antes}, depois={total_depois}. "
+                f"Categorias reavaliadas={len(categorias_reavaliadas)}."
+            ),
+            level=messages.SUCCESS if not erros else messages.WARNING,
+        )
+
+    except Exception as exc:
+        print(f"[ADMIN ACTION] Exceção geral: {exc}")
+        modeladmin.message_user(
+            request,
+            f"Erro ao reavaliar pendências: {str(exc)}",
+            level=messages.ERROR,
+        )
+
+    print("[ADMIN ACTION] Finalizando reavaliar_pendencias_teste_action")
+    print("=" * 100 + "\n")
+
 
 @admin.action(description="Aprovar sugestões selecionadas")
-def action_aprovar_sugestoes(modeladmin, request, queryset):
-    total = 0
-    erros = 0
+def aprovar_sugestoes_action(modeladmin, request, queryset):
+    print("\n" + "=" * 100)
+    print("[ADMIN ACTION] Iniciando aprovar_sugestoes_action")
+    print(f"[ADMIN ACTION] Total de sugestões selecionadas: {queryset.count()}")
 
-    for sugestao in queryset:
-        try:
-            aprovar_sugestao(sugestao)
-            total += 1
-        except Exception as exc:
-            erros += 1
+    itens_transferidos = []
+    erros = []
+
+    try:
+        with transaction.atomic():
+            for sugestao in queryset.select_related("projeto", "produto", "carga"):
+                try:
+                    print(
+                        f"[ADMIN ACTION] Aprovando sugestão "
+                        f"id={sugestao.id} | projeto={sugestao.projeto_id} | "
+                        f"parte={sugestao.parte_painel} | "
+                        f"categoria={sugestao.categoria_produto} | "
+                        f"carga={sugestao.carga_id} | produto={sugestao.produto_id}"
+                    )
+
+                    item = aprovar_sugestao_item(sugestao)
+                    itens_transferidos.append(item)
+
+                except Exception as exc:
+                    erro_msg = (
+                        f"Sugestão {getattr(sugestao, 'id', 'sem_id')}: {str(exc)}"
+                    )
+                    print(f"[ADMIN ACTION] Erro ao aprovar sugestão: {erro_msg}")
+                    erros.append(erro_msg)
+
+        if itens_transferidos:
             modeladmin.message_user(
                 request,
-                f"Erro ao aprovar sugestão #{sugestao.pk}: {exc}",
-                level=messages.ERROR,
+                (
+                    f"{len(itens_transferidos)} sugestão(ões) aprovada(s) e "
+                    f"transferida(s) para a composição."
+                ),
+                level=messages.SUCCESS if not erros else messages.WARNING,
             )
 
-    if total:
-        modeladmin.message_user(
-            request,
-            f"{total} sugestão(ões) aprovada(s) com sucesso.",
-            level=messages.SUCCESS,
-        )
+        if erros:
+            for erro in erros:
+                modeladmin.message_user(
+                    request,
+                    erro,
+                    level=messages.WARNING,
+                )
 
-    if erros:
-        modeladmin.message_user(
-            request,
-            f"{erros} sugestão(ões) não puderam ser aprovadas.",
-            level=messages.WARNING,
-        )
-
-
-@admin.action(description="Rejeitar sugestões selecionadas")
-def action_rejeitar_sugestoes(modeladmin, request, queryset):
-    total = 0
-    erros = 0
-
-    for sugestao in queryset:
-        try:
-            rejeitar_sugestao(sugestao)
-            total += 1
-        except Exception as exc:
-            erros += 1
+        if not itens_transferidos and not erros:
             modeladmin.message_user(
                 request,
-                f"Erro ao rejeitar sugestão #{sugestao.pk}: {exc}",
-                level=messages.ERROR,
+                "Nenhuma sugestão foi aprovada.",
+                level=messages.INFO,
             )
 
-    if total:
+    except Exception as exc:
+        print(f"[ADMIN ACTION] Exceção geral em aprovar_sugestoes_action: {exc}")
         modeladmin.message_user(
             request,
-            f"{total} sugestão(ões) rejeitada(s) com sucesso.",
-            level=messages.SUCCESS,
+            f"Erro ao aprovar sugestões: {str(exc)}",
+            level=messages.ERROR,
         )
 
-    if erros:
-        modeladmin.message_user(
-            request,
-            f"{erros} sugestão(ões) não puderam ser rejeitadas.",
-            level=messages.WARNING,
-        )
+    print("[ADMIN ACTION] Finalizando aprovar_sugestoes_action")
+    print("=" * 100 + "\n")
 
-
-# ==========================================================
-# SUGESTÃO ITEM
-# ==========================================================
 
 @admin.register(SugestaoItem)
 class SugestaoItemAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "projeto",
-        "conjunto",
-        "tipo_sugestao",
+        "parte_painel",
+        "categoria_produto",
+        "carga",
         "produto",
         "quantidade",
-        "unidade",
+        "corrente_referencia_a",
         "status",
-        "carga",
-        "descricao_resumida",
+        "ordem",
     )
+
     list_filter = (
+        "parte_painel",
+        "categoria_produto",
         "status",
-        "tipo_sugestao",
-        "conjunto__nome",
+        "projeto",
     )
+
     search_fields = (
         "projeto__nome",
-        "produto__codigo",
         "produto__descricao",
-        "descricao",
-        "justificativa",
-        "carga__nome",
+        "produto__codigo",
+        "carga__descricao",
+        "categoria_produto",
     )
-    ordering = ("projeto", "conjunto__ordem", "id")
+
+    readonly_fields = (
+        "memoria_calculo",
+        "observacoes",
+    )
+
     autocomplete_fields = (
         "projeto",
-        "conjunto",
         "produto",
         "carga",
     )
+
+    list_select_related = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    ordering = ("projeto", "ordem", "parte_painel", "categoria_produto", "id")
+
     actions = (
-        action_aprovar_sugestoes,
-        action_rejeitar_sugestoes,
+        aprovar_sugestoes_action,
     )
 
     fieldsets = (
-        ("Vínculos", {
-            "fields": ("projeto", "conjunto", "produto", "carga")
-        }),
-        ("Sugestão", {
-            "fields": ("tipo_sugestao", "descricao", "justificativa", "status")
-        }),
-        ("Quantidades", {
-            "fields": ("quantidade", "unidade")
-        }),
+        (
+            "Identificação",
+            {
+                "fields": (
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                    "produto",
+                )
+            },
+        ),
+        (
+            "Dados da sugestão",
+            {
+                "fields": (
+                    "quantidade",
+                    "corrente_referencia_a",
+                    "status",
+                    "ordem",
+                )
+            },
+        ),
+        (
+            "Rastreabilidade",
+            {
+                "fields": (
+                    "memoria_calculo",
+                    "observacoes",
+                )
+            },
+        ),
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "projeto",
+            "produto",
+            "carga",
+        )
+
+    def save_model(self, request, obj, form, change):
+        status_anterior = None
+
+        if change and obj.pk:
+            try:
+                status_anterior = SugestaoItem.objects.get(pk=obj.pk).status
+            except SugestaoItem.DoesNotExist:
+                status_anterior = None
+
+        super().save_model(request, obj, form, change)
+
+        if (
+            change
+            and status_anterior != StatusSugestaoChoices.APROVADA
+            and obj.status == StatusSugestaoChoices.APROVADA
+        ):
+            try:
+                aprovar_sugestao_item(obj)
+                self.message_user(
+                    request,
+                    "Sugestão aprovada e transferida para a composição.",
+                    level=messages.SUCCESS,
+                )
+            except Exception as exc:
+                self.message_user(
+                    request,
+                    f"Erro ao transferir sugestão aprovada: {str(exc)}",
+                    level=messages.ERROR,
+                )
+
+
+@admin.register(ComposicaoItem)
+class ComposicaoItemAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "projeto",
+        "parte_painel",
+        "categoria_produto",
+        "carga",
+        "produto",
+        "quantidade",
+        "corrente_referencia_a",
+        "ordem",
+    )
+
+    list_filter = (
+        "parte_painel",
+        "categoria_produto",
+        "projeto",
+    )
+
+    search_fields = (
+        "projeto__nome",
+        "produto__descricao",
+        "produto__codigo",
+        "carga__descricao",
+        "categoria_produto",
+    )
+
+    readonly_fields = (
+        "memoria_calculo",
+        "observacoes",
+    )
+
+    autocomplete_fields = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    list_select_related = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    ordering = ("projeto", "ordem", "parte_painel", "categoria_produto", "id")
+
+    fieldsets = (
+        (
+            "Identificação",
+            {
+                "fields": (
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                    "produto",
+                )
+            },
+        ),
+        (
+            "Dados da composição",
+            {
+                "fields": (
+                    "quantidade",
+                    "corrente_referencia_a",
+                    "ordem",
+                )
+            },
+        ),
+        (
+            "Rastreabilidade",
+            {
+                "fields": (
+                    "memoria_calculo",
+                    "observacoes",
+                )
+            },
+        ),
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "projeto",
+            "produto",
+            "carga",
+        )
+
+
+@admin.register(PendenciaItem)
+class PendenciaItemAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "projeto",
+        "parte_painel",
+        "categoria_produto",
+        "carga",
+        "descricao_resumida",
+        "corrente_referencia_a",
+        "status",
+        "ordem",
+    )
+
+    list_filter = (
+        "parte_painel",
+        "categoria_produto",
+        "status",
+        "projeto",
+    )
+
+    search_fields = (
+        "projeto__nome",
+        "carga__descricao",
+        "categoria_produto",
+        "descricao",
+        "observacoes",
+        "memoria_calculo",
+    )
+
+    readonly_fields = (
+        "memoria_calculo",
+        "observacoes",
+    )
+
+    autocomplete_fields = (
+        "projeto",
+        "carga",
+    )
+
+    list_select_related = (
+        "projeto",
+        "carga",
+    )
+
+    ordering = ("projeto", "ordem", "parte_painel", "categoria_produto", "id")
+
+    fieldsets = (
+        (
+            "Identificação",
+            {
+                "fields": (
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                )
+            },
+        ),
+        (
+            "Dados da pendência",
+            {
+                "fields": (
+                    "descricao",
+                    "corrente_referencia_a",
+                    "status",
+                    "ordem",
+                )
+            },
+        ),
+        (
+            "Rastreabilidade",
+            {
+                "fields": (
+                    "memoria_calculo",
+                    "observacoes",
+                )
+            },
+        ),
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "projeto",
+            "carga",
+        )
+
+    @admin.display(description="Descrição")
     def descricao_resumida(self, obj):
         if not obj.descricao:
             return "-"
-        return obj.descricao[:60]
-    descricao_resumida.short_description = "Descrição"
+        return obj.descricao[:80] + "..." if len(obj.descricao) > 80 else obj.descricao
 
-
-# ==========================================================
-# ADMIN AUXILIAR NO PROJETO
-# ==========================================================
-
-# Este trecho só deve ser usado se você quiser acoplar ações no admin de Projeto.
-# Se o Projeto já estiver registrado em outro app/admin.py, use admin.site.unregister/register
-# somente se necessário e com cuidado.
 
 try:
-    from projetos.models import Projeto
-except Exception:
-    Projeto = None
+    projeto_admin = admin.site._registry.get(Projeto)
+    if projeto_admin:
+        actions = list(getattr(projeto_admin, "actions", []) or [])
 
+        if gerar_sugestoes_painel_teste_action not in actions:
+            actions.append(gerar_sugestoes_painel_teste_action)
 
-if Projeto is not None:
+        if reavaliar_pendencias_teste_action not in actions:
+            actions.append(reavaliar_pendencias_teste_action)
 
-    @admin.action(description="Garantir conjuntos padrão")
-    def action_garantir_conjuntos(modeladmin, request, queryset):
-        total = 0
+        projeto_admin.actions = actions
 
-        for projeto in queryset:
-            try:
-                garantir_conjuntos_padrao(projeto)
-                total += 1
-            except Exception as exc:
-                modeladmin.message_user(
-                    request,
-                    f"Erro no projeto #{projeto.pk}: {exc}",
-                    level=messages.ERROR,
-                )
-
-        if total:
-            modeladmin.message_user(
-                request,
-                f"Conjuntos padrão garantidos para {total} projeto(s).",
-                level=messages.SUCCESS,
-            )
-
-
-    @admin.action(description="Gerar sugestões do painel")
-    def action_gerar_sugestoes_painel(modeladmin, request, queryset):
-        total_projetos = 0
-        total_sugestoes = 0
-
-        for projeto in queryset:
-            try:
-                resultado = gerar_sugestoes_projeto(projeto, limpar_pendentes_antes=False)
-                total_projetos += 1
-                total_sugestoes += resultado.sugestoes_criadas
-
-                if resultado.possui_erros:
-                    modeladmin.message_user(
-                        request,
-                        f"Projeto #{projeto.pk}: {len(resultado.erros)} erro(s) durante a geração.",
-                        level=messages.WARNING,
-                    )
-            except Exception as exc:
-                modeladmin.message_user(
-                    request,
-                    f"Erro ao gerar sugestões para o projeto #{projeto.pk}: {exc}",
-                    level=messages.ERROR,
-                )
-
-        if total_projetos:
-            modeladmin.message_user(
-                request,
-                f"Sugestões geradas para {total_projetos} projeto(s). Total de sugestões criadas: {total_sugestoes}.",
-                level=messages.SUCCESS,
-            )
-
-
-    @admin.action(description="Regerar sugestões do painel")
-    def action_regerar_sugestoes_painel(modeladmin, request, queryset):
-        total_projetos = 0
-        total_sugestoes = 0
-
-        for projeto in queryset:
-            try:
-                resultado = regerar_sugestoes_projeto(projeto)
-                total_projetos += 1
-                total_sugestoes += resultado.sugestoes_criadas
-
-                if resultado.possui_erros:
-                    modeladmin.message_user(
-                        request,
-                        f"Projeto #{projeto.pk}: {len(resultado.erros)} erro(s) durante a regeração.",
-                        level=messages.WARNING,
-                    )
-            except Exception as exc:
-                modeladmin.message_user(
-                    request,
-                    f"Erro ao regerar sugestões para o projeto #{projeto.pk}: {exc}",
-                    level=messages.ERROR,
-                )
-
-        if total_projetos:
-            modeladmin.message_user(
-                request,
-                f"Sugestões regeradas para {total_projetos} projeto(s). Total de sugestões criadas: {total_sugestoes}.",
-                level=messages.SUCCESS,
-            )
-
-
-    class ComposicaoPainelProjetoAdminMixin:
-        """
-        Mixin opcional para ser usado no ProjetoAdmin.
-        """
-
-        actions = (
-            "action_garantir_conjuntos",
-            "action_gerar_sugestoes_painel",
-            "action_regerar_sugestoes_painel",
-        )
-
-        def resumo_composicao(self, obj):
-            resumo = resumo_pendencias_projeto(obj)
-
-            if resumo["possui_pendencias"]:
-                return format_html(
-                    '<span style="color: #b45309; font-weight: 600;">{} pendência(s)</span>',
-                    resumo["quantidade"],
-                )
-            return format_html(
-                '<span style="color: #15803d; font-weight: 600;">Sem pendências</span>'
-            )
-
-        resumo_composicao.short_description = "Composição"
-
-
-# ==========================================================
-# OBSERVAÇÃO
-# ==========================================================
-# Se quiser integrar as actions diretamente no ProjetoAdmin já existente,
-# copie as funções:
-# - action_garantir_conjuntos
-# - action_gerar_sugestoes_painel
-# - action_regerar_sugestoes_painel
-# e o método resumo_composicao para o admin do app projetos.
+except Exception as exc:
+    print(f"[ADMIN ACTION] Falha ao acoplar actions ao admin de Projeto: {exc}")

@@ -17,13 +17,6 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
     OUTROS = "OUTROS", "Outros"
     
-    
-    
-class TensaoBobinaChoices(models.TextChoices):
-    V24VCC = "24VCC", "24 VCC"
-    V24VCA = "24VCA", "24 VCA"
-    V110VCA = "110VCA", "110 VCA"
-    V220VCA = "220VCA", "220 VCA"
 
 class ModoMontagemChoices(models.TextChoices):
     TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"

@@ -26,6 +26,10 @@ class StatusProjetoChoices(models.TextChoices):
     FINALIZADO = "FINALIZADO", "Finalizado"
     
 class PartesPainelChoices(models.TextChoices):
+    SECCIONAMENTO = "SECCIONAMENTO", "Seccionamento"
+    PROTECAO_GERAL = "PROTECAO_GERAL", "Proteção geral" 
+    PROTECAO_CARGA = "PROTECAO_CARGA", "Proteção de carga"
+    ACIONAMENTO_CARGA = "ACIONAMENTO_CARGA", "Acionamento de carga"    
     ENTRADA_PRINCIPAL = "ENTRADA_PRINCIPAL", "Entrada principal"
     POTENCIA = "POTENCIA", "Potência"
     COMANDO = "COMANDO", "Comando"
@@ -40,3 +44,5 @@ class PartesPainelChoices(models.TextChoices):
     IDENTIFICACAO="IDENTIFICACAO", "Identificação"
     ACESSORIOS="ACESSORIOS", "Acessórios"
     OUTROS = "OUTROS", "Outros"
+    
+
