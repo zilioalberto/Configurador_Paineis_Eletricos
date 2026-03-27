@@ -1,15 +1,27 @@
 from django.contrib import admin, messages
+from django.db import transaction
 
 from projetos.models import Projeto
-from composicao_painel.models import SugestaoItem, PendenciaItem
+from composicao_painel.models import (
+    SugestaoItem,
+    PendenciaItem,
+    ComposicaoItem,
+)
 from composicao_painel.services.sugestoes.orquestrador import (
     gerar_sugestoes_painel,
 )
 from composicao_painel.services.sugestoes.orquestrador_pendencias import (
     reavaliar_pendencias_projeto,
 )
+from composicao_painel.services.sugestoes.aprovacao_sugestoes import (
+    aprovar_sugestao_item,
+    aprovar_sugestoes,
+)
 
-from core.choices import StatusPendenciaChoices
+from core.choices import (
+    StatusPendenciaChoices,
+    StatusSugestaoChoices,
+)
 
 
 @admin.action(description="Gerar sugestões de composição do painel (teste)")
@@ -184,6 +196,74 @@ def reavaliar_pendencias_teste_action(modeladmin, request, queryset):
     print("=" * 100 + "\n")
 
 
+@admin.action(description="Aprovar sugestões selecionadas")
+def aprovar_sugestoes_action(modeladmin, request, queryset):
+    print("\n" + "=" * 100)
+    print("[ADMIN ACTION] Iniciando aprovar_sugestoes_action")
+    print(f"[ADMIN ACTION] Total de sugestões selecionadas: {queryset.count()}")
+
+    itens_transferidos = []
+    erros = []
+
+    try:
+        with transaction.atomic():
+            for sugestao in queryset.select_related("projeto", "produto", "carga"):
+                try:
+                    print(
+                        f"[ADMIN ACTION] Aprovando sugestão "
+                        f"id={sugestao.id} | projeto={sugestao.projeto_id} | "
+                        f"parte={sugestao.parte_painel} | "
+                        f"categoria={sugestao.categoria_produto} | "
+                        f"carga={sugestao.carga_id} | produto={sugestao.produto_id}"
+                    )
+
+                    item = aprovar_sugestao_item(sugestao)
+                    itens_transferidos.append(item)
+
+                except Exception as exc:
+                    erro_msg = (
+                        f"Sugestão {getattr(sugestao, 'id', 'sem_id')}: {str(exc)}"
+                    )
+                    print(f"[ADMIN ACTION] Erro ao aprovar sugestão: {erro_msg}")
+                    erros.append(erro_msg)
+
+        if itens_transferidos:
+            modeladmin.message_user(
+                request,
+                (
+                    f"{len(itens_transferidos)} sugestão(ões) aprovada(s) e "
+                    f"transferida(s) para a composição."
+                ),
+                level=messages.SUCCESS if not erros else messages.WARNING,
+            )
+
+        if erros:
+            for erro in erros:
+                modeladmin.message_user(
+                    request,
+                    erro,
+                    level=messages.WARNING,
+                )
+
+        if not itens_transferidos and not erros:
+            modeladmin.message_user(
+                request,
+                "Nenhuma sugestão foi aprovada.",
+                level=messages.INFO,
+            )
+
+    except Exception as exc:
+        print(f"[ADMIN ACTION] Exceção geral em aprovar_sugestoes_action: {exc}")
+        modeladmin.message_user(
+            request,
+            f"Erro ao aprovar sugestões: {str(exc)}",
+            level=messages.ERROR,
+        )
+
+    print("[ADMIN ACTION] Finalizando aprovar_sugestoes_action")
+    print("=" * 100 + "\n")
+
+
 @admin.register(SugestaoItem)
 class SugestaoItemAdmin(admin.ModelAdmin):
     list_display = (
@@ -208,10 +288,133 @@ class SugestaoItemAdmin(admin.ModelAdmin):
 
     search_fields = (
         "projeto__nome",
-        "produto__nome",
         "produto__descricao",
         "produto__codigo",
-        "carga__nome",
+        "carga__descricao",
+        "categoria_produto",
+    )
+
+    readonly_fields = (
+        "memoria_calculo",
+        "observacoes",
+    )
+
+    autocomplete_fields = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    list_select_related = (
+        "projeto",
+        "produto",
+        "carga",
+    )
+
+    ordering = ("projeto", "ordem", "parte_painel", "categoria_produto", "id")
+
+    actions = (
+        aprovar_sugestoes_action,
+    )
+
+    fieldsets = (
+        (
+            "Identificação",
+            {
+                "fields": (
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                    "produto",
+                )
+            },
+        ),
+        (
+            "Dados da sugestão",
+            {
+                "fields": (
+                    "quantidade",
+                    "corrente_referencia_a",
+                    "status",
+                    "ordem",
+                )
+            },
+        ),
+        (
+            "Rastreabilidade",
+            {
+                "fields": (
+                    "memoria_calculo",
+                    "observacoes",
+                )
+            },
+        ),
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "projeto",
+            "produto",
+            "carga",
+        )
+
+    def save_model(self, request, obj, form, change):
+        status_anterior = None
+
+        if change and obj.pk:
+            try:
+                status_anterior = SugestaoItem.objects.get(pk=obj.pk).status
+            except SugestaoItem.DoesNotExist:
+                status_anterior = None
+
+        super().save_model(request, obj, form, change)
+
+        if (
+            change
+            and status_anterior != StatusSugestaoChoices.APROVADA
+            and obj.status == StatusSugestaoChoices.APROVADA
+        ):
+            try:
+                aprovar_sugestao_item(obj)
+                self.message_user(
+                    request,
+                    "Sugestão aprovada e transferida para a composição.",
+                    level=messages.SUCCESS,
+                )
+            except Exception as exc:
+                self.message_user(
+                    request,
+                    f"Erro ao transferir sugestão aprovada: {str(exc)}",
+                    level=messages.ERROR,
+                )
+
+
+@admin.register(ComposicaoItem)
+class ComposicaoItemAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "projeto",
+        "parte_painel",
+        "categoria_produto",
+        "carga",
+        "produto",
+        "quantidade",
+        "corrente_referencia_a",
+        "ordem",
+    )
+
+    list_filter = (
+        "parte_painel",
+        "categoria_produto",
+        "projeto",
+    )
+
+    search_fields = (
+        "projeto__nome",
+        "produto__descricao",
+        "produto__codigo",
         "carga__descricao",
         "categoria_produto",
     )
@@ -249,12 +452,11 @@ class SugestaoItemAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Dados da sugestão",
+            "Dados da composição",
             {
                 "fields": (
                     "quantidade",
                     "corrente_referencia_a",
-                    "status",
                     "ordem",
                 )
             },
@@ -302,7 +504,6 @@ class PendenciaItemAdmin(admin.ModelAdmin):
 
     search_fields = (
         "projeto__nome",
-        "carga__nome",
         "carga__descricao",
         "categoria_produto",
         "descricao",

@@ -1,44 +1,76 @@
-from django.contrib import admin
-from django import forms
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 
 from .models import Projeto
-from core.choices import TipoCorrenteChoices
+from .services.fluxo_projeto import (
+    finalizar_projeto,
+    reabrir_projeto,
+)
+
+from core.choices import StatusProjetoChoices
 
 
-class ProjetoAdminForm(forms.ModelForm):
-    class Meta:
-        model = Projeto
-        fields = "__all__"
+@admin.action(description="Finalizar projeto")
+def finalizar_projeto_action(modeladmin, request, queryset):
+    if queryset.count() != 1:
+        modeladmin.message_user(
+            request,
+            "Selecione exatamente 1 projeto para finalizar.",
+            level=messages.WARNING,
+        )
+        return
 
-    def clean_codigo(self):
-        codigo = self.cleaned_data.get("codigo")
-        if codigo:
-            return codigo.upper().strip()
-        return codigo
+    projeto = queryset.first()
 
-    def clean_nome(self):
-        nome = self.cleaned_data.get("nome")
-        if nome:
-            return nome.upper().strip()
-        return nome
+    try:
+        finalizar_projeto(projeto)
+        modeladmin.message_user(
+            request,
+            f"Projeto {projeto.codigo} finalizado com sucesso.",
+            level=messages.SUCCESS,
+        )
+    except Exception as exc:
+        modeladmin.message_user(
+            request,
+            f"Erro ao finalizar projeto: {str(exc)}",
+            level=messages.ERROR,
+        )
 
-    def clean_cliente(self):
-        cliente = self.cleaned_data.get("cliente")
-        if cliente:
-            return cliente.upper().strip()
-        return cliente
+
+@admin.action(description="Reabrir projeto")
+def reabrir_projeto_action(modeladmin, request, queryset):
+    if queryset.count() != 1:
+        modeladmin.message_user(
+            request,
+            "Selecione exatamente 1 projeto para reabrir.",
+            level=messages.WARNING,
+        )
+        return
+
+    projeto = queryset.first()
+
+    try:
+        reabrir_projeto(projeto)
+        modeladmin.message_user(
+            request,
+            f"Projeto {projeto.codigo} reaberto com sucesso.",
+            level=messages.SUCCESS,
+        )
+    except Exception as exc:
+        modeladmin.message_user(
+            request,
+            f"Erro ao reabrir projeto: {str(exc)}",
+            level=messages.ERROR,
+        )
 
 
 @admin.register(Projeto)
 class ProjetoAdmin(admin.ModelAdmin):
-    form = ProjetoAdminForm
-
     list_display = (
         "codigo",
         "nome",
         "cliente",
         "tipo_painel",
-        "sistema_resumido",
         "tensao_nominal",
         "tensao_comando",
         "possui_plc",
@@ -93,6 +125,11 @@ class ProjetoAdmin(admin.ModelAdmin):
 
     list_per_page = 25
 
+    actions = (
+        finalizar_projeto_action,
+        reabrir_projeto_action,
+    )
+
     fieldsets = (
         (
             "Identificação do Projeto",
@@ -108,7 +145,7 @@ class ProjetoAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Características do Painel",
+            "Dados Gerais",
             {
                 "fields": (
                     "tipo_painel",
@@ -129,36 +166,32 @@ class ProjetoAdmin(admin.ModelAdmin):
                     "tipo_conexao_alimentacao_neutro",
                     "possui_terra",
                     "tipo_conexao_alimentacao_terra",
-                ),
-                "description": (
-                    "Para corrente alternada (CA), informar número de fases e frequência. "
-                    "Para corrente contínua (CC), fases e frequência não se aplicam."
-                ),
-            },
-        ),
-        (
-            "Comando",
-            {
-                "fields": (
-                    "tipo_corrente_comando",
-                    "tensao_comando",
-                    "possui_plc",
-                    "possui_ihm",
-                    "possui_switches",
                 )
             },
         ),
         (
-            "Climatização do Painel",
+            "Circuito de Comando",
             {
                 "fields": (
-                    "possui_climatizacao",
-                    "tipo_climatizacao",
-                ),
+                    "tipo_corrente_comando",
+                    "tensao_comando",
+                )
             },
         ),
         (
-            "Identificação e Sinalização",
+            "Recursos do Painel",
+            {
+                "fields": (
+                    "possui_plc",
+                    "possui_ihm",
+                    "possui_switches",
+                    "possui_climatizacao",
+                    "tipo_climatizacao",
+                )
+            },
+        ),
+        (
+            "Identificação e Acabamento",
             {
                 "fields": (
                     "possui_plaqueta_identificacao",
@@ -169,7 +202,7 @@ class ProjetoAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Seccionamento Geral",
+            "Seccionamento",
             {
                 "fields": (
                     "possui_seccionamento",
@@ -178,52 +211,36 @@ class ProjetoAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Controle de Registro",
+            "Controle",
             {
-                "classes": ("collapse",),
                 "fields": (
                     "criado_em",
                     "atualizado_em",
-                ),
+                )
             },
         ),
     )
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-
-        if "descricao" in form.base_fields:
-            form.base_fields["descricao"].widget.attrs.update(
-                {
-                    "rows": 4,
-                    "style": "text-transform: uppercase;",
-                }
-            )
-
-        for field_name in ("codigo", "nome", "cliente"):
-            if field_name in form.base_fields:
-                form.base_fields[field_name].widget.attrs.update(
-                    {"style": "text-transform: uppercase;"}
+    def save_model(self, request, obj, form, change):
+        if change:
+            projeto_atual = Projeto.objects.get(pk=obj.pk)
+            if projeto_atual.status == StatusProjetoChoices.FINALIZADO:
+                raise ValidationError(
+                    "O projeto está finalizado. Reabra o projeto antes de alterar seus dados."
                 )
 
-        return form
+        super().save_model(request, obj, form, change)
 
-    @admin.display(description="Sistema")
-    def sistema_resumido(self, obj):
-        partes = [obj.get_tipo_corrente_display()]
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
 
-        if obj.tipo_corrente == TipoCorrenteChoices.CA and obj.numero_fases:
-            mapa_fases = {
-                1: "MONO",
-                2: "BI",
-                3: "TRI",
-            }
-            partes.append(mapa_fases.get(obj.numero_fases, str(obj.numero_fases)))
+        if obj and obj.status == StatusProjetoChoices.FINALIZADO:
+            readonly.extend(
+                [
+                    field.name
+                    for field in self.model._meta.fields
+                    if field.name not in readonly
+                ]
+            )
 
-        if obj.possui_neutro:
-            partes.append("N")
-
-        if obj.possui_terra:
-            partes.append("PE")
-
-        return " + ".join(partes)
+        return readonly
