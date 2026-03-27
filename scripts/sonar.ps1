@@ -31,6 +31,18 @@ if (-not $token) {
     exit 1
 }
 
+Write-Host "Root detectado: $root"
+Write-Host ".env esperado em: $envFile"
+Write-Host ".env existe? $(Test-Path $envFile)"
+
+if ($token) {
+    Write-Host "SONAR_TOKEN carregado: SIM"
+    Write-Host "Tamanho do token: $($token.Length)"
+    Write-Host "Prefixo do token: $($token.Substring(0, [Math]::Min(6, $token.Length)))..."
+} else {
+    Write-Host "SONAR_TOKEN carregado: NAO"
+}
+
 Write-Host "🚀 Iniciando análise SonarQube..."
 
 docker run --rm `

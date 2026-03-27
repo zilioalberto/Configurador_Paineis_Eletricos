@@ -21,7 +21,6 @@ from .eletrica import (
 
 from .produtos import (
     CategoriaProdutoNomeChoices,
-    TensaoBobinaChoices,
     ModoMontagemChoices,
     TipoFixacaoSeccionadoraChoices,
     CorManoplaChoices,
@@ -32,13 +31,15 @@ from .paineis import (
     TipoPainelChoices,
     TipoSeccionamentoChoices,
     TipoConexaoAlimetacaoChoices,
+    PartesPainelChoices,
     StatusProjetoChoices,
     
 )
 
 from .gerais import (
-    OrigemItem,
-    StatusSugestao,
+    OrigemItemChoices,
+    StatusSugestaoChoices,
+    StatusPendenciaChoices,
 )   
 
 __all__ = [
@@ -64,7 +65,6 @@ __all__ = [
 
     # PRODUTOS
     "CategoriaProdutoNomeChoices",
-    "TensaoBobinaChoices",
     "ModoMontagemChoices",
     "TipoFixacaoSeccionadoraChoices",
     "CorManoplaChoices",
@@ -80,6 +80,7 @@ __all__ = [
     # GERAIS
     "OrigemItem",
     "StatusSugestao",
+    "StatusPendencia",
       
     
 ]

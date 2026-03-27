@@ -2,14 +2,15 @@ from django.db import models
 
 
 class TensaoChoices(models.IntegerChoices):
-    V12CC = 12, "12 V"
-    V24CC = 24, "24 V"
-    V48CC = 48, "48 V"
-    V110CA = 110, "110 V"
-    V127CA = 127, "127 V"
-    V220CA = 220, "220 V"
-    V380CA = 380, "380 V"
-    V440CA = 440, "440 V"
+    V12 = 12, "12 V"
+    V24 = 24, "24 V"
+    V48 = 48, "48 V"
+    V90 = 90, "90 V"
+    V110 = 110, "110 V"
+    V127 = 127, "127 V"
+    V220 = 220, "220 V"
+    V380 = 380, "380 V"
+    V440 = 440, "440 V"
     
 
     
