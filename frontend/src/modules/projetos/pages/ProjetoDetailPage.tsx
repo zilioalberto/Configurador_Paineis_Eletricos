@@ -246,6 +246,12 @@ export default function ProjetoDetailPage() {
             >
               Cargas do projeto
             </Link>
+            <Link
+              to={`/dimensionamento?projeto=${encodeURIComponent(id)}`}
+              className="btn btn-outline-secondary"
+            >
+              Dimensionamento
+            </Link>
             <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
               Editar projeto
             </Link>

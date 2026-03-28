@@ -13,7 +13,14 @@ class ResumoDimensionamento(BaseModel):
     corrente_total_painel_a = models.DecimalField(
         max_digits=12, decimal_places=2, default=0
     )
-  
+
+    corrente_estimada_fonte_24vcc_a = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Estimativa de corrente na fonte 24 Vcc (comando), com margem.",
+    )
+
     necessita_fonte_24vcc = models.BooleanField(default=False)
     necessita_plc = models.BooleanField(default=False)
     necessita_expansao_plc = models.BooleanField(default=False)
