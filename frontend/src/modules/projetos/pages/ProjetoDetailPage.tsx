@@ -15,6 +15,12 @@ function formatarNumeroFases(numeroFases: number | null): string {
   return String(numeroFases)
 }
 
+function formatarTipoCorrente(tipoCorrente: string): string {
+  if (tipoCorrente === 'CA') return 'Corrente Alternada (CA)'
+  if (tipoCorrente === 'CC') return 'Corrente Contínua (CC)'
+  return tipoCorrente
+}
+
 export default function ProjetoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [projeto, setProjeto] = useState<Projeto | null>(null)
@@ -32,7 +38,6 @@ export default function ProjetoDetailPage() {
       try {
         setLoading(true)
         setError('')
-
         const data = await obterProjeto(id)
         setProjeto(data)
       } catch (err) {
@@ -88,17 +93,17 @@ export default function ProjetoDetailPage() {
 
               <div className="col-md-3">
                 <strong>Status</strong>
-                <div>{projeto.status}</div>
+                <div>{projeto.status_display ?? projeto.status}</div>
               </div>
 
               <div className="col-md-3">
                 <strong>Tipo de painel</strong>
-                <div>{projeto.tipo_painel}</div>
+                <div>{projeto.tipo_painel_display ?? projeto.tipo_painel}</div>
               </div>
 
               <div className="col-md-3">
                 <strong>Tipo de corrente</strong>
-                <div>{projeto.tipo_corrente}</div>
+                <div>{formatarTipoCorrente(projeto.tipo_corrente)}</div>
               </div>
 
               <div className="col-md-3">
@@ -118,7 +123,7 @@ export default function ProjetoDetailPage() {
 
               <div className="col-md-3">
                 <strong>Corrente de comando</strong>
-                <div>{projeto.tipo_corrente_comando}</div>
+                <div>{formatarTipoCorrente(projeto.tipo_corrente_comando)}</div>
               </div>
 
               <div className="col-md-3">
@@ -153,17 +158,28 @@ export default function ProjetoDetailPage() {
 
               <div className="col-md-3">
                 <strong>Conexão potência</strong>
-                <div>{projeto.tipo_conexao_alimentacao_potencia}</div>
+                <div>
+                  {projeto.tipo_conexao_alimentacao_potencia_display ??
+                    projeto.tipo_conexao_alimentacao_potencia}
+                </div>
               </div>
 
               <div className="col-md-3">
                 <strong>Conexão neutro</strong>
-                <div>{projeto.tipo_conexao_alimentacao_neutro ?? '-'}</div>
+                <div>
+                  {projeto.tipo_conexao_alimentacao_neutro_display ??
+                    projeto.tipo_conexao_alimentacao_neutro ??
+                    '-'}
+                </div>
               </div>
 
               <div className="col-md-3">
                 <strong>Conexão terra</strong>
-                <div>{projeto.tipo_conexao_alimentacao_terra ?? '-'}</div>
+                <div>
+                  {projeto.tipo_conexao_alimentacao_terra_display ??
+                    projeto.tipo_conexao_alimentacao_terra ??
+                    '-'}
+                </div>
               </div>
 
               <div className="col-12">
@@ -193,7 +209,11 @@ export default function ProjetoDetailPage() {
 
               <div className="col-md-3">
                 <strong>Tipo de climatização</strong>
-                <div>{projeto.tipo_climatizacao ?? '-'}</div>
+                <div>
+                  {projeto.tipo_climatizacao_display ??
+                    projeto.tipo_climatizacao ??
+                    '-'}
+                </div>
               </div>
 
               <div className="col-12">
@@ -233,7 +253,11 @@ export default function ProjetoDetailPage() {
 
               <div className="col-md-3">
                 <strong>Tipo de seccionamento</strong>
-                <div>{projeto.tipo_seccionamento ?? '-'}</div>
+                <div>
+                  {projeto.tipo_seccionamento_display ??
+                    projeto.tipo_seccionamento ??
+                    '-'}
+                </div>
               </div>
 
               <div className="col-md-3">

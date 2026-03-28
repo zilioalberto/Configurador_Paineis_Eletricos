@@ -1,10 +1,71 @@
-import { useState } from 'react'
-import type { ProjetoFormData } from '../types/projeto'
+import { useEffect, useState } from 'react'
+import type {
+  ProjetoFormData,
+  StatusProjeto,
+  TipoClimatizacaoPainel,
+  TipoConexaoAlimentacao,
+  TipoCorrente,
+  TipoPainel,
+  TipoSeccionamento,
+} from '../types/projeto'
 
 type ProjetoFormProps = {
   onSubmit: (data: ProjetoFormData) => Promise<void>
   loading?: boolean
+  initialData?: ProjetoFormData
 }
+
+type Option<T extends string | number> = {
+  value: T
+  label: string
+}
+
+const statusOptions: Option<StatusProjeto>[] = [
+  { value: 'EM_ANDAMENTO', label: 'Em andamento' },
+  { value: 'FINALIZADO', label: 'Finalizado' },
+]
+
+const tipoPainelOptions: Option<TipoPainel>[] = [
+  { value: 'AUTOMACAO', label: 'Automação' },
+  { value: 'DISTRIBUICAO', label: 'Distribuição' },
+]
+
+const tipoCorrenteOptions: Option<TipoCorrente>[] = [
+  { value: 'CA', label: 'Corrente alternada (CA)' },
+  { value: 'CC', label: 'Corrente contínua (CC)' },
+]
+
+const numeroFasesOptions: Option<number>[] = [
+  { value: 1, label: 'Monofásico' },
+  { value: 2, label: 'Bifásico' },
+  { value: 3, label: 'Trifásico' },
+]
+
+const frequenciaOptions: Option<number>[] = [
+  { value: 50, label: '50 Hz' },
+  { value: 60, label: '60 Hz' },
+]
+
+const tipoConexaoOptions: Option<TipoConexaoAlimentacao>[] = [
+  { value: 'BARRAMENTO', label: 'Barramento' },
+  { value: 'BORNE', label: 'Borne' },
+  { value: 'TOMADA', label: 'Tomada' },
+  { value: 'DIRETO', label: 'Direto' },
+  { value: 'OUTRO', label: 'Outro' },
+]
+
+const tipoClimatizacaoOptions: Option<TipoClimatizacaoPainel>[] = [
+  { value: 'VENTILADOR', label: 'Ventilador' },
+  { value: 'EXAUSTOR', label: 'Exaustor' },
+  { value: 'AR_CONDICIONADO', label: 'Ar-condicionado' },
+  { value: 'OUTRO', label: 'Outro' },
+]
+
+const tipoSeccionamentoOptions: Option<TipoSeccionamento>[] = [
+  { value: 'NENHUM', label: 'Sem seccionamento' },
+  { value: 'SECCIONADORA', label: 'Seccionadora' },
+  { value: 'DISJUNTOR_CAIXA_MOLDADA', label: 'Disjuntor caixa moldada' },
+]
 
 const initialState: ProjetoFormData = {
   codigo: '',
@@ -12,11 +73,11 @@ const initialState: ProjetoFormData = {
   descricao: '',
   cliente: '',
 
-  status: 'RASCUNHO',
+  status: 'EM_ANDAMENTO',
   tipo_painel: 'AUTOMACAO',
 
   tipo_corrente: 'CA',
-  tensao_nominal: '',
+  tensao_nominal: 380,
   numero_fases: 3,
   frequencia: 60,
 
@@ -27,8 +88,8 @@ const initialState: ProjetoFormData = {
   tipo_conexao_alimentacao_neutro: 'BORNE',
   tipo_conexao_alimentacao_terra: 'BORNE',
 
-  tipo_corrente_comando: 'CA',
-  tensao_comando: '',
+  tipo_corrente_comando: 'CC',
+  tensao_comando: 24,
 
   possui_plc: false,
   possui_ihm: false,
@@ -47,11 +108,26 @@ const initialState: ProjetoFormData = {
   tipo_seccionamento: null,
 }
 
+function renderOptions<T extends string | number>(options: Option<T>[]) {
+  return options.map((option) => (
+    <option key={String(option.value)} value={option.value}>
+      {option.label}
+    </option>
+  ))
+}
+
 export default function ProjetoForm({
   onSubmit,
   loading = false,
+  initialData,
 }: ProjetoFormProps) {
-  const [formData, setFormData] = useState<ProjetoFormData>(initialState)
+  const [formData, setFormData] = useState<ProjetoFormData>(initialData ?? initialState)
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData)
+    }
+  }, [initialData])
 
   function handleChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -188,9 +264,7 @@ export default function ProjetoForm({
             value={formData.status}
             onChange={handleChange}
           >
-            <option value="RASCUNHO">Rascunho</option>
-            <option value="EM_ANDAMENTO">Em andamento</option>
-            <option value="FINALIZADO">Finalizado</option>
+            {renderOptions(statusOptions)}
           </select>
         </div>
 
@@ -202,8 +276,7 @@ export default function ProjetoForm({
             value={formData.tipo_painel}
             onChange={handleChange}
           >
-            <option value="AUTOMACAO">Automação</option>
-            <option value="DISTRIBUICAO">Distribuição</option>
+            {renderOptions(tipoPainelOptions)}
           </select>
         </div>
 
@@ -215,8 +288,7 @@ export default function ProjetoForm({
             value={formData.tipo_corrente}
             onChange={handleChange}
           >
-            <option value="CA">CA</option>
-            <option value="CC">CC</option>
+            {renderOptions(tipoCorrenteOptions)}
           </select>
         </div>
 
@@ -242,9 +314,7 @@ export default function ProjetoForm({
                 value={formData.numero_fases ?? ''}
                 onChange={handleChange}
               >
-                <option value={1}>Monofásico</option>
-                <option value={2}>Bifásico</option>
-                <option value={3}>Trifásico</option>
+                {renderOptions(numeroFasesOptions)}
               </select>
             </div>
 
@@ -256,8 +326,7 @@ export default function ProjetoForm({
                 value={formData.frequencia ?? ''}
                 onChange={handleChange}
               >
-                <option value={50}>50 Hz</option>
-                <option value={60}>60 Hz</option>
+                {renderOptions(frequenciaOptions)}
               </select>
             </div>
           </>
@@ -271,8 +340,7 @@ export default function ProjetoForm({
             value={formData.tipo_corrente_comando}
             onChange={handleChange}
           >
-            <option value="CA">CA</option>
-            <option value="CC">CC</option>
+            {renderOptions(tipoCorrenteOptions)}
           </select>
         </div>
 
@@ -355,11 +423,7 @@ export default function ProjetoForm({
             value={formData.tipo_conexao_alimentacao_potencia}
             onChange={handleChange}
           >
-            <option value="BARRAMENTO">Barramento</option>
-            <option value="BORNE">Borne</option>
-            <option value="TOMADA">Tomada</option>
-            <option value="DIRETO">Direto</option>
-            <option value="OUTRO">Outro</option>
+            {renderOptions(tipoConexaoOptions)}
           </select>
         </div>
 
@@ -373,11 +437,7 @@ export default function ProjetoForm({
             disabled={!formData.possui_neutro}
           >
             <option value="">Selecione</option>
-            <option value="BARRAMENTO">Barramento</option>
-            <option value="BORNE">Borne</option>
-            <option value="TOMADA">Tomada</option>
-            <option value="DIRETO">Direto</option>
-            <option value="OUTRO">Outro</option>
+            {renderOptions(tipoConexaoOptions)}
           </select>
         </div>
 
@@ -391,11 +451,7 @@ export default function ProjetoForm({
             disabled={!formData.possui_terra}
           >
             <option value="">Selecione</option>
-            <option value="BARRAMENTO">Barramento</option>
-            <option value="BORNE">Borne</option>
-            <option value="TOMADA">Tomada</option>
-            <option value="DIRETO">Direto</option>
-            <option value="OUTRO">Outro</option>
+            {renderOptions(tipoConexaoOptions)}
           </select>
         </div>
 
@@ -478,10 +534,7 @@ export default function ProjetoForm({
             disabled={!formData.possui_climatizacao}
           >
             <option value="">Selecione</option>
-            <option value="VENTILADOR">Ventilador</option>
-            <option value="EXAUSTOR">Exaustor</option>
-            <option value="AR_CONDICIONADO">Ar condicionado</option>
-            <option value="OUTRO">Outro</option>
+            {renderOptions(tipoClimatizacaoOptions)}
           </select>
         </div>
 
@@ -585,9 +638,7 @@ export default function ProjetoForm({
             disabled={!formData.possui_seccionamento}
           >
             <option value="">Selecione</option>
-            <option value="NENHUM">Sem seccionamento</option>
-            <option value="SECCIONADORA">Seccionadora</option>
-            <option value="DISJUNTOR_CAIXA_MOLDADA">Disjuntor caixa moldada</option>
+            {renderOptions(tipoSeccionamentoOptions)}
           </select>
         </div>
       </div>

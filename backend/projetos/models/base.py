@@ -41,7 +41,7 @@ class Projeto(BaseModel, AtivacaoMixin):
     status = models.CharField(
         max_length=20,
         choices=StatusProjetoChoices.choices,
-        default=StatusProjetoChoices.RASCUNHO,
+        default=StatusProjetoChoices.EM_ANDAMENTO,
         help_text="Status atual do projeto.",
     )
 

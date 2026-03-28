@@ -1,5 +1,4 @@
 export type StatusProjeto =
-  | 'RASCUNHO'
   | 'EM_ANDAMENTO'
   | 'FINALIZADO'
 
@@ -35,7 +34,10 @@ export interface Projeto {
   cliente: string
 
   status: StatusProjeto
+  status_display?: string
+
   tipo_painel: TipoPainel
+  tipo_painel_display?: string
 
   tipo_corrente: TipoCorrente
   tensao_nominal: number
@@ -46,8 +48,13 @@ export interface Projeto {
   possui_terra: boolean
 
   tipo_conexao_alimentacao_potencia: TipoConexaoAlimentacao
+  tipo_conexao_alimentacao_potencia_display?: string
+
   tipo_conexao_alimentacao_neutro: TipoConexaoAlimentacao | null
+  tipo_conexao_alimentacao_neutro_display?: string | null
+
   tipo_conexao_alimentacao_terra: TipoConexaoAlimentacao | null
+  tipo_conexao_alimentacao_terra_display?: string | null
 
   tipo_corrente_comando: TipoCorrente
   tensao_comando: number
@@ -62,11 +69,13 @@ export interface Projeto {
 
   possui_climatizacao: boolean
   tipo_climatizacao: TipoClimatizacaoPainel | null
+  tipo_climatizacao_display?: string | null
 
   fator_demanda: string
 
   possui_seccionamento: boolean
   tipo_seccionamento: TipoSeccionamento | null
+  tipo_seccionamento_display?: string | null
 
   ativo?: boolean
   criado_em?: string
