@@ -166,47 +166,72 @@ class CargaMotor(models.Model):
 
 
     def _calcular_corrente(self):
-        if self.potencia_corrente_unidade == UnidadePotenciaCorrenteChoices.A:
-            return self.potencia_corrente_valor
-
-        potencia_kw = self._obter_potencia_kw()
-        if potencia_kw is None:
+        if self.potencia_corrente_valor is None:
+            print("Valor de potência/corrente não informado. Não é possível calcular a corrente.")
             return None
 
         tensao = self._obter_tensao_projeto()
         numero_fases = self._obter_numero_fases_projeto()
+        print(f"Tensão do projeto: {tensao} V")
+        print(f"Número de fases do projeto: {numero_fases}")
 
         if not tensao or not numero_fases:
+            print("Tensão ou número de fases do projeto não informado. Não é possível calcular a corrente.")
             return None
 
+        if self.potencia_corrente_unidade == UnidadePotenciaCorrenteChoices.A:
+            print("Valor informado em Ampere. Retornando valor sem cálculo.")
+            return self.potencia_corrente_valor
+
         if not self.fator_potencia or not self.rendimento_percentual:
+            print("Fator de potência ou rendimento não informados. Não é possível calcular a corrente.")
             return None
 
         rendimento_decimal = self.rendimento_percentual / Decimal("100")
         tensao_decimal = Decimal(str(tensao))
 
+        if self.potencia_corrente_unidade == UnidadePotenciaCorrenteChoices.KW:
+            print("Valor informado em kW. Usando valor diretamente para cálculo.")
+            potencia_kw = self.potencia_corrente_valor
+
+        elif self.potencia_corrente_unidade == UnidadePotenciaCorrenteChoices.CV:
+            print("Valor informado em CV. Convertendo diretamente para potência equivalente do cálculo.")
+            potencia_kw = self.potencia_corrente_valor * Decimal("0.7355")
+
+        else:
+            print("Unidade informada inválida para cálculo.")
+            return None
+
         if numero_fases == NumeroFasesChoices.MONOFASICO:
-            return calcular_corrente_monofasica(
+            corrente = calcular_corrente_monofasica(
                 potencia_kw=potencia_kw,
                 tensao_v=tensao_decimal,
                 fator_potencia=self.fator_potencia,
                 rendimento=rendimento_decimal,
             )
+            print(f"Corrente monofásica calculada: {corrente} A")
+            return corrente
 
         if numero_fases == NumeroFasesChoices.TRIFASICO:
-            return calcular_corrente_trifasica(
+            corrente = calcular_corrente_trifasica(
                 potencia_kw=potencia_kw,
                 tensao_v=tensao_decimal,
                 fator_potencia=self.fator_potencia,
                 rendimento=rendimento_decimal,
             )
+            print(f"Corrente trifásica calculada: {corrente} A")
+            return corrente
 
+        print("Número de fases não suportado para cálculo.")
         return None
+
 
     def save(self, *args, **kwargs):
             self.full_clean()
-
+            print("Calculando potência e corrente para o motor...")
             self.potencia_kw_calculada = self._obter_potencia_kw()
             self.corrente_calculada_a = self._calcular_corrente()
+            print(f"Potência calculada: {self.potencia_kw_calculada} kW")
+            print(f"Corrente calculada: {self.corrente_calculada_a} A")
 
             super().save(*args, **kwargs)

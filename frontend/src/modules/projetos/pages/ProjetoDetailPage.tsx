@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import type { Projeto } from '../types/projeto'
 
@@ -231,11 +231,26 @@ export default function ProjetoDetailPage() {
 
   return (
     <div className="container-fluid">
-      <div className="mb-4">
-        <h1 className="h3 mb-1">Detalhes do Projeto</h1>
-        <p className="text-muted mb-0">
-          Visualização dos dados principais do projeto.
-        </p>
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+          <h1 className="h3 mb-1">Detalhes do Projeto</h1>
+          <p className="text-muted mb-0">
+            Visualização dos dados principais do projeto.
+          </p>
+        </div>
+        {id && (
+          <div className="d-flex flex-wrap gap-2">
+            <Link
+              to={`/cargas?projeto=${encodeURIComponent(id)}`}
+              className="btn btn-outline-primary"
+            >
+              Cargas do projeto
+            </Link>
+            <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
+              Editar projeto
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="card">

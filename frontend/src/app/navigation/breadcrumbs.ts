@@ -5,7 +5,6 @@ export type BreadcrumbItem = {
 }
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
-  '/cargas': 'Cargas',
   '/catalogo': 'Catálogo',
   '/dimensionamento': 'Dimensionamento',
   '/composicao': 'Composição do painel',
@@ -47,6 +46,38 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     return [
       { label: 'Projetos', to: '/projetos' },
       { label: 'Detalhes do projeto' },
+    ]
+  }
+
+  if (path === '/cargas') {
+    return [{ label: 'Cargas', to: '/cargas' }]
+  }
+
+  if (path === '/cargas/novo') {
+    return [
+      { label: 'Cargas', to: '/cargas' },
+      { label: 'Nova carga' },
+    ]
+  }
+
+  if (/^\/cargas\/[^/]+\/editar$/.test(path)) {
+    return [
+      { label: 'Cargas', to: '/cargas' },
+      { label: 'Editar carga' },
+    ]
+  }
+
+  if (/^\/cargas\/[^/]+$/.test(path)) {
+    const segment = path.split('/')[2]
+    if (segment === 'novo') {
+      return [
+        { label: 'Cargas', to: '/cargas' },
+        { label: 'Nova carga' },
+      ]
+    }
+    return [
+      { label: 'Cargas', to: '/cargas' },
+      { label: 'Detalhes da carga' },
     ]
   }
 

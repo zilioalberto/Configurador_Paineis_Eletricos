@@ -1,7 +1,6 @@
 import { useLocation } from 'react-router-dom'
 
 const TITLES: Record<string, string> = {
-  '/cargas': 'Cargas',
   '/catalogo': 'Catálogo',
   '/dimensionamento': 'Dimensionamento',
   '/composicao': 'Composição do Painel',
