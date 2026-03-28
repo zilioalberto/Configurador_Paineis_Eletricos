@@ -65,7 +65,7 @@ export default function ProjetoListPage() {
   }, [deleteTarget, deleteMutation, showToast])
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <ConfirmModal
         show={deleteTarget !== null}
         title="Excluir projeto"

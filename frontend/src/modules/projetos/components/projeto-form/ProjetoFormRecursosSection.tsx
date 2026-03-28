@@ -6,7 +6,10 @@ import { renderSelectOptions } from './renderSelectOptions'
 export function ProjetoFormRecursosSection({
   formData,
   onFieldChange,
+  readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
+  const ro = readOnlyExceptStatus
+
   return (
     <>
       <div className="col-12">
@@ -19,6 +22,7 @@ export function ProjetoFormRecursosSection({
         label="Possui PLC"
         checked={formData.possui_plc}
         onChange={onFieldChange}
+        disabled={ro}
       />
 
       <ProjetoFormCheckboxField
@@ -26,6 +30,7 @@ export function ProjetoFormRecursosSection({
         label="Possui IHM"
         checked={formData.possui_ihm}
         onChange={onFieldChange}
+        disabled={ro}
       />
 
       <ProjetoFormCheckboxField
@@ -33,6 +38,7 @@ export function ProjetoFormRecursosSection({
         label="Possui switches"
         checked={formData.possui_switches}
         onChange={onFieldChange}
+        disabled={ro}
       />
 
       <ProjetoFormCheckboxField
@@ -40,6 +46,7 @@ export function ProjetoFormRecursosSection({
         label="Possui climatização"
         checked={formData.possui_climatizacao}
         onChange={onFieldChange}
+        disabled={ro}
       />
 
       <div className="col-md-4">
@@ -49,7 +56,7 @@ export function ProjetoFormRecursosSection({
           className="form-select"
           value={formData.tipo_climatizacao ?? ''}
           onChange={onFieldChange}
-          disabled={!formData.possui_climatizacao}
+          disabled={ro || !formData.possui_climatizacao}
         >
           <option value="">Selecione</option>
           {renderSelectOptions(tipoClimatizacaoOptions)}

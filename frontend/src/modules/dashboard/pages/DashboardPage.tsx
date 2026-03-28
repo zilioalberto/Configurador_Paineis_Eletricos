@@ -1,6 +1,6 @@
 export default function DashboardPage() {
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <h1 className="h3 mb-3">Dashboard</h1>
 
       <div className="card">

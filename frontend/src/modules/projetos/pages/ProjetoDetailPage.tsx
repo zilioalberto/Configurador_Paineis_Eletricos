@@ -230,7 +230,7 @@ export default function ProjetoDetailPage() {
     useProjetoDetailQuery(id)
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <div className="mb-4">
         <h1 className="h3 mb-1">Detalhes do Projeto</h1>
         <p className="text-muted mb-0">

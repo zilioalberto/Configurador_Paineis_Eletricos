@@ -22,7 +22,12 @@ export default function ProjetoForm({
     initialData,
   })
 
-  const sectionProps = { formData, onFieldChange: handleFieldChange }
+  const readOnlyExceptStatus = formData.status === 'FINALIZADO'
+  const sectionProps = {
+    formData,
+    onFieldChange: handleFieldChange,
+    readOnlyExceptStatus,
+  }
 
   return (
     <form onSubmit={handleSubmit}>

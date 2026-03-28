@@ -6,7 +6,10 @@ import { renderSelectOptions } from './renderSelectOptions'
 export function ProjetoFormAlimentacaoSection({
   formData,
   onFieldChange,
+  readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
+  const ro = readOnlyExceptStatus
+
   return (
     <>
       <div className="col-12">
@@ -21,6 +24,7 @@ export function ProjetoFormAlimentacaoSection({
         onChange={onFieldChange}
         columnClassName="col-md-2"
         alignTop
+        disabled={ro}
       />
 
       <ProjetoFormCheckboxField
@@ -30,6 +34,7 @@ export function ProjetoFormAlimentacaoSection({
         onChange={onFieldChange}
         columnClassName="col-md-2"
         alignTop
+        disabled={ro}
       />
 
       <div className="col-md-4">
@@ -39,6 +44,7 @@ export function ProjetoFormAlimentacaoSection({
           className="form-select"
           value={formData.tipo_conexao_alimentacao_potencia}
           onChange={onFieldChange}
+          disabled={ro}
         >
           {renderSelectOptions(tipoConexaoOptions)}
         </select>
@@ -51,7 +57,7 @@ export function ProjetoFormAlimentacaoSection({
           className="form-select"
           value={formData.tipo_conexao_alimentacao_neutro ?? ''}
           onChange={onFieldChange}
-          disabled={!formData.possui_neutro}
+          disabled={ro || !formData.possui_neutro}
         >
           <option value="">Selecione</option>
           {renderSelectOptions(tipoConexaoOptions)}
@@ -65,7 +71,7 @@ export function ProjetoFormAlimentacaoSection({
           className="form-select"
           value={formData.tipo_conexao_alimentacao_terra ?? ''}
           onChange={onFieldChange}
-          disabled={!formData.possui_terra}
+          disabled={ro || !formData.possui_terra}
         >
           <option value="">Selecione</option>
           {renderSelectOptions(tipoConexaoOptions)}

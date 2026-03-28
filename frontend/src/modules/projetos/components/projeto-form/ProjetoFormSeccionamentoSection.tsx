@@ -6,7 +6,10 @@ import { renderSelectOptions } from './renderSelectOptions'
 export function ProjetoFormSeccionamentoSection({
   formData,
   onFieldChange,
+  readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
+  const ro = readOnlyExceptStatus
+
   return (
     <>
       <div className="col-12">
@@ -20,6 +23,7 @@ export function ProjetoFormSeccionamentoSection({
         checked={formData.possui_seccionamento}
         onChange={onFieldChange}
         alignTop
+        disabled={ro}
       />
 
       <div className="col-md-4">
@@ -29,7 +33,7 @@ export function ProjetoFormSeccionamentoSection({
           className="form-select"
           value={formData.tipo_seccionamento ?? ''}
           onChange={onFieldChange}
-          disabled={!formData.possui_seccionamento}
+          disabled={ro || !formData.possui_seccionamento}
         >
           <option value="">Selecione</option>
           {renderSelectOptions(tipoSeccionamentoOptions)}

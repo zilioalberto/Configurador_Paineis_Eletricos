@@ -8,6 +8,7 @@ type ProjetoFormCheckboxFieldProps = {
   columnClassName?: string
   /** Alinha verticalmente com selects na mesma linha (Bootstrap `mt-2`). */
   alignTop?: boolean
+  disabled?: boolean
 }
 
 export function ProjetoFormCheckboxField({
@@ -17,6 +18,7 @@ export function ProjetoFormCheckboxField({
   onChange,
   columnClassName = 'col-md-3',
   alignTop = false,
+  disabled = false,
 }: ProjetoFormCheckboxFieldProps) {
   const wrapClass = alignTop ? 'form-check mt-2' : 'form-check'
 
@@ -30,6 +32,7 @@ export function ProjetoFormCheckboxField({
           name={name}
           checked={checked}
           onChange={onChange}
+          disabled={disabled}
         />
         <label className="form-check-label" htmlFor={name}>
           {label}

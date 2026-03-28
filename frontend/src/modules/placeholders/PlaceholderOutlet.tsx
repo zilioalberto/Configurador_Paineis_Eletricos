@@ -12,7 +12,7 @@ export default function PlaceholderOutlet() {
   const title = TITLES[pathname] ?? 'Página'
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <h1 className="h3">{title}</h1>
       <p>Página em construção.</p>
     </div>

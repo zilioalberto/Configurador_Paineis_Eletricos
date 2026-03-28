@@ -30,7 +30,7 @@ export default function ProjetoCreatePage() {
   }
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <div className="mb-4">
         <h1 className="h3 mb-1">Novo Projeto</h1>
         <p className="text-muted mb-0">

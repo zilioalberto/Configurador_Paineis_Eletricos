@@ -8,4 +8,9 @@ export type ProjetoFormFieldChangeHandler = (
 export type ProjetoFormSectionProps = {
   formData: ProjetoFormData
   onFieldChange: ProjetoFormFieldChangeHandler
+  /**
+   * Status Finalizado: bloqueia edição de todos os campos exceto o select Status.
+   * Com Em andamento, o formulário volta a ser editável e pode ser salvo.
+   */
+  readOnlyExceptStatus?: boolean
 }

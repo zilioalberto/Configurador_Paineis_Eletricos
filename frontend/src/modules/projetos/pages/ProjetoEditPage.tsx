@@ -109,7 +109,7 @@ export default function ProjetoEditPage() {
   const initialData = projeto ? projetoParaFormData(projeto) : undefined
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid">
       <div className="mb-4">
         <h1 className="h3 mb-1">Editar Projeto</h1>
         <p className="text-muted mb-0">

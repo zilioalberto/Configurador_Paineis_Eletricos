@@ -1,3 +1,5 @@
+export { AppInfoModal } from './AppInfoModal'
+export type { AppInfoModalProps } from './AppInfoModal'
 export { ConfirmModal } from './ConfirmModal'
 export type { ConfirmModalProps } from './ConfirmModal'
 export { ToastProvider } from './ToastProvider'
