@@ -5,9 +5,10 @@ import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuer
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
 import { useCreateCargaMutation } from '../hooks/useCargaMutations'
+import type { CargaFormData } from '../types/carga'
 import { cargaFormInitial } from '../utils/cargaFormDefaults'
 import { cargaFormToApiPayload } from '../utils/cargaPayload'
-import type { CargaFormData } from '../types/carga'
+import { filtrarProjetosComEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
 export default function CargaCreatePage() {
   const [searchParams] = useSearchParams()
@@ -15,19 +16,35 @@ export default function CargaCreatePage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
+  const projetosEditaveis = useMemo(
+    () => filtrarProjetosComEdicaoCargas(projetos),
+    [projetos]
+  )
 
   const createMutation = useCreateCargaMutation()
 
   const initialData = useMemo(() => {
-    const pid = projetoQuery || (projetos[0]?.id ?? '')
+    const fromQuery =
+      projetoQuery &&
+      projetosEditaveis.some((p) => p.id === projetoQuery)
+        ? projetoQuery
+        : ''
+    const pid = fromQuery || projetosEditaveis[0]?.id || ''
     return cargaFormInitial(pid)
-  }, [projetoQuery, projetos])
+  }, [projetoQuery, projetosEditaveis])
 
   async function handleSubmit(data: CargaFormData) {
     if (!data.projeto) {
       showToast({
         variant: 'warning',
         message: 'Selecione o projeto ao qual a carga pertence.',
+      })
+      return
+    }
+    if (!projetosEditaveis.some((p) => p.id === data.projeto)) {
+      showToast({
+        variant: 'warning',
+        message: 'Não é possível cadastrar cargas em projeto finalizado.',
       })
       return
     }
@@ -68,9 +85,19 @@ export default function CargaCreatePage() {
             </div>
           )}
 
-          {!loadingProjetos && projetos.length > 0 && (
+          {!loadingProjetos &&
+            projetos.length > 0 &&
+            projetosEditaveis.length === 0 && (
+              <div className="alert alert-secondary mb-0" role="alert">
+                Todos os projetos estão finalizados. Não é possível cadastrar novas
+                cargas até existir um projeto em andamento.{' '}
+                <Link to="/projetos">Ver projetos</Link>
+              </div>
+            )}
+
+          {!loadingProjetos && projetosEditaveis.length > 0 && (
             <CargaForm
-              projetos={projetos}
+              projetos={projetosEditaveis}
               initialData={initialData}
               onSubmit={handleSubmit}
               loading={createMutation.isPending}

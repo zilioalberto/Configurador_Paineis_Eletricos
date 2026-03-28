@@ -1,6 +1,7 @@
 import {
   type ChangeEvent,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -11,6 +12,10 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
 import { useDeleteCargaMutation } from '../hooks/useCargaMutations'
+import {
+  filtrarProjetosComEdicaoCargas,
+  projetoPermiteEdicaoCargas,
+} from '../utils/projetoEdicaoCargas'
 
 type DeleteTarget = { id: string; label: string }
 
@@ -21,20 +26,46 @@ export default function CargaListPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
+
+  const projetoSelecionado = useMemo(
+    () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
+    [projetos, projetoId]
+  )
+  const projetoFinalizado =
+    projetoSelecionado != null && !projetoPermiteEdicaoCargas(projetoSelecionado)
+  const projetosNoFiltro = useMemo(
+    () => filtrarProjetosComEdicaoCargas(projetos),
+    [projetos]
+  )
+  const projetoIdListagem = projetoId && !projetoFinalizado ? projetoId : null
+
   const {
     data: cargas = [],
     isPending: loadingCargas,
     isError,
     error: loadError,
     refetch,
-  } = useCargaListQuery(projetoId || null)
+  } = useCargaListQuery(projetoIdListagem)
 
-  const deleteMutation = useDeleteCargaMutation(projetoId || null)
+  const deleteMutation = useDeleteCargaMutation(projetoIdListagem)
 
   const projetoLabel = useMemo(() => {
-    const p = projetos.find((x) => x.id === projetoId)
+    const p = projetoSelecionado
     return p ? `${p.codigo} — ${p.nome}` : ''
-  }, [projetos, projetoId])
+  }, [projetoSelecionado])
+
+  useEffect(() => {
+    if (!projetoId || loadingProjetos || projetos.length === 0) return
+    const sel = projetos.find((p) => p.id === projetoId)
+    if (sel?.status === 'FINALIZADO') {
+      setSearchParams({}, { replace: true })
+      showToast({
+        variant: 'warning',
+        message:
+          'Projetos com status Finalizado não podem ser usados para gerenciar cargas.',
+      })
+    }
+  }, [projetoId, loadingProjetos, projetos, setSearchParams, showToast])
 
   const onProjetoFilterChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -108,20 +139,20 @@ export default function CargaListPage() {
             type="button"
             className="btn btn-outline-secondary"
             onClick={() => void refetch()}
-            disabled={!projetoId}
+            disabled={!projetoIdListagem}
           >
             Atualizar
           </button>
           <Link
             to={
-              projetoId
-                ? `/cargas/novo?projeto=${encodeURIComponent(projetoId)}`
+              projetoIdListagem
+                ? `/cargas/novo?projeto=${encodeURIComponent(projetoIdListagem)}`
                 : '/cargas/novo'
             }
-            className={`btn btn-primary${!projetoId ? ' disabled' : ''}`}
-            aria-disabled={!projetoId}
+            className={`btn btn-primary${!projetoIdListagem ? ' disabled' : ''}`}
+            aria-disabled={!projetoIdListagem}
             onClick={(e) => {
-              if (!projetoId) e.preventDefault()
+              if (!projetoIdListagem) e.preventDefault()
             }}
           >
             Nova carga
@@ -138,12 +169,12 @@ export default function CargaListPage() {
             id="filtro-projeto-cargas"
             className="form-select"
             style={{ maxWidth: '28rem' }}
-            value={projetoId}
+            value={projetoFinalizado ? '' : projetoId}
             onChange={onProjetoFilterChange}
             disabled={loadingProjetos}
           >
             <option value="">Selecione um projeto para listar as cargas</option>
-            {projetos.map((p) => (
+            {projetosNoFiltro.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.codigo} — {p.nome}
               </option>
@@ -155,28 +186,43 @@ export default function CargaListPage() {
               <Link to="/projetos/novo">Criar projeto</Link>
             </p>
           )}
+          {!loadingProjetos &&
+            projetos.length > 0 &&
+            projetosNoFiltro.length === 0 && (
+              <p className="text-muted small mt-2 mb-0">
+                Não há projetos em andamento. Projetos finalizados não aparecem
+                aqui para edição de cargas.
+              </p>
+            )}
         </div>
       </div>
 
       <div className="card">
         <div className="card-body">
-          {!projetoId && (
+          {!projetoIdListagem && !projetoFinalizado && (
             <p className="text-muted mb-0">
               Escolha um projeto acima para visualizar e gerenciar as cargas.
             </p>
           )}
 
-          {projetoId && (
+          {projetoFinalizado && (
+            <div className="alert alert-secondary mb-0" role="status">
+              Este projeto está finalizado. A lista de cargas deste projeto não
+              está disponível para gestão nesta tela.
+            </div>
+          )}
+
+          {projetoIdListagem && (
             <p className="small text-muted mb-3">
-              Projeto: <strong>{projetoLabel || projetoId}</strong>
+              Projeto: <strong>{projetoLabel || projetoIdListagem}</strong>
             </p>
           )}
 
-          {projetoId && loadingCargas && (
+          {projetoIdListagem && loadingCargas && (
             <p className="mb-0 text-muted">Carregando cargas...</p>
           )}
 
-          {projetoId && !loadingCargas && isError && (
+          {projetoIdListagem && !loadingCargas && isError && (
             <div className="alert alert-danger mb-0" role="alert">
               {loadError instanceof Error
                 ? loadError.message
@@ -184,10 +230,10 @@ export default function CargaListPage() {
             </div>
           )}
 
-          {projetoId && !loadingCargas && !isError && (
+          {projetoIdListagem && !loadingCargas && !isError && (
             <CargaTable
               cargas={cargas}
-              projetoId={projetoId}
+              projetoId={projetoIdListagem}
               onDeleteRequest={onDeleteRequest}
             />
           )}

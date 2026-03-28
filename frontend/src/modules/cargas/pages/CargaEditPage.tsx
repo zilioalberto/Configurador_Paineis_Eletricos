@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { useUpdateCargaMutation } from '../hooks/useCargaMutations'
+import type { CargaFormData } from '../types/carga'
 import { cargaDetailToForm } from '../utils/cargaDetailToForm'
 import { cargaFormToApiPayload } from '../utils/cargaPayload'
-import type { CargaFormData } from '../types/carga'
+import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
 export default function CargaEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -32,6 +33,13 @@ export default function CargaEditPage() {
     if (!carga) return null
     return cargaDetailToForm(carga)
   }, [carga])
+
+  const projetoDaCarga = useMemo(
+    () => (carga ? projetos.find((p) => p.id === carga.projeto) : undefined),
+    [carga, projetos]
+  )
+  const edicaoBloqueada =
+    carga != null && !projetoPermiteEdicaoCargas(projetoDaCarga)
 
   useEffect(() => {
     loadErrorToastSent.current = false
@@ -101,16 +109,36 @@ export default function CargaEditPage() {
             </div>
           )}
 
-          {id && !loadingCarga && !isLoadError && initialData && projetos.length > 0 && (
-            <CargaForm
-              key={id}
-              projetos={projetos}
-              initialData={initialData}
-              onSubmit={handleSubmit}
-              loading={updateMutation.isPending}
-              lockProjeto
-            />
-          )}
+          {id &&
+            !loadingCarga &&
+            !isLoadError &&
+            initialData &&
+            projetos.length > 0 &&
+            edicaoBloqueada && (
+              <div className="alert alert-secondary mb-0" role="alert">
+                Esta carga pertence a um projeto finalizado e não pode ser alterada
+                por aqui.{' '}
+                <Link to={`/cargas/${id}`}>Voltar aos detalhes</Link>
+                {' · '}
+                <Link to="/cargas">Lista de cargas</Link>
+              </div>
+            )}
+
+          {id &&
+            !loadingCarga &&
+            !isLoadError &&
+            initialData &&
+            projetos.length > 0 &&
+            !edicaoBloqueada && (
+              <CargaForm
+                key={id}
+                projetos={projetos}
+                initialData={initialData}
+                onSubmit={handleSubmit}
+                loading={updateMutation.isPending}
+                lockProjeto
+              />
+            )}
         </div>
       </div>
     </div>
