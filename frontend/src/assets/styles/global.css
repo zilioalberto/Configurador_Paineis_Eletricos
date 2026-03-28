@@ -1,3 +1,52 @@
+/* -----------------------------------------------------------------------------
+   Design tokens — Configurador de Painéis Elétricos
+   Sobrescreve variáveis do Bootstrap 5 onde fizer sentido.
+----------------------------------------------------------------------------- */
+:root {
+  /* Marca */
+  --cp-primary: #1a5276;
+  --cp-primary-rgb: 26, 82, 118;
+  --cp-accent: #2874a6;
+
+  /* Bootstrap — alinha componentes (.btn-primary, etc.) */
+  --bs-primary: var(--cp-primary);
+  --bs-primary-rgb: var(--cp-primary-rgb);
+
+  /* Superfícies */
+  --cp-body-bg: #f0f2f5;
+  --cp-surface-main: #eef1f4;
+  --cp-surface-elevated: #ffffff;
+  --cp-sidebar-bg: #101828;
+  --cp-sidebar-text: #e8eaed;
+  --cp-sidebar-muted: #9aa4b2;
+  --cp-header-bg: #ffffff;
+  --cp-border-subtle: rgba(16, 24, 40, 0.08);
+
+  /* Tipografia */
+  --cp-font-sans: 'Source Sans 3', 'Segoe UI', system-ui, -apple-system,
+    BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+  --bs-body-font-family: var(--cp-font-sans);
+  --cp-font-weight-heading: 600;
+  --cp-font-size-table-header: 0.75rem;
+  --cp-font-size-table-action: 0.8125rem;
+  --cp-btn-table-py: 0.35rem;
+  --cp-btn-table-px: 0.65rem;
+
+  /* Raio e sombra */
+  --cp-radius-sm: 0.375rem;
+  --cp-radius-md: 0.5rem;
+  --cp-radius-lg: 0.75rem;
+  --bs-border-radius: var(--cp-radius-md);
+  --bs-border-radius-lg: var(--cp-radius-lg);
+  --cp-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --cp-shadow-md: 0 1px 3px rgba(16, 24, 40, 0.08),
+    0 1px 2px rgba(16, 24, 40, 0.06);
+
+  /* Layout */
+  --cp-sidebar-width: 260px;
+  --cp-header-height: 64px;
+}
+
 html,
 body,
 #root {
@@ -6,10 +55,119 @@ body,
 }
 
 body {
-  background-color: #f8f9fa;
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--cp-body-bg);
+  font-family: var(--cp-font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5 {
+  font-weight: var(--cp-font-weight-heading);
+}
+
+/* Cabeçalho da área de trabalho */
+.app-header {
+  height: var(--cp-header-height);
+  background-color: var(--cp-header-bg) !important;
+  box-shadow: var(--cp-shadow-sm);
+  border-bottom: 1px solid var(--cp-border-subtle) !important;
+}
+
+.app-header .navbar-brand,
+.app-header .fw-bold {
+  color: #1d2939;
+  letter-spacing: -0.02em;
+}
+
+/* Barra lateral */
+.app-sidebar {
+  width: var(--cp-sidebar-width);
+  min-height: 100vh;
+  background-color: var(--cp-sidebar-bg);
+  color: var(--cp-sidebar-text);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-sidebar .app-sidebar-title {
+  color: var(--cp-sidebar-text);
+  letter-spacing: -0.02em;
+}
+
+.app-sidebar .nav-link {
+  color: var(--cp-sidebar-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-sidebar .nav-link:hover {
+  color: var(--cp-sidebar-text);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.app-sidebar .nav-link.active {
+  color: #fff !important;
+  background-color: var(--cp-primary) !important;
+}
+
+/* Conteúdo principal */
+.app-main {
+  background-color: var(--cp-surface-main);
+  min-height: 0;
+}
+
+/* Cartões — leve elevação sem brigar com utilitários Bootstrap */
+.card {
+  background-color: var(--cp-surface-elevated);
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: var(--cp-radius-md);
+  box-shadow: var(--cp-shadow-md);
+}
+
+/* Form controls — leve consistência com a marca */
+.form-control:focus,
+.form-select:focus {
+  border-color: color-mix(in srgb, var(--cp-primary) 55%, white);
+  box-shadow: 0 0 0 0.2rem rgba(var(--cp-primary-rgb), 0.2);
+}
+
+/* Tabelas de dados (listagens) */
+.app-data-table .table {
+  margin-bottom: 0;
+  --bs-table-hover-bg: rgba(var(--cp-primary-rgb), 0.04);
+}
+
+.app-data-table .table thead th {
+  font-family: var(--cp-font-sans);
+  font-size: var(--cp-font-size-table-header);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #667085;
+  border-bottom-color: var(--cp-border-subtle);
+  vertical-align: middle;
+}
+
+.app-data-table .table tbody td {
+  vertical-align: middle;
+}
+
+.app-data-table .table-actions {
+  gap: 0.5rem;
+}
+
+.app-data-table .table-actions .btn {
+  font-size: var(--cp-font-size-table-action);
+  font-weight: 500;
+  padding: var(--cp-btn-table-py) var(--cp-btn-table-px);
+  border-radius: var(--cp-radius-sm);
+  line-height: 1.25;
 }

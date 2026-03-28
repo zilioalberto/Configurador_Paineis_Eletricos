@@ -1,47 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useToast } from '@/components/feedback'
 import ProjetoForm from '../components/ProjetoForm'
-import { obterProjeto, atualizarProjeto } from '../services/projetoService'
+import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
+import { useUpdateProjetoMutation } from '../hooks/useProjetoMutations'
 import type { Projeto, ProjetoFormData } from '../types/projeto'
-
-function extrairMensagemErro(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
-    error.response !== null &&
-    'data' in error.response
-  ) {
-    const data = error.response.data
-
-    if (typeof data === 'string') {
-      return data
-    }
-
-    if (typeof data === 'object' && data !== null) {
-      const mensagens = Object.entries(data)
-        .map(([campo, valor]) => {
-          if (Array.isArray(valor)) {
-            return `${campo}: ${valor.join(', ')}`
-          }
-
-          if (typeof valor === 'string') {
-            return `${campo}: ${valor}`
-          }
-
-          return `${campo}: erro de validação`
-        })
-        .join(' | ')
-
-      if (mensagens) {
-        return mensagens
-      }
-    }
-  }
-
-  return 'Não foi possível atualizar o projeto.'
-}
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
 function projetoParaFormData(projeto: Projeto): ProjetoFormData {
   return {
@@ -89,53 +53,60 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
 export default function ProjetoEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { showToast } = useToast()
+  const loadErrorToastSent = useRef(false)
 
-  const [loadingProjeto, setLoadingProjeto] = useState(true)
-  const [loadingSubmit, setLoadingSubmit] = useState(false)
-  const [error, setError] = useState('')
-  const [initialData, setInitialData] = useState<ProjetoFormData | null>(null)
+  const {
+    data: projeto,
+    isPending: loadingProjeto,
+    isError: isLoadError,
+    error: loadQueryError,
+    refetch,
+  } = useProjetoDetailQuery(id)
+
+  const updateMutation = useUpdateProjetoMutation()
 
   useEffect(() => {
-    async function carregarProjeto() {
-      if (!id) {
-        setError('Projeto não informado.')
-        setLoadingProjeto(false)
-        return
-      }
-
-      try {
-        setLoadingProjeto(true)
-        setError('')
-
-        const projeto = await obterProjeto(id)
-        setInitialData(projetoParaFormData(projeto))
-      } catch (err) {
-        console.error('Erro ao carregar projeto para edição:', err)
-        setError('Não foi possível carregar os dados do projeto.')
-      } finally {
-        setLoadingProjeto(false)
-      }
-    }
-
-    void carregarProjeto()
+    loadErrorToastSent.current = false
   }, [id])
+
+  useEffect(() => {
+    if (!isLoadError || !loadQueryError || loadErrorToastSent.current) {
+      return
+    }
+    loadErrorToastSent.current = true
+    showToast({
+      variant: 'danger',
+      title: 'Erro ao carregar projeto',
+      message:
+        loadQueryError instanceof Error
+          ? loadQueryError.message
+          : 'Não foi possível carregar os dados do projeto.',
+    })
+  }, [isLoadError, loadQueryError, showToast])
 
   async function handleSubmit(data: ProjetoFormData) {
     if (!id) return
 
     try {
-      setLoadingSubmit(true)
-      setError('')
-
-      const projetoAtualizado = await atualizarProjeto(id, data)
+      const projetoAtualizado = await updateMutation.mutateAsync({ id, data })
+      showToast({
+        variant: 'success',
+        message: 'Projeto atualizado com sucesso.',
+      })
       navigate(`/projetos/${projetoAtualizado.id}`)
     } catch (err) {
       console.error('Erro ao atualizar projeto:', err)
-      setError(extrairMensagemErro(err))
-    } finally {
-      setLoadingSubmit(false)
+      const mensagemApi = extrairMensagemErroApi(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível atualizar o projeto',
+        message: mensagemApi || 'Verifique os dados e tente novamente.',
+      })
     }
   }
+
+  const initialData = projeto ? projetoParaFormData(projeto) : undefined
 
   return (
     <div className="container-fluid py-4">
@@ -148,18 +119,36 @@ export default function ProjetoEditPage() {
 
       <div className="card">
         <div className="card-body">
-          {loadingProjeto && <p className="mb-0">Carregando dados do projeto...</p>}
-
-          {!loadingProjeto && error && (
+          {!id && (
             <div className="alert alert-danger" role="alert">
-              {error}
+              Projeto não informado.
             </div>
           )}
 
-          {!loadingProjeto && !error && initialData && (
+          {id && loadingProjeto && (
+            <p className="mb-0 text-muted">Carregando dados do projeto...</p>
+          )}
+
+          {id && !loadingProjeto && isLoadError && (
+            <div className="d-flex flex-wrap align-items-center gap-3">
+              <p className="text-danger mb-0">
+                Não foi possível carregar os dados deste projeto.
+              </p>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary"
+                onClick={() => void refetch()}
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {id && !loadingProjeto && !isLoadError && initialData && (
             <ProjetoForm
+              key={id}
               onSubmit={handleSubmit}
-              loading={loadingSubmit}
+              loading={updateMutation.isPending}
               initialData={initialData}
             />
           )}

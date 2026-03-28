@@ -1,65 +1,31 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '@/components/feedback'
 import ProjetoForm from '../components/ProjetoForm'
-import { criarProjeto } from '../services/projetoService'
+import { useCreateProjetoMutation } from '../hooks/useProjetoMutations'
 import type { ProjetoFormData } from '../types/projeto'
-
-function extrairMensagemErro(error: unknown): string {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
-    error.response !== null &&
-    'data' in error.response
-  ) {
-    const data = error.response.data
-
-    if (typeof data === 'string') {
-      return data
-    }
-
-    if (typeof data === 'object' && data !== null) {
-      const mensagens = Object.entries(data)
-        .map(([campo, valor]) => {
-          if (Array.isArray(valor)) {
-            return `${campo}: ${valor.join(', ')}`
-          }
-
-          if (typeof valor === 'string') {
-            return `${campo}: ${valor}`
-          }
-
-          return `${campo}: erro de validação`
-        })
-        .join(' | ')
-
-      if (mensagens) {
-        return mensagens
-      }
-    }
-  }
-
-  return 'Não foi possível criar o projeto.'
-}
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
 export default function ProjetoCreatePage() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { showToast } = useToast()
+  const createMutation = useCreateProjetoMutation()
 
   async function handleSubmit(data: ProjetoFormData) {
     try {
-      setLoading(true)
-      setError('')
-
-      const projeto = await criarProjeto(data)
+      const projeto = await createMutation.mutateAsync(data)
+      showToast({
+        variant: 'success',
+        message: 'Projeto criado com sucesso.',
+      })
       navigate(`/projetos/${projeto.id}`)
     } catch (err) {
       console.error('Erro ao criar projeto:', err)
-      setError(extrairMensagemErro(err))
-    } finally {
-      setLoading(false)
+      const mensagemApi = extrairMensagemErroApi(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível criar o projeto',
+        message: mensagemApi || 'Verifique os dados e tente novamente.',
+      })
     }
   }
 
@@ -74,13 +40,10 @@ export default function ProjetoCreatePage() {
 
       <div className="card">
         <div className="card-body">
-          {error && (
-            <div className="alert alert-danger" role="alert">
-              {error}
-            </div>
-          )}
-
-          <ProjetoForm onSubmit={handleSubmit} loading={loading} />
+          <ProjetoForm
+            onSubmit={handleSubmit}
+            loading={createMutation.isPending}
+          />
         </div>
       </div>
     </div>
