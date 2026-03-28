@@ -1,3 +1,4 @@
+import { catalogoMenuItems, catalogoRoutes } from '@/modules/catalogo/catalogo.registry'
 import { dashboardMenuItems, dashboardRoutes } from '@/modules/dashboard/dashboard.registry'
 import { cargasMenuItems, cargasRoutes } from '@/modules/cargas/cargas.registry'
 import {
@@ -11,6 +12,7 @@ const routeModules: ModuleRouteConfig[][] = [
   dashboardRoutes,
   projetosRoutes,
   cargasRoutes,
+  catalogoRoutes,
   placeholdersRoutes,
 ]
 
@@ -18,6 +20,7 @@ const menuModules: AppMenuItem[][] = [
   dashboardMenuItems,
   projetosMenuItems,
   cargasMenuItems,
+  catalogoMenuItems,
   placeholdersMenuItems,
 ]
 

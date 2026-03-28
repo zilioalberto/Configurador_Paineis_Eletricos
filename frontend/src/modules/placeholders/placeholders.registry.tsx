@@ -4,13 +4,11 @@ import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
 const PlaceholderOutlet = lazy(() => import('./PlaceholderOutlet'))
 
 export const placeholdersMenuItems: AppMenuItem[] = [
-  { to: '/catalogo', label: 'Catálogo', order: 30 },
   { to: '/dimensionamento', label: 'Dimensionamento', order: 40 },
   { to: '/composicao', label: 'Composição', order: 50 },
 ]
 
 export const placeholdersRoutes: ModuleRouteConfig[] = [
-  { path: '/catalogo', element: <PlaceholderOutlet /> },
   {
     path: '/dimensionamento',
     element: <PlaceholderOutlet />,
