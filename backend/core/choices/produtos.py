@@ -7,6 +7,7 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     RELE_SOBRECARGA = "RELE_SOBRECARGA", "Relé de Sobrecarga"
     MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini disjuntor"
     SECCIONADORA = "SECCIONADORA", "Seccionadora"
+    DISJUNTOR_CAIXA_MOLDADA = "DISJUNTOR_CAIXA_MOLDADA", "Disjuntor Caixa Moldada"
     FONTE = "FONTE", "Fonte"
     PLC = "PLC", "PLC"
     EXPANSAO_PLC = "EXPANSAO_PLC", "Expansão PLC"

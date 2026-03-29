@@ -22,5 +22,6 @@ urlpatterns = [
     path("api/v1/", include("projetos.api.urls")),
     path("api/v1/", include("cargas.api.urls")),
     path("api/v1/", include("catalogo.api.urls")),
-    path("api/v1/", include("dimensionamento.api.urls"))]
-
+    path("api/v1/", include("dimensionamento.api.urls")),
+    path("api/v1/", include("composicao_painel.api.urls")),
+]

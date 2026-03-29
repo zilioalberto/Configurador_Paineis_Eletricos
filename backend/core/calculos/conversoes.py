@@ -15,5 +15,3 @@ def normalizar_para_kw(valor: Decimal, unidade: str) -> Decimal | None:
 
     # Se for corrente, não faz sentido converter
     return None
-
-

@@ -2,6 +2,10 @@ import { catalogoMenuItems, catalogoRoutes } from '@/modules/catalogo/catalogo.r
 import { dashboardMenuItems, dashboardRoutes } from '@/modules/dashboard/dashboard.registry'
 import { cargasMenuItems, cargasRoutes } from '@/modules/cargas/cargas.registry'
 import {
+  composicaoMenuItems,
+  composicaoRoutes,
+} from '@/modules/composicao/composicao.registry'
+import {
   dimensionamentoMenuItems,
   dimensionamentoRoutes,
 } from '@/modules/dimensionamento/dimensionamento.registry'
@@ -18,6 +22,7 @@ const routeModules: ModuleRouteConfig[][] = [
   cargasRoutes,
   catalogoRoutes,
   dimensionamentoRoutes,
+  composicaoRoutes,
   placeholdersRoutes,
 ]
 
@@ -27,6 +32,7 @@ const menuModules: AppMenuItem[][] = [
   cargasMenuItems,
   catalogoMenuItems,
   dimensionamentoMenuItems,
+  composicaoMenuItems,
   placeholdersMenuItems,
 ]
 
