@@ -1,5 +1,3 @@
-from django.core.exceptions import ValidationError
-
 from dimensionamento.models import ResumoDimensionamento
 from composicao_painel.models import SugestaoItem, PendenciaItem
 
@@ -16,33 +14,11 @@ from core.choices import (
 )
 
 
-def gerar_sugestao_seccionamento(projeto):
+def _nucleo_gerar_seccionamento(projeto):
     """
-    Gera a sugestão de item de seccionamento para o painel elétrico
-    com base nos dados do projeto e no resumo de dimensionamento.
-
-    Regras:
-    - Só gera se projeto.possui_seccionamento = True
-    - Usa corrente_total_painel_a como parâmetro
-    - Seleciona produto via selector adequado
-    - Quando não encontra item compatível, gera pendência
+    Núcleo de geração de seccionamento (sem limpeza global prévia).
+    Cria/atualiza sugestão ou pendências conforme regras do projeto.
     """
-    print("\n" + "=" * 100)
-    print("[SECCIONAMENTO] Iniciando gerar_sugestao_seccionamento")
-    print(f"[SECCIONAMENTO] Projeto: id={projeto.id} | projeto={projeto}")
-
-    deletados_sugestoes, _ = SugestaoItem.objects.filter(
-        projeto=projeto,
-        parte_painel=PartesPainelChoices.SECCIONAMENTO,
-    ).delete()
-    print(f"[SECCIONAMENTO] Sugestões antigas removidas: {deletados_sugestoes}")
-
-    deletados_pendencias, _ = PendenciaItem.objects.filter(
-        projeto=projeto,
-        parte_painel=PartesPainelChoices.SECCIONAMENTO,
-    ).delete()
-    print(f"[SECCIONAMENTO] Pendências antigas removidas: {deletados_pendencias}")
-
     if not projeto.possui_seccionamento:
         print("[SECCIONAMENTO] Projeto sem seccionamento. Encerrando etapa.")
         print("=" * 100 + "\n")
@@ -294,7 +270,57 @@ def gerar_sugestao_seccionamento(projeto):
     print(
         f"[SECCIONAMENTO] Sugestão salva: id={sugestao.id} | created={created} | produto={sugestao.produto}"
     )
-    print("[SECCIONAMENTO] Finalizando gerar_sugestao_seccionamento")
+    print("[SECCIONAMENTO] Finalizando _nucleo_gerar_seccionamento")
     print("=" * 100 + "\n")
 
     return sugestao
+
+
+def reprocessar_seccionamento_para_pendencia(projeto, pendencia):
+    """
+    Remove sugestão/pendência apenas no escopo da pendência (parte + categoria + carga)
+    e executa o núcleo de seccionamento outra vez.
+    """
+    SugestaoItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.SECCIONAMENTO,
+        categoria_produto=pendencia.categoria_produto,
+        carga=pendencia.carga,
+    ).delete()
+    PendenciaItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.SECCIONAMENTO,
+        categoria_produto=pendencia.categoria_produto,
+        carga=pendencia.carga,
+    ).delete()
+    return _nucleo_gerar_seccionamento(projeto)
+
+
+def gerar_sugestao_seccionamento(projeto):
+    """
+    Gera a sugestão de item de seccionamento para o painel elétrico
+    com base nos dados do projeto e no resumo de dimensionamento.
+
+    Regras:
+    - Só gera se projeto.possui_seccionamento = True
+    - Usa corrente_total_painel_a como parâmetro
+    - Seleciona produto via selector adequado
+    - Quando não encontra item compatível, gera pendência
+    """
+    print("\n" + "=" * 100)
+    print("[SECCIONAMENTO] Iniciando gerar_sugestao_seccionamento")
+    print(f"[SECCIONAMENTO] Projeto: id={projeto.id} | projeto={projeto}")
+
+    deletados_sugestoes, _ = SugestaoItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.SECCIONAMENTO,
+    ).delete()
+    print(f"[SECCIONAMENTO] Sugestões antigas removidas: {deletados_sugestoes}")
+
+    deletados_pendencias, _ = PendenciaItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.SECCIONAMENTO,
+    ).delete()
+    print(f"[SECCIONAMENTO] Pendências antigas removidas: {deletados_pendencias}")
+
+    return _nucleo_gerar_seccionamento(projeto)

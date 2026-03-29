@@ -25,6 +25,16 @@ export async function gerarSugestoesComposicao(
   return response.data
 }
 
+export async function reavaliarPendenciasComposicao(
+  projetoId: string
+): Promise<ComposicaoSnapshot> {
+  const response = await apiClient.post<ComposicaoSnapshot>(
+    `/composicao/projeto/${projetoId}/reavaliar-pendencias/`,
+    {}
+  )
+  return response.data
+}
+
 export async function listarAlternativasSugestao(
   sugestaoId: string
 ): Promise<ProdutoAlternativa[]> {

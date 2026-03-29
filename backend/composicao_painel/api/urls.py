@@ -3,6 +3,7 @@ from django.urls import path
 from composicao_painel.api.views import (
     ComposicaoGerarSugestoesView,
     ComposicaoProjetoSnapshotView,
+    ComposicaoReavaliarPendenciasView,
     SugestaoAlternativasView,
     SugestaoAprovarView,
 )
@@ -17,6 +18,11 @@ urlpatterns = [
         "composicao/projeto/<uuid:projeto_id>/gerar-sugestoes/",
         ComposicaoGerarSugestoesView.as_view(),
         name="composicao-projeto-gerar-sugestoes",
+    ),
+    path(
+        "composicao/projeto/<uuid:projeto_id>/reavaliar-pendencias/",
+        ComposicaoReavaliarPendenciasView.as_view(),
+        name="composicao-projeto-reavaliar-pendencias",
     ),
     path(
         "composicao/sugestoes/<uuid:sugestao_id>/alternativas/",

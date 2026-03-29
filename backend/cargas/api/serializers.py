@@ -145,7 +145,6 @@ class CargaListSerializer(serializers.ModelSerializer):
     projeto_tipo_corrente_display = serializers.CharField(
         source="projeto.get_tipo_corrente_display", read_only=True
     )
-    potencia_kw_calculada = serializers.SerializerMethodField()
     corrente_calculada_a = serializers.SerializerMethodField()
     potencia_corrente_valor = serializers.SerializerMethodField()
     potencia_corrente_unidade = serializers.SerializerMethodField()
@@ -164,7 +163,6 @@ class CargaListSerializer(serializers.ModelSerializer):
             "projeto_tensao_display",
             "projeto_fases_display",
             "projeto_tipo_corrente_display",
-            "potencia_kw_calculada",
             "corrente_calculada_a",
             "potencia_corrente_valor",
             "potencia_corrente_unidade",
@@ -181,10 +179,6 @@ class CargaListSerializer(serializers.ModelSerializer):
             return obj.motor
         except CargaMotor.DoesNotExist:
             return None
-
-    def get_potencia_kw_calculada(self, obj):
-        m = self._motor_ou_none(obj)
-        return m.potencia_kw_calculada if m else None
 
     def get_corrente_calculada_a(self, obj):
         m = self._motor_ou_none(obj)

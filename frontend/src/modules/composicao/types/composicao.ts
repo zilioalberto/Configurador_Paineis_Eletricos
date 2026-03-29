@@ -12,8 +12,13 @@ export type ProdutoAlternativa = ProdutoMini & {
 export type CargaDetalhe = {
   id: string
   tag: string
+  descricao?: string
   tipo?: string
   tipo_display?: string
+  quantidade?: number
+  potencia_corrente_valor?: string | number | null
+  potencia_corrente_unidade?: string | null
+  potencia_corrente_unidade_display?: string | null
   corrente_a?: string | null
 }
 
@@ -22,6 +27,9 @@ export type ProjetoAlimentacaoSnapshot = {
   tensao_nominal_display: string
   tipo_corrente: string
   tipo_corrente_display: string
+  /** Valor do campo `projetos_projeto.numero_fases` */
+  numero_fases?: number | null
+  numero_fases_display?: string
 }
 
 export type SugestaoItem = {
@@ -77,9 +85,23 @@ export type PendenciaItem = {
   status: string
   status_display?: string
   ordem: number
-  carga: { id: string; tag: string } | null
+  carga: CargaDetalhe | null
+  projeto_alimentacao?: ProjetoAlimentacaoSnapshot
   criado_em?: string
   atualizado_em?: string
+}
+
+/** Resposta de POST reavaliar-pendencias (mesmo payload do snapshot + metadados). */
+export type ReavaliacaoPendenciasPayload = {
+  projeto_id: string
+  pendencias_analisadas?: number
+  categorias_encontradas: string[]
+  categorias_reavaliadas: string[]
+  escopos_reprocessados?: string[]
+  categorias_nao_mapeadas: string[]
+  erros: { categoria_produto: string; erro: string }[]
+  pendencias_abertas_antes: number
+  pendencias_abertas_depois: number
 }
 
 export type ComposicaoSnapshot = {
@@ -98,6 +120,7 @@ export type ComposicaoSnapshot = {
     total_sugestoes_retornadas: number
     erros_etapas: { etapa: string; erro: string }[]
   }
+  reavaliacao?: ReavaliacaoPendenciasPayload
 }
 
 export type AprovarSugestaoResponse = {

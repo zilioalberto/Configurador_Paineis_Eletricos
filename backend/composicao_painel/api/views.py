@@ -16,6 +16,10 @@ from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
 from composicao_painel.services.alternativas_produto import listar_alternativas_para_sugestao
 from composicao_painel.services.sugestoes.aprovacao_sugestoes import aprovar_sugestao_item
 from composicao_painel.services.sugestoes.orquestrador import gerar_sugestoes_painel
+from composicao_painel.services.sugestoes.orquestrador_pendencias import (
+    reavaliar_pendencias_projeto,
+)
+from core.choices import StatusPendenciaChoices
 from projetos.models import Projeto
 from projetos.services.fluxo_projeto import validar_projeto_editavel
 
@@ -39,7 +43,12 @@ def _snapshot(projeto: Projeto) -> dict:
     )
     pendencias = (
         PendenciaItem.objects.filter(projeto=projeto)
-        .select_related("carga")
+        .select_related(
+            "projeto",
+            "carga",
+            "carga__motor",
+            "carga__resistencia",
+        )
         .order_by("ordem", "id")
     )
     composicao_itens = (
@@ -95,6 +104,43 @@ class ComposicaoGerarSugestoesView(APIView):
         snap["geracao"] = {
             "total_sugestoes_retornadas": resultado.get("total_sugestoes", 0),
             "erros_etapas": resultado.get("erros", []),
+        }
+        return Response(snap, status=status.HTTP_200_OK)
+
+
+class ComposicaoReavaliarPendenciasView(APIView):
+    """
+    POST: reexecuta as regras de composição por categoria para pendências abertas
+    (equivalente à action do admin «Reavaliar pendências do projeto»).
+    """
+
+    def post(self, request, projeto_id):
+        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        try:
+            validar_projeto_editavel(projeto)
+        except DjangoValidationError as exc:
+            detail = exc.messages if hasattr(exc, "messages") else [str(exc)]
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        total_antes = PendenciaItem.objects.filter(
+            projeto=projeto,
+            status=StatusPendenciaChoices.ABERTA,
+        ).count()
+
+        resultado = reavaliar_pendencias_projeto(projeto)
+
+        total_depois = PendenciaItem.objects.filter(
+            projeto=projeto,
+            status=StatusPendenciaChoices.ABERTA,
+        ).count()
+
+        snap = _snapshot(projeto)
+        rid = resultado.get("projeto_id")
+        snap["reavaliacao"] = {
+            **resultado,
+            "projeto_id": str(rid) if rid is not None else str(projeto.id),
+            "pendencias_abertas_antes": total_antes,
+            "pendencias_abertas_depois": total_depois,
         }
         return Response(snap, status=status.HTTP_200_OK)
 

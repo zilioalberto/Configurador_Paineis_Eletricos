@@ -8,11 +8,61 @@ import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQu
 import { useAprovarSugestaoMutation } from '../hooks/useAprovarSugestaoMutation'
 import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import { useGerarSugestoesMutation } from '../hooks/useGerarSugestoesMutation'
-import type { SugestaoItem } from '../types/composicao'
+import { useReavaliarPendenciasMutation } from '../hooks/useReavaliarPendenciasMutation'
+import type { CargaDetalhe, ProjetoAlimentacaoSnapshot, SugestaoItem } from '../types/composicao'
 
 function em(v: string | null | undefined) {
   if (v == null || v === '') return '—'
   return v
+}
+
+function formatPotenciaCarga(c: CargaDetalhe | null | undefined) {
+  const raw = c?.potencia_corrente_valor
+  if (raw != null && raw !== '') {
+    const valor = String(raw)
+    const u =
+      c?.potencia_corrente_unidade_display ?? c?.potencia_corrente_unidade ?? ''
+    return u ? `${valor} ${u}` : valor
+  }
+  return '—'
+}
+
+/** Descrição da carga (`cargas_carga.descricao`). */
+function textoDescricaoCarga(c: CargaDetalhe | null | undefined) {
+  if (!c) return '—'
+  const d = c.descricao
+  if (d == null) return '—'
+  const s = typeof d === 'string' ? d : String(d)
+  return s.trim() === '' ? '—' : s
+}
+
+function formatNumeroFasesProjeto(pa: ProjetoAlimentacaoSnapshot | undefined) {
+  if (pa?.numero_fases != null) {
+    return String(pa.numero_fases)
+  }
+  if (pa?.numero_fases_display && pa.numero_fases_display.trim() !== '') {
+    return pa.numero_fases_display
+  }
+  return '—'
+}
+
+function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
+  if (c?.corrente_a != null && c.corrente_a !== '') {
+    return `${c.corrente_a} A`
+  }
+  return '—'
+}
+
+function CelulaTensaoProjeto({ pa }: { pa: ProjetoAlimentacaoSnapshot | undefined }) {
+  if (!pa) return <td>—</td>
+  return (
+    <td className="small">
+      <div>{em(pa.tensao_nominal_display)}</div>
+      {pa.tipo_corrente_display ? (
+        <div className="small text-muted">{pa.tipo_corrente_display}</div>
+      ) : null}
+    </td>
+  )
 }
 
 export default function ComposicaoPage() {
@@ -41,6 +91,7 @@ export default function ComposicaoPage() {
   const podeEditar = projetoPermiteEdicaoCargas(projetoSelecionado)
 
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
+  const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
   const aprovarMutation = useAprovarSugestaoMutation(projetoId || null)
 
   const {
@@ -114,6 +165,41 @@ export default function ComposicaoPage() {
       })
     }
   }, [projetoId, podeEditar, gerarMutation, showToast])
+
+  const onReavaliarPendencias = useCallback(async () => {
+    if (!projetoId || !podeEditar) return
+    try {
+      const data = await reavaliarPendenciasMutation.mutateAsync()
+      const r = data.reavaliacao
+      if (r) {
+        const erros = r.erros ?? []
+        const naoMap = r.categorias_nao_mapeadas ?? []
+        const msgBase = `Pendências abertas: ${r.pendencias_abertas_antes} → ${r.pendencias_abertas_depois}. Categorias reavaliadas: ${r.categorias_reavaliadas.length}.`
+        if (erros.length > 0 || naoMap.length > 0) {
+          const extra = [
+            ...naoMap.map((c) => `Sem regra automática: ${c}`),
+            ...erros.map((e) => `${e.categoria_produto}: ${e.erro}`),
+          ].join(' · ')
+          showToast({
+            variant: 'warning',
+            title: 'Reavaliação concluída com avisos',
+            message: `${msgBase} ${extra}`,
+          })
+        } else {
+          showToast({ variant: 'success', message: msgBase })
+        }
+      } else {
+        showToast({ variant: 'success', message: 'Pendências reavaliadas.' })
+      }
+    } catch (err) {
+      console.error(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível reavaliar pendências',
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+    }
+  }, [projetoId, podeEditar, reavaliarPendenciasMutation, showToast])
 
   const onAprovar = useCallback(
     async (sugestaoId: string, produtoId?: string | null) => {
@@ -266,16 +352,17 @@ export default function ComposicaoPage() {
                 <table className="table table-sm table-hover align-middle">
                   <thead>
                     <tr>
-                      <th>Parte do painel</th>
-                      <th>Categoria</th>
-                      <th>Código</th>
-                      <th>Produto</th>
-                      <th>Tensão (projeto)</th>
-                      <th>Carga</th>
-                      <th>Tipo carga</th>
-                      <th>Corrente (A)</th>
-                      <th>Corrente ref. (A)</th>
+                      <th>Tag</th>
+                      <th>Descrição</th>
+                      <th>Tipo</th>
+                      <th>Potência</th>
+                      <th>Corrente</th>
+                      <th>Tensão</th>
+                      <th>Fases</th>
                       <th>Qtd.</th>
+                      <th>Categoria</th>
+                      <th>Produto</th>
+                      <th>Código</th>
                       <th>Status</th>
                       {podeEditar ? <th className="text-end">Ações</th> : null}
                     </tr>
@@ -283,26 +370,29 @@ export default function ComposicaoPage() {
                   <tbody>
                     {snapshot.sugestoes.map((s) => (
                       <tr key={s.id}>
-                        <td>{s.parte_painel_display ?? s.parte_painel}</td>
+                        <td>{s.carga ? s.carga.tag : '—'}</td>
+                        <td>{textoDescricaoCarga(s.carga)}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {em(s.carga?.tipo_display)}
+                          </span>
+                        </td>
+                        <td>{formatPotenciaCarga(s.carga)}</td>
+                        <td>{formatCorrenteCarga(s.carga)}</td>
+                        <CelulaTensaoProjeto pa={s.projeto_alimentacao} />
+                        <td>{formatNumeroFasesProjeto(s.projeto_alimentacao)}</td>
+                        <td>{s.quantidade}</td>
                         <td>
                           <span className="badge text-bg-secondary">
                             {s.categoria_produto_display ?? s.categoria_produto}
                           </span>
                         </td>
+                        <td className="small">{s.produto?.descricao ?? '—'}</td>
                         <td>
                           <span className="fw-semibold font-monospace">
                             {s.produto_codigo ?? s.produto?.codigo ?? '—'}
                           </span>
                         </td>
-                        <td className="small">{s.produto?.descricao ?? '—'}</td>
-                        <td className="small">
-                          {s.projeto_alimentacao?.tensao_nominal_display ?? '—'}
-                        </td>
-                        <td>{s.carga ? s.carga.tag : '—'}</td>
-                        <td className="small">{em(s.carga?.tipo_display)}</td>
-                        <td>{em(s.carga?.corrente_a)}</td>
-                        <td>{em(s.corrente_referencia_a)}</td>
-                        <td>{s.quantidade}</td>
                         <td>{s.status_display ?? s.status}</td>
                         {podeEditar ? (
                           <td className="text-end text-nowrap">
@@ -343,41 +433,45 @@ export default function ComposicaoPage() {
                 <table className="table table-sm table-hover align-middle">
                   <thead>
                     <tr>
-                      <th>Parte do painel</th>
-                      <th>Categoria</th>
-                      <th>Código</th>
-                      <th>Produto</th>
-                      <th>Tensão (projeto)</th>
-                      <th>Carga</th>
-                      <th>Tipo carga</th>
-                      <th>Corrente (A)</th>
-                      <th>Corrente ref. (A)</th>
+                      <th>Tag</th>
+                      <th>Descrição</th>
+                      <th>Tipo</th>
+                      <th>Potência</th>
+                      <th>Corrente</th>
+                      <th>Tensão</th>
+                      <th>Fases</th>
                       <th>Qtd.</th>
+                      <th>Categoria</th>
+                      <th>Produto</th>
+                      <th>Código</th>
                     </tr>
                   </thead>
                   <tbody>
                     {composicaoItens.map((c) => (
                       <tr key={c.id}>
-                        <td>{c.parte_painel_display ?? c.parte_painel}</td>
+                        <td>{c.carga ? c.carga.tag : '—'}</td>
+                        <td>{textoDescricaoCarga(c.carga)}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {em(c.carga?.tipo_display)}
+                          </span>
+                        </td>
+                        <td>{formatPotenciaCarga(c.carga)}</td>
+                        <td>{formatCorrenteCarga(c.carga)}</td>
+                        <CelulaTensaoProjeto pa={c.projeto_alimentacao} />
+                        <td>{formatNumeroFasesProjeto(c.projeto_alimentacao)}</td>
+                        <td>{c.quantidade}</td>
                         <td>
                           <span className="badge text-bg-secondary">
                             {c.categoria_produto_display ?? c.categoria_produto}
                           </span>
                         </td>
+                        <td className="small">{c.produto?.descricao ?? '—'}</td>
                         <td>
                           <span className="fw-semibold font-monospace">
                             {c.produto_codigo ?? c.produto?.codigo ?? '—'}
                           </span>
                         </td>
-                        <td className="small">{c.produto?.descricao ?? '—'}</td>
-                        <td className="small">
-                          {c.projeto_alimentacao?.tensao_nominal_display ?? '—'}
-                        </td>
-                        <td>{c.carga ? c.carga.tag : '—'}</td>
-                        <td className="small">{em(c.carga?.tipo_display)}</td>
-                        <td>{em(c.carga?.corrente_a)}</td>
-                        <td>{em(c.corrente_referencia_a)}</td>
-                        <td>{c.quantidade}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -389,8 +483,8 @@ export default function ComposicaoPage() {
           <div className="col-12">
             <h2 className="h5 mb-3">Pendências (catálogo)</h2>
             <p className="small text-muted">
-              Quando não há produto compatível no catálogo, uma pendência é registrada. Em
-              uma etapa futura será possível cadastrar um produto adequado e reavaliar.
+              Quando não há produto compatível no catálogo, uma pendência é registrada. Use
+              as ações abaixo para cadastrar produtos e reexecutar as regras deste projeto.
             </p>
             {snapshot.pendencias.length === 0 ? (
               <p className="text-muted small mb-0">Nenhuma pendência aberta.</p>
@@ -399,21 +493,43 @@ export default function ComposicaoPage() {
                 <table className="table table-sm table-hover align-middle">
                   <thead>
                     <tr>
-                      <th>Parte</th>
-                      <th>Categoria</th>
-                      <th>Carga</th>
-                      <th>Corrente ref. (A)</th>
+                      <th>Tag</th>
                       <th>Descrição</th>
+                      <th>Tipo</th>
+                      <th>Potência</th>
+                      <th>Corrente</th>
+                      <th>Tensão</th>
+                      <th>Fases</th>
+                      <th>Qtd.</th>
+                      <th>Categoria</th>
+                      <th>Produto</th>
+                      <th>Código</th>
+                      <th>Detalhe</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {snapshot.pendencias.map((p) => (
                       <tr key={p.id}>
-                        <td>{p.parte_painel_display ?? p.parte_painel}</td>
-                        <td>{p.categoria_produto_display ?? p.categoria_produto}</td>
                         <td>{p.carga ? p.carga.tag : '—'}</td>
-                        <td>{em(p.corrente_referencia_a)}</td>
+                        <td>{textoDescricaoCarga(p.carga)}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {em(p.carga?.tipo_display)}
+                          </span>
+                        </td>
+                        <td>{formatPotenciaCarga(p.carga)}</td>
+                        <td>{formatCorrenteCarga(p.carga)}</td>
+                        <CelulaTensaoProjeto pa={p.projeto_alimentacao} />
+                        <td>{formatNumeroFasesProjeto(p.projeto_alimentacao)}</td>
+                        <td>—</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {p.categoria_produto_display ?? p.categoria_produto}
+                          </span>
+                        </td>
+                        <td>—</td>
+                        <td>—</td>
                         <td className="small">{p.descricao}</td>
                         <td>{p.status_display ?? p.status}</td>
                       </tr>
@@ -422,6 +538,49 @@ export default function ComposicaoPage() {
                 </table>
               </div>
             )}
+          </div>
+
+          <div className="col-12">
+            <div className="card border">
+              <div className="card-body">
+                <h3 className="h6 mb-2">Resolver pendências</h3>
+                <p className="small text-muted mb-3">
+                  Cadastre no catálogo produtos compatíveis com a categoria e os parâmetros
+                  elétricos das pendências. Depois, reavalie para aplicar de novo as regras
+                  de composição; em seguida use &quot;Gerar sugestões&quot; no topo para
+                  atualizar as sugestões de itens do painel.
+                </p>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <Link
+                    to={
+                      projetoId
+                        ? `/catalogo/novo?retorno=${encodeURIComponent(`/composicao?projeto=${projetoId}`)}`
+                        : '/catalogo/novo'
+                    }
+                    className="btn btn-outline-primary"
+                  >
+                    Cadastrar produto no catálogo
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={
+                      !projetoId || !podeEditar || reavaliarPendenciasMutation.isPending
+                    }
+                    onClick={() => void onReavaliarPendencias()}
+                  >
+                    {reavaliarPendenciasMutation.isPending
+                      ? 'Reavaliando…'
+                      : 'Reavaliar pendências'}
+                  </button>
+                </div>
+                {!podeEditar && projetoId ? (
+                  <p className="small text-muted mb-0 mt-2">
+                    Projeto finalizado: reavaliação de pendências não está disponível.
+                  </p>
+                ) : null}
+              </div>
+            </div>
           </div>
 
           <div className="col-12">
