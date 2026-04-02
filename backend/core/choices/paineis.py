@@ -21,7 +21,6 @@ class TipoConexaoAlimetacaoChoices(models.TextChoices):
 
 
 class StatusProjetoChoices(models.TextChoices):
-    RASCUNHO = "RASCUNHO", "Rascunho"
     EM_ANDAMENTO = "EM_ANDAMENTO", "Em andamento"
     FINALIZADO = "FINALIZADO", "Finalizado"
     

@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Scripts executados em Linux/Docker (evita CRLF → erro "expecting do")
+*.sh text eol=lf

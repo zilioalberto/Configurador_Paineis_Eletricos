@@ -1,0 +1,132 @@
+import type { ComponentType } from 'react'
+
+type IconProps = {
+  className?: string
+  'aria-hidden'?: boolean
+}
+
+const stroke = {
+  fill: 'none' as const,
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+function NavIconHome({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
+function NavIconFolder({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+}
+
+function NavIconZap({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  )
+}
+
+function NavIconGrid({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  )
+}
+
+function NavIconSliders({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </svg>
+  )
+}
+
+function NavIconLayers({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+
+const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
+  '/': NavIconHome,
+  '/projetos': NavIconFolder,
+  '/cargas': NavIconZap,
+  '/catalogo': NavIconGrid,
+  '/dimensionamento': NavIconSliders,
+  '/composicao': NavIconLayers,
+}
+
+export function SidebarNavIcon({ to }: { to: string }) {
+  const Icon = ICON_BY_PATH[to] ?? NavIconGrid
+  return <Icon className="app-sidebar-nav-icon flex-shrink-0" aria-hidden />
+}
