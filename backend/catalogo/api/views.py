@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
@@ -32,6 +33,14 @@ class ProdutoViewSet(ModelViewSet):
         categoria_id = self.request.query_params.get("categoria")
         if categoria_id:
             qs = qs.filter(categoria_id=categoria_id)
+        search = (self.request.query_params.get("search") or "").strip()
+        if search:
+            qs = qs.filter(
+                Q(codigo__icontains=search)
+                | Q(descricao__icontains=search)
+                | Q(fabricante__icontains=search)
+            ).filter(ativo=True)
+            qs = qs.order_by("codigo", "descricao")[:40]
         return qs
 
     def get_serializer_class(self):

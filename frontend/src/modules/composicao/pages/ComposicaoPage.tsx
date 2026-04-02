@@ -4,11 +4,16 @@ import { useToast } from '@/components/feedback'
 import { projetoPermiteEdicaoCargas } from '@/modules/cargas/utils/projetoEdicaoCargas'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { InclusaoManualCatalogoSection } from '../components/InclusaoManualCatalogoSection'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
 import { useAprovarSugestaoMutation } from '../hooks/useAprovarSugestaoMutation'
 import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import { useGerarSugestoesMutation } from '../hooks/useGerarSugestoesMutation'
 import { useReavaliarPendenciasMutation } from '../hooks/useReavaliarPendenciasMutation'
+import {
+  exportarComposicaoListaPdf,
+  exportarComposicaoListaXlsx,
+} from '../services/composicaoService'
 import type { CargaDetalhe, ProjetoAlimentacaoSnapshot, SugestaoItem } from '../types/composicao'
 
 function em(v: string | null | undefined) {
@@ -74,6 +79,7 @@ export default function ComposicaoPage() {
   const [alternativaSelecionadaId, setAlternativaSelecionadaId] = useState<string | null>(
     null
   )
+  const [exportando, setExportando] = useState<'pdf' | 'xlsx' | null>(null)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const {
@@ -101,10 +107,10 @@ export default function ComposicaoPage() {
     error: loadErroAlternativas,
   } = useAlternativasSugestaoQuery(alterarSugestao?.id ?? null, alterarSugestao != null)
 
-  useEffect(() => {
-    if (!alterarSugestao) return
-    setAlternativaSelecionadaId(alterarSugestao.produto?.id ?? null)
-  }, [alterarSugestao])
+  const abrirAlterarSugestao = useCallback((s: SugestaoItem) => {
+    setAlterarSugestao(s)
+    setAlternativaSelecionadaId(s.produto?.id ?? null)
+  }, [])
 
   useEffect(() => {
     if (!alterarSugestao) return
@@ -222,6 +228,28 @@ export default function ComposicaoPage() {
 
   const composicaoItens = snapshot?.composicao_itens ?? []
 
+  const onExportLista = useCallback(
+    async (fmt: 'pdf' | 'xlsx') => {
+      if (!projetoId) return
+      setExportando(fmt)
+      try {
+        if (fmt === 'xlsx') await exportarComposicaoListaXlsx(projetoId)
+        else await exportarComposicaoListaPdf(projetoId)
+        showToast({ variant: 'success', message: 'Download iniciado.' })
+      } catch (err) {
+        console.error(err)
+        showToast({
+          variant: 'danger',
+          title: 'Falha na exportação',
+          message: extrairMensagemErroApi(err) || 'Tente novamente.',
+        })
+      } finally {
+        setExportando(null)
+      }
+    },
+    [projetoId, showToast]
+  )
+
   return (
     <div className="container-fluid">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -232,7 +260,7 @@ export default function ComposicaoPage() {
             aplicável), com base nas cargas e no dimensionamento de corrente do projeto.
           </p>
         </div>
-        <div className="d-flex gap-2 flex-wrap">
+        <div className="d-flex gap-2 flex-wrap align-items-center">
           <button
             type="button"
             className="btn btn-outline-secondary"
@@ -240,6 +268,25 @@ export default function ComposicaoPage() {
             disabled={!projetoId}
           >
             Atualizar
+          </button>
+          <span className="text-muted small d-none d-md-inline">Exportar lista</span>
+          <button
+            type="button"
+            className="btn btn-outline-success"
+            disabled={!projetoId || exportando !== null}
+            title="Composição aprovada, inclusões manuais e pendências de catálogo"
+            onClick={() => void onExportLista('xlsx')}
+          >
+            {exportando === 'xlsx' ? 'Excel…' : 'Excel'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            disabled={!projetoId || exportando !== null}
+            title="Composição aprovada, inclusões manuais e pendências de catálogo"
+            onClick={() => void onExportLista('pdf')}
+          >
+            {exportando === 'pdf' ? 'PDF…' : 'PDF'}
           </button>
           <button
             type="button"
@@ -321,6 +368,9 @@ export default function ComposicaoPage() {
                   {snapshot.totais.pendencias} pendência(s)
                   {snapshot.totais.composicao_itens != null ? (
                     <> · {snapshot.totais.composicao_itens} item(ns) na composição</>
+                  ) : null}
+                  {snapshot.totais.inclusoes_manuais != null ? (
+                    <> · {snapshot.totais.inclusoes_manuais} inclusão(ões) manual(is)</>
                   ) : null}
                 </>
               ) : null}
@@ -408,7 +458,7 @@ export default function ComposicaoPage() {
                               type="button"
                               className="btn btn-sm btn-outline-primary"
                               disabled={aprovarMutation.isPending}
-                              onClick={() => setAlterarSugestao(s)}
+                              onClick={() => abrirAlterarSugestao(s)}
                             >
                               Alterar
                             </button>
@@ -609,6 +659,12 @@ export default function ComposicaoPage() {
               </div>
             </div>
           </div>
+
+          <InclusaoManualCatalogoSection
+            projetoId={projetoId}
+            podeEditar={podeEditar}
+            inclusoes={snapshot.inclusoes_manuais ?? []}
+          />
         </div>
       )}
 

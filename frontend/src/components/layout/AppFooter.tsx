@@ -23,7 +23,7 @@ export default function AppFooter() {
     <footer className="app-footer" aria-label="Rodapé">
       <div className="app-footer-rule" aria-hidden />
       <div className="app-footer-inner">
-        <p className="app-footer-line mb-1">
+        <p className="app-footer-line mb-0">
           © {year}{' '}
           <a
             href={ZFW_SITE_URL}
@@ -35,7 +35,7 @@ export default function AppFooter() {
           </a>
           . Todos os direitos reservados.
         </p>
-        <p className="app-footer-line mb-3">
+        <p className="app-footer-line mb-0 mt-1">
           Configurador de Painéis Elétricos · Interface desenvolvida por{' '}
           <strong>{DEVELOPER.name}</strong>.
         </p>

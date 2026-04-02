@@ -25,6 +25,16 @@ export async function listarProdutos(categoriaId?: string | null): Promise<Produ
   return normalizeList(response.data)
 }
 
+/** Busca typeahead (catálogo ativo); use com debounce no UI. */
+export async function buscarProdutosAutocomplete(termo: string): Promise<ProdutoListItem[]> {
+  const t = termo.trim()
+  if (t.length < 2) return []
+  const response = await apiClient.get<unknown>(BASE_URL, {
+    params: { search: t },
+  })
+  return normalizeList(response.data)
+}
+
 export async function obterProduto(id: string): Promise<ProdutoDetail> {
   const response = await apiClient.get<ProdutoDetail>(`${BASE_URL}${id}/`)
   return response.data

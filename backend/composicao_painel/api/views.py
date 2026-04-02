@@ -1,4 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Max
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,15 +9,28 @@ from rest_framework.views import APIView
 from catalogo.models import Produto
 from composicao_painel.api.serializers import (
     AprovarSugestaoInputSerializer,
+    ComposicaoInclusaoManualSerializer,
     ComposicaoItemSerializer,
+    InclusaoManualCreateSerializer,
     PendenciaItemSerializer,
     ProdutoAlternativaSerializer,
     SugestaoItemSerializer,
 )
-from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
+from composicao_painel.models import (
+    ComposicaoInclusaoManual,
+    ComposicaoItem,
+    PendenciaItem,
+    SugestaoItem,
+)
 from composicao_painel.services.alternativas_produto import listar_alternativas_para_sugestao
 from composicao_painel.services.sugestoes.aprovacao_sugestoes import aprovar_sugestao_item
 from composicao_painel.services.sugestoes.orquestrador import gerar_sugestoes_painel
+from composicao_painel.services.export_lista_completa import (
+    montar_linhas_export,
+    nome_arquivo_seguro,
+    render_pdf_bytes,
+    render_xlsx_bytes,
+)
 from composicao_painel.services.sugestoes.orquestrador_pendencias import (
     reavaliar_pendencias_projeto,
 )
@@ -56,9 +71,15 @@ def _snapshot(projeto: Projeto) -> dict:
         .select_related(*_composicao_select_related())
         .order_by("ordem", "id")
     )
+    inclusoes = (
+        ComposicaoInclusaoManual.objects.filter(projeto=projeto)
+        .select_related("produto", "produto__categoria")
+        .order_by("ordem", "id")
+    )
     sug_data = SugestaoItemSerializer(sugestoes, many=True).data
     pen_data = PendenciaItemSerializer(pendencias, many=True).data
     comp_data = ComposicaoItemSerializer(composicao_itens, many=True).data
+    inc_data = ComposicaoInclusaoManualSerializer(inclusoes, many=True).data
     return {
         "projeto": str(projeto.id),
         "projeto_codigo": projeto.codigo,
@@ -66,10 +87,12 @@ def _snapshot(projeto: Projeto) -> dict:
         "sugestoes": sug_data,
         "pendencias": pen_data,
         "composicao_itens": comp_data,
+        "inclusoes_manuais": inc_data,
         "totais": {
             "sugestoes": len(sug_data),
             "pendencias": len(pen_data),
             "composicao_itens": len(comp_data),
+            "inclusoes_manuais": len(inc_data),
         },
     }
 
@@ -203,3 +226,99 @@ class SugestaoAprovarView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ComposicaoInclusaoManualCreateView(APIView):
+    """POST: adiciona produto do catálogo às inclusões manuais do projeto."""
+
+    def post(self, request, projeto_id):
+        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        try:
+            validar_projeto_editavel(projeto)
+        except DjangoValidationError as exc:
+            detail = exc.messages if hasattr(exc, "messages") else [str(exc)]
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        input_ser = InclusaoManualCreateSerializer(data=request.data)
+        input_ser.is_valid(raise_exception=True)
+        pid = input_ser.validated_data["produto_id"]
+        produto = get_object_or_404(
+            Produto.objects.select_related("categoria"),
+            pk=pid,
+        )
+        if not produto.ativo:
+            return Response(
+                {"detail": ["Produto inativo no catálogo."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        max_ordem = ComposicaoInclusaoManual.objects.filter(projeto=projeto).aggregate(
+            m=Max("ordem")
+        )["m"]
+        next_ordem = (max_ordem or 0) + 1
+
+        inc = ComposicaoInclusaoManual.objects.create(
+            projeto=projeto,
+            produto=produto,
+            quantidade=input_ser.validated_data.get("quantidade", 1),
+            observacoes=input_ser.validated_data.get("observacoes", ""),
+            ordem=next_ordem,
+        )
+
+        return Response(
+            {
+                "inclusao_manual": ComposicaoInclusaoManualSerializer(inc).data,
+                "snapshot": _snapshot(projeto),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ComposicaoInclusaoManualDestroyView(APIView):
+    """DELETE: remove uma inclusão manual."""
+
+    def delete(self, request, inclusao_id):
+        inc = get_object_or_404(
+            ComposicaoInclusaoManual.objects.select_related("projeto"),
+            pk=inclusao_id,
+        )
+        try:
+            validar_projeto_editavel(inc.projeto)
+        except DjangoValidationError as exc:
+            detail = exc.messages if hasattr(exc, "messages") else [str(exc)]
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        projeto = inc.projeto
+        inc.delete()
+        return Response({"snapshot": _snapshot(projeto)}, status=status.HTTP_200_OK)
+
+
+class ComposicaoExportXlsxView(APIView):
+    """GET: planilha Excel com composição aprovada, inclusões manuais e pendências."""
+
+    def get(self, request, projeto_id):
+        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        header, linhas = montar_linhas_export(projeto)
+        body = render_xlsx_bytes(projeto, header, linhas)
+        fn = nome_arquivo_seguro(projeto, "xlsx")
+        resp = HttpResponse(
+            body,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        resp["Content-Disposition"] = f'attachment; filename="{fn}"'
+        return resp
+
+
+class ComposicaoExportPdfView(APIView):
+    """GET: PDF com composição aprovada, inclusões manuais e pendências."""
+
+    def get(self, request, projeto_id):
+        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        header, linhas = montar_linhas_export(projeto)
+        body = render_pdf_bytes(projeto, header, linhas)
+        fn = nome_arquivo_seguro(projeto, "pdf")
+        resp = HttpResponse(body, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="{fn}"'
+        return resp

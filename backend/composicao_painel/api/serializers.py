@@ -3,7 +3,12 @@ from rest_framework import serializers
 from cargas.models import Carga
 from cargas.models.motor import CargaMotor
 from catalogo.models import Produto
-from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
+from composicao_painel.models import (
+    ComposicaoInclusaoManual,
+    ComposicaoItem,
+    PendenciaItem,
+    SugestaoItem,
+)
 from core.choices.cargas import TipoCargaChoices
 from projetos.models import Projeto
 
@@ -111,6 +116,43 @@ class ProdutoAlternativaSerializer(serializers.ModelSerializer):
 
 class AprovarSugestaoInputSerializer(serializers.Serializer):
     produto_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class InclusaoManualCreateSerializer(serializers.Serializer):
+    produto_id = serializers.UUIDField()
+    quantidade = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1,
+        required=False,
+    )
+    observacoes = serializers.CharField(allow_blank=True, required=False, default="")
+
+
+class ComposicaoInclusaoManualSerializer(serializers.ModelSerializer):
+    produto = ProdutoMiniSerializer(read_only=True)
+    categoria_produto = serializers.CharField(
+        source="produto.categoria.nome",
+        read_only=True,
+    )
+    categoria_produto_display = serializers.CharField(
+        source="produto.categoria.get_nome_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = ComposicaoInclusaoManual
+        fields = (
+            "id",
+            "produto",
+            "quantidade",
+            "observacoes",
+            "ordem",
+            "categoria_produto",
+            "categoria_produto_display",
+            "criado_em",
+            "atualizado_em",
+        )
 
 
 class SugestaoItemSerializer(serializers.ModelSerializer):

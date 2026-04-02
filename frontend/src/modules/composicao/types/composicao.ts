@@ -72,6 +72,19 @@ export type ComposicaoItem = {
   atualizado_em?: string
 }
 
+/** Produto do catálogo incluído manualmente na composição (fora das sugestões automáticas). */
+export type InclusaoManualItem = {
+  id: string
+  quantidade: string
+  observacoes?: string
+  ordem: number
+  produto: ProdutoMini
+  categoria_produto: string
+  categoria_produto_display?: string
+  criado_em?: string
+  atualizado_em?: string
+}
+
 export type PendenciaItem = {
   id: string
   parte_painel: string
@@ -111,10 +124,12 @@ export type ComposicaoSnapshot = {
   sugestoes: SugestaoItem[]
   pendencias: PendenciaItem[]
   composicao_itens?: ComposicaoItem[]
+  inclusoes_manuais?: InclusaoManualItem[]
   totais: {
     sugestoes: number
     pendencias: number
     composicao_itens?: number
+    inclusoes_manuais?: number
   }
   geracao?: {
     total_sugestoes_retornadas: number

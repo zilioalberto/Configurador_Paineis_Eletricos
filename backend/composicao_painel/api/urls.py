@@ -1,7 +1,11 @@
 from django.urls import path
 
 from composicao_painel.api.views import (
+    ComposicaoExportPdfView,
+    ComposicaoExportXlsxView,
     ComposicaoGerarSugestoesView,
+    ComposicaoInclusaoManualCreateView,
+    ComposicaoInclusaoManualDestroyView,
     ComposicaoProjetoSnapshotView,
     ComposicaoReavaliarPendenciasView,
     SugestaoAlternativasView,
@@ -25,6 +29,16 @@ urlpatterns = [
         name="composicao-projeto-reavaliar-pendencias",
     ),
     path(
+        "composicao/projeto/<uuid:projeto_id>/export/xlsx/",
+        ComposicaoExportXlsxView.as_view(),
+        name="composicao-projeto-export-xlsx",
+    ),
+    path(
+        "composicao/projeto/<uuid:projeto_id>/export/pdf/",
+        ComposicaoExportPdfView.as_view(),
+        name="composicao-projeto-export-pdf",
+    ),
+    path(
         "composicao/sugestoes/<uuid:sugestao_id>/alternativas/",
         SugestaoAlternativasView.as_view(),
         name="composicao-sugestao-alternativas",
@@ -33,5 +47,15 @@ urlpatterns = [
         "composicao/sugestoes/<uuid:sugestao_id>/aprovar/",
         SugestaoAprovarView.as_view(),
         name="composicao-sugestao-aprovar",
+    ),
+    path(
+        "composicao/projeto/<uuid:projeto_id>/inclusoes-manuais/",
+        ComposicaoInclusaoManualCreateView.as_view(),
+        name="composicao-projeto-inclusoes-manuais",
+    ),
+    path(
+        "composicao/inclusoes-manuais/<uuid:inclusao_id>/",
+        ComposicaoInclusaoManualDestroyView.as_view(),
+        name="composicao-inclusao-manual-detail",
     ),
 ]

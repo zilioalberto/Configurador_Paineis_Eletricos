@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { dashboardQueryKeys } from '@/modules/dashboard/dashboardQueryKeys'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import {
   atualizarProjeto,
@@ -14,6 +15,7 @@ export function useCreateProjetoMutation() {
     mutationFn: (data: ProjetoFormData) => criarProjeto(data),
     onSuccess: (projeto) => {
       void queryClient.invalidateQueries({ queryKey: projetoQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all })
       queryClient.setQueryData(projetoQueryKeys.detail(projeto.id), projeto)
     },
   })
@@ -27,6 +29,7 @@ export function useUpdateProjetoMutation() {
       atualizarProjeto(id, data),
     onSuccess: (projeto) => {
       void queryClient.invalidateQueries({ queryKey: projetoQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all })
       queryClient.setQueryData(projetoQueryKeys.detail(projeto.id), projeto)
     },
   })
@@ -39,6 +42,7 @@ export function useDeleteProjetoMutation() {
     mutationFn: (id: string) => deletarProjeto(id),
     onSuccess: (_void, deletedId) => {
       void queryClient.invalidateQueries({ queryKey: projetoQueryKeys.all })
+      void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all })
       queryClient.removeQueries({ queryKey: projetoQueryKeys.detail(deletedId) })
     },
   })
