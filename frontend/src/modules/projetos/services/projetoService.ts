@@ -1,4 +1,4 @@
-import apiClient from '../../../services/apiClient'
+import apiClient from '@/services/apiClient'
 import type { Projeto, ProjetoFormData } from '../types/projeto'
 
 const BASE_URL = '/projetos/'

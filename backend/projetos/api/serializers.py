@@ -36,3 +36,22 @@ class ProjetoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Projeto
         fields = "__all__"
+
+
+class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Projeto
+        fields = (
+            "id",
+            "codigo",
+            "nome",
+            "status",
+            "status_display",
+            "criado_em",
+            "atualizado_em",
+        )

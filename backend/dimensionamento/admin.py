@@ -9,6 +9,7 @@ class ResumoDimensionamentoAdmin(admin.ModelAdmin):
     list_display = (
         "projeto",
         "corrente_total_painel_a",
+        "corrente_estimada_fonte_24vcc_a",
         "necessita_plc",
         "necessita_expansao_plc",
         "necessita_fonte_24vcc",
@@ -37,6 +38,7 @@ class ResumoDimensionamentoAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "corrente_total_painel_a",
+        "corrente_estimada_fonte_24vcc_a",
         "necessita_fonte_24vcc",
         "necessita_plc",
         "necessita_expansao_plc",
@@ -63,7 +65,10 @@ class ResumoDimensionamentoAdmin(admin.ModelAdmin):
         (
             "Corrente",
             {
-                "fields": ("corrente_total_painel_a",),
+                "fields": (
+                    "corrente_total_painel_a",
+                    "corrente_estimada_fonte_24vcc_a",
+                ),
             },
         ),
         (

@@ -3,6 +3,7 @@ from django.db import transaction
 
 from projetos.models import Projeto
 from composicao_painel.models import (
+    ComposicaoInclusaoManual,
     SugestaoItem,
     PendenciaItem,
     ComposicaoItem,
@@ -479,6 +480,26 @@ class ComposicaoItemAdmin(admin.ModelAdmin):
             "produto",
             "carga",
         )
+
+
+@admin.register(ComposicaoInclusaoManual)
+class ComposicaoInclusaoManualAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "projeto",
+        "produto",
+        "quantidade",
+        "ordem",
+    )
+    list_filter = ("projeto",)
+    search_fields = (
+        "projeto__nome",
+        "produto__codigo",
+        "produto__descricao",
+    )
+    autocomplete_fields = ("projeto", "produto")
+    list_select_related = ("projeto", "produto")
+    ordering = ("projeto", "ordem", "id")
 
 
 @admin.register(PendenciaItem)
