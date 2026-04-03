@@ -99,9 +99,9 @@ ASGI_APPLICATION = "configuracoes.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "configurador_painel"),
-        "USER": os.getenv("DB_USER", "configurador_painel"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "configurador_painel"),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "db"),
         "PORT": os.getenv("DB_PORT", "5432"),
     }
