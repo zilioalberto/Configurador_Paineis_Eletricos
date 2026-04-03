@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend:
-    name: Backend - Django
+    name: Backend
     runs-on: ubuntu-latest
 
     defaults:
@@ -34,7 +34,7 @@ jobs:
           python -m compileall .
 
   frontend:
-    name: Frontend - React
+    name: Frontend
     runs-on: ubuntu-latest
 
     defaults:
