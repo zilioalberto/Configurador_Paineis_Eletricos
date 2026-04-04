@@ -37,7 +37,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://portal.zfw.com.br",
     "https://portal.zfw.com.br",
 ]
 
