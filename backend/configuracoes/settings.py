@@ -28,12 +28,17 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
-
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://api.zfw.com.br",
+    "https://portal.zfw.com.br",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://portal.zfw.com.br",
+]
 
 # Application definition
 
