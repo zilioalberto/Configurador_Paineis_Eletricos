@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: configurador_painel_db
+    restart: always
+    env_file:
+      - /opt/zfw/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $DB_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: /opt/zfw
+      dockerfile: infra/docker/Dockerfile.backend
+    container_name: configurador_painel_backend
+    restart: always
+    env_file:
+      - /opt/zfw/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+
+  frontend:
+    build:
+      context: /opt/zfw
+      dockerfile: infra/docker/Dockerfile.frontend
+    container_name: configurador_painel_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
