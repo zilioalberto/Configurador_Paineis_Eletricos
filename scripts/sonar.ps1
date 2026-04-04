@@ -31,6 +31,9 @@ if (-not $token) {
     exit 1
 }
 
+# SonarQube local usa chave de projeto própria; SonarCloud na CI usa sonar.projectKey do arquivo.
+$localProjectKey = if ($env:SONAR_LOCAL_PROJECT_KEY) { $env:SONAR_LOCAL_PROJECT_KEY } else { "configurador-painel" }
+
 Write-Host "Root detectado: $root"
 Write-Host ".env esperado em: $envFile"
 Write-Host ".env existe? $(Test-Path $envFile)"
@@ -43,13 +46,14 @@ if ($token) {
     Write-Host "SONAR_TOKEN carregado: NAO"
 }
 
-Write-Host "🚀 Iniciando análise SonarQube..."
+Write-Host "🚀 Iniciando análise SonarQube (host local, projectKey=$localProjectKey)..."
 
 docker run --rm `
     -e SONAR_HOST_URL="http://host.docker.internal:9000" `
     -e SONAR_TOKEN="$token" `
     -v "${root}:/usr/src" `
-    sonarsource/sonar-scanner-cli
+    sonarsource/sonar-scanner-cli `
+    "-Dsonar.projectKey=$localProjectKey"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Análise concluída com sucesso."

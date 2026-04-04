@@ -28,12 +28,17 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
-
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://api.zfw.com.br",
+    "https://portal.zfw.com.br",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://portal.zfw.com.br",
+]
 
 # Application definition
 
@@ -99,9 +104,9 @@ ASGI_APPLICATION = "configuracoes.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "configurador_painel"),
-        "USER": os.getenv("DB_USER", "configurador_painel"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "configurador_painel"),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST", "db"),
         "PORT": os.getenv("DB_PORT", "5432"),
     }
