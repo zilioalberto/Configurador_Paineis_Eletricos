@@ -5,12 +5,15 @@ import react from '@vitejs/plugin-react'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  server: {
+    host: '0.0.0.0',
+    allowedHosts: ['portal.zfw.com.br', '89.117.32.110']
   },
 })
