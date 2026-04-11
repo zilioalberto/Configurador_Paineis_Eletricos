@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import type { ProjetoFormData } from '../../types/projeto'
 import { projetoFormInitialState } from './formOptions'
 import type { ProjetoFormFieldChangeHandler } from './projetoFormSectionProps'
@@ -12,6 +12,12 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
   const [formData, setFormData] = useState<ProjetoFormData>(
     () => initialData ?? projetoFormInitialState
   )
+
+  useEffect(() => {
+    const c = initialData?.codigo
+    if (c === undefined) return
+    setFormData((prev) => (prev.codigo === c ? prev : { ...prev, codigo: c }))
+  }, [initialData?.codigo])
 
   const handleFieldChange: ProjetoFormFieldChangeHandler = useCallback((event) => {
     const { name, value, type } = event.target

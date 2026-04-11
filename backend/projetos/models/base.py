@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import IntegrityError, models
 
 from core.models import BaseModel
 from core.models.mixins import AtivacaoMixin
@@ -22,7 +22,8 @@ class Projeto(BaseModel, AtivacaoMixin):
     codigo = models.CharField(
         max_length=50,
         unique=True,
-        help_text="Código interno do projeto. Ex.: PRJ-0001",
+        blank=True,
+        help_text="Gerado automaticamente no formato MMnnn-AA (mês + sequencial + ano) ao criar.",
     )
     nome = models.CharField(
         max_length=255,
@@ -289,6 +290,12 @@ class Projeto(BaseModel, AtivacaoMixin):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new and not (self.codigo and str(self.codigo).strip()):
+            from projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
+
+            self.codigo = sugerir_proximo_codigo_projeto()
+
         if self.codigo:
             self.codigo = self.codigo.upper().strip()
 
@@ -310,9 +317,27 @@ class Projeto(BaseModel, AtivacaoMixin):
 
         if not self.possui_terra:
             self.tipo_conexao_alimentacao_terra = None
-            
-        if not self.possui_climatizacao:
-            self.tipo_climatizacao = None 
 
-        self.full_clean()
-        super().save(*args, **kwargs)
+        if not self.possui_climatizacao:
+            self.tipo_climatizacao = None
+
+        for attempt in range(15):
+            self.full_clean()
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError as exc:
+                from projetos.services.codigo_projeto import (
+                    _integrity_error_duplicidade_codigo_projeto,
+                    sugerir_proximo_codigo_projeto,
+                )
+
+                if (
+                    not is_new
+                    or attempt == 14
+                    or not _integrity_error_duplicidade_codigo_projeto(exc)
+                ):
+                    raise
+                self.codigo = sugerir_proximo_codigo_projeto()
+                if self.codigo:
+                    self.codigo = self.codigo.upper().strip()

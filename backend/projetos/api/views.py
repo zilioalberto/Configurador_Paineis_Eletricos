@@ -12,6 +12,7 @@ from core.choices import (
 )
 from projetos.api.serializers import ProjetoDashboardMiniSerializer, ProjetoSerializer
 from projetos.models import Projeto
+from projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 
 
 class DashboardResumoView(APIView):
@@ -51,6 +52,17 @@ class DashboardResumoView(APIView):
             ).data,
         }
         return Response(data)
+
+
+class ProjetoAlocarCodigoView(APIView):
+    """
+    POST: devolve sugestão do próximo código (MMnnn-AA) para a tela de novo projeto.
+    Não grava nada: o sequencial só avança quando um projeto é salvo com esse código.
+    """
+
+    def post(self, request):
+        codigo = sugerir_proximo_codigo_projeto()
+        return Response({"codigo": codigo})
 
 
 class ProjetoViewSet(ModelViewSet):

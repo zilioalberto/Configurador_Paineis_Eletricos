@@ -42,7 +42,7 @@ export default function ProdutoForm({
   }, [initialData])
 
   const categoriaNome = useMemo(() => {
-    const c = categorias.find((x) => x.id === formData.categoria)
+    const c = categorias.find((x) => x.id === formData.categoria || x.nome === formData.categoria)
     return c?.nome
   }, [categorias, formData.categoria])
 

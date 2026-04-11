@@ -4,6 +4,7 @@ export type CategoriaProdutoNome =
   | 'RELE_SOBRECARGA'
   | 'MINI_DISJUNTOR'
   | 'SECCIONADORA'
+  | 'DISJUNTOR_CAIXA_MOLDADA'
   | 'FONTE'
   | 'PLC'
   | 'EXPANSAO_PLC'
@@ -14,12 +15,13 @@ export type CategoriaProdutoNome =
   | 'CLIMATIZACAO'
   | 'OUTROS'
 
+/** Opção de categoria (API: id === nome, valor fixo das choices). */
 export type CategoriaProduto = {
   id: string
   nome: CategoriaProdutoNome
   nome_display?: string
-  descricao: string
-  ativo: boolean
+  descricao?: string
+  ativo?: boolean
   criado_em?: string
   atualizado_em?: string
 }

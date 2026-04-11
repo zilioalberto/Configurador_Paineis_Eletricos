@@ -24,7 +24,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY") #, "unsafe-key"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+# DJANGO_DEBUG explícito (true/false) tem prioridade; se ausente, DEBUG só é True
+# quando DJANGO_ENV for development | dev | local (padrão em docker-compose local).
+
+
+def _parse_optional_bool(name: str):
+    v = os.getenv(name)
+    if v is None or not str(v).strip():
+        return None
+    s = str(v).strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off"):
+        return False
+    return None
+
+
+def _debug_from_environment() -> bool:
+    explicit = _parse_optional_bool("DJANGO_DEBUG")
+    if explicit is not None:
+        return explicit
+    env = os.getenv("DJANGO_ENV", "").strip().lower()
+    return env in ("development", "dev", "local")
+
+
+DEBUG = _debug_from_environment()
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 

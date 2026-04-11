@@ -132,13 +132,10 @@ class InclusaoManualCreateSerializer(serializers.Serializer):
 class ComposicaoInclusaoManualSerializer(serializers.ModelSerializer):
     produto = ProdutoMiniSerializer(read_only=True)
     categoria_produto = serializers.CharField(
-        source="produto.categoria.nome",
+        source="produto.categoria",
         read_only=True,
     )
-    categoria_produto_display = serializers.CharField(
-        source="produto.categoria.get_nome_display",
-        read_only=True,
-    )
+    categoria_produto_display = serializers.SerializerMethodField()
 
     class Meta:
         model = ComposicaoInclusaoManual
@@ -153,6 +150,9 @@ class ComposicaoInclusaoManualSerializer(serializers.ModelSerializer):
             "criado_em",
             "atualizado_em",
         )
+
+    def get_categoria_produto_display(self, obj):
+        return obj.produto.get_categoria_display()
 
 
 class SugestaoItemSerializer(serializers.ModelSerializer):

@@ -75,12 +75,9 @@ __all__ = [
     "TipoSeccionamentoChoices",
     "TipoConexaoAlimetacaoChoices",
     "StatusProjetoChoices",
-    'PartesPainelChoices'
-    
+    "PartesPainelChoices",
     # GERAIS
-    "OrigemItem",
-    "StatusSugestao",
-    "StatusPendencia",
-      
-    
+    "OrigemItemChoices",
+    "StatusSugestaoChoices",
+    "StatusPendenciaChoices",
 ]

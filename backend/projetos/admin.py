@@ -233,6 +233,7 @@ class ProjetoAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))
+        readonly.append("codigo")
 
         if obj and obj.status == StatusProjetoChoices.FINALIZADO:
             readonly.extend(

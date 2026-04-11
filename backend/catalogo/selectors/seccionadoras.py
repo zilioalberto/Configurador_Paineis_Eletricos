@@ -35,7 +35,7 @@ def selecionar_seccionadoras(
 
     qs_base = Produto.objects.filter(
         ativo=True,
-        categoria__nome=CategoriaProdutoNomeChoices.SECCIONADORA,
+        categoria=CategoriaProdutoNomeChoices.SECCIONADORA,
         especificacao_seccionadora__corrente_ac3_a__isnull=False,
         especificacao_seccionadora__corrente_ac3_a__gte=corrente_nominal,
     )
@@ -45,10 +45,7 @@ def selecionar_seccionadoras(
             especificacao_seccionadora__tipo_montagem=tipo_montagem
         )
 
-    qs_base = qs_base.select_related(
-        "categoria",
-        "especificacao_seccionadora",
-    )
+    qs_base = qs_base.select_related("especificacao_seccionadora")
 
     if not niveis or niveis <= 0:
         return qs_base.order_by(

@@ -1,10 +1,7 @@
 from django.db import models
 
 from core.models import BaseModel
-
-from .categoria import CategoriaProduto
-from core.choices.produtos import UnidadeMedidaChoices
-
+from core.choices.produtos import CategoriaProdutoNomeChoices, UnidadeMedidaChoices
 
 from core.models.mixins import (
     DimensoesMixin,
@@ -32,14 +29,13 @@ class Produto(
         "categoria",
         "observacoes_tecnicas",
     ]
-    
+
     codigo = models.CharField(max_length=60, unique=True)
     descricao = models.CharField(max_length=255)
 
-    categoria = models.ForeignKey(
-        CategoriaProduto,
-        on_delete=models.PROTECT,
-        related_name="produtos",
+    categoria = models.CharField(
+        max_length=50,
+        choices=CategoriaProdutoNomeChoices.choices,
     )
 
     unidade_medida = models.CharField(
