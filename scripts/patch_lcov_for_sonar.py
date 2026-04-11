@@ -3,6 +3,8 @@
 Reescreve caminhos no lcov.info do Vitest para coincidirem com sonar.sources (frontend/src/...).
 
 O Vitest grava SF:src/... (cwd = frontend). O Sonar indexa ficheiros como frontend/src/... na raiz do repo.
+
+Invocado pelo workflow GitHub Actions após npm run test:coverage no frontend — não executa testes.
 """
 from __future__ import annotations
 
