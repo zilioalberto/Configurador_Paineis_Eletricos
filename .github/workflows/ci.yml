@@ -28,6 +28,13 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Testes unitários (Django)
+        working-directory: ${{ github.workspace }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+          DJANGO_SETTINGS_MODULE: configuracoes.settings_ci
+        run: pytest backend/configuracoes/tests -q --tb=short
+
       - name: Validar sintaxe Python
         run: python -m compileall .
 
@@ -52,6 +59,9 @@ jobs:
 
       - name: Instalar dependências
         run: npm ci
+
+      - name: Testes unitários (Vitest)
+        run: npm run test
 
       - name: Build do frontend
         run: npm run build
