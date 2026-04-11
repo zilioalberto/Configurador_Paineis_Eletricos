@@ -33,9 +33,10 @@ def main() -> int:
     if not path.is_file():
         print(f"Ficheiro inexistente: {path}", file=sys.stderr)
         return 1
-    original = path.read_text(encoding="utf-8", newline="")
+    # pathlib aceita newline= só a partir do Python 3.13; o CI usa 3.12.
+    original = path.read_text(encoding="utf-8")
     patched = patch_lcov(original).replace("\\", "/")
-    path.write_text(patched, encoding="utf-8", newline="")
+    path.write_text(patched, encoding="utf-8")
     if patched == original:
         print(f"Aviso: nenhuma linha SF:src/ alterada em {path}", file=sys.stderr)
     return 0
