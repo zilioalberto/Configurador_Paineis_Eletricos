@@ -42,6 +42,9 @@ from .gerais import (
     StatusPendenciaChoices,
 )   
 
+from .usuarios import TipoUsuarioChoices
+
+
 __all__ = [
   # ELÉTRICA
     "TensaoChoices",
@@ -80,4 +83,7 @@ __all__ = [
     "OrigemItemChoices",
     "StatusSugestaoChoices",
     "StatusPendenciaChoices",
+    
+    # USUÁRIOS
+    "TipoUsuarioChoices",
 ]
