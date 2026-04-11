@@ -38,13 +38,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined
+    if (!originalRequest) {
+      return Promise.reject(normalizeAxiosError(error))
+    }
 
     const status = error.response?.status
     const url = originalRequest.url ?? ''
     const treatLikeUnauthorized =
       status === 401 || (status === 403 && url.includes('auth/me'))
 
-    if (!originalRequest || !treatLikeUnauthorized) {
+    if (!treatLikeUnauthorized) {
       return Promise.reject(normalizeAxiosError(error))
     }
 
