@@ -2,17 +2,21 @@
 Definições para testes automatizados e Sonar (SQLite em memória).
 
 Carrega o settings principal após preencher variáveis mínimas de ambiente.
+Não utiliza literais que imitem segredos de produção (evita falsos positivos S2068).
 """
 import os
+import secrets
 
-os.environ.setdefault(
-    "DJANGO_SECRET_KEY",
-    "ci-test-django-secret-key-not-for-production-use-xxxxxxxx",
-)
+if "DJANGO_SECRET_KEY" not in os.environ:
+    os.environ["DJANGO_SECRET_KEY"] = secrets.token_urlsafe(48)
+
 os.environ.setdefault("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
-os.environ.setdefault("DB_NAME", "unused")
-os.environ.setdefault("DB_USER", "unused")
-os.environ.setdefault("DB_PASSWORD", "unused")
+
+# Variáveis só para o import de settings.py (a base de dados real dos testes é SQLite abaixo).
+os.environ.setdefault("DB_NAME", "sqlite-tests")
+os.environ.setdefault("DB_USER", "sqlite-tests")
+if "DB_PASSWORD" not in os.environ:
+    os.environ["DB_PASSWORD"] = ""
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PORT", "5432")
 
