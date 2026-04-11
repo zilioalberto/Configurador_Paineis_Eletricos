@@ -20,7 +20,12 @@ if "DB_PASSWORD" not in os.environ:
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PORT", "5432")
 
-from configuracoes.settings import *  # noqa: E402, F403
+# Importar o módulo de settings e expor apenas nomes em MAIÚSCULAS (evita import * — Sonar S2208).
+import configuracoes.settings as _django_settings  # noqa: E402
+
+for _name in dir(_django_settings):
+    if _name.isupper():
+        globals()[_name] = getattr(_django_settings, _name)
 
 DATABASES = {
     "default": {

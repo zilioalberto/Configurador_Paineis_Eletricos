@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import type { ProjetoFormData } from '../../types/projeto'
 import { projetoFormInitialState } from './formOptions'
 import type { ProjetoFormFieldChangeHandler } from './projetoFormSectionProps'
@@ -74,8 +74,8 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
       }
 
       if (name === 'tipo_corrente' && value === 'CA') {
-        if (updated.numero_fases === null) updated.numero_fases = 3
-        if (updated.frequencia === null) updated.frequencia = 60
+        updated.numero_fases ??= 3
+        updated.frequencia ??= 60
       }
 
       return updated
@@ -83,7 +83,7 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
   }, [])
 
   const handleSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
+    async (event: SyntheticEvent<HTMLFormElement>) => {
       event.preventDefault()
 
       const payload: ProjetoFormData = {

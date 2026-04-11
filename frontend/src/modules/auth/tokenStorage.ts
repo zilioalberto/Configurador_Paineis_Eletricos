@@ -3,7 +3,7 @@ const REFRESH_KEY = 'zfw_auth_refresh'
 
 function read(key: string): string | null {
   try {
-    const v = window.localStorage.getItem(key)
+    const v = globalThis.localStorage.getItem(key)
     return v && v.length > 0 ? v : null
   } catch {
     return null
@@ -12,7 +12,7 @@ function read(key: string): string | null {
 
 function write(key: string, value: string) {
   try {
-    window.localStorage.setItem(key, value)
+    globalThis.localStorage.setItem(key, value)
   } catch {
     /* ignore quota / private mode */
   }
@@ -20,7 +20,7 @@ function write(key: string, value: string) {
 
 function remove(key: string) {
   try {
-    window.localStorage.removeItem(key)
+    globalThis.localStorage.removeItem(key)
   } catch {
     /* ignore */
   }

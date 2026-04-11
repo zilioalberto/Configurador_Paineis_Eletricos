@@ -14,9 +14,9 @@ function LoginFallback() {
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="spinner-border text-primary" role="status">
+      <output className="spinner-border text-primary" aria-live="polite">
         <span className="visually-hidden">A carregar…</span>
-      </div>
+      </output>
     </div>
   )
 }

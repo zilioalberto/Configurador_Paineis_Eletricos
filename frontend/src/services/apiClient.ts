@@ -39,7 +39,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined
     if (!originalRequest) {
-      return Promise.reject(normalizeAxiosError(error))
+      throw normalizeAxiosError(error)
     }
 
     const status = error.response?.status
@@ -48,17 +48,17 @@ apiClient.interceptors.response.use(
       status === 401 || (status === 403 && url.includes('auth/me'))
 
     if (!treatLikeUnauthorized) {
-      return Promise.reject(normalizeAxiosError(error))
+      throw normalizeAxiosError(error)
     }
 
     if (url.includes('auth/token')) {
       tokenStorage.clear()
-      return Promise.reject(normalizeAxiosError(error))
+      throw normalizeAxiosError(error)
     }
 
     if (originalRequest._retry) {
       tokenStorage.clear()
-      return Promise.reject(normalizeAxiosError(error))
+      throw normalizeAxiosError(error)
     }
 
     originalRequest._retry = true
@@ -70,7 +70,7 @@ apiClient.interceptors.response.use(
       }
       return apiClient(originalRequest)
     } catch {
-      return Promise.reject(normalizeAxiosError(error))
+      throw normalizeAxiosError(error)
     }
   }
 )

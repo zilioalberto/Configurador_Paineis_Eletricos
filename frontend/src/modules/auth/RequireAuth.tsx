@@ -13,9 +13,9 @@ export default function RequireAuth() {
         aria-busy="true"
         aria-live="polite"
       >
-        <div className="spinner-border text-primary" role="status">
+        <output className="spinner-border text-primary" aria-live="polite">
           <span className="visually-hidden">A verificar sessão…</span>
-        </div>
+        </output>
         <p className="text-muted small mb-0">A verificar sessão…</p>
       </div>
     )

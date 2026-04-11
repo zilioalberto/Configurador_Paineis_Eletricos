@@ -289,37 +289,38 @@ class Projeto(BaseModel, AtivacaoMixin):
         if errors:
             raise ValidationError(errors)
 
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
+    def _definir_codigo_inicial_se_obrigatorio(self, is_new: bool) -> None:
         if is_new and not (self.codigo and str(self.codigo).strip()):
             from projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 
             self.codigo = sugerir_proximo_codigo_projeto()
 
+    def _normalizar_campos_texto_maiusculas(self) -> None:
         if self.codigo:
             self.codigo = self.codigo.upper().strip()
-
         if self.nome:
             self.nome = self.nome.upper().strip()
-
         if self.cliente:
             self.cliente = self.cliente.upper().strip()
 
+    def _aplicar_padroes_antes_write(self) -> None:
         if self.eh_cc():
             self.numero_fases = None
             self.frequencia = None
-
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
-
         if not self.possui_neutro:
             self.tipo_conexao_alimentacao_neutro = None
-
         if not self.possui_terra:
             self.tipo_conexao_alimentacao_terra = None
-
         if not self.possui_climatizacao:
             self.tipo_climatizacao = None
+
+    def _guardar_com_retry_duplicidade_codigo(self, is_new: bool, *args, **kwargs) -> None:
+        from projetos.services.codigo_projeto import (
+            _integrity_error_duplicidade_codigo_projeto,
+            sugerir_proximo_codigo_projeto,
+        )
 
         for attempt in range(15):
             self.full_clean()
@@ -327,11 +328,6 @@ class Projeto(BaseModel, AtivacaoMixin):
                 super().save(*args, **kwargs)
                 return
             except IntegrityError as exc:
-                from projetos.services.codigo_projeto import (
-                    _integrity_error_duplicidade_codigo_projeto,
-                    sugerir_proximo_codigo_projeto,
-                )
-
                 if (
                     not is_new
                     or attempt == 14
@@ -341,3 +337,10 @@ class Projeto(BaseModel, AtivacaoMixin):
                 self.codigo = sugerir_proximo_codigo_projeto()
                 if self.codigo:
                     self.codigo = self.codigo.upper().strip()
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        self._definir_codigo_inicial_se_obrigatorio(is_new)
+        self._normalizar_campos_texto_maiusculas()
+        self._aplicar_padroes_antes_write()
+        self._guardar_com_retry_duplicidade_codigo(is_new, *args, **kwargs)

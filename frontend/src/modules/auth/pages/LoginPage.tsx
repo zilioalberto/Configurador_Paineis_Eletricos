@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type SyntheticEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -25,9 +25,9 @@ export default function LoginPage() {
         aria-busy="true"
         aria-live="polite"
       >
-        <div className="spinner-border text-primary" role="status">
+        <output className="spinner-border text-primary" aria-live="polite">
           <span className="visually-hidden">A carregar…</span>
-        </div>
+        </output>
       </div>
     )
   }
@@ -36,7 +36,7 @@ export default function LoginPage() {
     return <Navigate to="/" replace />
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
@@ -100,14 +100,14 @@ export default function LoginPage() {
 
               <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
                 {submitting ? (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm me-2"
-                      role="status"
-                      aria-hidden
+                  <span className="d-inline-flex align-items-center gap-2">
+                    <output
+                      className="spinner-border spinner-border-sm m-0"
+                      aria-live="polite"
+                      aria-label="A iniciar sessão"
                     />
-                    A entrar…
-                  </>
+                    <span>A entrar…</span>
+                  </span>
                 ) : (
                   'Entrar'
                 )}

@@ -1,6 +1,6 @@
 import {
   type ChangeEvent,
-  type FormEvent,
+  type SyntheticEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -108,7 +108,7 @@ export default function ProdutoForm({
     []
   )
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!formData.categoria.trim()) return
     if (categoriaNome === 'CONTATORA' && formData.especificacao_contatora) {
