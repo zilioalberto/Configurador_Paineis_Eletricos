@@ -16,18 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Informações da execução
-        run: |
-          echo "Workflow: $GITHUB_WORKFLOW"
-          echo "Evento: $GITHUB_EVENT_NAME"
-          echo "Repositório: $GITHUB_REPOSITORY"
-          echo "Branch/Ref: $GITHUB_REF"
-          echo "Ref name: $GITHUB_REF_NAME"
-          echo "SHA: $GITHUB_SHA"
-          echo "Ator: $GITHUB_ACTOR"
-          echo "Run ID: $GITHUB_RUN_ID"
-          echo "Run Number: $GITHUB_RUN_NUMBER"
-
       - name: Executar deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -37,78 +25,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
           debug: true
-          command_timeout: 30m
+          command_timeout: 40m
           script: |
-            set -Eeuo pipefail
-
-            trap 'echo ""; echo "========== ERRO NO DEPLOY =========="; echo "Linha: $LINENO"; echo "Comando: $BASH_COMMAND"; echo ""; echo "========== DIAGNÓSTICO GIT =========="; pwd || true; whoami || true; hostname || true; git config --global --add safe.directory /opt/zfw || true; cd /opt/zfw || true; git branch --show-current || true; git status || true; git remote -v || true; echo ""; echo "========== DIAGNÓSTICO DOCKER =========="; docker compose -f infra/docker/docker-compose.prod.yml ps || true; echo ""; echo "========== LOGS BACKEND =========="; docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=120 || true; echo ""; echo "========== LOGS DB =========="; docker compose -f infra/docker/docker-compose.prod.yml logs db --tail=120 || true' ERR
-
-            echo "========== CONTEXTO DO SERVIDOR =========="
-            whoami
-            hostname
-            pwd
-            date
-
-            echo ""
-            echo "========== ENTRANDO NO PROJETO =========="
-            cd /opt/zfw
-            pwd
-            ls -la
-            ls -la infra/docker
-
-            echo ""
-            echo "========== GIT: CONFIGURAÇÃO =========="
-            git config --global --add safe.directory /opt/zfw
-            git remote -v
-            git branch --show-current
-
-            echo ""
-            echo "========== GIT: STATUS ANTES DO PULL =========="
-            git status
-            git diff --stat || true
-
-            echo ""
-            echo "========== GIT: ATUALIZAÇÃO =========="
-            git fetch --all --prune
-            git checkout main
-            git pull origin main
-
-            echo ""
-            echo "========== GIT: STATUS APÓS PULL =========="
-            git branch --show-current
-            git status
-            git rev-parse HEAD
-
-            echo ""
-            echo "========== ARQUIVOS CRÍTICOS =========="
-            test -f infra/docker/docker-compose.prod.yml && echo "OK: docker-compose.prod.yml"
-            test -f infra/docker/Dockerfile.backend && echo "OK: Dockerfile.backend"
-            test -f infra/docker/Dockerfile.frontend && echo "OK: Dockerfile.frontend"
-            test -f .env && echo "OK: .env"
-
-            echo ""
-            echo "========== DOCKER COMPOSE: VALIDAÇÃO =========="
-            docker compose -f infra/docker/docker-compose.prod.yml config
-
-            echo ""
-            echo "========== DOCKER: BUILD E START =========="
-            docker compose -f infra/docker/docker-compose.prod.yml up -d --build
-
-            echo ""
-            echo "========== AGUARDANDO SERVIÇOS =========="
-            sleep 15
-
-            echo ""
-            echo "========== DOCKER: STATUS =========="
-            docker compose -f infra/docker/docker-compose.prod.yml ps
-
-            echo ""
-            echo "========== DOCKER: LOGS BACKEND =========="
-            docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=120
-
-            echo ""
-            echo "========== DOCKER: LOGS DB =========="
-            docker compose -f infra/docker/docker-compose.prod.yml logs db --tail=120
-
-            echo ""
-            echo "========== DEPLOY FINALIZADO =========="
+            set -e
+            echo "Iniciando deploy do commit: ${{ github.sha }}"
+            /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
