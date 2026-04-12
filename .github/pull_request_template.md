@@ -22,7 +22,6 @@ Por que essa mudança foi necessária?
 
 ---
 
-
 ## O que foi feito
 - 
 - 
