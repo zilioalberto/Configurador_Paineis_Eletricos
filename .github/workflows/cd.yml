@@ -28,6 +28,25 @@ jobs:
           command_timeout: 40m
           script: |
             set -e
-            echo "Iniciando deploy do commit: ${{ github.sha }}"
-            /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
-            
+
+            cd /opt/zfw
+
+            git config --global --add safe.directory /opt/zfw
+
+
+            echo "Atualizando código..."
+            git fetch origin
+            git checkout main
+            git pull origin main
+
+            echo "Subindo containers..."
+            docker compose -f infra/docker/docker-compose.prod.yml up -d --build
+
+            echo "Aguardando backend..."
+            sleep 10
+
+            echo "Status dos containers..."
+            docker compose -f infra/docker/docker-compose.prod.yml ps
+
+            echo "Logs recentes do backend..."
+            docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=50

@@ -16,9 +16,10 @@ from django.urls import path, include
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+
+
 from configuracoes.auth_views import AuthMeView, ProtectedAuthTestView
 
-from configuracoes.health_views import healthcheck
 
 
 
@@ -37,7 +38,6 @@ urlpatterns = [
 
     path("api/v1/auth/test/", ProtectedAuthTestView.as_view(), name="test_auth"),
 
-    path("api/v1/health/", healthcheck, name="health"),
 
 
     path("api/v1/", include("projetos.api.urls")),
