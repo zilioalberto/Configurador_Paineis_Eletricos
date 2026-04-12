@@ -33,12 +33,44 @@ rollback_on_error() {
   echo "Comando: ${2:-desconhecido}"
   echo "Iniciando rollback..."
 
+  if [[ -d "$NEW_RELEASE_DIR/infra/docker" ]]; then
+    echo "Derrubando release com falha..."
+    cd "$NEW_RELEASE_DIR/infra/docker"
+    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml down || true
+  fi
+
   if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
     echo "Voltando para release anterior: $CURRENT_TARGET"
     ln -sfn "$CURRENT_TARGET" "$CURRENT_LINK"
 
     cd "$CURRENT_TARGET/infra/docker"
     docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml up -d --build || true
+
+    echo "Aguardando rollback estabilizar..."
+    sleep 15
+
+    echo "Validando rollback..."
+    for i in {1..12}; do
+      if curl -fsS http://127.0.0.1:8000/api/v1/health/ > /dev/null; then
+        echo "Rollback validado com sucesso."
+        break
+      fi
+
+      echo "Tentativa de validação do rollback $i falhou. Aguardando 5s..."
+      sleep 5
+
+      if [[ "$i" -eq 12 ]]; then
+        echo "Rollback não conseguiu restaurar a aplicação."
+      fi
+    done
+
+    echo "Status após rollback:"
+    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml ps || true
+
+    echo "Logs do backend após rollback:"
+    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml logs backend --tail=120 || true
+  else
+    echo "Nenhuma release anterior encontrada para rollback."
   fi
 
   if [[ -d "$NEW_RELEASE_DIR" ]]; then
@@ -91,6 +123,9 @@ sleep 15
 
 log "STATUS DOS CONTAINERS"
 docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml ps
+
+log "LOGS INICIAIS DO BACKEND"
+docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml logs backend --tail=120 || true
 
 log "HEALTHCHECK"
 for i in {1..12}; do
