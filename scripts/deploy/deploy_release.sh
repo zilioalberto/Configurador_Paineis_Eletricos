@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# Deploy a partir do diretório atual (clone). Backup DB → down stack anterior → up nova
+# → healthcheck → promove symlinks app/current e app/previous. Rollback automático no ERR.
+#
+# Ver scripts/deploy/README.md (downtime entre down e up; container_name fixos no compose).
+#
 set -Eeuo pipefail
 
 APP_ROOT="/opt/zfw"
@@ -26,7 +32,28 @@ require_file() {
   fi
 }
 
+check_health() {
+  log "HEALTHCHECK"
+
+  for i in {1..12}; do
+    if curl -fsS http://127.0.0.1:8000/api/v1/health/ > /dev/null; then
+      echo "Healthcheck OK"
+      return 0
+    fi
+
+    echo "Tentativa $i falhou. Aguardando 5s..."
+    sleep 5
+  done
+
+  echo "Healthcheck falhou após múltiplas tentativas."
+  return 1
+}
+
 rollback_on_error() {
+  # Evita reentrada do trap ERR e permite concluir limpeza mesmo com falhas pontuais
+  trap - ERR
+  set +e
+
   echo
   echo "========== FALHA NO DEPLOY =========="
   echo "Linha: ${1:-desconhecida}"
@@ -36,15 +63,15 @@ rollback_on_error() {
   if [[ -d "$NEW_RELEASE_DIR/infra/docker" ]]; then
     echo "Derrubando release com falha..."
     cd "$NEW_RELEASE_DIR/infra/docker"
-    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml down || true
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down || true
   fi
 
   if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
     echo "Voltando para release anterior: $CURRENT_TARGET"
-    ln -sfn "$CURRENT_TARGET" "$CURRENT_LINK"
+    ln -sfn "$CURRENT_TARGET" "$CURRENT_LINK" || true
 
-    cd "$CURRENT_TARGET/infra/docker"
-    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml up -d --build || true
+    cd "$CURRENT_TARGET/infra/docker" || true
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml up -d --build || true
 
     echo "Aguardando rollback estabilizar..."
     sleep 15
@@ -65,17 +92,17 @@ rollback_on_error() {
     done
 
     echo "Status após rollback:"
-    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml ps || true
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml ps || true
 
     echo "Logs do backend após rollback:"
-    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml logs backend --tail=120 || true
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
   else
     echo "Nenhuma release anterior encontrada para rollback."
   fi
 
   if [[ -d "$NEW_RELEASE_DIR" ]]; then
     echo "Removendo release com falha: $NEW_RELEASE_DIR"
-    rm -rf "$NEW_RELEASE_DIR"
+    rm -rf "$NEW_RELEASE_DIR" || true
   fi
 
   exit 1
@@ -114,34 +141,26 @@ docker exec configurador_painel_db sh -c \
 
 echo "Backup salvo em: $BACKUP_FILE"
 
+log "PARANDO STACK ANTERIOR (libera container_name fixo no compose)"
+if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
+  cd "$CURRENT_TARGET/infra/docker"
+  docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down
+fi
+
 log "SUBINDO NOVA RELEASE"
 cd "$NEW_RELEASE_DIR/infra/docker"
-docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml up -d --build
+docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml up -d --build
 
 log "AGUARDANDO SERVIÇOS"
 sleep 15
 
 log "STATUS DOS CONTAINERS"
-docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml ps
+docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml ps
 
 log "LOGS INICIAIS DO BACKEND"
-docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml logs backend --tail=120 || true
+docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
 
-log "HEALTHCHECK"
-for i in {1..12}; do
-  if curl -fsS http://127.0.0.1:8000/api/v1/health/ > /dev/null; then
-    echo "Healthcheck OK"
-    break
-  fi
-
-  echo "Tentativa $i falhou. Aguardando 5s..."
-  sleep 5
-
-  if [[ "$i" -eq 12 ]]; then
-    echo "Healthcheck falhou após múltiplas tentativas."
-    exit 1
-  fi
-done
+check_health || rollback_on_error "$LINENO" "healthcheck"
 
 log "PROMOVENDO RELEASE"
 if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
@@ -151,8 +170,10 @@ fi
 ln -sfn "$NEW_RELEASE_DIR" "$CURRENT_LINK"
 
 log "LIMPANDO RELEASES ANTIGAS"
-cd "$RELEASES_DIR"
-ls -1dt */ | tail -n +6 | xargs -r rm -rf
+trap - ERR
+set +e
+cd "$RELEASES_DIR" || true
+ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
 
 log "DEPLOY CONCLUÍDO"
 echo "Release ativa: $(readlink -f "$CURRENT_LINK")"
