@@ -49,6 +49,9 @@ services:
     restart: always
     depends_on:
       - backend
+    # Vite em modo default usa .env.development → localhost na API (no browser = PC do usuário).
+    # remote carrega .env.remote → https://api.zfw.com.br/api/v1
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--mode", "remote"]
     ports:
       - "5173:5173"
 
