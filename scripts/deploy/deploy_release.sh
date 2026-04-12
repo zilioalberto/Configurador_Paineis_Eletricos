@@ -10,7 +10,6 @@ BACKUP_DIR="$SHARED_DIR/backups/db"
 TARGET_REF="${1:-main}"
 CURRENT_WORKDIR="$(pwd)"
 NEW_RELEASE_DIR="$CURRENT_WORKDIR"
-RELEASE_NAME="$(basename "$NEW_RELEASE_DIR")"
 CURRENT_LINK="${APP_DIR}/current"
 PREVIOUS_LINK="${APP_DIR}/previous"
 
@@ -39,7 +38,7 @@ rollback_on_error() {
     ln -sfn "$CURRENT_TARGET" "$CURRENT_LINK"
 
     cd "$CURRENT_TARGET/infra/docker"
-    docker compose -f docker-compose.prod.yml up -d --build || true
+    docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml up -d --build || true
   fi
 
   if [[ -d "$NEW_RELEASE_DIR" ]]; then
@@ -85,13 +84,13 @@ echo "Backup salvo em: $BACKUP_FILE"
 
 log "SUBINDO NOVA RELEASE"
 cd "$NEW_RELEASE_DIR/infra/docker"
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml up -d --build
 
 log "AGUARDANDO SERVIÇOS"
 sleep 15
 
 log "STATUS DOS CONTAINERS"
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file /opt/zfw/shared/.env -f docker-compose.prod.yml ps
 
 log "HEALTHCHECK"
 for i in {1..12}; do
