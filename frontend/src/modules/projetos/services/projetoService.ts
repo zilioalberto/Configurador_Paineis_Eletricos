@@ -26,6 +26,13 @@ export async function obterProjeto(id: string): Promise<Projeto> {
   return response.data
 }
 
+export async function alocarCodigoProjeto(): Promise<{ codigo: string }> {
+  const response = await apiClient.post<{ codigo: string }>(
+    `${BASE_URL}alocar-codigo/`
+  )
+  return response.data
+}
+
 export async function criarProjeto(data: ProjetoFormData): Promise<Projeto> {
   const response = await apiClient.post<Projeto>(BASE_URL, data)
   return response.data

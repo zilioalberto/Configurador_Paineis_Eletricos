@@ -27,6 +27,9 @@ services:
       dockerfile: /opt/zfw/infra/docker/Dockerfile.backend
     container_name: configurador_painel_backend
     restart: always
+    environment:
+      DJANGO_ENV: production
+      DJANGO_DEBUG: "false"
     env_file:
       - /opt/zfw/.env
     depends_on:

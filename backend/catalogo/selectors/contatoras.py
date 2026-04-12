@@ -35,7 +35,7 @@ def selecionar_contatoras(
 
     qs_base = Produto.objects.filter(
         ativo=True,
-        categoria__nome=CategoriaProdutoNomeChoices.CONTATORA,
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
         especificacao_contatora__tensao_bobina_v=tensao_comando,
         especificacao_contatora__tipo_corrente_bobina=tipo_corrente_comando,
     )
@@ -49,10 +49,7 @@ def selecionar_contatoras(
         qs_base = qs_base.filter(
             especificacao_contatora__corrente_ac3_a__isnull=False,
             especificacao_contatora__corrente_ac3_a__gte=corrente_nominal,
-        ).select_related(
-            "categoria",
-            "especificacao_contatora",
-        )
+        ).select_related("especificacao_contatora")
 
         campo_corrente = "especificacao_contatora__corrente_ac3_a"
 
@@ -60,10 +57,7 @@ def selecionar_contatoras(
         qs_base = qs_base.filter(
             especificacao_contatora__corrente_ac1_a__isnull=False,
             especificacao_contatora__corrente_ac1_a__gte=corrente_nominal,
-        ).select_related(
-            "categoria",
-            "especificacao_contatora",
-        )
+        ).select_related("especificacao_contatora")
 
         campo_corrente = "especificacao_contatora__corrente_ac1_a"
 

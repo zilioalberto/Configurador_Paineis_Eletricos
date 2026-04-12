@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   APP_HEADER_BRAND,
   APP_HEADER_TAGLINE,
   getHeaderUserDisplayName,
 } from '@/constants/appBranding'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { authDisplayName } from '@/modules/auth/types'
 import { HEADER_ATALHOS } from '@/constants/headerAtalhos'
 import { BellIcon, ListaProjetosLink, UserAvatarPlaceholder } from './headerIcons'
 
@@ -53,7 +55,9 @@ export default function Header({
   mobileNavOpen = false,
   onOpenMobileNav,
 }: HeaderProps) {
-  const userName = getHeaderUserDisplayName()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const userName = user ? authDisplayName(user) : getHeaderUserDisplayName()
   const firstName = userName.split(/\s+/)[0] ?? userName
 
   const atalhosId = useId()
@@ -73,6 +77,12 @@ export default function Header({
     setUserOpen(false)
     setNotifOpen(false)
   }, [])
+
+  const handleLogout = useCallback(() => {
+    closeAll()
+    logout()
+    void navigate('/login', { replace: true })
+  }, [closeAll, logout, navigate])
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -212,7 +222,16 @@ export default function Header({
                   role="menu"
                 >
                   <div className="px-3 py-2 border-bottom small text-muted">
-                    Sessão local — login integrado em evolução.
+                    {user ? (
+                      <>
+                        <div className="text-truncate" title={user.email}>
+                          {user.email}
+                        </div>
+                        <div className="mt-1">{user.tipo_usuario}</div>
+                      </>
+                    ) : (
+                      'Sessão ativa.'
+                    )}
                   </div>
                   <button type="button" className="app-header-menu-item" disabled>
                     Perfil
@@ -220,7 +239,7 @@ export default function Header({
                   <button type="button" className="app-header-menu-item" disabled>
                     Preferências
                   </button>
-                  <button type="button" className="app-header-menu-item" disabled>
+                  <button type="button" className="app-header-menu-item" onClick={handleLogout}>
                     Sair
                   </button>
                 </div>

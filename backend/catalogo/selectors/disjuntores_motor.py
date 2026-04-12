@@ -36,7 +36,7 @@ def selecionar_disjuntores_motor(
 
     qs_base = Produto.objects.filter(
         ativo=True,
-        categoria__nome=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
         especificacao_disjuntor_motor__faixa_ajuste_min_a__isnull=False,
         especificacao_disjuntor_motor__faixa_ajuste_max_a__isnull=False,
         especificacao_disjuntor_motor__faixa_ajuste_min_a__lte=corrente_nominal,
@@ -49,7 +49,6 @@ def selecionar_disjuntores_motor(
         )
 
     qs_base = qs_base.select_related(
-        "categoria",
         "especificacao_disjuntor_motor",
     ).annotate(
         sobra_superior_a=ExpressionWrapper(

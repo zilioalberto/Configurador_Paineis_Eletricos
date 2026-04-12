@@ -42,7 +42,6 @@ from projetos.services.fluxo_projeto import validar_projeto_editavel
 def _composicao_select_related():
     return (
         "produto",
-        "produto__categoria",
         "carga",
         "carga__motor",
         "carga__resistencia",
@@ -73,7 +72,7 @@ def _snapshot(projeto: Projeto) -> dict:
     )
     inclusoes = (
         ComposicaoInclusaoManual.objects.filter(projeto=projeto)
-        .select_related("produto", "produto__categoria")
+        .select_related("produto")
         .order_by("ordem", "id")
     )
     sug_data = SugestaoItemSerializer(sugestoes, many=True).data
@@ -192,7 +191,7 @@ class SugestaoAprovarView(APIView):
 
     def post(self, request, sugestao_id):
         sugestao = get_object_or_404(
-            SugestaoItem.objects.select_related("projeto", "produto__categoria"),
+            SugestaoItem.objects.select_related("projeto", "produto"),
             pk=sugestao_id,
         )
         try:
@@ -207,10 +206,7 @@ class SugestaoAprovarView(APIView):
 
         substituto = None
         if pid is not None:
-            substituto = get_object_or_404(
-                Produto.objects.select_related("categoria"),
-                pk=pid,
-            )
+            substituto = get_object_or_404(Produto, pk=pid)
 
         try:
             item = aprovar_sugestao_item(sugestao, produto_substituto=substituto)
@@ -242,10 +238,7 @@ class ComposicaoInclusaoManualCreateView(APIView):
         input_ser = InclusaoManualCreateSerializer(data=request.data)
         input_ser.is_valid(raise_exception=True)
         pid = input_ser.validated_data["produto_id"]
-        produto = get_object_or_404(
-            Produto.objects.select_related("categoria"),
-            pk=pid,
-        )
+        produto = get_object_or_404(Produto, pk=pid)
         if not produto.ativo:
             return Response(
                 {"detail": ["Produto inativo no catálogo."]},

@@ -55,8 +55,8 @@ export function produtoFormToApiPayload(
   data: ProdutoFormData,
   categorias: CategoriaProduto[]
 ): Record<string, unknown> {
-  const cat = categorias.find((c) => c.id === data.categoria)
-  const nome = cat?.nome
+  const cat = categorias.find((c) => c.id === data.categoria || c.nome === data.categoria)
+  const nome = cat?.nome ?? data.categoria
 
   const base: Record<string, unknown> = {
     codigo: data.codigo.trim(),

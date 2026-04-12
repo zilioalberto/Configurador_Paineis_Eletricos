@@ -22,7 +22,7 @@ def aprovar_sugestao_item(
 
     produto_final = sugestao.produto
     if produto_substituto is not None:
-        if produto_substituto.categoria.nome != sugestao.categoria_produto:
+        if produto_substituto.categoria != sugestao.categoria_produto:
             raise ValidationError(
                 "O produto escolhido não pertence à mesma categoria da sugestão."
             )

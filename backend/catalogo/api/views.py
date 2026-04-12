@@ -1,26 +1,37 @@
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet, ViewSet
 
 from catalogo.api.serializers import (
-    CategoriaProdutoSerializer,
     ProdutoDetailSerializer,
     ProdutoListSerializer,
     ProdutoWriteSerializer,
 )
-from catalogo.models import CategoriaProduto, Produto
+from catalogo.models import Produto
+from core.choices.produtos import CategoriaProdutoNomeChoices
 
 
-class CategoriaProdutoViewSet(ReadOnlyModelViewSet):
-    serializer_class = CategoriaProdutoSerializer
-    queryset = CategoriaProduto.objects.filter(ativo=True).order_by("nome")
+class CategoriaProdutoViewSet(ViewSet):
+    """Lista fixa derivada de CategoriaProdutoNomeChoices (sem tabela no banco)."""
+
+    def list(self, request):
+        data = [
+            {
+                "id": value,
+                "nome": value,
+                "nome_display": label,
+                "descricao": "",
+                "ativo": True,
+            }
+            for value, label in CategoriaProdutoNomeChoices.choices
+        ]
+        return Response(data)
 
 
 class ProdutoViewSet(ModelViewSet):
     queryset = (
-        Produto.objects.select_related("categoria")
-        .select_related(
+        Produto.objects.select_related(
             "especificacao_contatora",
             "especificacao_disjuntor_motor",
             "especificacao_seccionadora",
@@ -30,9 +41,9 @@ class ProdutoViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        categoria_id = self.request.query_params.get("categoria")
-        if categoria_id:
-            qs = qs.filter(categoria_id=categoria_id)
+        categoria = (self.request.query_params.get("categoria") or "").strip()
+        if categoria:
+            qs = qs.filter(categoria=categoria)
         search = (self.request.query_params.get("search") or "").strip()
         if search:
             qs = qs.filter(
