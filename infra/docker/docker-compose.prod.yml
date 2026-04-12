@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres:16-alpine
     container_name: configurador_painel_db
