@@ -49,8 +49,8 @@ export default function ProdutoCreatePage() {
           {loadingCat && <p className="text-muted mb-0">Carregando categorias…</p>}
           {!loadingCat && categorias.length === 0 && (
             <div className="alert alert-warning mb-0" role="alert">
-              Não há categorias ativas. Cadastre categorias no admin Django ou aguarde a
-              carga inicial dos dados.
+              Não foi possível carregar a lista de categorias da API. Verifique a conexão;
+              as categorias são definidas no backend (choices fixas).
             </div>
           )}
           {!loadingCat && categorias.length > 0 && (

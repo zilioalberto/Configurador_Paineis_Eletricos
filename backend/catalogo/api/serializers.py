@@ -2,7 +2,6 @@ from django.db import transaction
 from rest_framework import serializers
 
 from catalogo.models import (
-    CategoriaProduto,
     EspecificacaoContatora,
     EspecificacaoDisjuntorMotor,
     EspecificacaoSeccionadora,
@@ -86,22 +85,6 @@ def _salvar_especificacao(produto: Produto, nome_categoria: str, payload: dict |
     obj.save()
 
 
-class CategoriaProdutoSerializer(serializers.ModelSerializer):
-    nome_display = serializers.CharField(source="get_nome_display", read_only=True)
-
-    class Meta:
-        model = CategoriaProduto
-        fields = (
-            "id",
-            "nome",
-            "nome_display",
-            "descricao",
-            "ativo",
-            "criado_em",
-            "atualizado_em",
-        )
-
-
 class EspecificacaoContatoraSerializer(serializers.ModelSerializer):
     tensao_bobina_display = serializers.CharField(
         source="get_tensao_bobina_v_display",
@@ -170,11 +153,8 @@ class EspecificacaoSeccionadoraWriteSerializer(serializers.ModelSerializer):
 
 
 class ProdutoListSerializer(serializers.ModelSerializer):
-    categoria_nome = serializers.CharField(source="categoria.nome", read_only=True)
-    categoria_display = serializers.CharField(
-        source="categoria.get_nome_display",
-        read_only=True,
-    )
+    categoria_nome = serializers.CharField(source="categoria", read_only=True)
+    categoria_display = serializers.SerializerMethodField()
     unidade_medida_display = serializers.CharField(
         source="get_unidade_medida_display",
         read_only=True,
@@ -198,13 +178,13 @@ class ProdutoListSerializer(serializers.ModelSerializer):
             "atualizado_em",
         )
 
+    def get_categoria_display(self, obj):
+        return obj.get_categoria_display()
+
 
 class ProdutoDetailSerializer(serializers.ModelSerializer):
-    categoria_nome = serializers.CharField(source="categoria.nome", read_only=True)
-    categoria_display = serializers.CharField(
-        source="categoria.get_nome_display",
-        read_only=True,
-    )
+    categoria_nome = serializers.CharField(source="categoria", read_only=True)
+    categoria_display = serializers.SerializerMethodField()
     unidade_medida_display = serializers.CharField(
         source="get_unidade_medida_display",
         read_only=True,
@@ -239,8 +219,11 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
             "especificacao_seccionadora",
         )
 
+    def get_categoria_display(self, obj):
+        return obj.get_categoria_display()
+
     def get_especificacao_contatora(self, obj):
-        if obj.categoria.nome != CategoriaProdutoNomeChoices.CONTATORA:
+        if obj.categoria != CategoriaProdutoNomeChoices.CONTATORA:
             return None
         try:
             return EspecificacaoContatoraSerializer(obj.especificacao_contatora).data
@@ -248,7 +231,7 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
             return None
 
     def get_especificacao_disjuntor_motor(self, obj):
-        if obj.categoria.nome != CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR:
+        if obj.categoria != CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR:
             return None
         try:
             return EspecificacaoDisjuntorMotorSerializer(
@@ -258,7 +241,7 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
             return None
 
     def get_especificacao_seccionadora(self, obj):
-        if obj.categoria.nome != CategoriaProdutoNomeChoices.SECCIONADORA:
+        if obj.categoria != CategoriaProdutoNomeChoices.SECCIONADORA:
             return None
         try:
             return EspecificacaoSeccionadoraSerializer(obj.especificacao_seccionadora).data
@@ -309,7 +292,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             categoria = instance.categoria
         if categoria is None:
             return attrs
-        campo = CATEGORIA_PARA_CAMPO.get(categoria.nome)
+        campo = CATEGORIA_PARA_CAMPO.get(categoria)
         if campo is None:
             return attrs
         if instance is None:
@@ -321,7 +304,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         payloads = {k: validated_data.pop(k, None) for k in NESTED_KEYS}
         produto = Produto.objects.create(**validated_data)
-        nome = produto.categoria.nome
+        nome = produto.categoria
         if CATEGORIA_PARA_CAMPO.get(nome):
             campo = CATEGORIA_PARA_CAMPO[nome]
             _salvar_especificacao(produto, nome, payloads.get(campo))
@@ -333,12 +316,12 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         for k in NESTED_KEYS:
             if k in validated_data:
                 payloads[k] = validated_data.pop(k)
-        categoria_antiga_id = instance.categoria_id
+        categoria_antiga = instance.categoria
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        nome_novo = instance.categoria.nome
-        if instance.categoria_id != categoria_antiga_id:
+        nome_novo = instance.categoria
+        if nome_novo != categoria_antiga:
             _clear_specs(instance)
             if CATEGORIA_PARA_CAMPO.get(nome_novo):
                 campo = CATEGORIA_PARA_CAMPO[nome_novo]

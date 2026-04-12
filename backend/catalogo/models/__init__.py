@@ -1,5 +1,4 @@
 from .base import Produto
-from .categoria import CategoriaProduto
 from .especificacao_contatora import EspecificacaoContatora
 from .especificacao_disjuntor_motor import EspecificacaoDisjuntorMotor
 from .especificacao_seccionadora import EspecificacaoSeccionadora

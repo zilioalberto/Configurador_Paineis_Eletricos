@@ -33,7 +33,7 @@ def selecionar_disjuntores_caixa_moldada(
 
     qs_base = Produto.objects.filter(
         ativo=True,
-        categoria__nome=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
         especificacao_disjuntor_caixa_moldada__corrente_nominal_a__isnull=False,
         especificacao_disjuntor_caixa_moldada__corrente_nominal_a__gte=corrente_nominal,
     )
@@ -43,10 +43,7 @@ def selecionar_disjuntores_caixa_moldada(
             especificacao_disjuntor_caixa_moldada__tipo_montagem=tipo_montagem
         )
 
-    qs_base = qs_base.select_related(
-        "categoria",
-        "especificacao_disjuntor_caixa_moldada",
-    )
+    qs_base = qs_base.select_related("especificacao_disjuntor_caixa_moldada")
 
     if not niveis or niveis <= 0:
         return qs_base.order_by(

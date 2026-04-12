@@ -28,6 +28,9 @@ jobs:
 
             cd /opt/zfw
 
+            git config --global --add safe.directory /opt/zfw
+
+
             echo "Atualizando código..."
             git fetch origin
             git checkout main

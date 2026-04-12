@@ -60,7 +60,7 @@ export function applyCategoriaChange(
   categoriaId: string,
   categorias: CategoriaProduto[]
 ): ProdutoFormData {
-  const cat = categorias.find((c) => c.id === categoriaId)
+  const cat = categorias.find((c) => c.id === categoriaId || c.nome === categoriaId)
   const nome = cat?.nome
   return {
     ...prev,

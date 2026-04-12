@@ -1,0 +1,10 @@
+# pytest-cov (CI: --cov-config na raiz). Migrações quase nunca são “cobertas” por testes
+# e poluem o % e o Sonar; ficam fora do relatório Cobertura.
+[run]
+omit =
+    */migrations/*
+
+[report]
+omit =
+    */migrations/*
+precision = 2

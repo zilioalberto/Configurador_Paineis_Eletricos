@@ -113,7 +113,6 @@ def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
         ComposicaoItem.objects.filter(projeto=projeto)
         .select_related(
             "produto",
-            "produto__categoria",
             "carga",
             "carga__motor",
             "carga__resistencia",
@@ -144,17 +143,16 @@ def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
 
     qs_inc = (
         ComposicaoInclusaoManual.objects.filter(projeto=projeto)
-        .select_related("produto", "produto__categoria")
+        .select_related("produto")
         .order_by("ordem", "id")
     )
     for inc in qs_inc:
         p = inc.produto
-        cat = p.categoria
         linhas.append(
             [
                 "Inclusão manual (catálogo)",
                 "—",
-                cat.get_nome_display(),
+                p.get_categoria_display(),
                 "",
                 "",
                 "",

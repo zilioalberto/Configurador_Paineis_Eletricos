@@ -2,18 +2,10 @@ from django.contrib import admin
 
 from .models import (
     Produto,
-    CategoriaProduto,
     EspecificacaoContatora,
     EspecificacaoDisjuntorMotor,
     EspecificacaoSeccionadora,
 )
-
-
-@admin.register(CategoriaProduto)
-class CategoriaProdutoAdmin(admin.ModelAdmin):
-    list_display = ("nome", "descricao", "ativo", "criado_em", "atualizado_em")
-    list_filter = ("ativo", "nome")
-    search_fields = ("nome", "descricao")
 
 
 class EspecificacaoContatoraInline(admin.StackedInline):
@@ -49,48 +41,57 @@ class ProdutoAdmin(admin.ModelAdmin):
     )
     list_filter = ("ativo", "categoria", "fabricante")
     search_fields = ("codigo", "descricao", "fabricante", "referencia_fabricante")
-    autocomplete_fields = ("categoria",)
 
     fieldsets = (
-        ("Classificação", {
-            "fields": (
-                "categoria",
-            )
-        }),
-        ("Dados principais", {
-            "fields": (
-                "codigo",
-                "descricao",
-            )
-        }),
-        ("Dados comerciais", {
-            "fields": (
-                ("unidade_medida", "valor_unitario"),
-            )
-        }),
-        ("Fabricante", {
-            "fields": (
-                ("fabricante", "referencia_fabricante"),
-            )
-        }),
-        ("Dimensões", {
-            "fields": (
-                ("largura_mm", "altura_mm", "profundidade_mm"),
-            )
-        }),
-        ("Informações adicionais", {
-            "fields": (
-                "ativo",
-                "observacoes_tecnicas",
-            )
-        }),
+        (
+            "Classificação",
+            {
+                "fields": ("categoria",),
+            },
+        ),
+        (
+            "Dados principais",
+            {
+                "fields": (
+                    "codigo",
+                    "descricao",
+                ),
+            },
+        ),
+        (
+            "Dados comerciais",
+            {
+                "fields": (("unidade_medida", "valor_unitario"),),
+            },
+        ),
+        (
+            "Fabricante",
+            {
+                "fields": (("fabricante", "referencia_fabricante"),),
+            },
+        ),
+        (
+            "Dimensões",
+            {
+                "fields": (("largura_mm", "altura_mm", "profundidade_mm"),),
+            },
+        ),
+        (
+            "Informações adicionais",
+            {
+                "fields": (
+                    "ativo",
+                    "observacoes_tecnicas",
+                ),
+            },
+        ),
     )
 
     def get_inline_instances(self, request, obj=None):
         inline_classes = []
 
         if obj and obj.categoria:
-            categoria_nome = obj.categoria.nome
+            categoria_nome = obj.categoria
 
             if categoria_nome == "CONTATORA":
                 inline_classes = [EspecificacaoContatoraInline]
