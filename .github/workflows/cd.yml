@@ -30,3 +30,4 @@ jobs:
             set -e
             echo "Iniciando deploy do commit: ${{ github.sha }}"
             /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
+            
