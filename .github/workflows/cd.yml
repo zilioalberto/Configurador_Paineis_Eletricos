@@ -23,6 +23,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          debug: true
           script: |
             set -e
 
@@ -30,11 +32,19 @@ jobs:
 
             git config --global --add safe.directory /opt/zfw
 
+            echo "Branch atual:"
+            git branch --show-current
+
+            echo "Status antes do pull:"
+            git status
 
             echo "Atualizando código..."
             git fetch origin
             git checkout main
             git pull origin main
+
+            echo "Status após pull:"
+            git status
 
             echo "Subindo containers..."
             docker compose -f infra/docker/docker-compose.prod.yml up -d --build
@@ -46,4 +56,4 @@ jobs:
             docker compose -f infra/docker/docker-compose.prod.yml ps
 
             echo "Logs recentes do backend..."
-            docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=50
+            docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=80
