@@ -83,3 +83,52 @@ cd /opt/zfw/releases/bootstrap-…   # opcional; o script não depende do cwd
 ## Variáveis e nomes fixos
 
 Os scripts assumem **container** `configurador_painel_db` para backup e o compose de produção em `infra/docker/docker-compose.prod.yml`. Alterações nesses nomes exigem ajuste nos scripts.
+
+## Por que o rollback diz “Nenhuma release anterior encontrada”?
+
+O rollback automático só consegue religar uma stack antiga se, **no início daquele deploy**, existia o symlink **`/opt/zfw/app/current`** apontando para um diretório de release válido.
+
+- **Primeiro deploy no servidor:** `current` ainda não existe → não há “release anterior” → o script só remove o clone com falha e dá `docker compose down` na stack que acabou de subir (incluindo os containers do compose). O **volume** do Postgres costuma continuar; é preciso subir de novo o compose manualmente a partir de um clone bom ou repetir o deploy após corrigir o código/migrações.
+- **`current` quebrado** (symlink para pasta apagada): o script trata como sem rollback útil e imprime aviso na fase **CONTEXTO DE ROLLBACK**.
+
+Depois do **primeiro deploy bem-sucedido**, `current` passa a existir e os próximos deploys terão rollback automático para a release que estava ativa antes.
+
+## Erro: `InconsistentMigrationHistory` (admin antes de `accounts`)
+
+Mensagem típica:
+
+`Migration admin.0001_initial is applied before its dependency accounts.0001_initial_customuser`
+
+**Causa:** o banco já tinha `django.contrib.admin` migrado (com o modelo de usuário antigo ou sem a migração inicial do app `accounts` registrada), e o código atual usa **`AUTH_USER_MODEL = accounts.CustomUser`**. O Django exige que a migração inicial de `accounts` conste como aplicada **antes** de `admin.0001_initial` na história coerente.
+
+**Não é corrigido só com novo deploy** enquanto a tabela `django_migrations` estiver inconsistente.
+
+### Caminho A — banco descartável (homolog / dev)
+
+1. Parar os containers.
+2. Remover o volume nomeado do Postgres (apaga dados) ou recriar o banco vazio.
+3. Subir de novo e rodar `migrate` em ordem limpa.
+
+### Caminho B — produção com dados a preservar
+
+1. **Backup** (o `deploy_release.sh` já gera dump em `shared/backups/db/`).
+2. Inspecionar o histórico:
+
+```sql
+SELECT app, name, applied FROM django_migrations
+WHERE app IN ('admin', 'accounts', 'auth')
+ORDER BY applied;
+```
+
+3. Se a tabela **`accounts_customuser`** **não** existe e você pode reaplicar admin do zero: apague só o registro de admin inicial e rode migrate de novo (em ambiente controlado, após backup):
+
+```sql
+DELETE FROM django_migrations
+WHERE app = 'admin' AND name = '0001_initial';
+```
+
+Depois, dentro do container backend: `python manage.py migrate` — o Django deve aplicar `accounts.0001_initial_customuser` antes de `admin.0001_initial`.
+
+4. Se a tabela **`accounts_customuser`** **já existe** e bate com o modelo atual, mas falta a linha em `django_migrations` para `accounts.0001_initial_customuser`, ajuste o histórico com **`migrate --fake`** **após** alinhar dependências (muitas vezes ainda é preciso remover temporariamente o registro de `admin.0001_initial` como no passo 3, rodar `migrate accounts` e em seguida `migrate` completo). Valide com a equipe ou DBA antes de editar `django_migrations`.
+
+Em caso de dúvida ou de tabela `auth_user` antiga ainda presente, trate como **migração de usuário customizado** (documentação Django: *Changing to a custom user model mid-project*) — costuma exigir plano de dados dedicado, não apenas um `DELETE` em `django_migrations`.

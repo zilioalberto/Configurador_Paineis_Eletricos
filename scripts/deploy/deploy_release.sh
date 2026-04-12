@@ -98,6 +98,11 @@ rollback_on_error() {
     docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
   else
     echo "Nenhuma release anterior encontrada para rollback."
+    echo "Motivo típico: não existe o symlink $CURRENT_LINK (primeiro deploy neste servidor)"
+    echo "ou o deploy anterior nunca chegou a promover 'current'."
+    echo "Neste caso não há stack antiga para religar: suba manualmente o compose a partir"
+    echo "de um clone válido em $RELEASES_DIR ou restaure o backup do banco se necessário."
+    echo "O volume do Postgres costuma persistir mesmo após 'docker compose down'."
   fi
 
   if [[ -d "$NEW_RELEASE_DIR" ]]; then
@@ -116,6 +121,20 @@ if [[ -L "$CURRENT_LINK" ]]; then
   CURRENT_TARGET="$(readlink -f "$CURRENT_LINK")"
 else
   CURRENT_TARGET=""
+fi
+
+log "CONTEXTO DE ROLLBACK"
+if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
+  echo "Release anterior (rollback disponível): $CURRENT_TARGET"
+else
+  if [[ -L "$CURRENT_LINK" ]]; then
+    echo "AVISO: $CURRENT_LINK existe mas o destino não é um diretório válido: $(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  elif [[ -e "$CURRENT_LINK" ]]; then
+    echo "AVISO: $CURRENT_LINK existe mas não é symlink; rollback automático não terá release anterior."
+  else
+    echo "Sem symlink $CURRENT_LINK — primeiro deploy neste APP_DIR ou current ainda não criado."
+  fi
+  echo "Rollback automático em caso de falha só poderá derrubar a nova release e remover o clone com erro."
 fi
 
 log "RELEASE ATUAL"

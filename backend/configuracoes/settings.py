@@ -73,18 +73,19 @@ CORS_ALLOWED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # auth + accounts antes de admin (AUTH_USER_MODEL): evita ordem confusa em projetos novos
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'accounts',
+    'django.contrib.admin',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     'rest_framework',
     'corsheaders',
 
     'core',
-    'accounts',
     'catalogo',
     'projetos',
     'cargas',
