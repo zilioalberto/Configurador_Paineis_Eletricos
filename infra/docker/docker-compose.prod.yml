@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: ../../backend
-      dockerfile: ../../infra/docker/Dockerfile.backend
+      dockerfile: ../infra/docker/Dockerfile.backend
     container_name: configurador_painel_backend
     restart: always
     environment:
@@ -44,7 +44,7 @@ services:
   frontend:
     build:
       context: ../../frontend
-      dockerfile: ../../infra/docker/Dockerfile.frontend
+      dockerfile: ../infra/docker/Dockerfile.frontend
     container_name: configurador_painel_frontend
     restart: always
     depends_on:

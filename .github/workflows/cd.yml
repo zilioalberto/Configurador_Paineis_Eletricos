@@ -28,4 +28,6 @@ jobs:
           command_timeout: 40m
           script: |
             set -e
-            /opt/zfw/scripts/run_deploy.sh "${GITHUB_SHA}"
+            echo "Iniciando deploy do commit: ${{ github.sha }}"
+            /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
+            
