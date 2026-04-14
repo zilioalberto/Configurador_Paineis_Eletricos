@@ -25,35 +25,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
           debug: true
+          command_timeout: 40m
           script: |
             set -e
-
-            cd /opt/zfw
-
-            git config --global --add safe.directory /opt/zfw
-
-            echo "Branch atual:"
-            git branch --show-current
-
-            echo "Status antes do pull:"
-            git status
-
-            echo "Atualizando código..."
-            git fetch origin
-            git checkout main
-            git pull origin main
-
-            echo "Status após pull:"
-            git status
-
-            echo "Subindo containers..."
-            docker compose -f infra/docker/docker-compose.prod.yml up -d --build
-
-            echo "Aguardando backend..."
-            sleep 10
-
-            echo "Status dos containers..."
-            docker compose -f infra/docker/docker-compose.prod.yml ps
-
-            echo "Logs recentes do backend..."
-            docker compose -f infra/docker/docker-compose.prod.yml logs backend --tail=80
+            echo "Iniciando deploy do commit: ${{ github.sha }}"
+            /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
