@@ -6,6 +6,8 @@ export type AppMenuItem = {
   end?: boolean
   /** Menor aparece primeiro no menu lateral */
   order?: number
+  /** Só aparece para administradores da aplicação (tipo ADMIN ou superusuário). */
+  requiresAppAdmin?: boolean
 }
 
 export type ModuleRouteConfig = {

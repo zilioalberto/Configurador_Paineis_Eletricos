@@ -14,6 +14,10 @@ import {
   placeholdersRoutes,
 } from '@/modules/placeholders/placeholders.registry'
 import { projetosMenuItems, projetosRoutes } from '@/modules/projetos/projetos.registry'
+import {
+  usuariosAdminMenuItems,
+  usuariosAdminRoutes,
+} from '@/modules/usuarios/usuarios.registry'
 import type { AppMenuItem, ModuleRouteConfig } from './types'
 
 const routeModules: ModuleRouteConfig[][] = [
@@ -24,6 +28,7 @@ const routeModules: ModuleRouteConfig[][] = [
   dimensionamentoRoutes,
   composicaoRoutes,
   placeholdersRoutes,
+  usuariosAdminRoutes,
 ]
 
 const menuModules: AppMenuItem[][] = [
@@ -34,6 +39,7 @@ const menuModules: AppMenuItem[][] = [
   dimensionamentoMenuItems,
   composicaoMenuItems,
   placeholdersMenuItems,
+  usuariosAdminMenuItems,
 ]
 
 export const appChildRoutes: ModuleRouteConfig[] = routeModules.flat()

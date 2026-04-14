@@ -1,6 +1,11 @@
+import { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { appMenuItems } from '@/app/navigation'
+import { APP_PRODUCT_FULL_NAME } from '@/constants/appBranding'
+import { ZFW_LOGO_PNG_URL } from '@/constants/brandingAssets'
 import { ZFW_SITE_URL } from '@/constants/zfwSite'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { isAppAdmin } from '@/modules/auth/appAdmin'
 import { SidebarNavIcon } from './sidebarNavIcons'
 
 const APP_VERSION = '1.0.0'
@@ -21,6 +26,11 @@ export default function Sidebar({
   onNavigate,
 }: SidebarProps) {
   const mode = import.meta.env.MODE
+  const { user } = useAuth()
+  const menuItems = useMemo(
+    () => appMenuItems.filter((item) => !item.requiresAppAdmin || isAppAdmin(user)),
+    [user]
+  )
 
   return (
     <aside
@@ -37,16 +47,15 @@ export default function Sidebar({
           aria-label="ZFW Engenharia — abrir site em nova aba"
         >
           <img
-            src="/branding/zfw-logo.png"
-            alt=""
-            width={200}
-            height={56}
+            src={ZFW_LOGO_PNG_URL}
+            alt="ZFW Engenharia"
+            width={220}
+            height={72}
             decoding="async"
+            style={{ maxWidth: '100%', height: 'auto' }}
           />
         </a>
-        <p className="app-sidebar-brand-tagline mb-0">
-          Configurador de Painéis Elétricos
-        </p>
+        <p className="app-sidebar-brand-tagline mb-0">{APP_PRODUCT_FULL_NAME}</p>
       </div>
 
       <div className="app-sidebar-divider" role="presentation" />
@@ -55,7 +64,7 @@ export default function Sidebar({
         className="app-sidebar-nav nav flex-column flex-grow-1"
         aria-label="Módulos principais"
       >
-        {appMenuItems.map((item) => (
+        {menuItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

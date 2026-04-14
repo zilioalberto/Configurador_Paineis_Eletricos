@@ -21,6 +21,8 @@ class AuthMeView(_JwtAuthenticatedReadOnlyView):
                 "first_name": user.first_name or "",
                 "last_name": user.last_name or "",
                 "tipo_usuario": user.tipo_usuario,
+                "is_staff": bool(user.is_staff),
+                "is_superuser": bool(user.is_superuser),
             }
         )
 

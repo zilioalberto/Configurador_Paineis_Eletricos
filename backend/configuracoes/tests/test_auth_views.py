@@ -36,6 +36,7 @@ class TestAuthTokenObtain:
             format="json",
         )
         assert response.status_code == 401
+        assert "E-mail ou senha incorretos" in (response.data.get("detail") or "")
 
 
 @pytest.mark.django_db
@@ -68,6 +69,8 @@ class TestAuthMeView:
         assert response.data["first_name"] == "Ana"
         assert response.data["last_name"] == "Silva"
         assert response.data["tipo_usuario"] == "USUARIO"
+        assert response.data["is_staff"] is False
+        assert response.data["is_superuser"] is False
 
 
 @pytest.mark.django_db

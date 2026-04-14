@@ -49,6 +49,10 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     ]
   }
 
+  if (path === '/administracao/utilizadores') {
+    return [{ label: 'Utilizadores', to: '/administracao/utilizadores' }]
+  }
+
   if (path === '/cargas') {
     return [{ label: 'Cargas', to: '/cargas' }]
   }

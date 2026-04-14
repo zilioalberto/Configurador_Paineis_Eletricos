@@ -3,6 +3,7 @@ import secrets
 import pytest
 from django.contrib.auth import get_user_model
 
+from core.choices import TipoUsuarioChoices
 
 User = get_user_model()
 
@@ -30,6 +31,7 @@ def test_create_superuser_flags():
     u = User.objects.create_superuser("admin@example.com", raw_password)
     assert u.is_staff is True
     assert u.is_superuser is True
+    assert u.tipo_usuario == TipoUsuarioChoices.ADMIN
 
 
 def test_create_superuser_sem_is_staff():
