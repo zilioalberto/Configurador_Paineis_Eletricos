@@ -65,7 +65,7 @@ export function normalizeAxiosError(error: unknown): ApiError {
     const statusText =
       typeof ax.response.statusText === 'string' ? ax.response.statusText.trim() : ''
 
-    const rawMessage = parsed || (statusText ? statusText : statusFallbackMessage(status))
+    const rawMessage = parsed || statusText || statusFallbackMessage(status)
     const message = translateKnownApiMessage(rawMessage)
 
     return new ApiError(message, {

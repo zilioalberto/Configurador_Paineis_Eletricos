@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useToast } from '@/components/feedback'
 import type {
@@ -158,12 +158,12 @@ export default function UsuariosAdminPage() {
       } else {
         current.add(permission)
       }
-      return { ...s, permissoes: Array.from(current).sort() }
+      return { ...s, permissoes: Array.from(current).sort((a, b) => a.localeCompare(b)) }
     })
   }, [])
 
-  const onCreateSubmit = useCallback(
-    (e: FormEvent) => {
+  const onCreateSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
+    (e) => {
       e.preventDefault()
       const tipo = createForm.tipo_usuario || defaultTipo
       createMutation.mutate({
@@ -211,7 +211,7 @@ export default function UsuariosAdminPage() {
       } else {
         current.add(permission)
       }
-      return { ...s, permissoes: Array.from(current).sort() }
+      return { ...s, permissoes: Array.from(current).sort((a, b) => a.localeCompare(b)) }
     })
   }, [])
 
@@ -220,8 +220,8 @@ export default function UsuariosAdminPage() {
     setEditForm(null)
   }, [])
 
-  const onEditSubmit = useCallback(
-    (e: FormEvent) => {
+  const onEditSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
+    (e) => {
       e.preventDefault()
       if (!editTarget || !editForm) return
       updateMutation.mutate({ id: editTarget.id, payload: editForm })
@@ -458,11 +458,10 @@ export default function UsuariosAdminPage() {
       </div>
 
       {editTarget && editForm ? (
-        <div
+        <dialog
+          open
           className="modal fade show d-block"
           tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="edit-user-title"
           style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
         >
@@ -623,7 +622,7 @@ export default function UsuariosAdminPage() {
               </form>
             </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
     </div>
   )

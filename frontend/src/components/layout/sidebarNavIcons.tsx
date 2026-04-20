@@ -145,7 +145,7 @@ const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/administracao/utilizadores': NavIconUsers,
 }
 
-export function SidebarNavIcon({ to }: { to: string }) {
+export function SidebarNavIcon({ to }: Readonly<{ to: string }>) {
   const Icon = ICON_BY_PATH[to] ?? NavIconGrid
   return <Icon className="app-sidebar-nav-icon flex-shrink-0" aria-hidden />
 }

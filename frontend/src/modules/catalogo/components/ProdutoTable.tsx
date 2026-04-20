@@ -7,7 +7,11 @@ type ProdutoTableProps = {
   canManage: boolean
 }
 
-export default function ProdutoTable({ produtos, onDeleteRequest, canManage }: ProdutoTableProps) {
+export default function ProdutoTable({
+  produtos,
+  onDeleteRequest,
+  canManage,
+}: Readonly<ProdutoTableProps>) {
   if (produtos.length === 0) {
     return (
       <p className="text-muted mb-0">

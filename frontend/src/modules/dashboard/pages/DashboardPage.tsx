@@ -53,11 +53,11 @@ function LinhaProjetoRecente({
   p,
   canViewComposicao,
   canViewCargas,
-}: {
+}: Readonly<{
   p: ProjetoDashboardMini
   canViewComposicao: boolean
   canViewCargas: boolean
-}) {
+}>) {
   const q = encodeURIComponent(p.id)
   return (
     <tr>
