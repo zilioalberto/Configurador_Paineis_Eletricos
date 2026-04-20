@@ -11,7 +11,12 @@ from cargas.models import Carga, CargaModelo
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
+from django.db import transaction
 from django.shortcuts import get_object_or_404
+
+from composicao_painel.services.reprocessar_composicao_carga import (
+    reprocessar_composicao_painel_para_carga,
+)
 from core.permissions import PermissionKeys
 from projetos.services.rastreabilidade import registrar_evento_projeto
 
@@ -49,7 +54,9 @@ class CargaViewSet(ModelViewSet):
         return None
 
     def perform_create(self, serializer):
-        carga = serializer.save()
+        with transaction.atomic():
+            carga = serializer.save()
+            reprocessar_composicao_painel_para_carga(carga.projeto, carga)
         registrar_evento_projeto(
             projeto=carga.projeto,
             usuario=self.request.user,
@@ -60,7 +67,9 @@ class CargaViewSet(ModelViewSet):
         )
 
     def perform_update(self, serializer):
-        carga = serializer.save()
+        with transaction.atomic():
+            carga = serializer.save()
+            reprocessar_composicao_painel_para_carga(carga.projeto, carga)
         registrar_evento_projeto(
             projeto=carga.projeto,
             usuario=self.request.user,

@@ -52,7 +52,10 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
     fator_demanda: projeto.fator_demanda ?? '1.00',
 
     possui_seccionamento: projeto.possui_seccionamento,
-    tipo_seccionamento: projeto.tipo_seccionamento,
+    tipo_seccionamento:
+      projeto.possui_seccionamento && projeto.tipo_seccionamento === 'NENHUM'
+        ? null
+        : projeto.tipo_seccionamento,
     responsavel: projeto.responsavel ?? null,
   }
 }
@@ -165,6 +168,7 @@ export default function ProjetoEditPage() {
               initialData={initialData}
               responsavelOptions={responsavelOptions}
               canEditResponsavel={canEditResponsavel}
+              showStatus={false}
             />
           )}
         </div>

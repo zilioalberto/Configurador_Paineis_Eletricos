@@ -56,6 +56,12 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
           updated.tipo_seccionamento = null
         }
 
+        if (name === 'possui_seccionamento' && checked) {
+          if (prev.tipo_seccionamento === 'NENHUM') {
+            updated.tipo_seccionamento = null
+          }
+        }
+
         return updated
       })
 

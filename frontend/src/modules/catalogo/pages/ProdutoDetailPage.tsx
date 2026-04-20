@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -30,6 +30,7 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
 
 export default function ProdutoDetailPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const canEditProduto = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const { data: p, isPending, isError, error } = useProdutoDetailQuery(id)
@@ -45,11 +46,25 @@ export default function ProdutoDetailPage() {
           <h1 className="h3 mb-1">Detalhes do produto</h1>
           <p className="text-muted mb-0">Dados cadastrados no catálogo.</p>
         </div>
-        {id && canEditProduto ? (
-          <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
-            Editar
-          </Link>
-        ) : null}
+        <div className="d-flex flex-wrap gap-2 align-items-center">
+          {canEditProduto ? (
+            <Link to="/catalogo/novo" className="btn btn-outline-primary">
+              Novo produto
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => navigate('/catalogo')}
+          >
+            Fechar
+          </button>
+          {id && canEditProduto ? (
+            <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
+              Editar
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <div className="card">

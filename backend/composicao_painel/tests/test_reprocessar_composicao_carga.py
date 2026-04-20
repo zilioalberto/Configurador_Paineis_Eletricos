@@ -1,0 +1,86 @@
+from decimal import Decimal
+from unittest.mock import patch
+
+import pytest
+
+from cargas.models import Carga
+from catalogo.models import Produto
+from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
+from composicao_painel.services.reprocessar_composicao_carga import (
+    reprocessar_composicao_painel_para_carga,
+)
+from core.choices import (
+    CategoriaProdutoNomeChoices,
+    PartesPainelChoices,
+    TensaoChoices,
+)
+from core.choices.cargas import TipoCargaChoices
+from core.choices.produtos import UnidadeMedidaChoices
+
+
+@pytest.mark.django_db
+def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
+    criar_projeto,
+):
+    projeto = criar_projeto(
+        nome="P",
+        codigo="08001-26",
+        tensao_nominal=TensaoChoices.V380,
+    )
+    produto = Produto.objects.create(
+        codigo="DJM-TEST-1",
+        descricao="Teste",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M01",
+        descricao="Motor",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    ComposicaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        quantidade=Decimal("1"),
+        ordem=30,
+    )
+    SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        quantidade=Decimal("1"),
+        ordem=40,
+    )
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        descricao="pendência teste",
+        ordem=30,
+    )
+
+    with (
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_disjuntor_motor_para_carga"
+        ) as mock_d,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_contatora_para_carga"
+        ) as mock_c,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+        ),
+    ):
+        reprocessar_composicao_painel_para_carga(projeto, carga)
+
+    assert ComposicaoItem.objects.filter(projeto=projeto, carga=carga).count() == 0
+    assert SugestaoItem.objects.filter(projeto=projeto, carga=carga).count() == 0
+    assert PendenciaItem.objects.filter(projeto=projeto, carga=carga).count() == 0
+    mock_d.assert_called_once_with(projeto, carga)
+    mock_c.assert_called_once_with(projeto, carga)

@@ -23,6 +23,9 @@ from projetos.api.serializers import (
 from projetos.models import Projeto, ProjetoEvento
 from projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 from projetos.services.rastreabilidade import registrar_evento_projeto
+from projetos.services.tensao_nominal_dependentes import (
+    reiniciar_dependentes_apos_alteracao_tensao_nominal,
+)
 
 
 class DashboardResumoView(APIView):
@@ -149,14 +152,41 @@ class ProjetoViewSet(ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        tensao_antes = serializer.instance.tensao_nominal
         projeto = serializer.save(atualizado_por=self.request.user)
+        tensao_alterada = tensao_antes != projeto.tensao_nominal
+        if tensao_alterada:
+            reiniciar_dependentes_apos_alteracao_tensao_nominal(
+                projeto,
+                tensao_nominal_anterior=tensao_antes,
+            )
         registrar_evento_projeto(
             projeto=projeto,
             usuario=self.request.user,
             modulo="projeto",
             acao="editado",
-            descricao="Projeto atualizado.",
-            detalhes={"codigo": projeto.codigo, "nome": projeto.nome},
+            descricao=(
+                "Projeto atualizado."
+                + (
+                    " Tensão nominal alterada: composição reiniciada e dimensionamento recalculado."
+                    if tensao_alterada
+                    else ""
+                )
+            ),
+            detalhes={
+                "codigo": projeto.codigo,
+                "nome": projeto.nome,
+                "tensao_nominal_alterada": tensao_alterada,
+                **(
+                    {
+                        "tensao_nominal_anterior": tensao_antes,
+                        "tensao_nominal_nova": projeto.tensao_nominal,
+                        "composicao_reiniciada": True,
+                    }
+                    if tensao_alterada
+                    else {}
+                ),
+            },
         )
 
     def perform_destroy(self, instance):
