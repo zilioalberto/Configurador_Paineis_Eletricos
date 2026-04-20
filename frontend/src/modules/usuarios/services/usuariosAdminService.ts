@@ -4,6 +4,7 @@ import type {
   AdminUserDto,
   AdminUserUpdatePayload,
   TipoUsuarioOption,
+  UserPermissionOptionsResponse,
 } from '@/modules/usuarios/types'
 
 export async function fetchTipoUsuarioChoices(): Promise<TipoUsuarioOption[]> {
@@ -13,6 +14,11 @@ export async function fetchTipoUsuarioChoices(): Promise<TipoUsuarioOption[]> {
 
 export async function fetchAdminUsers(): Promise<AdminUserDto[]> {
   const { data } = await apiClient.get<AdminUserDto[]>('auth/users/')
+  return data
+}
+
+export async function fetchUserPermissionOptions(): Promise<UserPermissionOptionsResponse> {
+  const { data } = await apiClient.get<UserPermissionOptionsResponse>('auth/user-permission-options/')
   return data
 }
 

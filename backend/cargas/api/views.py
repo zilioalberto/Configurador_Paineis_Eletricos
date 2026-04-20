@@ -1,11 +1,13 @@
 from rest_framework.viewsets import ModelViewSet
 
+from accounts.api.permissions import HasEffectivePermission
 from cargas.api.serializers import (
     CargaDetailSerializer,
     CargaListSerializer,
     CargaWriteSerializer,
 )
 from cargas.models import Carga
+from core.permissions import PermissionKeys
 
 
 class CargaViewSet(ModelViewSet):
@@ -17,6 +19,7 @@ class CargaViewSet(ModelViewSet):
         "sensor",
         "transdutor",
     ).order_by("projeto", "tag")
+    permission_classes = [HasEffectivePermission]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -31,3 +34,10 @@ class CargaViewSet(ModelViewSet):
         if self.action in ("create", "update", "partial_update"):
             return CargaWriteSerializer
         return CargaDetailSerializer
+
+    def required_permission(self, request, view):
+        if self.action in ("list", "retrieve"):
+            return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return None

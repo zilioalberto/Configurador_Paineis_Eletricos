@@ -3,6 +3,7 @@ export type AuthUser = {
   first_name: string
   last_name: string
   tipo_usuario: string
+  permissoes?: string[]
   /** Vem de `auth/me/`; usado para permissões além do tipo de utilizador. */
   is_staff?: boolean
   is_superuser?: boolean

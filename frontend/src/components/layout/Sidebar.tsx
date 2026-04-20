@@ -6,6 +6,7 @@ import { ZFW_LOGO_PNG_URL } from '@/constants/brandingAssets'
 import { ZFW_SITE_URL } from '@/constants/zfwSite'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { isAppAdmin } from '@/modules/auth/appAdmin'
+import { hasPermission } from '@/modules/auth/permissions'
 import { SidebarNavIcon } from './sidebarNavIcons'
 
 const APP_VERSION = '1.0.0'
@@ -28,7 +29,12 @@ export default function Sidebar({
   const mode = import.meta.env.MODE
   const { user } = useAuth()
   const menuItems = useMemo(
-    () => appMenuItems.filter((item) => !item.requiresAppAdmin || isAppAdmin(user)),
+    () =>
+      appMenuItems.filter((item) => {
+        if (item.requiresAppAdmin && !isAppAdmin(user)) return false
+        if (item.requiresPermission && !hasPermission(user, item.requiresPermission)) return false
+        return true
+      }),
     [user]
   )
 

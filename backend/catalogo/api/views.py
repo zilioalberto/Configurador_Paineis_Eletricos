@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 
+from accounts.api.permissions import HasEffectivePermission
 from catalogo.api.serializers import (
     ProdutoDetailSerializer,
     ProdutoListSerializer,
@@ -10,10 +11,13 @@ from catalogo.api.serializers import (
 )
 from catalogo.models import Produto
 from core.choices.produtos import CategoriaProdutoNomeChoices
+from core.permissions import PermissionKeys
 
 
 class CategoriaProdutoViewSet(ViewSet):
     """Lista fixa derivada de CategoriaProdutoNomeChoices (sem tabela no banco)."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.MATERIAL_VISUALIZAR_LISTA
 
     def list(self, request):
         data = [
@@ -38,6 +42,7 @@ class ProdutoViewSet(ModelViewSet):
         )
         .order_by("codigo", "descricao")
     )
+    permission_classes = [HasEffectivePermission]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -60,6 +65,13 @@ class ProdutoViewSet(ModelViewSet):
         if self.action in ("create", "update", "partial_update"):
             return ProdutoWriteSerializer
         return ProdutoDetailSerializer
+
+    def required_permission(self, request, view):
+        if self.action in ("list", "retrieve"):
+            return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return None
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

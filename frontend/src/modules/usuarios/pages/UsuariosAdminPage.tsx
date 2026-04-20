@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, useCallback, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useToast } from '@/components/feedback'
-import type { AdminUserDto, AdminUserUpdatePayload } from '@/modules/usuarios/types'
+import type {
+  AdminUserDto,
+  AdminUserUpdatePayload,
+  UserPermissionOption,
+} from '@/modules/usuarios/types'
 import {
   createAdminUser,
   fetchAdminUsers,
   fetchTipoUsuarioChoices,
+  fetchUserPermissionOptions,
   updateAdminUser,
 } from '@/modules/usuarios/services/usuariosAdminService'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -18,7 +23,48 @@ const emptyCreate = {
   last_name: '',
   telefone: '',
   tipo_usuario: 'USUARIO',
+  permissoes: [] as string[],
   is_active: true,
+}
+
+function PermissionSelector({
+  disabled,
+  selected,
+  options,
+  onToggle,
+}: Readonly<{
+  disabled: boolean
+  selected: string[]
+  options: UserPermissionOption[]
+  onToggle: (value: string) => void
+}>) {
+  if (options.length === 0) {
+    return <p className="text-muted small mb-0">Nenhuma permissão disponível.</p>
+  }
+
+  const selectedSet = new Set(selected)
+
+  return (
+    <div className="row g-2">
+      {options.map((permission) => (
+        <div className="col-md-6" key={permission.value}>
+          <div className="form-check border rounded px-2 py-2">
+            <input
+              id={`perm-${permission.value}`}
+              type="checkbox"
+              className="form-check-input"
+              checked={selectedSet.has(permission.value)}
+              onChange={() => onToggle(permission.value)}
+              disabled={disabled}
+            />
+            <label className="form-check-label" htmlFor={`perm-${permission.value}`}>
+              {permission.label}
+            </label>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function UsuariosAdminPage() {
@@ -31,6 +77,11 @@ export default function UsuariosAdminPage() {
   const { data: tipos = [] } = useQuery({
     queryKey: ['auth', 'user-tipo-choices'],
     queryFn: fetchTipoUsuarioChoices,
+  })
+
+  const { data: permissionData } = useQuery({
+    queryKey: ['auth', 'user-permission-options'],
+    queryFn: fetchUserPermissionOptions,
   })
 
   const {
@@ -79,6 +130,37 @@ export default function UsuariosAdminPage() {
   })
 
   const defaultTipo = useMemo(() => tipos[0]?.value ?? 'USUARIO', [tipos])
+  const permissionOptions = permissionData?.permissions ?? []
+  const defaultsByTipo = permissionData?.defaults_by_tipo ?? {}
+
+  useEffect(() => {
+    if (!createForm.permissoes.length) {
+      const seeded = defaultsByTipo[createForm.tipo_usuario || defaultTipo]
+      if (seeded?.length) {
+        setCreateForm((s) => ({ ...s, permissoes: [...seeded] }))
+      }
+    }
+  }, [createForm.permissoes.length, createForm.tipo_usuario, defaultTipo, defaultsByTipo])
+
+  const syncCreatePermissionsWithTipo = useCallback(
+    (tipo: string) => {
+      const next = defaultsByTipo[tipo] ?? []
+      setCreateForm((s) => ({ ...s, tipo_usuario: tipo, permissoes: [...next] }))
+    },
+    [defaultsByTipo]
+  )
+
+  const toggleCreatePermission = useCallback((permission: string) => {
+    setCreateForm((s) => {
+      const current = new Set(s.permissoes ?? [])
+      if (current.has(permission)) {
+        current.delete(permission)
+      } else {
+        current.add(permission)
+      }
+      return { ...s, permissoes: Array.from(current).sort() }
+    })
+  }, [])
 
   const onCreateSubmit = useCallback(
     (e: FormEvent) => {
@@ -91,6 +173,7 @@ export default function UsuariosAdminPage() {
         last_name: createForm.last_name.trim(),
         telefone: createForm.telefone.trim(),
         tipo_usuario: tipo,
+        permissoes: createForm.permissoes,
         is_active: createForm.is_active,
       })
     },
@@ -105,8 +188,30 @@ export default function UsuariosAdminPage() {
       last_name: u.last_name,
       telefone: u.telefone ?? '',
       tipo_usuario: u.tipo_usuario,
+      permissoes: [...(u.permissoes_efetivas ?? [])],
       is_active: u.is_active,
       password: '',
+    })
+  }, [])
+
+  const onEditTipoChange = useCallback(
+    (tipo: string) => {
+      const next = defaultsByTipo[tipo] ?? []
+      setEditForm((s) => (s ? { ...s, tipo_usuario: tipo, permissoes: [...next] } : s))
+    },
+    [defaultsByTipo]
+  )
+
+  const toggleEditPermission = useCallback((permission: string) => {
+    setEditForm((s) => {
+      if (!s) return s
+      const current = new Set(s.permissoes ?? [])
+      if (current.has(permission)) {
+        current.delete(permission)
+      } else {
+        current.add(permission)
+      }
+      return { ...s, permissoes: Array.from(current).sort() }
     })
   }, [])
 
@@ -196,7 +301,7 @@ export default function UsuariosAdminPage() {
                 id="nu-tipo"
                 className="form-select"
                 value={createForm.tipo_usuario || defaultTipo}
-                onChange={(ev) => setCreateForm((s) => ({ ...s, tipo_usuario: ev.target.value }))}
+                onChange={(ev) => syncCreatePermissionsWithTipo(ev.target.value)}
                 disabled={createMutation.isPending}
               >
                 {tipoOptions.map((t) => (
@@ -258,6 +363,32 @@ export default function UsuariosAdminPage() {
               </div>
             </div>
             <div className="col-12">
+              <div className="border rounded p-3">
+                <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                  <div>
+                    <h3 className="h6 mb-1">Permissões do utilizador</h3>
+                    <p className="text-muted small mb-0">
+                      O tipo define a base e você pode personalizar por utilizador.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    disabled={createMutation.isPending}
+                    onClick={() => syncCreatePermissionsWithTipo(createForm.tipo_usuario || defaultTipo)}
+                  >
+                    Restaurar padrão do tipo
+                  </button>
+                </div>
+                <PermissionSelector
+                  disabled={createMutation.isPending}
+                  selected={createForm.permissoes ?? []}
+                  options={permissionOptions}
+                  onToggle={toggleCreatePermission}
+                />
+              </div>
+            </div>
+            <div className="col-12">
               <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
                 {createMutation.isPending ? 'Criando…' : 'Criar utilizador'}
               </button>
@@ -279,6 +410,7 @@ export default function UsuariosAdminPage() {
                     <th>E-mail</th>
                     <th>Nome</th>
                     <th>Tipo</th>
+                    <th>Permissões</th>
                     <th>Ativo</th>
                     <th>Criado em</th>
                     <th />
@@ -295,6 +427,11 @@ export default function UsuariosAdminPage() {
                       </td>
                       <td>
                         <span className="badge text-bg-secondary">{u.tipo_usuario}</span>
+                      </td>
+                      <td className="small text-muted">
+                        {u.permissoes_efetivas?.length
+                          ? `${u.permissoes_efetivas.length} selecionada(s)`
+                          : 'Sem permissões'}
                       </td>
                       <td>{u.is_active ? 'Sim' : 'Não'}</td>
                       <td className="text-muted small">
@@ -421,9 +558,7 @@ export default function UsuariosAdminPage() {
                       id="ed-tipo"
                       className="form-select"
                       value={editForm.tipo_usuario}
-                      onChange={(ev) =>
-                        setEditForm((s) => (s ? { ...s, tipo_usuario: ev.target.value } : s))
-                      }
+                      onChange={(ev) => onEditTipoChange(ev.target.value)}
                       disabled={updateMutation.isPending}
                     >
                       {tipoOptions.map((t) => (
@@ -448,6 +583,32 @@ export default function UsuariosAdminPage() {
                       <label className="form-check-label" htmlFor="ed-active">
                         Conta ativa
                       </label>
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <div className="border rounded p-3">
+                      <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                          <h3 className="h6 mb-1">Permissões do utilizador</h3>
+                          <p className="text-muted small mb-0">
+                            Personalize os acessos desta conta além do tipo selecionado.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          disabled={updateMutation.isPending}
+                          onClick={() => onEditTipoChange(editForm.tipo_usuario)}
+                        >
+                          Restaurar padrão do tipo
+                        </button>
+                      </div>
+                      <PermissionSelector
+                        disabled={updateMutation.isPending}
+                        selected={editForm.permissoes ?? []}
+                        options={permissionOptions}
+                        onToggle={toggleEditPermission}
+                      />
                     </div>
                   </div>
                 </div>

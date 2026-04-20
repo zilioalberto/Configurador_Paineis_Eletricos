@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from core.choices import TipoUsuarioChoices
+from core.choices import DEFAULT_PERMISSIONS_BY_TIPO, TipoUsuarioChoices
+from core.permissions import PermissionKeys
 
 User = get_user_model()
 
@@ -108,3 +109,43 @@ class TestAdminUsersApi:
         assert response.status_code == 200
         other.refresh_from_db()
         assert other.tipo_usuario == TipoUsuarioChoices.ADMIN
+
+    def test_permission_options_ok_for_admin(self, admin_user):
+        user, secret = admin_user
+        client = _auth_client(user.email, secret)
+        response = client.get(reverse("auth_user_permission_options"))
+        assert response.status_code == 200
+        assert "permissions" in response.data
+        assert "defaults_by_tipo" in response.data
+        assert TipoUsuarioChoices.ADMIN in response.data["defaults_by_tipo"]
+
+    def test_create_user_with_custom_permissions(self, admin_user):
+        admin, secret = admin_user
+        client = _auth_client(admin.email, secret)
+        selected = sorted(
+            {
+                PermissionKeys.PROJETO_VISUALIZAR,
+                PermissionKeys.ORCAMENTO_CRIAR,
+                PermissionKeys.MATERIAL_VISUALIZAR_LISTA,
+            }
+        )
+        response = client.post(
+            reverse("auth_users_list_create"),
+            {
+                "email": "custom-perm@test.com",
+                "password": secrets.token_urlsafe(32),
+                "first_name": "Perm",
+                "last_name": "Custom",
+                "telefone": "",
+                "tipo_usuario": TipoUsuarioChoices.USUARIO,
+                "permissoes": selected,
+                "is_active": True,
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        created = User.objects.get(email="custom-perm@test.com")
+        assert sorted(created.permissoes_efetivas) == selected
+        defaults = DEFAULT_PERMISSIONS_BY_TIPO[TipoUsuarioChoices.USUARIO]
+        assert set(created.permissoes_extras) == (set(selected) - set(defaults))
+        assert set(created.permissoes_negadas) == (set(defaults) - set(selected))

@@ -1,6 +1,9 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/cargas/utils/projetoEdicaoCargas'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -71,6 +74,7 @@ function CelulaTensaoProjeto({ pa }: { pa: ProjetoAlimentacaoSnapshot | undefine
 }
 
 export default function ComposicaoPage() {
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
@@ -94,7 +98,11 @@ export default function ComposicaoPage() {
     () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
     [projetos, projetoId]
   )
-  const podeEditar = projetoPermiteEdicaoCargas(projetoSelecionado)
+  const canSepararMaterial = hasPermission(user, PERMISSION_KEYS.ALMOXARIFADO_SEPARAR_MATERIAL)
+  const canEditarCatalogo = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
+  const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
+  const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
+  const podeEditar = projetoPermiteEdicaoCargas(projetoSelecionado) && canSepararMaterial
 
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
   const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
@@ -288,14 +296,16 @@ export default function ComposicaoPage() {
           >
             {exportando === 'pdf' ? 'PDF…' : 'PDF'}
           </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!projetoId || !podeEditar || gerarMutation.isPending}
-            onClick={() => void onGerar()}
-          >
-            {gerarMutation.isPending ? 'Gerando…' : 'Gerar sugestões'}
-          </button>
+          {canSepararMaterial ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!projetoId || !podeEditar || gerarMutation.isPending}
+              onClick={() => void onGerar()}
+            >
+              {gerarMutation.isPending ? 'Gerando…' : 'Gerar sugestões'}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -321,13 +331,21 @@ export default function ComposicaoPage() {
           </select>
           <p className="small text-muted mt-2 mb-0">
             Antes de gerar, confira as{' '}
-            <Link to={projetoId ? `/cargas?projeto=${projetoId}` : '/cargas'}>cargas</Link>
-            {' '}e o{' '}
-            <Link
-              to={projetoId ? `/dimensionamento?projeto=${projetoId}` : '/dimensionamento'}
-            >
-              dimensionamento
-            </Link>{' '}
+            {canViewCargas ? (
+              <Link to={projetoId ? `/cargas?projeto=${projetoId}` : '/cargas'}>cargas</Link>
+            ) : (
+              'cargas'
+            )}{' '}
+            e o{' '}
+            {canViewDimensionamento ? (
+              <Link
+                to={projetoId ? `/dimensionamento?projeto=${projetoId}` : '/dimensionamento'}
+              >
+                dimensionamento
+              </Link>
+            ) : (
+              'dimensionamento'
+            )}{' '}
             (corrente total de entrada).
           </p>
         </div>
@@ -339,8 +357,9 @@ export default function ComposicaoPage() {
 
       {projetoId && !podeEditar && (
         <div className="alert alert-secondary" role="status">
-          Projeto finalizado: apenas visualização. A geração de sugestões e aprovações não
-          estão disponíveis.
+          {projetoPermiteEdicaoCargas(projetoSelecionado)
+            ? 'Seu utilizador tem acesso somente de visualização nesta etapa. A geração de sugestões e aprovações não estão disponíveis.'
+            : 'Projeto finalizado: apenas visualização. A geração de sugestões e aprovações não estão disponíveis.'}
         </div>
       )}
 
@@ -601,28 +620,32 @@ export default function ComposicaoPage() {
                   atualizar as sugestões de itens do painel.
                 </p>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
-                  <Link
-                    to={
-                      projetoId
-                        ? `/catalogo/novo?retorno=${encodeURIComponent(`/composicao?projeto=${projetoId}`)}`
-                        : '/catalogo/novo'
-                    }
-                    className="btn btn-outline-primary"
-                  >
-                    Cadastrar produto no catálogo
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={
-                      !projetoId || !podeEditar || reavaliarPendenciasMutation.isPending
-                    }
-                    onClick={() => void onReavaliarPendencias()}
-                  >
-                    {reavaliarPendenciasMutation.isPending
-                      ? 'Reavaliando…'
-                      : 'Reavaliar pendências'}
-                  </button>
+                  {canEditarCatalogo ? (
+                    <Link
+                      to={
+                        projetoId
+                          ? `/catalogo/novo?retorno=${encodeURIComponent(`/composicao?projeto=${projetoId}`)}`
+                          : '/catalogo/novo'
+                      }
+                      className="btn btn-outline-primary"
+                    >
+                      Cadastrar produto no catálogo
+                    </Link>
+                  ) : null}
+                  {canSepararMaterial ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={
+                        !projetoId || !podeEditar || reavaliarPendenciasMutation.isPending
+                      }
+                      onClick={() => void onReavaliarPendencias()}
+                    >
+                      {reavaliarPendenciasMutation.isPending
+                        ? 'Reavaliando…'
+                        : 'Reavaliar pendências'}
+                    </button>
+                  ) : null}
                 </div>
                 {!podeEditar && projetoId ? (
                   <p className="small text-muted mb-0 mt-2">

@@ -1,6 +1,9 @@
 import { type ChangeEvent, useCallback, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/cargas/utils/projetoEdicaoCargas'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -8,6 +11,7 @@ import { useDimensionamentoQuery } from '../hooks/useDimensionamentoQuery'
 import { useRecalcularDimensionamentoMutation } from '../hooks/useRecalcularDimensionamentoMutation'
 
 export default function DimensionamentoPage() {
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
@@ -25,7 +29,8 @@ export default function DimensionamentoPage() {
     () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
     [projetos, projetoId]
   )
-  const podeEditarProjeto = projetoPermiteEdicaoCargas(projetoSelecionado)
+  const canEditarProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
+  const podeEditarProjeto = projetoPermiteEdicaoCargas(projetoSelecionado) && canEditarProjeto
 
   const recalcMutation = useRecalcularDimensionamentoMutation(projetoId || null)
 
@@ -80,14 +85,16 @@ export default function DimensionamentoPage() {
           >
             Atualizar
           </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!projetoId || !podeEditarProjeto || recalcMutation.isPending}
-            onClick={() => void onRecalcular()}
-          >
-            {recalcMutation.isPending ? 'Recalculando…' : 'Recalcular'}
-          </button>
+          {canEditarProjeto ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!projetoId || !podeEditarProjeto || recalcMutation.isPending}
+              onClick={() => void onRecalcular()}
+            >
+              {recalcMutation.isPending ? 'Recalculando…' : 'Recalcular'}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -185,11 +192,17 @@ export default function DimensionamentoPage() {
                   </dd>
                 </dl>
                 <p className="small text-muted mt-3 mb-0">
-                  Os dados de seccionamento vêm do cadastro do projeto. Para alterar, use{' '}
-                  <Link to={projetoId ? `/projetos/${projetoId}/editar` : '/projetos'}>
-                    editar projeto
-                  </Link>
-                  .
+                  Os dados de seccionamento vêm do cadastro do projeto.
+                  {canEditarProjeto ? (
+                    <>
+                      {' '}
+                      Para alterar, use{' '}
+                      <Link to={projetoId ? `/projetos/${projetoId}/editar` : '/projetos'}>
+                        editar projeto
+                      </Link>
+                      .
+                    </>
+                  ) : null}
                 </p>
               </div>
             </div>

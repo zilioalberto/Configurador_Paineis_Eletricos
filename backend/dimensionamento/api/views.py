@@ -3,9 +3,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.api.permissions import HasEffectivePermission
 from dimensionamento.api.serializers import ResumoDimensionamentoSerializer
 from dimensionamento.models import ResumoDimensionamento
 from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
+from core.permissions import PermissionKeys
 from projetos.models import Projeto
 
 
@@ -13,6 +15,8 @@ class DimensionamentoPorProjetoView(APIView):
     """
     GET: retorna o resumo salvo; cria o registro e calcula na primeira vez.
     """
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.PROJETO_VISUALIZAR
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -26,6 +30,8 @@ class DimensionamentoPorProjetoView(APIView):
 
 class DimensionamentoRecalcularView(APIView):
     """POST: recalcula e persiste o dimensionamento básico do projeto."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.PROJETO_EDITAR
 
     def post(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)

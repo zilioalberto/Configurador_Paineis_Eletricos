@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.api.permissions import HasEffectivePermission
 from catalogo.models import Produto
 from composicao_painel.api.serializers import (
     AprovarSugestaoInputSerializer,
@@ -35,6 +36,7 @@ from composicao_painel.services.sugestoes.orquestrador_pendencias import (
     reavaliar_pendencias_projeto,
 )
 from core.choices import StatusPendenciaChoices
+from core.permissions import PermissionKeys
 from projetos.models import Projeto
 from projetos.services.fluxo_projeto import validar_projeto_editavel
 
@@ -98,6 +100,8 @@ def _snapshot(projeto: Projeto) -> dict:
 
 class ComposicaoProjetoSnapshotView(APIView):
     """GET: lista sugestões, pendências e itens aprovados da composição do projeto."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -109,6 +113,9 @@ class ComposicaoGerarSugestoesView(APIView):
     POST: executa o orquestrador de sugestões (seccionamento, contatoras,
     disjuntores motor quando aplicável). Body opcional: {"limpar_antes": true}.
     """
+
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -135,6 +142,9 @@ class ComposicaoReavaliarPendenciasView(APIView):
     POST: reexecuta as regras de composição por categoria para pendências abertas
     (equivalente à action do admin «Reavaliar pendências do projeto»).
     """
+
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -169,6 +179,8 @@ class ComposicaoReavaliarPendenciasView(APIView):
 
 class SugestaoAlternativasView(APIView):
     """GET: lista alternativas de catálogo compatíveis com a sugestão (≥ corrente, mesma bobina/montagem quando aplicável)."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, sugestao_id):
         sugestao = get_object_or_404(
@@ -188,6 +200,8 @@ class SugestaoAlternativasView(APIView):
 
 class SugestaoAprovarView(APIView):
     """POST: aprova a sugestão e transfere para ComposicaoItem. Body opcional: {"produto_id": "<uuid>"} para substituto da mesma categoria."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, sugestao_id):
         sugestao = get_object_or_404(
@@ -226,6 +240,8 @@ class SugestaoAprovarView(APIView):
 
 class ComposicaoInclusaoManualCreateView(APIView):
     """POST: adiciona produto do catálogo às inclusões manuais do projeto."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -269,6 +285,8 @@ class ComposicaoInclusaoManualCreateView(APIView):
 
 class ComposicaoInclusaoManualDestroyView(APIView):
     """DELETE: remove uma inclusão manual."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def delete(self, request, inclusao_id):
         inc = get_object_or_404(
@@ -288,6 +306,8 @@ class ComposicaoInclusaoManualDestroyView(APIView):
 
 class ComposicaoExportXlsxView(APIView):
     """GET: planilha Excel com composição aprovada, inclusões manuais e pendências."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
@@ -306,6 +326,8 @@ class ComposicaoExportXlsxView(APIView):
 
 class ComposicaoExportPdfView(APIView):
     """GET: PDF com composição aprovada, inclusões manuais e pendências."""
+    permission_classes = [HasEffectivePermission]
+    required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)

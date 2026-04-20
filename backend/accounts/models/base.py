@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from accounts.manager import CustomUserManager
-from core.choices import TipoUsuarioChoices
+from core.choices import DEFAULT_PERMISSIONS_BY_TIPO, TipoUsuarioChoices
 
 
 
@@ -18,6 +18,18 @@ class CustomUser(AbstractUser):
         max_length=20,
         choices=TipoUsuarioChoices.choices,
         default=TipoUsuarioChoices.USUARIO,
+    )
+    permissoes_extras = models.JSONField(
+        "permissões extras",
+        default=list,
+        blank=True,
+        help_text="Permissões adicionais concedidas especificamente a este utilizador.",
+    )
+    permissoes_negadas = models.JSONField(
+        "permissões negadas",
+        default=list,
+        blank=True,
+        help_text="Permissões removidas especificamente para este utilizador.",
     )
     is_active = models.BooleanField("ativo", default=True)
     date_created = models.DateTimeField("criado em", auto_now_add=True)
@@ -35,3 +47,10 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    @property
+    def permissoes_efetivas(self):
+        base = set(DEFAULT_PERMISSIONS_BY_TIPO.get(self.tipo_usuario, set()))
+        extras = set(self.permissoes_extras or [])
+        negadas = set(self.permissoes_negadas or [])
+        return sorted((base | extras) - negadas)

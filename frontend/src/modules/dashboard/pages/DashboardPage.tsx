@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useDashboardResumoQuery } from '../hooks/useDashboardResumoQuery'
 import type { ProjetoDashboardMini } from '../types/dashboard'
 
@@ -46,7 +49,15 @@ function KpiCard({
   )
 }
 
-function LinhaProjetoRecente({ p }: { p: ProjetoDashboardMini }) {
+function LinhaProjetoRecente({
+  p,
+  canViewComposicao,
+  canViewCargas,
+}: {
+  p: ProjetoDashboardMini
+  canViewComposicao: boolean
+  canViewCargas: boolean
+}) {
   const q = encodeURIComponent(p.id)
   return (
     <tr>
@@ -62,18 +73,28 @@ function LinhaProjetoRecente({ p }: { p: ProjetoDashboardMini }) {
         <Link className="btn btn-sm btn-outline-primary me-1" to={`/projetos/${p.id}`}>
           Ver
         </Link>
-        <Link className="btn btn-sm btn-outline-secondary me-1" to={`/composicao?projeto=${q}`}>
-          Composição
-        </Link>
-        <Link className="btn btn-sm btn-outline-secondary" to={`/cargas?projeto=${q}`}>
-          Cargas
-        </Link>
+        {canViewComposicao ? (
+          <Link className="btn btn-sm btn-outline-secondary me-1" to={`/composicao?projeto=${q}`}>
+            Composição
+          </Link>
+        ) : null}
+        {canViewCargas ? (
+          <Link className="btn btn-sm btn-outline-secondary" to={`/cargas?projeto=${q}`}>
+            Cargas
+          </Link>
+        ) : null}
       </td>
     </tr>
   )
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const canViewProjetos = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
+  const canViewComposicao = hasPermission(user, PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS)
+  const canViewCatalogo = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
+  const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
+  const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
   const { data, isPending, isError, error, refetch, isFetching } = useDashboardResumoQuery()
 
   return (
@@ -123,9 +144,11 @@ export default function DashboardPage() {
                       <strong className="text-body">{data.projetos.finalizados}</strong>
                     </span>
                   </div>
-                  <Link className="small d-inline-block mt-2" to="/projetos">
-                    Ver lista de projetos →
-                  </Link>
+                  {canViewProjetos ? (
+                    <Link className="small d-inline-block mt-2" to="/projetos">
+                      Ver lista de projetos →
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -133,9 +156,11 @@ export default function DashboardPage() {
               title="Pendências abertas"
               value={data.composicao.pendencias_abertas}
               footer={
-                <Link className="link-secondary" to="/composicao">
-                  Abrir composição →
-                </Link>
+                canViewComposicao ? (
+                  <Link className="link-secondary" to="/composicao">
+                    Abrir composição →
+                  </Link>
+                ) : null
               }
             />
             <KpiCard
@@ -151,18 +176,22 @@ export default function DashboardPage() {
               title="Produtos ativos (catálogo)"
               value={data.catalogo.produtos_ativos}
               footer={
-                <Link className="link-secondary" to="/catalogo">
-                  Gerir catálogo →
-                </Link>
+                canViewCatalogo ? (
+                  <Link className="link-secondary" to="/catalogo">
+                    Gerir catálogo →
+                  </Link>
+                ) : null
               }
             />
             <KpiCard
               title="Cargas ativas"
               value={data.cargas.total}
               footer={
-                <Link className="link-secondary" to="/cargas">
-                  Ver cargas →
-                </Link>
+                canViewCargas ? (
+                  <Link className="link-secondary" to="/cargas">
+                    Ver cargas →
+                  </Link>
+                ) : null
               }
             />
           </div>
@@ -171,10 +200,17 @@ export default function DashboardPage() {
             <div className="card-body">
               <h2 className="h5 card-title">Fluxo sugerido</h2>
               <p className="card-text text-muted mb-0">
-                Crie ou escolha um <Link to="/projetos">projeto</Link>, cadastre{' '}
-                <Link to="/cargas">cargas</Link>, execute o{' '}
-                <Link to="/dimensionamento">dimensionamento</Link> e, em seguida, use a{' '}
-                <Link to="/composicao">composição</Link> para gerar sugestões, resolver
+                Crie ou escolha um{' '}
+                {canViewProjetos ? <Link to="/projetos">projeto</Link> : 'projeto'}
+                , cadastre {canViewCargas ? <Link to="/cargas">cargas</Link> : 'cargas'},
+                execute o{' '}
+                {canViewDimensionamento ? (
+                  <Link to="/dimensionamento">dimensionamento</Link>
+                ) : (
+                  'dimensionamento'
+                )}{' '}
+                e, em seguida, use a{' '}
+                {canViewComposicao ? <Link to="/composicao">composição</Link> : 'composição'} para gerar sugestões, resolver
                 pendências e aprovar itens.
               </p>
             </div>
@@ -202,7 +238,12 @@ export default function DashboardPage() {
                     </thead>
                     <tbody>
                       {data.projetos_recentes.map((p) => (
-                        <LinhaProjetoRecente key={p.id} p={p} />
+                        <LinhaProjetoRecente
+                          key={p.id}
+                          p={p}
+                          canViewComposicao={canViewComposicao}
+                          canViewCargas={canViewCargas}
+                        />
                       ))}
                     </tbody>
                   </table>

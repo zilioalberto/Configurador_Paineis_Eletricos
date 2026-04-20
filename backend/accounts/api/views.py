@@ -10,7 +10,11 @@ from accounts.api.serializers import (
     AdminUserListSerializer,
     AdminUserUpdateSerializer,
 )
-from core.choices import TipoUsuarioChoices
+from core.choices import (
+    DEFAULT_PERMISSIONS_BY_TIPO,
+    PermissaoUsuarioChoices,
+    TipoUsuarioChoices,
+)
 
 User = get_user_model()
 
@@ -23,6 +27,23 @@ class UserTipoChoicesView(APIView):
     def get(self, request):
         data = [{"value": value, "label": str(label)} for value, label in TipoUsuarioChoices.choices]
         return Response(data)
+
+
+class UserPermissionOptionsView(APIView):
+    """Catálogo de permissões e permissões padrão por tipo de utilizador."""
+
+    permission_classes = [IsAuthenticated, IsAppAdmin]
+
+    def get(self, request):
+        permissions = [
+            {"value": value, "label": str(label)}
+            for value, label in PermissaoUsuarioChoices.choices
+        ]
+        defaults = {
+            tipo: sorted(values)
+            for tipo, values in DEFAULT_PERMISSIONS_BY_TIPO.items()
+        }
+        return Response({"permissions": permissions, "defaults_by_tipo": defaults})
 
 
 class AdminUserListCreateView(generics.ListCreateAPIView):

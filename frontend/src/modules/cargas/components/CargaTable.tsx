@@ -5,6 +5,7 @@ type CargaTableProps = {
   cargas: CargaListItem[]
   projetoId: string
   onDeleteRequest: (id: string) => void
+  canManage: boolean
 }
 
 function em(val: string | null | undefined) {
@@ -32,12 +33,13 @@ export default function CargaTable({
   cargas,
   projetoId,
   onDeleteRequest,
+  canManage,
 }: CargaTableProps) {
   if (cargas.length === 0) {
     return (
       <p className="text-muted mb-0">
         Nenhuma carga cadastrada para este projeto.{' '}
-        <Link to={`/cargas/novo?projeto=${projetoId}`}>Cadastrar carga</Link>
+        {canManage ? <Link to={`/cargas/novo?projeto=${projetoId}`}>Cadastrar carga</Link> : null}
       </p>
     )
   }
@@ -56,7 +58,7 @@ export default function CargaTable({
             <th>Fases</th>
             <th>Qtd.</th>
             <th>Ativo</th>
-            <th className="text-end">Ações</th>
+            {canManage ? <th className="text-end">Ações</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -84,23 +86,25 @@ export default function CargaTable({
               <td>{em(c.projeto_fases_display)}</td>
               <td>{c.quantidade}</td>
               <td>{c.ativo ? 'Sim' : 'Não'}</td>
-              <td className="text-end">
-                <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
-                  <Link
-                    to={`/cargas/${c.id}/editar`}
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => onDeleteRequest(c.id)}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </td>
+              {canManage ? (
+                <td className="text-end">
+                  <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
+                    <Link
+                      to={`/cargas/${c.id}/editar`}
+                      className="btn btn-sm btn-outline-primary"
+                    >
+                      Editar
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => onDeleteRequest(c.id)}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

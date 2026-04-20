@@ -69,6 +69,7 @@ class TestAuthMeView:
         assert response.data["first_name"] == "Ana"
         assert response.data["last_name"] == "Silva"
         assert response.data["tipo_usuario"] == "USUARIO"
+        assert isinstance(response.data["permissoes"], list)
         assert response.data["is_staff"] is False
         assert response.data["is_superuser"] is False
 
