@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from cargas.models import (
     Carga,
+    CargaModelo,
     CargaMotor,
     CargaResistencia,
     CargaSensor,
@@ -384,3 +385,44 @@ class CargaWriteSerializer(serializers.ModelSerializer):
                     setattr(obj, k, v)
                 obj.save()
         return instance
+
+
+class CargaModeloSerializer(serializers.ModelSerializer):
+    def validate_payload(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Payload deve ser um objeto JSON.")
+
+        tipo = (
+            self.initial_data.get("tipo")
+            or getattr(self.instance, "tipo", None)
+        )
+        if not tipo:
+            return value
+
+        payload_limpo = {}
+        if "quantidade" in value:
+            payload_limpo["quantidade"] = value["quantidade"]
+
+        chave_por_tipo = {
+            TipoCargaChoices.MOTOR: "motor",
+            TipoCargaChoices.VALVULA: "valvula",
+            TipoCargaChoices.RESISTENCIA: "resistencia",
+            TipoCargaChoices.SENSOR: "sensor",
+            TipoCargaChoices.TRANSDUTOR: "transdutor",
+        }
+        chave_esperada = chave_por_tipo.get(tipo)
+        if chave_esperada and chave_esperada in value:
+            payload_limpo[chave_esperada] = value[chave_esperada]
+        return payload_limpo
+
+    class Meta:
+        model = CargaModelo
+        fields = (
+            "id",
+            "nome",
+            "tipo",
+            "payload",
+            "ativo",
+            "criado_em",
+            "atualizado_em",
+        )

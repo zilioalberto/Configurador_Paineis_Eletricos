@@ -12,6 +12,17 @@ from composicao_painel.models import (
 from core.choices.cargas import TipoCargaChoices
 from projetos.models import Projeto
 
+STATUS_MARKER = "[STATUS_APROVACAO]"
+
+
+def _status_aprovacao_observacoes(observacoes: str | None) -> str:
+    if not observacoes:
+        return "Aprovado"
+    for linha in str(observacoes).splitlines():
+        if STATUS_MARKER in linha:
+            return linha.split(STATUS_MARKER, 1)[1].strip() or "Aprovado"
+    return "Aprovado"
+
 
 def _motor_ou_none(carga):
     if carga is None or str(carga.tipo) != TipoCargaChoices.MOTOR.value:
@@ -221,6 +232,7 @@ class ComposicaoItemSerializer(serializers.ModelSerializer):
     produto_codigo = serializers.SerializerMethodField()
     carga = serializers.SerializerMethodField()
     projeto_alimentacao = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = ComposicaoItem
@@ -239,6 +251,7 @@ class ComposicaoItemSerializer(serializers.ModelSerializer):
             "produto_codigo",
             "carga",
             "projeto_alimentacao",
+            "status_display",
             "criado_em",
             "atualizado_em",
         )
@@ -256,6 +269,9 @@ class ComposicaoItemSerializer(serializers.ModelSerializer):
 
     def get_projeto_alimentacao(self, obj):
         return ProjetoAlimentacaoSerializer(obj.projeto).data
+
+    def get_status_display(self, obj):
+        return _status_aprovacao_observacoes(obj.observacoes)
 
 
 class PendenciaItemSerializer(serializers.ModelSerializer):

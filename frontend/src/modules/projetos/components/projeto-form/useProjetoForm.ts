@@ -19,6 +19,15 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
     setFormData((prev) => (prev.codigo === c ? prev : { ...prev, codigo: c }))
   }, [initialData?.codigo])
 
+  useEffect(() => {
+    if (initialData?.responsavel == null) return
+    setFormData((prev) =>
+      prev.responsavel === initialData.responsavel
+        ? prev
+        : { ...prev, responsavel: initialData.responsavel }
+    )
+  }, [initialData?.responsavel])
+
   const handleFieldChange: ProjetoFormFieldChangeHandler = useCallback((event) => {
     const { name, value, type } = event.target
 
@@ -54,12 +63,17 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
     }
 
     setFormData((prev) => {
+      const numericFields = ['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia']
       const updatedValue =
-        value === ''
-          ? ''
-          : ['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia'].includes(name)
-            ? Number(value)
-            : value
+        name === 'responsavel'
+          ? value === ''
+            ? null
+            : Number(value)
+          : value === ''
+            ? ''
+            : numericFields.includes(name)
+              ? Number(value)
+              : value
 
       const updated = {
         ...prev,
@@ -102,6 +116,7 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
         tipo_seccionamento: formData.possui_seccionamento
           ? formData.tipo_seccionamento
           : null,
+        responsavel: formData.responsavel || null,
       }
 
       await onSubmit(payload)

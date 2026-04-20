@@ -32,6 +32,10 @@ vi.mock('@/modules/composicao/hooks/useAprovarSugestaoMutation', () => ({
   useAprovarSugestaoMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
+vi.mock('@/modules/composicao/hooks/useReabrirComposicaoItemMutation', () => ({
+  useReabrirComposicaoItemMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+
 vi.mock('@/modules/composicao/hooks/useAlternativasSugestaoQuery', () => ({
   useAlternativasSugestaoQuery: () => ({
     data: [],
@@ -51,6 +55,7 @@ vi.mock('@/modules/composicao/services/composicaoService', () => ({
 }))
 
 vi.mock('@/components/feedback', () => ({
+  ConfirmModal: () => null,
   useToast: () => ({ showToast: vi.fn() }),
 }))
 
@@ -58,7 +63,13 @@ import ComposicaoPage from '@/modules/composicao/pages/ComposicaoPage'
 
 describe('ComposicaoPage', () => {
   const baseProjetos = [
-    { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1', status: 'EM_ANDAMENTO' },
+    {
+      id: 'p1',
+      codigo: 'PRJ-01',
+      cliente: 'Cliente X',
+      nome: 'Projeto 1',
+      status: 'EM_ANDAMENTO',
+    },
   ]
 
   const snapshotBase = {
@@ -150,12 +161,18 @@ describe('ComposicaoPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Excel$/i }))
 
     await waitFor(() => {
-      expect(exportarComposicaoListaXlsxMock).toHaveBeenCalledWith('p1')
+      expect(exportarComposicaoListaXlsxMock).toHaveBeenCalledWith(
+        'p1',
+        'PRJ-01 - Cliente X - Projeto 1'
+      )
     })
 
     fireEvent.click(screen.getByRole('button', { name: /^PDF$/i }))
     await waitFor(() => {
-      expect(exportarComposicaoListaPdfMock).toHaveBeenCalledWith('p1')
+      expect(exportarComposicaoListaPdfMock).toHaveBeenCalledWith(
+        'p1',
+        'PRJ-01 - Cliente X - Projeto 1'
+      )
     })
   })
 })

@@ -2,19 +2,24 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProjetoForm from '../components/projeto-form/ProjetoForm'
 import { projetoFormInitialState } from '../components/projeto-form/formOptions'
 import { useCreateProjetoMutation } from '../hooks/useProjetoMutations'
 import { projetoQueryKeys } from '../projetoQueryKeys'
-import { alocarCodigoProjeto } from '../services/projetoService'
+import { alocarCodigoProjeto, listarResponsaveisProjeto } from '../services/projetoService'
 import type { ProjetoFormData } from '../types/projeto'
 
 export default function ProjetoCreatePage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast } = useToast()
   const createMutation = useCreateProjetoMutation()
+  const canEditResponsavel = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
 
   const {
     data: codigoResposta,
@@ -26,13 +31,19 @@ export default function ProjetoCreatePage() {
     queryKey: [...projetoQueryKeys.all, 'alocar-codigo', location.key],
     queryFn: alocarCodigoProjeto,
   })
+  const { data: responsavelOptions = [] } = useQuery({
+    queryKey: [...projetoQueryKeys.all, 'responsaveis'],
+    queryFn: listarResponsaveisProjeto,
+  })
 
   const initialData = useMemo(
     () => ({
       ...projetoFormInitialState,
       codigo: codigoResposta?.codigo ?? '',
+      responsavel:
+        responsavelOptions.length === 1 ? responsavelOptions[0].id : projetoFormInitialState.responsavel,
     }),
-    [codigoResposta?.codigo]
+    [codigoResposta?.codigo, responsavelOptions]
   )
 
   async function handleSubmit(data: ProjetoFormData) {
@@ -42,7 +53,7 @@ export default function ProjetoCreatePage() {
         variant: 'success',
         message: 'Projeto criado com sucesso.',
       })
-      navigate(`/projetos/${projeto.id}`)
+      navigate(`/cargas?projeto=${encodeURIComponent(projeto.id)}`)
     } catch (err) {
       console.error('Erro ao criar projeto:', err)
       const mensagemApi = extrairMensagemErroApi(err)
@@ -90,6 +101,9 @@ export default function ProjetoCreatePage() {
               onSubmit={handleSubmit}
               loading={createMutation.isPending}
               initialData={initialData}
+              responsavelOptions={responsavelOptions}
+              canEditResponsavel={canEditResponsavel}
+              showStatus={false}
             />
           </div>
         </div>

@@ -68,6 +68,7 @@ export type ComposicaoItem = {
   produto_codigo?: string | null
   carga: CargaDetalhe | null
   projeto_alimentacao?: ProjetoAlimentacaoSnapshot
+  status_display?: string
   criado_em?: string
   atualizado_em?: string
 }
@@ -134,6 +135,7 @@ export type ComposicaoSnapshot = {
   geracao?: {
     total_sugestoes_retornadas: number
     erros_etapas: { etapa: string; erro: string }[]
+    sugestoes_descartadas_aprovadas?: number
   }
   reavaliacao?: ReavaliacaoPendenciasPayload
 }

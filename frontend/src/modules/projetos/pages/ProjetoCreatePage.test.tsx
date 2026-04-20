@@ -11,14 +11,29 @@ const postMock = vi.hoisted(() =>
     return Promise.resolve({ data: { id: 'uuid-1' } })
   })
 )
+const getMock = vi.hoisted(() =>
+  vi.fn().mockImplementation((url: string) => {
+    if (String(url).includes('responsaveis')) {
+      return Promise.resolve({
+        data: [{ id: 10, label: 'Utilizador Teste', email: 'u@test.com', tipo_usuario: 'ORCAMENTISTA' }],
+      })
+    }
+    return Promise.resolve({ data: [] })
+  })
+)
 
 vi.mock('@/services/apiClient', () => ({
   default: {
-    get: vi.fn(),
+    get: (...args: unknown[]) => getMock(args[0] as string),
     post: (...args: unknown[]) => postMock(args[0] as string),
     put: vi.fn(),
     delete: vi.fn(),
   },
+}))
+vi.mock('@/modules/auth/AuthContext', () => ({
+  useAuth: () => ({
+    user: { tipo_usuario: 'ADMIN', permissoes: ['projeto.editar'] },
+  }),
 }))
 
 const mutateAsync = vi.fn()
@@ -51,6 +66,14 @@ describe('ProjetoCreatePage', () => {
         return Promise.resolve({ data: { codigo: '04001-26' } })
       }
       return Promise.resolve({ data: { id: 'uuid-1' } })
+    })
+    getMock.mockImplementation((url: string) => {
+      if (String(url).includes('responsaveis')) {
+        return Promise.resolve({
+          data: [{ id: 10, label: 'Utilizador Teste', email: 'u@test.com', tipo_usuario: 'ORCAMENTISTA' }],
+        })
+      }
+      return Promise.resolve({ data: [] })
     })
   })
 

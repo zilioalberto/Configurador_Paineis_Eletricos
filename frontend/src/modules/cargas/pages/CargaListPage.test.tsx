@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useProjetoListQueryMock = vi.hoisted(() => vi.fn())
 const useCargaListQueryMock = vi.hoisted(() => vi.fn())
+const useDimensionamentoQueryMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/modules/auth/AuthContext', () => ({
   useAuth: () => useAuthMock(),
@@ -16,6 +17,14 @@ vi.mock('@/modules/projetos/hooks/useProjetoListQuery', () => ({
 
 vi.mock('@/modules/cargas/hooks/useCargaListQuery', () => ({
   useCargaListQuery: () => useCargaListQueryMock(),
+}))
+
+vi.mock('@/modules/dimensionamento/hooks/useDimensionamentoQuery', () => ({
+  useDimensionamentoQuery: () => useDimensionamentoQueryMock(),
+}))
+
+vi.mock('@/modules/dimensionamento/hooks/useRecalcularDimensionamentoMutation', () => ({
+  useRecalcularDimensionamentoMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/modules/cargas/hooks/useCargaMutations', () => ({
@@ -37,6 +46,13 @@ describe('CargaListPage', () => {
     useProjetoListQueryMock.mockReturnValue({ data: [], isPending: false })
     useCargaListQueryMock.mockReturnValue({
       data: [],
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    useDimensionamentoQueryMock.mockReturnValue({
+      data: null,
       isPending: false,
       isError: false,
       error: null,
@@ -73,6 +89,13 @@ describe('CargaListPage', () => {
       error: null,
       refetch: vi.fn(),
     })
+    useDimensionamentoQueryMock.mockReturnValue({
+      data: null,
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
 
     render(
       <MemoryRouter initialEntries={['/cargas?projeto=p1']}>
@@ -98,6 +121,13 @@ describe('CargaListPage', () => {
     useProjetoListQueryMock.mockReturnValue({ data: [], isPending: false })
     useCargaListQueryMock.mockReturnValue({
       data: [],
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    useDimensionamentoQueryMock.mockReturnValue({
+      data: null,
       isPending: false,
       isError: false,
       error: null,

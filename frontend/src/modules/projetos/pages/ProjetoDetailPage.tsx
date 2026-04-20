@@ -45,6 +45,11 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
         <div>{projeto.cliente || '-'}</div>
       </div>
 
+      <div className="col-md-4">
+        <strong>Responsável</strong>
+        <div>{projeto.responsavel_nome || '-'}</div>
+      </div>
+
       <div className="col-md-3">
         <strong>Status</strong>
         <div>{projeto.status_display ?? projeto.status}</div>
@@ -272,6 +277,12 @@ export default function ProjetoDetailPage() {
                 Composição
               </Link>
             ) : null}
+            <Link
+              to={`/projetos/${id}/fluxo/cargas`}
+              className="btn btn-outline-info"
+            >
+              Wizard do projeto
+            </Link>
             {canEditProjeto ? (
               <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
                 Editar projeto

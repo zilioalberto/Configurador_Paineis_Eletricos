@@ -7,6 +7,7 @@ const ProjetoListPage = lazy(() => import('./pages/ProjetoListPage'))
 const ProjetoCreatePage = lazy(() => import('./pages/ProjetoCreatePage'))
 const ProjetoEditPage = lazy(() => import('./pages/ProjetoEditPage'))
 const ProjetoDetailPage = lazy(() => import('./pages/ProjetoDetailPage'))
+const ProjetoWizardPage = lazy(() => import('./pages/ProjetoWizardPage'))
 
 function withPermission(permission: string, element: ReactElement): ReactElement {
   return <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -34,6 +35,10 @@ export const projetosRoutes: ModuleRouteConfig[] = [
   {
     path: '/projetos/:id/editar',
     element: withPermission(PERMISSION_KEYS.PROJETO_EDITAR, <ProjetoEditPage />),
+  },
+  {
+    path: '/projetos/:id/fluxo/:etapa',
+    element: withPermission(PERMISSION_KEYS.PROJETO_VISUALIZAR, <ProjetoWizardPage />),
   },
   {
     path: '/projetos/:id',

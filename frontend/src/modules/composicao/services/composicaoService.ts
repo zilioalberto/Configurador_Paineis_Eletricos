@@ -58,6 +58,16 @@ export async function aprovarSugestao(
   return response.data
 }
 
+export async function reabrirComposicaoItem(
+  composicaoItemId: string
+): Promise<{ snapshot: ComposicaoSnapshot }> {
+  const response = await apiClient.post<{ snapshot: ComposicaoSnapshot }>(
+    `/composicao/itens/${composicaoItemId}/reabrir/`,
+    {}
+  )
+  return response.data
+}
+
 export type AdicionarInclusaoManualBody = {
   produto_id: string
   quantidade?: string
@@ -112,26 +122,43 @@ function dispararDownloadBlob(blob: Blob, nome: string): void {
   URL.revokeObjectURL(url)
 }
 
+function slugNomeArquivo(valor: string | undefined): string {
+  if (!valor) return ''
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
 /** Lista completa: composição aprovada, inclusões manuais e pendências (.xlsx). */
-export async function exportarComposicaoListaXlsx(projetoId: string): Promise<void> {
+export async function exportarComposicaoListaXlsx(
+  projetoId: string,
+  nomeProjeto?: string
+): Promise<void> {
   const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/xlsx/`, {
     responseType: 'blob',
   })
+  const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.xlsx`
   const nome = nomeArquivoContentDisposition(
     res.headers['content-disposition'],
-    `${projetoId}_composicao_completa.xlsx`
+    fallback
   )
   dispararDownloadBlob(res.data, nome)
 }
 
 /** Mesma listagem em PDF (inclui pendências). */
-export async function exportarComposicaoListaPdf(projetoId: string): Promise<void> {
+export async function exportarComposicaoListaPdf(
+  projetoId: string,
+  nomeProjeto?: string
+): Promise<void> {
   const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/pdf/`, {
     responseType: 'blob',
   })
+  const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.pdf`
   const nome = nomeArquivoContentDisposition(
     res.headers['content-disposition'],
-    `${projetoId}_composicao_completa.pdf`
+    fallback
   )
   dispararDownloadBlob(res.data, nome)
 }
