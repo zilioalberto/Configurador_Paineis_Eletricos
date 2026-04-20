@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/275</span>
+                <span class='fraction'>0/280</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/275</span>
+                <span class='fraction'>0/280</span>
             </div>
         
             
@@ -363,7 +363,15 @@
 <a name='L298'></a><a href='#L298'>298</a>
 <a name='L299'></a><a href='#L299'>299</a>
 <a name='L300'></a><a href='#L300'>300</a>
-<a name='L301'></a><a href='#L301'>301</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -372,6 +380,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -664,6 +674,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Link, useParams } from 'react-router-dom'<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" >import { useAuth } from '@/modules/auth/AuthContext'</span>
+<span class="cstat-no" title="statement not covered" >import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'</span>
+<span class="cstat-no" title="statement not covered" >import { hasPermission } from '@/modules/auth/permissions'</span>
 <span class="cstat-no" title="statement not covered" >import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'</span>
 <span class="cstat-no" title="statement not covered" >import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'</span>
 <span class="cstat-no" title="statement not covered" >import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'</span>
@@ -673,11 +686,13 @@
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function CargaDetailPage() {</span>
+<span class="cstat-no" title="statement not covered" >  const { user } = useAuth()</span>
 <span class="cstat-no" title="statement not covered" >  const { id } = useParams&lt;{ id: string }&gt;()</span>
 <span class="cstat-no" title="statement not covered" >  const { data: c, isPending, isError, error } = useCargaDetailQuery(id)</span>
 <span class="cstat-no" title="statement not covered" >  const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()</span>
 <span class="cstat-no" title="statement not covered" >  const projetoDaCarga =</span>
 <span class="cstat-no" title="statement not covered" >    c != null ? projetos.find((p) =&gt; p.id === c.projeto) : undefined</span>
+<span class="cstat-no" title="statement not covered" >  const canEditCarga = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)</span>
 <span class="cstat-no" title="statement not covered" >  const podeEditar =</span>
 <span class="cstat-no" title="statement not covered" >    !loadingProjetos &amp;&amp; c != null &amp;&amp; projetoPermiteEdicaoCargas(projetoDaCarga)</span>
 &nbsp;
@@ -688,7 +703,7 @@
 <span class="cstat-no" title="statement not covered" >          &lt;h1 className="h3 mb-1"&gt;Detalhes da carga&lt;/h1&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;p className="text-muted mb-0"&gt;Leitura dos dados cadastrados.&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >        {id &amp;&amp; podeEditar &amp;&amp; (</span>
+<span class="cstat-no" title="statement not covered" >        {id &amp;&amp; canEditCarga &amp;&amp; podeEditar &amp;&amp; (</span>
 <span class="cstat-no" title="statement not covered" >          &lt;Link to={`/cargas/${id}/editar`} className="btn btn-primary"&gt;</span>
             Editar
 <span class="cstat-no" title="statement not covered" >          &lt;/Link&gt;</span>
@@ -970,7 +985,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-11T23:29:32.144Z
+                at 2026-04-20T12:32:03.381Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

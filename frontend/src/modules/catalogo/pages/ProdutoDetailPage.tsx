@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'
 
 function SpecBlock({ title, children }: { title: string; children: ReactNode }) {
@@ -26,7 +29,9 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
 }
 
 export default function ProdutoDetailPage() {
+  const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const canEditProduto = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const { data: p, isPending, isError, error } = useProdutoDetailQuery(id)
 
   const ec = p?.especificacao_contatora
@@ -40,11 +45,11 @@ export default function ProdutoDetailPage() {
           <h1 className="h3 mb-1">Detalhes do produto</h1>
           <p className="text-muted mb-0">Dados cadastrados no catálogo.</p>
         </div>
-        {id && (
+        {id && canEditProduto ? (
           <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
             Editar
           </Link>
-        )}
+        ) : null}
       </div>
 
       <div className="card">

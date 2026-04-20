@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/93</span>
+                <span class='fraction'>0/98</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/93</span>
+                <span class='fraction'>0/98</span>
             </div>
         
             
@@ -174,7 +174,15 @@
 <a name='L109'></a><a href='#L109'>109</a>
 <a name='L110'></a><a href='#L110'>110</a>
 <a name='L111'></a><a href='#L111'>111</a>
-<a name='L112'></a><a href='#L112'>112</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -186,6 +194,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -288,6 +298,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { useMemo } from 'react'<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
 <span class="cstat-no" title="statement not covered" >import { Link, useNavigate, useSearchParams } from 'react-router-dom'</span>
 <span class="cstat-no" title="statement not covered" >import { useToast } from '@/components/feedback'</span>
+<span class="cstat-no" title="statement not covered" >import { useAuth } from '@/modules/auth/AuthContext'</span>
+<span class="cstat-no" title="statement not covered" >import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'</span>
+<span class="cstat-no" title="statement not covered" >import { hasPermission } from '@/modules/auth/permissions'</span>
 <span class="cstat-no" title="statement not covered" >import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'</span>
 <span class="cstat-no" title="statement not covered" >import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'</span>
 <span class="cstat-no" title="statement not covered" >import CargaForm from '../components/CargaForm'</span>
@@ -298,6 +311,7 @@ import type { CargaFormData } from '../types/carga'
 <span class="cstat-no" title="statement not covered" >import { filtrarProjetosComEdicaoCargas } from '../utils/projetoEdicaoCargas'</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function CargaCreatePage() {</span>
+<span class="cstat-no" title="statement not covered" >  const { user } = useAuth()</span>
 <span class="cstat-no" title="statement not covered" >  const [searchParams] = useSearchParams()</span>
 <span class="cstat-no" title="statement not covered" >  const projetoQuery = searchParams.get('projeto') ?? ''</span>
 <span class="cstat-no" title="statement not covered" >  const navigate = useNavigate()</span>
@@ -307,6 +321,7 @@ import type { CargaFormData } from '../types/carga'
 <span class="cstat-no" title="statement not covered" >    () =&gt; filtrarProjetosComEdicaoCargas(projetos),</span>
 <span class="cstat-no" title="statement not covered" >    [projetos]</span>
 <span class="cstat-no" title="statement not covered" >  )</span>
+<span class="cstat-no" title="statement not covered" >  const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  const createMutation = useCreateCargaMutation()</span>
 &nbsp;
@@ -368,7 +383,7 @@ import type { CargaFormData } from '../types/carga'
 <span class="cstat-no" title="statement not covered" >          {!loadingProjetos &amp;&amp; projetos.length === 0 &amp;&amp; (</span>
 <span class="cstat-no" title="statement not covered" >            &lt;div className="alert alert-warning mb-0" role="alert"&gt;</span>
 <span class="cstat-no" title="statement not covered" >              É necessário ter pelo menos um projeto cadastrado.{' '}</span>
-<span class="cstat-no" title="statement not covered" >              &lt;Link to="/projetos/novo"&gt;Criar projeto&lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >              {canCreateProjeto ? &lt;Link to="/projetos/novo"&gt;Criar projeto&lt;/Link&gt; : null}</span>
 <span class="cstat-no" title="statement not covered" >            &lt;/div&gt;</span>
           )}
 &nbsp;
@@ -403,7 +418,7 @@ import type { CargaFormData } from '../types/carga'
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-11T23:29:32.144Z
+                at 2026-04-20T12:32:03.381Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

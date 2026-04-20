@@ -1,4 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
@@ -8,11 +11,13 @@ function bool(v: boolean | undefined): string {
 }
 
 export default function CargaDetailPage() {
+  const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
   const { data: c, isPending, isError, error } = useCargaDetailQuery(id)
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const projetoDaCarga =
     c != null ? projetos.find((p) => p.id === c.projeto) : undefined
+  const canEditCarga = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const podeEditar =
     !loadingProjetos && c != null && projetoPermiteEdicaoCargas(projetoDaCarga)
 
@@ -23,7 +28,7 @@ export default function CargaDetailPage() {
           <h1 className="h3 mb-1">Detalhes da carga</h1>
           <p className="text-muted mb-0">Leitura dos dados cadastrados.</p>
         </div>
-        {id && podeEditar && (
+        {id && canEditCarga && podeEditar && (
           <Link to={`/cargas/${id}/editar`} className="btn btn-primary">
             Editar
           </Link>

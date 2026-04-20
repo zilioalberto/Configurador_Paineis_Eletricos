@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
@@ -11,6 +14,7 @@ import { cargaFormToApiPayload } from '../utils/cargaPayload'
 import { filtrarProjetosComEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
 export default function CargaCreatePage() {
+  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const projetoQuery = searchParams.get('projeto') ?? ''
   const navigate = useNavigate()
@@ -20,6 +24,7 @@ export default function CargaCreatePage() {
     () => filtrarProjetosComEdicaoCargas(projetos),
     [projetos]
   )
+  const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
 
   const createMutation = useCreateCargaMutation()
 
@@ -81,7 +86,7 @@ export default function CargaCreatePage() {
           {!loadingProjetos && projetos.length === 0 && (
             <div className="alert alert-warning mb-0" role="alert">
               É necessário ter pelo menos um projeto cadastrado.{' '}
-              <Link to="/projetos/novo">Criar projeto</Link>
+              {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
             </div>
           )}
 

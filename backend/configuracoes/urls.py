@@ -14,14 +14,15 @@ from django.contrib import admin
 
 from django.urls import path, include
 
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from configuracoes.auth_views import AuthMeView, ProtectedAuthTestView
+from configuracoes.jwt_views import ZfwTokenObtainPairView
 
 from configuracoes.health_views import healthcheck
 
 
-
+API_V1_PREFIX = "api/v1/"
 
 urlpatterns = [
 
@@ -29,26 +30,27 @@ urlpatterns = [
 
 
 
-    path("api/v1/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path(f"{API_V1_PREFIX}auth/token/", ZfwTokenObtainPairView.as_view(), name="token_obtain_pair"),
 
-    path("api/v1/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path(f"{API_V1_PREFIX}auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
-    path("api/v1/auth/me/", AuthMeView.as_view(), name="auth_me"),
+    path(f"{API_V1_PREFIX}auth/me/", AuthMeView.as_view(), name="auth_me"),
 
-    path("api/v1/auth/test/", ProtectedAuthTestView.as_view(), name="test_auth"),
+    path(f"{API_V1_PREFIX}auth/test/", ProtectedAuthTestView.as_view(), name="test_auth"),
 
-    path("api/v1/health/", healthcheck, name="health"),
+    path(f"{API_V1_PREFIX}health/", healthcheck, name="health"),
 
+    path(API_V1_PREFIX, include("accounts.api.urls")),
 
-    path("api/v1/", include("projetos.api.urls")),
+    path(API_V1_PREFIX, include("projetos.api.urls")),
 
-    path("api/v1/", include("cargas.api.urls")),
+    path(API_V1_PREFIX, include("cargas.api.urls")),
 
-    path("api/v1/", include("catalogo.api.urls")),
+    path(API_V1_PREFIX, include("catalogo.api.urls")),
 
-    path("api/v1/", include("dimensionamento.api.urls")),
+    path(API_V1_PREFIX, include("dimensionamento.api.urls")),
 
-    path("api/v1/", include("composicao_painel.api.urls")),
+    path(API_V1_PREFIX, include("composicao_painel.api.urls")),
 
 ]
 

@@ -10,81 +10,49 @@ const PLACEHOLDER_LABELS: Record<string, string> = {
   '/composicao': 'Composição do painel',
 }
 
-export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
-  const path = pathname === '' ? '/' : pathname
+const PROJETO_BASE = { label: 'Projetos', to: '/projetos' } as const
+const CARGA_BASE = { label: 'Cargas', to: '/cargas' } as const
 
-  if (path === '/') {
-    return [{ label: 'Início', to: '/' }]
-  }
-
-  if (path === '/projetos') {
-    return [{ label: 'Projetos', to: '/projetos' }]
-  }
-
-  if (path === '/projetos/novo') {
-    return [
-      { label: 'Projetos', to: '/projetos' },
-      { label: 'Novo projeto' },
-    ]
-  }
-
+function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
+  if (path === '/projetos') return [PROJETO_BASE]
+  if (path === '/projetos/novo') return [PROJETO_BASE, { label: 'Novo projeto' }]
   if (/^\/projetos\/[^/]+\/editar$/.test(path)) {
-    return [
-      { label: 'Projetos', to: '/projetos' },
-      { label: 'Editar projeto' },
-    ]
+    return [PROJETO_BASE, { label: 'Editar projeto' }]
   }
-
   if (/^\/projetos\/[^/]+$/.test(path)) {
-    const segment = path.split('/')[2]
-    if (segment === 'novo') {
-      return [
-        { label: 'Projetos', to: '/projetos' },
-        { label: 'Novo projeto' },
-      ]
-    }
-    return [
-      { label: 'Projetos', to: '/projetos' },
-      { label: 'Detalhes do projeto' },
-    ]
+    return [PROJETO_BASE, { label: 'Detalhes do projeto' }]
   }
+  return null
+}
 
-  if (path === '/cargas') {
-    return [{ label: 'Cargas', to: '/cargas' }]
-  }
-
-  if (path === '/cargas/novo') {
-    return [
-      { label: 'Cargas', to: '/cargas' },
-      { label: 'Nova carga' },
-    ]
-  }
-
+function cargasBreadcrumb(path: string): BreadcrumbItem[] | null {
+  if (path === '/cargas') return [CARGA_BASE]
+  if (path === '/cargas/novo') return [CARGA_BASE, { label: 'Nova carga' }]
   if (/^\/cargas\/[^/]+\/editar$/.test(path)) {
-    return [
-      { label: 'Cargas', to: '/cargas' },
-      { label: 'Editar carga' },
-    ]
+    return [CARGA_BASE, { label: 'Editar carga' }]
+  }
+  if (/^\/cargas\/[^/]+$/.test(path)) {
+    return [CARGA_BASE, { label: 'Detalhes da carga' }]
+  }
+  return null
+}
+
+export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
+  const path = pathname || '/'
+
+  if (path === '/') return [{ label: 'Início', to: '/' }]
+  if (path === '/administracao/utilizadores') {
+    return [{ label: 'Utilizadores', to: '/administracao/utilizadores' }]
   }
 
-  if (/^\/cargas\/[^/]+$/.test(path)) {
-    const segment = path.split('/')[2]
-    if (segment === 'novo') {
-      return [
-        { label: 'Cargas', to: '/cargas' },
-        { label: 'Nova carga' },
-      ]
-    }
-    return [
-      { label: 'Cargas', to: '/cargas' },
-      { label: 'Detalhes da carga' },
-    ]
-  }
+  const fromProjetos = projetosBreadcrumb(path)
+  if (fromProjetos) return fromProjetos
+
+  const fromCargas = cargasBreadcrumb(path)
+  if (fromCargas) return fromCargas
 
   const placeholder = PLACEHOLDER_LABELS[path]
-  if (placeholder) {
-    return [{ label: placeholder }]
-  }
+  if (placeholder) return [{ label: placeholder }]
 
   return [{ label: 'Página atual' }]
 }

@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProjetoTable from '../components/ProjetoTable'
 import { useProjetoListQuery } from '../hooks/useProjetoListQuery'
@@ -12,6 +15,7 @@ type DeleteTarget = {
 }
 
 export default function ProjetoListPage() {
+  const { user } = useAuth()
   const {
     data: projetos = [],
     isPending,
@@ -23,6 +27,9 @@ export default function ProjetoListPage() {
   const { showToast } = useToast()
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
+  const canEditProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
+  const canDeleteProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EXCLUIR)
 
   const onDeleteRequest = useCallback(
     (id: string) => {
@@ -99,9 +106,11 @@ export default function ProjetoListPage() {
             Atualizar
           </button>
 
-          <Link to="/projetos/novo" className="btn btn-primary">
-            Novo Projeto
-          </Link>
+          {canCreateProjeto ? (
+            <Link to="/projetos/novo" className="btn btn-primary">
+              Novo Projeto
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -121,6 +130,8 @@ export default function ProjetoListPage() {
             <ProjetoTable
               projetos={projetos}
               onDeleteRequest={onDeleteRequest}
+              canEdit={canEditProjeto}
+              canDelete={canDeleteProjeto}
             />
           )}
         </div>

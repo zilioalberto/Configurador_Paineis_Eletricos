@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/134</span>
+                <span class='fraction'>0/140</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/134</span>
+                <span class='fraction'>0/140</span>
             </div>
         
             
@@ -229,19 +229,13 @@
 <a name='L164'></a><a href='#L164'>164</a>
 <a name='L165'></a><a href='#L165'>165</a>
 <a name='L166'></a><a href='#L166'>166</a>
-<a name='L167'></a><a href='#L167'>167</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -259,6 +253,22 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -275,7 +285,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -397,6 +407,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { ReactNode } from 'react'
 <span class="cstat-no" title="statement not covered" >import { Link, useParams } from 'react-router-dom'</span>
+<span class="cstat-no" title="statement not covered" >import { useAuth } from '@/modules/auth/AuthContext'</span>
+<span class="cstat-no" title="statement not covered" >import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'</span>
+<span class="cstat-no" title="statement not covered" >import { hasPermission } from '@/modules/auth/permissions'</span>
 <span class="cstat-no" title="statement not covered" >import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >function SpecBlock({ title, children }: { title: string; children: ReactNode }) {</span>
@@ -423,7 +436,9 @@
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function ProdutoDetailPage() {</span>
+<span class="cstat-no" title="statement not covered" >  const { user } = useAuth()</span>
 <span class="cstat-no" title="statement not covered" >  const { id } = useParams&lt;{ id: string }&gt;()</span>
+<span class="cstat-no" title="statement not covered" >  const canEditProduto = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)</span>
 <span class="cstat-no" title="statement not covered" >  const { data: p, isPending, isError, error } = useProdutoDetailQuery(id)</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  const ec = p?.especificacao_contatora</span>
@@ -437,11 +452,11 @@
 <span class="cstat-no" title="statement not covered" >          &lt;h1 className="h3 mb-1"&gt;Detalhes do produto&lt;/h1&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;p className="text-muted mb-0"&gt;Dados cadastrados no catálogo.&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >        {id &amp;&amp; (</span>
+<span class="cstat-no" title="statement not covered" >        {id &amp;&amp; canEditProduto ? (</span>
 <span class="cstat-no" title="statement not covered" >          &lt;Link to={`/catalogo/${id}/editar`} className="btn btn-primary"&gt;</span>
             Editar
 <span class="cstat-no" title="statement not covered" >          &lt;/Link&gt;</span>
-        )}
+<span class="cstat-no" title="statement not covered" >        ) : null}</span>
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      &lt;div className="card"&gt;</span>
@@ -568,7 +583,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-11T23:29:32.144Z
+                at 2026-04-20T12:32:03.381Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -7,6 +7,9 @@ import {
 } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
@@ -20,10 +23,13 @@ import {
 type DeleteTarget = { id: string; label: string }
 
 export default function CargaListPage() {
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const canManageCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
+  const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
 
@@ -143,20 +149,22 @@ export default function CargaListPage() {
           >
             Atualizar
           </button>
-          <Link
-            to={
-              projetoIdListagem
-                ? `/cargas/novo?projeto=${encodeURIComponent(projetoIdListagem)}`
-                : '/cargas/novo'
-            }
-            className={`btn btn-primary${!projetoIdListagem ? ' disabled' : ''}`}
-            aria-disabled={!projetoIdListagem}
-            onClick={(e) => {
-              if (!projetoIdListagem) e.preventDefault()
-            }}
-          >
-            Nova carga
-          </Link>
+          {canManageCargas ? (
+            <Link
+              to={
+                projetoIdListagem
+                  ? `/cargas/novo?projeto=${encodeURIComponent(projetoIdListagem)}`
+                  : '/cargas/novo'
+              }
+              className={`btn btn-primary${!projetoIdListagem ? ' disabled' : ''}`}
+              aria-disabled={!projetoIdListagem}
+              onClick={(e) => {
+                if (!projetoIdListagem) e.preventDefault()
+              }}
+            >
+              Nova carga
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -183,7 +191,7 @@ export default function CargaListPage() {
           {!loadingProjetos && projetos.length === 0 && (
             <p className="text-muted small mt-2 mb-0">
               Não há projetos cadastrados.{' '}
-              <Link to="/projetos/novo">Criar projeto</Link>
+              {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
             </p>
           )}
           {!loadingProjetos &&
@@ -235,6 +243,7 @@ export default function CargaListPage() {
               cargas={cargas}
               projetoId={projetoIdListagem}
               onDeleteRequest={onDeleteRequest}
+              canManage={canManageCargas}
             />
           )}
         </div>
