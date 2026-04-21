@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.48% </span>
+                <span class="strong">84.21% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>66/81</span>
+                <span class='fraction'>80/95</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/10</span>
+                <span class='fraction'>10/12</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.48% </span>
+                <span class="strong">84.21% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>66/81</span>
+                <span class='fraction'>80/95</span>
             </div>
         
             
@@ -162,7 +162,24 @@
 <a name='L97'></a><a href='#L97'>97</a>
 <a name='L98'></a><a href='#L98'>98</a>
 <a name='L99'></a><a href='#L99'>99</a>
-<a name='L100'></a><a href='#L100'>100</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -179,18 +196,26 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -248,6 +273,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -265,19 +293,24 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProjetoForm from '../components/projeto-form/ProjetoForm'
 import { projetoFormInitialState } from '../components/projeto-form/formOptions'
 import { useCreateProjetoMutation } from '../hooks/useProjetoMutations'
 import { projetoQueryKeys } from '../projetoQueryKeys'
-import { alocarCodigoProjeto } from '../services/projetoService'
+import { alocarCodigoProjeto, listarResponsaveisProjeto } from '../services/projetoService'
 import type { ProjetoFormData } from '../types/projeto'
 &nbsp;
 export default function ProjetoCreatePage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { showToast } = useToast()
   const createMutation = useCreateProjetoMutation()
+  const canEditResponsavel = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
 &nbsp;
   const {
     data: codigoResposta,
@@ -289,13 +322,19 @@ export default function ProjetoCreatePage() {
     queryKey: [...projetoQueryKeys.all, 'alocar-codigo', location.key],
     queryFn: alocarCodigoProjeto,
   })
+  const { data: responsavelOptions = [] } = useQuery({
+    queryKey: [...projetoQueryKeys.all, 'responsaveis'],
+    queryFn: listarResponsaveisProjeto,
+  })
 &nbsp;
   const initialData = useMemo(
     () =&gt; ({
       ...projetoFormInitialState,
       codigo: codigoResposta?.codigo ?? '',
+      responsavel:
+        responsavelOptions.length === 1 ? responsavelOptions[0].id : projetoFormInitialState.responsavel,
     }),
-    [codigoResposta?.codigo]
+    [codigoResposta?.codigo, responsavelOptions]
   )
 &nbsp;
   async function handleSubmit(data: ProjetoFormData) {
@@ -305,7 +344,7 @@ export default function ProjetoCreatePage() {
         variant: 'success',
         message: 'Projeto criado com sucesso.',
       })
-      navigate(`/projetos/${projeto.id}`)
+      navigate(`/cargas?projeto=${encodeURIComponent(projeto.id)}`)
 <span class="branch-0 cbranch-no" title="branch not covered" >    } catch (err) {</span>
 <span class="cstat-no" title="statement not covered" >      console.error('Erro ao criar projeto:', err)</span>
 <span class="cstat-no" title="statement not covered" >      const mensagemApi = extrairMensagemErroApi(err)</span>
@@ -353,6 +392,9 @@ export default function ProjetoCreatePage() {
               onSubmit={handleSubmit}
               loading={createMutation.isPending}
               initialData={initialData}
+              responsavelOptions={responsavelOptions}
+              canEditResponsavel={canEditResponsavel}
+              showStatus={false}
             /&gt;
           &lt;/div&gt;
         &lt;/div&gt;
@@ -367,7 +409,7 @@ export default function ProjetoCreatePage() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-20T12:32:03.381Z
+                at 2026-04-21T00:31:28.741Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

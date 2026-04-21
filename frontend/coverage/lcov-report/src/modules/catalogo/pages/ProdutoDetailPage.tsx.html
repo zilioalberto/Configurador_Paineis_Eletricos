@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/140</span>
+                <span class='fraction'>0/153</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/140</span>
+                <span class='fraction'>0/153</span>
             </div>
         
             
@@ -234,7 +234,22 @@
 <a name='L169'></a><a href='#L169'>169</a>
 <a name='L170'></a><a href='#L170'>170</a>
 <a name='L171'></a><a href='#L171'>171</a>
-<a name='L172'></a><a href='#L172'>172</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -269,21 +284,36 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -406,7 +436,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { ReactNode } from 'react'
-<span class="cstat-no" title="statement not covered" >import { Link, useParams } from 'react-router-dom'</span>
+<span class="cstat-no" title="statement not covered" >import { Link, useNavigate, useParams } from 'react-router-dom'</span>
 <span class="cstat-no" title="statement not covered" >import { useAuth } from '@/modules/auth/AuthContext'</span>
 <span class="cstat-no" title="statement not covered" >import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'</span>
 <span class="cstat-no" title="statement not covered" >import { hasPermission } from '@/modules/auth/permissions'</span>
@@ -437,6 +467,7 @@
 &nbsp;
 <span class="cstat-no" title="statement not covered" >export default function ProdutoDetailPage() {</span>
 <span class="cstat-no" title="statement not covered" >  const { user } = useAuth()</span>
+<span class="cstat-no" title="statement not covered" >  const navigate = useNavigate()</span>
 <span class="cstat-no" title="statement not covered" >  const { id } = useParams&lt;{ id: string }&gt;()</span>
 <span class="cstat-no" title="statement not covered" >  const canEditProduto = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)</span>
 <span class="cstat-no" title="statement not covered" >  const { data: p, isPending, isError, error } = useProdutoDetailQuery(id)</span>
@@ -452,11 +483,25 @@
 <span class="cstat-no" title="statement not covered" >          &lt;h1 className="h3 mb-1"&gt;Detalhes do produto&lt;/h1&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;p className="text-muted mb-0"&gt;Dados cadastrados no catálogo.&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >        {id &amp;&amp; canEditProduto ? (</span>
-<span class="cstat-no" title="statement not covered" >          &lt;Link to={`/catalogo/${id}/editar`} className="btn btn-primary"&gt;</span>
-            Editar
-<span class="cstat-no" title="statement not covered" >          &lt;/Link&gt;</span>
-<span class="cstat-no" title="statement not covered" >        ) : null}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;div className="d-flex flex-wrap gap-2 align-items-center"&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {canEditProduto ? (</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Link to="/catalogo/novo" className="btn btn-outline-primary"&gt;</span>
+              Novo produto
+<span class="cstat-no" title="statement not covered" >            &lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >          ) : null}</span>
+<span class="cstat-no" title="statement not covered" >          &lt;button</span>
+<span class="cstat-no" title="statement not covered" >            type="button"</span>
+<span class="cstat-no" title="statement not covered" >            className="btn btn-outline-secondary"</span>
+<span class="cstat-no" title="statement not covered" >            onClick={() =&gt; navigate('/catalogo')}</span>
+<span class="cstat-no" title="statement not covered" >          &gt;</span>
+            Fechar
+<span class="cstat-no" title="statement not covered" >          &lt;/button&gt;</span>
+<span class="cstat-no" title="statement not covered" >          {id &amp;&amp; canEditProduto ? (</span>
+<span class="cstat-no" title="statement not covered" >            &lt;Link to={`/catalogo/${id}/editar`} className="btn btn-primary"&gt;</span>
+              Editar
+<span class="cstat-no" title="statement not covered" >            &lt;/Link&gt;</span>
+<span class="cstat-no" title="statement not covered" >          ) : null}</span>
+<span class="cstat-no" title="statement not covered" >        &lt;/div&gt;</span>
 <span class="cstat-no" title="statement not covered" >      &lt;/div&gt;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      &lt;div className="card"&gt;</span>
@@ -583,7 +628,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-20T12:32:03.381Z
+                at 2026-04-21T00:31:28.741Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

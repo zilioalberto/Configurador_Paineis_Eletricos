@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">22.22% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">22.22% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -99,24 +99,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { isAxiosError } from 'axios'
 import { ApiError } from './ApiError'
 import { parseErrorResponseBody } from './parseErrorResponseBody'
@@ -125,25 +125,25 @@ import { parseErrorResponseBody } from './parseErrorResponseBody'
  * Mensagem amigável para exibir ao usuário (UI, toasts).
  * Erros vindos do `apiClient` já chegam como {@link ApiError} após o interceptor.
  */
-export <span class="fstat-no" title="function not covered" >function extrairMensagemErroApi(error: unknown): string {</span>
-<span class="cstat-no" title="statement not covered" >  if (ApiError.isApiError(error)) {</span>
-<span class="cstat-no" title="statement not covered" >    return error.message</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+export function extrairMensagemErroApi(error: unknown): string {
+  if (ApiError.isApiError(error)) {
+    return error.message
+  }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  if (isAxiosError(error) &amp;&amp; error.response?.data !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >    return parseErrorResponseBody(error.response.data)</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+  if (isAxiosError(error) &amp;&amp; error.response?.data !== undefined) {
+    return parseErrorResponseBody(error.response.data)
+  }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  if (isAxiosError(error) &amp;&amp; error.request &amp;&amp; !error.response) {</span>
-<span class="cstat-no" title="statement not covered" >    return 'Não foi possível conectar ao servidor. Verifique se a API está em execução.'</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+  if (isAxiosError(error) &amp;&amp; error.request &amp;&amp; !error.response) {
+    return 'Não foi possível conectar ao servidor. Verifique se a API está em execução.'
+  }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  if (error instanceof Error &amp;&amp; error.message) {</span>
-<span class="cstat-no" title="statement not covered" >    return error.message</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+  if (error instanceof Error &amp;&amp; error.message) {
+    return error.message
+  }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return ''</span>
-<span class="cstat-no" title="statement not covered" >}</span>
+  return ''
+}
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -151,7 +151,7 @@ export <span class="fstat-no" title="function not covered" >function extrairMens
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-20T12:32:03.381Z
+                at 2026-04-21T00:31:28.741Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

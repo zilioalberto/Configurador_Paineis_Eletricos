@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/630</span>
+                <span class='fraction'>0/644</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/630</span>
+                <span class='fraction'>0/644</span>
             </div>
         
             
@@ -806,7 +806,25 @@
 <a name='L741'></a><a href='#L741'>741</a>
 <a name='L742'></a><a href='#L742'>742</a>
 <a name='L743'></a><a href='#L743'>743</a>
-<a name='L744'></a><a href='#L744'>744</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L744'></a><a href='#L744'>744</a>
+<a name='L745'></a><a href='#L745'>745</a>
+<a name='L746'></a><a href='#L746'>746</a>
+<a name='L747'></a><a href='#L747'>747</a>
+<a name='L748'></a><a href='#L748'>748</a>
+<a name='L749'></a><a href='#L749'>749</a>
+<a name='L750'></a><a href='#L750'>750</a>
+<a name='L751'></a><a href='#L751'>751</a>
+<a name='L752'></a><a href='#L752'>752</a>
+<a name='L753'></a><a href='#L753'>753</a>
+<a name='L754'></a><a href='#L754'>754</a>
+<a name='L755'></a><a href='#L755'>755</a>
+<a name='L756'></a><a href='#L756'>756</a>
+<a name='L757'></a><a href='#L757'>757</a>
+<a name='L758'></a><a href='#L758'>758</a>
+<a name='L759'></a><a href='#L759'>759</a>
+<a name='L760'></a><a href='#L760'>760</a>
+<a name='L761'></a><a href='#L761'>761</a>
+<a name='L762'></a><a href='#L762'>762</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -839,6 +857,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -848,6 +871,19 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1576,8 +1612,10 @@ import type { CargaFormData, TipoCarga } from '../types/carga'
 type CargaFormProps = {
   projetos: Projeto[]
   onSubmit: (data: CargaFormData) =&gt; Promise&lt;void&gt;
+  onChange?: (data: CargaFormData) =&gt; void
   loading?: boolean
   initialData: CargaFormData
+  suggestedTag?: string
   /** Se true, não permite trocar o projeto (edição). */
   lockProjeto?: boolean
 }
@@ -1585,15 +1623,31 @@ type CargaFormProps = {
 <span class="cstat-no" title="statement not covered" >export default function CargaForm({</span>
 <span class="cstat-no" title="statement not covered" >  projetos,</span>
 <span class="cstat-no" title="statement not covered" >  onSubmit,</span>
+<span class="cstat-no" title="statement not covered" >  onChange,</span>
 <span class="cstat-no" title="statement not covered" >  loading = false,</span>
 <span class="cstat-no" title="statement not covered" >  initialData,</span>
+<span class="cstat-no" title="statement not covered" >  suggestedTag,</span>
 <span class="cstat-no" title="statement not covered" >  lockProjeto = false,</span>
 <span class="cstat-no" title="statement not covered" >}: CargaFormProps) {</span>
 <span class="cstat-no" title="statement not covered" >  const [formData, setFormData] = useState&lt;CargaFormData&gt;(initialData)</span>
+<span class="cstat-no" title="statement not covered" >  const [lastAutoTag, setLastAutoTag] = useState('')</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    setFormData(initialData)</span>
+<span class="cstat-no" title="statement not covered" >    setLastAutoTag(initialData.tag)</span>
 <span class="cstat-no" title="statement not covered" >  }, [initialData])</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    onChange?.(formData)</span>
+<span class="cstat-no" title="statement not covered" >  }, [formData, onChange])</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (!suggestedTag) return</span>
+<span class="cstat-no" title="statement not covered" >    if (formData.tag === suggestedTag) return</span>
+<span class="cstat-no" title="statement not covered" >    if (formData.tag.trim() &amp;&amp; formData.tag !== lastAutoTag) return</span>
+<span class="cstat-no" title="statement not covered" >    setFormData((prev) =&gt; ({ ...prev, tag: suggestedTag }))</span>
+<span class="cstat-no" title="statement not covered" >    setLastAutoTag(suggestedTag)</span>
+<span class="cstat-no" title="statement not covered" >  }, [formData.tag, lastAutoTag, suggestedTag])</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  const projetoSelecionado = useMemo(</span>
 <span class="cstat-no" title="statement not covered" >    () =&gt; projetos.find((p) =&gt; p.id === formData.projeto),</span>
@@ -2299,7 +2353,7 @@ type CargaFormProps = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-20T12:32:03.381Z
+                at 2026-04-21T00:31:28.741Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
