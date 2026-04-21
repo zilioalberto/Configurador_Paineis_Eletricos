@@ -2,7 +2,11 @@ from .cargas import (
     TipoCargaChoices,
     TipoPartidaMotorChoices,
     TipoProtecaoMotorChoices,
+    TipoProtecaoResistenciaChoices,
+    TipoAcionamentoResistenciaChoices,
     TipoValvulaChoices,
+    TipoProtecaoValvulaChoices,
+    TipoAcionamentoValvulaChoices,
     TipoSensorChoices,
     TipoTransdutorChoices,
     TipoConexaoCargaPainelChoices,
@@ -21,6 +25,8 @@ from .eletrica import (
 
 from .produtos import (
     CategoriaProdutoNomeChoices,
+    TipoFusivelUltrarrapidoChoices,
+    TipoFusivelNHChoices,
     ModoMontagemChoices,
     TipoFixacaoSeccionadoraChoices,
     CorManoplaChoices,
@@ -63,7 +69,11 @@ __all__ = [
     "TipoCargaChoices",
     "TipoPartidaMotorChoices",
     "TipoProtecaoMotorChoices",
+    "TipoProtecaoResistenciaChoices",
+    "TipoAcionamentoResistenciaChoices",
     "TipoValvulaChoices",
+    "TipoProtecaoValvulaChoices",
+    "TipoAcionamentoValvulaChoices",
     "TipoSensorChoices",
     "TipoTransdutorChoices",
     "TipoConexaoCargaPainelChoices",
@@ -72,6 +82,8 @@ __all__ = [
 
     # PRODUTOS
     "CategoriaProdutoNomeChoices",
+    "TipoFusivelUltrarrapidoChoices",
+    "TipoFusivelNHChoices",
     "ModoMontagemChoices",
     "TipoFixacaoSeccionadoraChoices",
     "CorManoplaChoices",

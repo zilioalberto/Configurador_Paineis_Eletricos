@@ -17,7 +17,21 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     PAINEL = "PAINEL", "Painel"
     CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
     OUTROS = "OUTROS", "Outros"
+
+
+class TipoFusivelUltrarrapidoChoices(models.TextChoices):
+    NH = "NH", "NH"
+    CARTUCHO = "CARTUCHO", "Cartucho"
+    OUTRO = "OUTRO", "Outro"
     
+class TipoFusivelNHChoices(models.TextChoices):
+    NH000 = "NH000", "NH000"
+    NH00 = "NH00", "NH00"
+    NH0 = "NH0", "NH0"
+    NH1 = "NH1", "NH1"
+    NH2 = "NH2", "NH2"
+    NH3 = "NH3", "NH3"
+    NH4 = "NH4", "NH4"   
 
 class ModoMontagemChoices(models.TextChoices):
     TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"

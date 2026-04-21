@@ -22,13 +22,14 @@ export function defaultMotor(): CargaMotorPayload {
   return {
     potencia_corrente_valor: '1.00',
     potencia_corrente_unidade: 'CV',
+    numero_fases: 3,
+    tensao_motor: 380,
     rendimento_percentual: '85.00',
     fator_potencia: '0.85',
     tipo_partida: 'DIRETA',
     tipo_protecao: 'DISJUNTOR_MOTOR',
     reversivel: false,
     freio_motor: false,
-    tempo_partida_s: '',
     tipo_conexao_painel: 'CONEXAO_BORNES_COM_PE',
   }
 }
@@ -38,16 +39,24 @@ export function defaultValvula(): CargaValvulaPayload {
     tipo_valvula: 'SOLENOIDE',
     quantidade_vias: '',
     quantidade_posicoes: '',
+    quantidade_solenoides: 1,
     retorno_mola: false,
     possui_feedback: false,
+    tensao_alimentacao: 24,
+    tipo_corrente: 'CC',
+    corrente_consumida_ma: '200.00',
+    tipo_protecao: 'BORNE_FUSIVEL',
+    tipo_acionamento: 'RELE_ESTADO_SOLIDO',
   }
 }
 
 export function defaultResistencia(): CargaResistenciaPayload {
   return {
-    controle_em_etapas: false,
-    quantidade_etapas: 1,
-    controle_pid: false,
+    numero_fases: 3,
+    tensao_resistencia: 380,
+    tipo_protecao: 'FUSIVEL_ULTRARRAPIDO',
+    tipo_acionamento: 'RELE_ESTADO_SOLIDO',
+    potencia_kw: '1.00',
   }
 }
 
@@ -56,11 +65,14 @@ export function defaultSensor(): CargaSensorPayload {
     tipo_sensor: 'INDUTIVO',
     tipo_sinal: 'DIGITAL',
     tipo_sinal_analogico: '',
+    tensao_alimentacao: 24,
+    tipo_corrente: 'CC',
+    corrente_consumida_ma: '20.00',
+    quantidade_fios: '',
     pnp: false,
     npn: false,
     normalmente_aberto: false,
     normalmente_fechado: false,
-    range_medicao: '',
   }
 }
 
@@ -69,7 +81,10 @@ export function defaultTransdutor(): CargaTransdutorPayload {
     tipo_transdutor: 'PRESSAO',
     faixa_medicao: '',
     tipo_sinal_analogico: 'CORRENTE_4_20MA',
-    precisao: '',
+    tensao_alimentacao: 24,
+    tipo_corrente: 'CC',
+    corrente_consumida_ma: '20.00',
+    quantidade_fios: '',
   }
 }
 
@@ -96,10 +111,11 @@ export function cargaFormInitial(projetoId: string): CargaFormData {
     local_instalacao: '',
     observacoes: '',
     exige_comando: false,
-    ocupa_entrada_digital: false,
-    ocupa_entrada_analogica: false,
-    ocupa_saida_digital: false,
-    ocupa_saida_analogica: false,
+    quantidade_entradas_digitais: 0,
+    quantidade_entradas_analogicas: 0,
+    quantidade_saidas_digitais: 0,
+    quantidade_saidas_analogicas: 0,
+    quantidade_entradas_rapidas: 0,
     ativo: true,
     ...emptyNestedForTipo('MOTOR'),
   }

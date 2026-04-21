@@ -54,11 +54,11 @@ def _payload_carga_outro(projeto_id):
         "exige_protecao": True,
         "exige_seccionamento": False,
         "exige_comando": False,
-        "exige_fonte_auxiliar": False,
-        "ocupa_entrada_digital": False,
-        "ocupa_entrada_analogica": False,
-        "ocupa_saida_digital": False,
-        "ocupa_saida_analogica": False,
+        "quantidade_entradas_digitais": 0,
+        "quantidade_entradas_analogicas": 0,
+        "quantidade_saidas_digitais": 0,
+        "quantidade_saidas_analogicas": 0,
+        "quantidade_entradas_rapidas": 0,
         "ativo": True,
     }
 
@@ -173,7 +173,6 @@ def test_create_sensor_analogico_sem_tipo_sinal_analogico_400(
             "npn": False,
             "normalmente_aberto": False,
             "normalmente_fechado": False,
-            "range_medicao": "",
         },
     }
     r = client.post(url, body, format="json")
@@ -213,3 +212,67 @@ def test_carga_modelo_str(admin_client):
         atualizado_por=user,
     )
     assert str(modelo) == "Modelo String"
+
+
+@pytest.mark.django_db
+@patch("cargas.api.views.reprocessar_composicao_painel_para_carga")
+def test_create_motor_soft_starter_com_tensao_diferente_retorna_mensagem_amigavel(
+    _mock_reproc, admin_client, criar_projeto
+):
+    client, _ = admin_client
+    projeto = criar_projeto(
+        nome="M", codigo="10007-26", tensao_nominal=TensaoChoices.V380
+    )
+    url = reverse("cargas-list")
+    body = {
+        **_payload_carga_outro(projeto.id),
+        "tag": "M02",
+        "descricao": "Motor com tensão inválida",
+        "tipo": TipoCargaChoices.MOTOR,
+        "motor": {
+            "potencia_corrente_valor": "1.00",
+            "potencia_corrente_unidade": "CV",
+            "tipo_partida": "SOFT_STARTER",
+            "numero_fases": 3,
+            "tensao_motor": 220,
+        },
+    }
+    r = client.post(url, body, format="json")
+    assert r.status_code == 400
+    assert "motor" in r.data
+    assert "tensao_motor" in r.data["motor"]
+    assert "A tensão do motor deve ser igual à tensão do projeto" in str(
+        r.data["motor"]["tensao_motor"]
+    )
+
+
+@pytest.mark.django_db
+@patch("cargas.api.views.reprocessar_composicao_painel_para_carga")
+def test_create_resistencia_com_tensao_diferente_retorna_mensagem_amigavel(
+    _mock_reproc, admin_client, criar_projeto
+):
+    client, _ = admin_client
+    projeto = criar_projeto(
+        nome="R", codigo="10008-26", tensao_nominal=TensaoChoices.V380
+    )
+    url = reverse("cargas-list")
+    body = {
+        **_payload_carga_outro(projeto.id),
+        "tag": "R01",
+        "descricao": "Resistência com tensão inválida",
+        "tipo": TipoCargaChoices.RESISTENCIA,
+        "resistencia": {
+            "numero_fases": 3,
+            "tensao_resistencia": 220,
+            "potencia_kw": "1.500",
+        },
+    }
+    r = client.post(url, body, format="json")
+    assert r.status_code == 400
+    assert "resistencia" in r.data
+    assert "tensao_resistencia" in r.data["resistencia"]
+    assert "A tensão da resistência deve ser igual à tensão do projeto" in str(
+        r.data["resistencia"]["tensao_resistencia"]
+    )
+
+

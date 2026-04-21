@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
@@ -40,6 +41,8 @@ def _default_spec_payload(tipo: str) -> dict:
         return {
             "potencia_corrente_valor": Decimal("1.00"),
             "potencia_corrente_unidade": "CV",
+            "numero_fases": 3,
+            "tensao_motor": 380,
             "rendimento_percentual": Decimal("85.00"),
             "fator_potencia": Decimal("0.85"),
             "tipo_partida": "DIRETA",
@@ -47,39 +50,52 @@ def _default_spec_payload(tipo: str) -> dict:
             "reversivel": False,
             "freio_motor": False,
             "tipo_conexao_painel": "CONEXAO_BORNES_COM_PE",
-            "tempo_partida_s": None,
         }
     if tipo == TipoCargaChoices.VALVULA:
         return {
             "tipo_valvula": "SOLENOIDE",
             "quantidade_vias": None,
             "quantidade_posicoes": None,
+            "quantidade_solenoides": 1,
             "retorno_mola": False,
             "possui_feedback": False,
+            "tensao_alimentacao": 24,
+            "tipo_corrente": "CC",
+            "corrente_consumida_ma": Decimal("200.00"),
+            "tipo_protecao": "BORNE_FUSIVEL",
+            "tipo_acionamento": "RELE_ESTADO_SOLIDO",
         }
     if tipo == TipoCargaChoices.RESISTENCIA:
         return {
-            "controle_em_etapas": False,
-            "quantidade_etapas": 1,
-            "controle_pid": False,
+            "numero_fases": 3,
+            "tensao_resistencia": 380,
+            "tipo_protecao": "FUSIVEL_ULTRARRAPIDO",
+            "tipo_acionamento": "RELE_ESTADO_SOLIDO",
+            "potencia_kw": Decimal("1.000"),
         }
     if tipo == TipoCargaChoices.SENSOR:
         return {
             "tipo_sensor": "INDUTIVO",
             "tipo_sinal": TipoSinalChoices.DIGITAL,
             "tipo_sinal_analogico": None,
+            "tensao_alimentacao": 24,
+            "tipo_corrente": "CC",
+            "corrente_consumida_ma": Decimal("20.00"),
+            "quantidade_fios": None,
             "pnp": False,
             "npn": False,
             "normalmente_aberto": False,
             "normalmente_fechado": False,
-            "range_medicao": "",
         }
     if tipo == TipoCargaChoices.TRANSDUTOR:
         return {
             "tipo_transdutor": "PRESSAO",
             "faixa_medicao": "",
             "tipo_sinal_analogico": "CORRENTE_4_20MA",
-            "precisao": "",
+            "tensao_alimentacao": 24,
+            "tipo_corrente": "CC",
+            "corrente_consumida_ma": Decimal("20.00"),
+            "quantidade_fios": None,
         }
     return {}
 
@@ -149,6 +165,9 @@ class CargaListSerializer(serializers.ModelSerializer):
     corrente_calculada_a = serializers.SerializerMethodField()
     potencia_corrente_valor = serializers.SerializerMethodField()
     potencia_corrente_unidade = serializers.SerializerMethodField()
+    tensao_carga_display = serializers.SerializerMethodField()
+    tipo_corrente_carga_display = serializers.SerializerMethodField()
+    fases_carga_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Carga
@@ -167,31 +186,183 @@ class CargaListSerializer(serializers.ModelSerializer):
             "corrente_calculada_a",
             "potencia_corrente_valor",
             "potencia_corrente_unidade",
+            "tensao_carga_display",
+            "tipo_corrente_carga_display",
+            "fases_carga_display",
             "quantidade",
             "ativo",
             "criado_em",
             "atualizado_em",
         )
 
-    def _motor_ou_none(self, obj):
-        if obj.tipo != TipoCargaChoices.MOTOR:
-            return None
-        try:
-            return obj.motor
-        except CargaMotor.DoesNotExist:
-            return None
-
     def get_corrente_calculada_a(self, obj):
-        m = self._motor_ou_none(obj)
-        return m.corrente_calculada_a if m else None
+        if obj.tipo == TipoCargaChoices.MOTOR:
+            try:
+                return obj.motor.corrente_calculada_a
+            except CargaMotor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.RESISTENCIA:
+            try:
+                return obj.resistencia.corrente_calculada_a
+            except CargaResistencia.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.VALVULA:
+            try:
+                return (
+                    Decimal(obj.valvula.corrente_consumida_ma).quantize(
+                        Decimal("0.001")
+                    )
+                    / Decimal("1000")
+                )
+            except CargaValvula.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.SENSOR:
+            try:
+                return (
+                    Decimal(obj.sensor.corrente_consumida_ma).quantize(
+                        Decimal("0.001")
+                    )
+                    / Decimal("1000")
+                )
+            except CargaSensor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.TRANSDUTOR:
+            try:
+                return (
+                    Decimal(obj.transdutor.corrente_consumida_ma).quantize(
+                        Decimal("0.001")
+                    )
+                    / Decimal("1000")
+                )
+            except CargaTransdutor.DoesNotExist:
+                return None
+        return None
 
     def get_potencia_corrente_valor(self, obj):
-        m = self._motor_ou_none(obj)
-        return m.potencia_corrente_valor if m else None
+        if obj.tipo == TipoCargaChoices.MOTOR:
+            try:
+                return obj.motor.potencia_corrente_valor
+            except CargaMotor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.RESISTENCIA:
+            try:
+                return obj.resistencia.potencia_kw
+            except CargaResistencia.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.VALVULA:
+            try:
+                potencia_w = (
+                    Decimal(obj.valvula.tensao_alimentacao)
+                    * Decimal(obj.valvula.corrente_consumida_ma)
+                    / Decimal("1000")
+                )
+                return potencia_w.quantize(Decimal("0.01"))
+            except CargaValvula.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.SENSOR:
+            try:
+                potencia_w = (
+                    Decimal(obj.sensor.tensao_alimentacao)
+                    * Decimal(obj.sensor.corrente_consumida_ma)
+                    / Decimal("1000")
+                )
+                return potencia_w.quantize(Decimal("0.01"))
+            except CargaSensor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.TRANSDUTOR:
+            try:
+                potencia_w = (
+                    Decimal(obj.transdutor.tensao_alimentacao)
+                    * Decimal(obj.transdutor.corrente_consumida_ma)
+                    / Decimal("1000")
+                )
+                return potencia_w.quantize(Decimal("0.01"))
+            except CargaTransdutor.DoesNotExist:
+                return None
+        return None
 
     def get_potencia_corrente_unidade(self, obj):
-        m = self._motor_ou_none(obj)
-        return m.potencia_corrente_unidade if m else None
+        if obj.tipo == TipoCargaChoices.MOTOR:
+            try:
+                return obj.motor.potencia_corrente_unidade
+            except CargaMotor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.RESISTENCIA:
+            return "kW"
+        if obj.tipo in (
+            TipoCargaChoices.VALVULA,
+            TipoCargaChoices.SENSOR,
+            TipoCargaChoices.TRANSDUTOR,
+        ):
+            return "W"
+        return None
+
+    def get_tensao_carga_display(self, obj):
+        tensao = None
+        if obj.tipo == TipoCargaChoices.MOTOR:
+            try:
+                tensao = obj.motor.tensao_motor
+            except CargaMotor.DoesNotExist:
+                tensao = None
+        elif obj.tipo == TipoCargaChoices.VALVULA:
+            try:
+                tensao = obj.valvula.tensao_alimentacao
+            except CargaValvula.DoesNotExist:
+                tensao = None
+        elif obj.tipo == TipoCargaChoices.RESISTENCIA:
+            try:
+                tensao = obj.resistencia.tensao_resistencia
+            except CargaResistencia.DoesNotExist:
+                tensao = None
+        elif obj.tipo == TipoCargaChoices.SENSOR:
+            try:
+                tensao = obj.sensor.tensao_alimentacao
+            except CargaSensor.DoesNotExist:
+                tensao = None
+        elif obj.tipo == TipoCargaChoices.TRANSDUTOR:
+            try:
+                tensao = obj.transdutor.tensao_alimentacao
+            except CargaTransdutor.DoesNotExist:
+                tensao = None
+
+        if tensao is None:
+            tensao = getattr(obj.projeto, "tensao_nominal", None)
+        return f"{tensao} V" if tensao else None
+
+    def get_tipo_corrente_carga_display(self, obj):
+        tipo_corrente = None
+        if obj.tipo == TipoCargaChoices.VALVULA:
+            try:
+                tipo_corrente = obj.valvula.get_tipo_corrente_display()
+            except CargaValvula.DoesNotExist:
+                tipo_corrente = None
+        elif obj.tipo == TipoCargaChoices.SENSOR:
+            try:
+                tipo_corrente = obj.sensor.get_tipo_corrente_display()
+            except CargaSensor.DoesNotExist:
+                tipo_corrente = None
+        elif obj.tipo == TipoCargaChoices.TRANSDUTOR:
+            try:
+                tipo_corrente = obj.transdutor.get_tipo_corrente_display()
+            except CargaTransdutor.DoesNotExist:
+                tipo_corrente = None
+
+        if tipo_corrente is None:
+            tipo_corrente = getattr(obj.projeto, "get_tipo_corrente_display", lambda: None)()
+        return tipo_corrente
+
+    def get_fases_carga_display(self, obj):
+        if obj.tipo == TipoCargaChoices.MOTOR:
+            try:
+                return obj.motor.get_numero_fases_display()
+            except CargaMotor.DoesNotExist:
+                return None
+        if obj.tipo == TipoCargaChoices.RESISTENCIA:
+            try:
+                return obj.resistencia.get_numero_fases_display()
+            except CargaResistencia.DoesNotExist:
+                return None
+        return None
 
 
 class CargaDetailSerializer(serializers.ModelSerializer):
@@ -221,11 +392,11 @@ class CargaDetailSerializer(serializers.ModelSerializer):
             "exige_protecao",
             "exige_seccionamento",
             "exige_comando",
-            "exige_fonte_auxiliar",
-            "ocupa_entrada_digital",
-            "ocupa_entrada_analogica",
-            "ocupa_saida_digital",
-            "ocupa_saida_analogica",
+            "quantidade_entradas_digitais",
+            "quantidade_entradas_analogicas",
+            "quantidade_saidas_digitais",
+            "quantidade_saidas_analogicas",
+            "quantidade_entradas_rapidas",
             "tipo_display",
             "projeto_codigo",
             "projeto_nome",
@@ -302,11 +473,11 @@ class CargaWriteSerializer(serializers.ModelSerializer):
             "exige_protecao",
             "exige_seccionamento",
             "exige_comando",
-            "exige_fonte_auxiliar",
-            "ocupa_entrada_digital",
-            "ocupa_entrada_analogica",
-            "ocupa_saida_digital",
-            "ocupa_saida_analogica",
+            "quantidade_entradas_digitais",
+            "quantidade_entradas_analogicas",
+            "quantidade_saidas_digitais",
+            "quantidade_saidas_analogicas",
+            "quantidade_entradas_rapidas",
             "ativo",
             "motor",
             "valvula",
@@ -343,7 +514,10 @@ class CargaWriteSerializer(serializers.ModelSerializer):
         defaults = _default_spec_payload(tipo)
         incoming = payloads.get(key)
         merged = _merge_spec(defaults, incoming)
-        MODEL_BY_KEY[key].objects.create(carga=carga, **merged)
+        try:
+            MODEL_BY_KEY[key].objects.create(carga=carga, **merged)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({key: exc.message_dict}) from exc
 
     @transaction.atomic
     def create(self, validated_data):
@@ -376,14 +550,17 @@ class CargaWriteSerializer(serializers.ModelSerializer):
             incoming = payloads[key_novo]
             obj, created = Model.objects.get_or_create(
                 carga=instance,
-                defaults=_merge_spec(
-                    _default_spec_payload(tipo_novo), incoming
-                ),
+                defaults=_merge_spec(_default_spec_payload(tipo_novo), incoming),
             )
             if not created:
                 for k, v in incoming.items():
                     setattr(obj, k, v)
-                obj.save()
+                try:
+                    obj.save()
+                except DjangoValidationError as exc:
+                    raise serializers.ValidationError(
+                        {key_novo: exc.message_dict}
+                    ) from exc
         return instance
 
 

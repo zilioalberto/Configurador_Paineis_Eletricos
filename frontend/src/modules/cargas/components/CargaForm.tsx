@@ -8,9 +8,16 @@ import {
 } from 'react'
 import type { Projeto } from '@/modules/projetos/types/projeto'
 import {
+  numeroFasesOptions,
+  tensaoOptions,
+  tipoAcionamentoResistenciaOptions,
+  tipoAcionamentoValvulaOptions,
   tipoConexaoCargaPainelOptions,
+  tipoCorrenteOptions,
   tipoPartidaMotorOptions,
   tipoProtecaoMotorOptions,
+  tipoProtecaoResistenciaOptions,
+  tipoProtecaoValvulaOptions,
   tipoSensorOptions,
   tipoSinalAnalogicoOptions,
   tipoSinalOptions,
@@ -67,6 +74,34 @@ export default function CargaForm({
     [projetos, formData.projeto]
   )
   const mostrarOcupacaoIo = projetoSelecionado?.possui_plc === true
+  const esconderCamposAnalogicosIo =
+    mostrarOcupacaoIo &&
+    formData.tipo === 'MOTOR' &&
+    (formData.motor?.tipo_partida === 'DIRETA' ||
+      formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
+  const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !formData.exige_comando
+
+  const calcularSaidasDigitaisMotor = useCallback(
+    (partida: string, reversivel: boolean, freioMotor: boolean): number => {
+      let saidas = 1
+
+      if (partida === 'ESTRELA_TRIANGULO') {
+        saidas = 3
+      } else if (
+        partida === 'DIRETA' ||
+        partida === 'SOFT_STARTER' ||
+        partida === 'INVERSOR' ||
+        partida === 'SERVO_DRIVE'
+      ) {
+        saidas = 1
+      }
+
+      if (reversivel) saidas += 1
+      if (freioMotor) saidas += 1
+      return saidas
+    },
+    []
+  )
 
   useEffect(() => {
     if (!formData.projeto) return
@@ -74,13 +109,94 @@ export default function CargaForm({
     if (p && !p.possui_plc) {
       setFormData((prev) => ({
         ...prev,
-        ocupa_entrada_digital: false,
-        ocupa_entrada_analogica: false,
-        ocupa_saida_digital: false,
-        ocupa_saida_analogica: false,
+        quantidade_entradas_digitais: 0,
+        quantidade_entradas_analogicas: 0,
+        quantidade_saidas_digitais: 0,
+        quantidade_saidas_analogicas: 0,
+        quantidade_entradas_rapidas: 0,
       }))
     }
   }, [formData.projeto, projetos])
+
+  useEffect(() => {
+    if (!mostrarOcupacaoIo || !formData.exige_comando) {
+      setFormData((prev) => ({
+        ...prev,
+        quantidade_entradas_digitais: 0,
+        quantidade_entradas_analogicas: 0,
+        quantidade_saidas_digitais: 0,
+        quantidade_saidas_analogicas: 0,
+        quantidade_entradas_rapidas: 0,
+      }))
+      return
+    }
+
+    let entradasDigitais = 0
+    let entradasAnalogicas = 0
+    let saidasDigitais = 0
+    let saidasAnalogicas = 0
+    let entradasRapidas = 0
+
+    if (formData.tipo === 'MOTOR' && formData.motor) {
+      const partida = formData.motor.tipo_partida
+      if (
+        partida === 'DIRETA' ||
+        partida === 'ESTRELA_TRIANGULO' ||
+        partida === 'SOFT_STARTER' ||
+        partida === 'INVERSOR' ||
+        partida === 'SERVO_DRIVE'
+      ) {
+        entradasDigitais = 1
+        saidasDigitais = calcularSaidasDigitaisMotor(
+          partida,
+          Boolean(formData.motor.reversivel),
+          Boolean(formData.motor.freio_motor)
+        )
+      }
+      if (partida === 'ESTRELA_TRIANGULO') {
+        entradasAnalogicas = 0
+        saidasAnalogicas = 0
+      }
+    } else if (formData.tipo === 'VALVULA' && formData.valvula) {
+      entradasDigitais = formData.valvula.possui_feedback ? 1 : 0
+      saidasDigitais = Math.max(1, Number(formData.valvula.quantidade_solenoides) || 1)
+    } else if (formData.tipo === 'RESISTENCIA' && formData.resistencia) {
+      saidasDigitais = 1
+    } else if (formData.tipo === 'SENSOR' && formData.sensor) {
+      const sinal = formData.sensor.tipo_sinal
+      if (sinal === 'DIGITAL') entradasDigitais = 1
+      if (sinal === 'ANALOGICO') entradasAnalogicas = 1
+      if (sinal === 'ANALOGICO_DIGITAL') {
+        entradasDigitais = 1
+        entradasAnalogicas = 1
+      }
+      if (formData.sensor.tipo_sensor === 'ENCODER') entradasRapidas = 1
+    } else if (formData.tipo === 'TRANSDUTOR') {
+      entradasAnalogicas = 1
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      quantidade_entradas_digitais: entradasDigitais,
+      quantidade_entradas_analogicas: entradasAnalogicas,
+      quantidade_saidas_digitais: saidasDigitais,
+      quantidade_saidas_analogicas: saidasAnalogicas,
+      quantidade_entradas_rapidas: entradasRapidas,
+    }))
+  }, [
+    mostrarOcupacaoIo,
+    formData.exige_comando,
+    formData.tipo,
+    formData.motor?.tipo_partida,
+    formData.motor?.reversivel,
+    formData.motor?.freio_motor,
+    formData.valvula?.quantidade_solenoides,
+    formData.valvula?.possui_feedback,
+    formData.resistencia?.tipo_acionamento,
+    formData.sensor?.tipo_sinal,
+    formData.sensor?.tipo_sensor,
+    calcularSaidasDigitaisMotor,
+  ])
 
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -95,6 +211,20 @@ export default function CargaForm({
         setFormData((prev) => ({
           ...prev,
           quantidade: Number.isFinite(n) && n >= 1 ? n : 1,
+        }))
+        return
+      }
+      if (
+        name === 'quantidade_entradas_digitais' ||
+        name === 'quantidade_entradas_analogicas' ||
+        name === 'quantidade_saidas_digitais' ||
+        name === 'quantidade_saidas_analogicas' ||
+        name === 'quantidade_entradas_rapidas'
+      ) {
+        const n = Number(value)
+        setFormData((prev) => ({
+          ...prev,
+          [name]: Number.isFinite(n) && n >= 0 ? n : 0,
         }))
         return
       }
@@ -174,6 +304,89 @@ export default function CargaForm({
   const r = formData.resistencia
   const s = formData.sensor
   const t = formData.transdutor
+
+  const renderRequisitosSection = () => (
+    <>
+      <div className="col-12">
+        <h2 className="h5 mt-2">Requisitos</h2>
+      </div>
+
+      {(
+        [
+          ['exige_comando', 'Exige comando'],
+          ['ativo', 'Ativo'],
+        ] as const
+      ).map(([name, label]) => (
+        <div key={name} className="col-md-4">
+          <div className="form-check">
+            <input
+              id={name}
+              name={name}
+              type="checkbox"
+              className="form-check-input"
+              checked={Boolean(formData[name as keyof CargaFormData])}
+              onChange={handleBaseChange}
+            />
+            <label className="form-check-label" htmlFor={name}>
+              {label}
+            </label>
+          </div>
+        </div>
+      ))}
+
+      {mostrarOcupacaoIo && (
+        <>
+          <div className="col-12 mt-2">
+            <h3 className="h6 text-muted mb-0">
+              Ocupação de I/O (projeto com PLC)
+            </h3>
+          </div>
+          {(
+            [
+              ['quantidade_entradas_digitais', 'Entradas digitais'],
+              ['quantidade_entradas_analogicas', 'Entradas analógicas'],
+              ['quantidade_saidas_digitais', 'Saídas digitais'],
+              ['quantidade_saidas_analogicas', 'Saídas analógicas'],
+              ['quantidade_entradas_rapidas', 'Entradas rápidas'],
+            ] as const
+          )
+            .filter(([name]) => {
+              if (!esconderCamposAnalogicosIo) return true
+              return (
+                name !== 'quantidade_entradas_analogicas' &&
+                name !== 'quantidade_saidas_analogicas'
+              )
+            })
+            .map(([name, label]) => (
+              <div key={name} className="col-md-4">
+                <label className="form-label" htmlFor={name}>
+                  {label}
+                </label>
+                <input
+                  id={name}
+                  name={name}
+                  type="number"
+                  min={0}
+                  className="form-control"
+                  value={Number(formData[name as keyof CargaFormData] ?? 0)}
+                  onChange={handleBaseChange}
+                  disabled={desabilitarQuantidadesIo}
+                />
+              </div>
+            ))}
+        </>
+      )}
+
+      {formData.projeto && !mostrarOcupacaoIo && (
+        <div className="col-12">
+          <p className="small text-muted mb-0">
+            Ocupação de entradas e saídas digitais/analógicas só pode ser
+            informada quando o projeto possui <strong>PLC</strong> cadastrado.
+          </p>
+        </div>
+      )}
+    </>
+  )
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)}>
@@ -274,75 +487,6 @@ export default function CargaForm({
           />
         </div>
 
-        <div className="col-12">
-          <h2 className="h5 mt-2">Requisitos</h2>
-        </div>
-
-        {(
-          [
-            ['exige_comando', 'Exige comando'],
-            ['ativo', 'Ativo'],
-          ] as const
-        ).map(([name, label]) => (
-          <div key={name} className="col-md-4">
-            <div className="form-check">
-              <input
-                id={name}
-                name={name}
-                type="checkbox"
-                className="form-check-input"
-                checked={Boolean(formData[name as keyof CargaFormData])}
-                onChange={handleBaseChange}
-              />
-              <label className="form-check-label" htmlFor={name}>
-                {label}
-              </label>
-            </div>
-          </div>
-        ))}
-
-        {mostrarOcupacaoIo && (
-          <>
-            <div className="col-12 mt-2">
-              <h3 className="h6 text-muted mb-0">
-                Ocupação de I/O (projeto com PLC)
-              </h3>
-            </div>
-            {(
-              [
-                ['ocupa_entrada_digital', 'Ocupa entrada digital'],
-                ['ocupa_entrada_analogica', 'Ocupa entrada analógica'],
-                ['ocupa_saida_digital', 'Ocupa saída digital'],
-                ['ocupa_saida_analogica', 'Ocupa saída analógica'],
-              ] as const
-            ).map(([name, label]) => (
-              <div key={name} className="col-md-4">
-                <div className="form-check">
-                  <input
-                    id={name}
-                    name={name}
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={Boolean(formData[name as keyof CargaFormData])}
-                    onChange={handleBaseChange}
-                  />
-                  <label className="form-check-label" htmlFor={name}>
-                    {label}
-                  </label>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {formData.projeto && !mostrarOcupacaoIo && (
-          <div className="col-12">
-            <p className="small text-muted mb-0">
-              Ocupação de entradas e saídas digitais/analógicas só pode ser
-              informada quando o projeto possui <strong>PLC</strong> cadastrado.
-            </p>
-          </div>
-        )}
 
         {formData.tipo === 'MOTOR' && m && (
           <>
@@ -426,6 +570,30 @@ export default function CargaForm({
               </select>
             </div>
             <div className="col-md-4">
+              <label className="form-label">Número de fases</label>
+              <select
+                className="form-select"
+                value={m.numero_fases}
+                onChange={(e) =>
+                  patchMotor({ numero_fases: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(numeroFasesOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Tensão do motor</label>
+              <select
+                className="form-select"
+                value={m.tensao_motor}
+                onChange={(e) =>
+                  patchMotor({ tensao_motor: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(tensaoOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
               <label className="form-label">Conexão ao painel</label>
               <select
                 className="form-select"
@@ -437,20 +605,7 @@ export default function CargaForm({
                 {renderCargaSelectOptions(tipoConexaoCargaPainelOptions)}
               </select>
             </div>
-            {motorMostraTempoPartida && (
-              <div className="col-md-4">
-                <label className="form-label">Tempo de partida (s)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={m.tempo_partida_s}
-                  onChange={(e) =>
-                    patchMotor({ tempo_partida_s: e.target.value })
-                  }
-                  placeholder="Opcional"
-                />
-              </div>
-            )}
+            {motorMostraTempoPartida && <div className="col-md-4" />}
             <div className="col-md-4">
               <div className="form-check mt-4">
                 <input
@@ -482,6 +637,7 @@ export default function CargaForm({
           </>
         )}
 
+
         {formData.tipo === 'VALVULA' && v && (
           <>
             <div className="col-12">
@@ -499,42 +655,73 @@ export default function CargaForm({
               </select>
             </div>
             <div className="col-md-4">
-              <label className="form-label">Qtd. vias</label>
+              <label className="form-label">Qtd. solenoides</label>
               <input
-                type="text"
+                type="number"
+                min={1}
                 className="form-control"
-                value={v.quantidade_vias}
+                value={v.quantidade_solenoides}
                 onChange={(e) =>
-                  patchValvula({ quantidade_vias: e.target.value })
+                  patchValvula({
+                    quantidade_solenoides: Math.max(1, Number(e.target.value) || 1),
+                  })
                 }
               />
             </div>
             <div className="col-md-4">
-              <label className="form-label">Qtd. posições</label>
+              <label className="form-label">Tensão de alimentação</label>
+              <select
+                className="form-select"
+                value={v.tensao_alimentacao}
+                onChange={(e) =>
+                  patchValvula({ tensao_alimentacao: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(tensaoOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Tipo de corrente</label>
+              <select
+                className="form-select"
+                value={v.tipo_corrente}
+                onChange={(e) =>
+                  patchValvula({ tipo_corrente: e.target.value as 'CA' | 'CC' })
+                }
+              >
+                {renderCargaSelectOptions(tipoCorrenteOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Corrente consumida (mA)</label>
               <input
                 type="text"
                 className="form-control"
-                value={v.quantidade_posicoes}
+                value={v.corrente_consumida_ma}
                 onChange={(e) =>
-                  patchValvula({ quantidade_posicoes: e.target.value })
+                  patchValvula({ corrente_consumida_ma: e.target.value })
                 }
               />
             </div>
             <div className="col-md-4">
-              <div className="form-check mt-2">
-                <input
-                  id="retorno_mola"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={v.retorno_mola}
-                  onChange={(e) =>
-                    patchValvula({ retorno_mola: e.target.checked })
-                  }
-                />
-                <label className="form-check-label" htmlFor="retorno_mola">
-                  Retorno por mola
-                </label>
-              </div>
+              <label className="form-label">Tipo de proteção</label>
+              <select
+                className="form-select"
+                value={v.tipo_protecao}
+                onChange={(e) => patchValvula({ tipo_protecao: e.target.value })}
+              >
+                {renderCargaSelectOptions(tipoProtecaoValvulaOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Tipo de acionamento</label>
+              <select
+                className="form-select"
+                value={v.tipo_acionamento}
+                onChange={(e) => patchValvula({ tipo_acionamento: e.target.value })}
+              >
+                {renderCargaSelectOptions(tipoAcionamentoValvulaOptions)}
+              </select>
             </div>
             <div className="col-md-4">
               <div className="form-check mt-2">
@@ -562,50 +749,59 @@ export default function CargaForm({
               <h2 className="h5">Resistência</h2>
             </div>
             <div className="col-md-4">
-              <label className="form-label">Quantidade de etapas</label>
-              <input
-                type="number"
-                min={1}
-                className="form-control"
-                value={r.quantidade_etapas}
+              <label className="form-label">Número de fases</label>
+              <select
+                className="form-select"
+                value={r.numero_fases}
                 onChange={(e) =>
-                  patchResistencia({
-                    quantidade_etapas: Math.max(1, Number(e.target.value) || 1),
-                  })
+                  patchResistencia({ numero_fases: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(numeroFasesOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Tensão da resistência</label>
+              <select
+                className="form-select"
+                value={r.tensao_resistencia}
+                onChange={(e) =>
+                  patchResistencia({ tensao_resistencia: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(tensaoOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Potência (kW)</label>
+              <input
+                type="text"
+                className="form-control"
+                value={r.potencia_kw}
+                onChange={(e) =>
+                  patchResistencia({ potencia_kw: e.target.value })
                 }
               />
             </div>
             <div className="col-md-4">
-              <div className="form-check mt-4">
-                <input
-                  id="controle_em_etapas"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={r.controle_em_etapas}
-                  onChange={(e) =>
-                    patchResistencia({ controle_em_etapas: e.target.checked })
-                  }
-                />
-                <label className="form-check-label" htmlFor="controle_em_etapas">
-                  Controle em etapas
-                </label>
-              </div>
+              <label className="form-label">Tipo de proteção</label>
+              <select
+                className="form-select"
+                value={r.tipo_protecao}
+                onChange={(e) => patchResistencia({ tipo_protecao: e.target.value })}
+              >
+                {renderCargaSelectOptions(tipoProtecaoResistenciaOptions)}
+              </select>
             </div>
             <div className="col-md-4">
-              <div className="form-check mt-4">
-                <input
-                  id="controle_pid"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={r.controle_pid}
-                  onChange={(e) =>
-                    patchResistencia({ controle_pid: e.target.checked })
-                  }
-                />
-                <label className="form-check-label" htmlFor="controle_pid">
-                  Controle PID
-                </label>
-              </div>
+              <label className="form-label">Tipo de acionamento</label>
+              <select
+                className="form-select"
+                value={r.tipo_acionamento}
+                onChange={(e) => patchResistencia({ tipo_acionamento: e.target.value })}
+              >
+                {renderCargaSelectOptions(tipoAcionamentoResistenciaOptions)}
+              </select>
             </div>
           </>
         )}
@@ -650,13 +846,53 @@ export default function CargaForm({
                 {renderCargaSelectOptions(tipoSinalAnalogicoOptions)}
               </select>
             </div>
-            <div className="col-md-6">
-              <label className="form-label">Faixa / range</label>
+            <div className="col-md-3">
+              <label className="form-label">Tensão de alimentação</label>
+              <select
+                className="form-select"
+                value={s.tensao_alimentacao}
+                onChange={(e) =>
+                  patchSensor({ tensao_alimentacao: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(tensaoOptions)}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Tipo de corrente</label>
+              <select
+                className="form-select"
+                value={s.tipo_corrente}
+                onChange={(e) =>
+                  patchSensor({ tipo_corrente: e.target.value as 'CA' | 'CC' })
+                }
+              >
+                {renderCargaSelectOptions(tipoCorrenteOptions)}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Corrente consumida (mA)</label>
               <input
                 type="text"
                 className="form-control"
-                value={s.range_medicao}
-                onChange={(e) => patchSensor({ range_medicao: e.target.value })}
+                value={s.corrente_consumida_ma}
+                onChange={(e) =>
+                  patchSensor({ corrente_consumida_ma: e.target.value })
+                }
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Quantidade de fios</label>
+              <input
+                type="number"
+                min={0}
+                className="form-control"
+                value={s.quantidade_fios}
+                onChange={(e) =>
+                  patchSensor({
+                    quantidade_fios: e.target.value === '' ? '' : Number(e.target.value),
+                  })
+                }
               />
             </div>
             {(['pnp', 'npn', 'normalmente_aberto', 'normalmente_fechado'] as const).map(
@@ -729,12 +965,52 @@ export default function CargaForm({
               />
             </div>
             <div className="col-md-4">
-              <label className="form-label">Precisão</label>
+              <label className="form-label">Tensão de alimentação</label>
+              <select
+                className="form-select"
+                value={t.tensao_alimentacao}
+                onChange={(e) =>
+                  patchTransdutor({ tensao_alimentacao: Number(e.target.value) })
+                }
+              >
+                {renderCargaSelectOptions(tensaoOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Tipo de corrente</label>
+              <select
+                className="form-select"
+                value={t.tipo_corrente}
+                onChange={(e) =>
+                  patchTransdutor({ tipo_corrente: e.target.value as 'CA' | 'CC' })
+                }
+              >
+                {renderCargaSelectOptions(tipoCorrenteOptions)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Corrente consumida (mA)</label>
               <input
                 type="text"
                 className="form-control"
-                value={t.precisao}
-                onChange={(e) => patchTransdutor({ precisao: e.target.value })}
+                value={t.corrente_consumida_ma}
+                onChange={(e) =>
+                  patchTransdutor({ corrente_consumida_ma: e.target.value })
+                }
+              />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Quantidade de fios</label>
+              <input
+                type="number"
+                min={0}
+                className="form-control"
+                value={t.quantidade_fios}
+                onChange={(e) =>
+                  patchTransdutor({
+                    quantidade_fios: e.target.value === '' ? '' : Number(e.target.value),
+                  })
+                }
               />
             </div>
           </>
@@ -749,6 +1025,8 @@ export default function CargaForm({
             </p>
           </div>
         )}
+
+        {renderRequisitosSection()}
       </div>
 
       <div className="mt-4 d-flex gap-2">

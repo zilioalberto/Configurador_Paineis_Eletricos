@@ -38,6 +38,7 @@ class FrequenciaChoices(models.IntegerChoices):
 class TipoSinalChoices(models.TextChoices):
     DIGITAL = "DIGITAL", "Digital"
     ANALOGICO = "ANALOGICO", "Analógico"
+    ANALOGICO_DIGITAL = "ANALOGICO_DIGITAL", "Analógico/Digital"
     PULSO = "PULSO", "Pulso"
     COMUNICACAO = "COMUNICACAO", "Comunicação"
     

@@ -82,4 +82,84 @@ describe('CargaForm', () => {
       expect((screen.getByPlaceholderText(/M01/i) as HTMLInputElement).value).toBe('M03')
     })
   })
+
+  it('recalcula IO do motor ao alterar tipo de partida na edição', async () => {
+    const initial = cargaFormInitial('proj-1')
+    initial.tag = 'M01'
+    initial.descricao = 'Motor editado'
+    initial.exige_comando = true
+    initial.quantidade_entradas_digitais = 1
+    initial.quantidade_saidas_digitais = 1
+    if (initial.motor) {
+      initial.motor.tipo_partida = 'DIRETA'
+      initial.motor.reversivel = false
+      initial.motor.freio_motor = false
+    }
+
+    render(
+      <CargaForm
+        projetos={[
+          {
+            id: 'proj-1',
+            nome: 'P',
+            codigo: 'C-1',
+            status: 'EM_ANDAMENTO',
+            possui_plc: true,
+          } as import('@/modules/projetos/types/projeto').Projeto,
+        ]}
+        initialData={initial}
+        onSubmit={onSubmit}
+        lockProjeto
+      />
+    )
+
+    const tipoPartida = screen
+      .getAllByRole('combobox')
+      .find((el) => (el as HTMLSelectElement).value === 'DIRETA')
+    expect(tipoPartida).toBeDefined()
+    if (!tipoPartida) throw new Error('Campo tipo_partida não encontrado')
+    fireEvent.change(tipoPartida, { target: { value: 'ESTRELA_TRIANGULO' } })
+
+    await waitFor(() => {
+      expect(
+        (screen.getByLabelText(/Saídas digitais/i) as HTMLInputElement).value
+      ).toBe('3')
+    })
+  })
+
+  it('zera e desabilita quantidades de IO quando exige comando fica false', async () => {
+    const initial = cargaFormInitial('proj-1')
+    initial.tag = 'M10'
+    initial.descricao = 'Motor sem comando'
+    initial.exige_comando = true
+
+    render(
+      <CargaForm
+        projetos={[
+          {
+            id: 'proj-1',
+            nome: 'P',
+            codigo: 'C-1',
+            status: 'EM_ANDAMENTO',
+            possui_plc: true,
+          } as import('@/modules/projetos/types/projeto').Projeto,
+        ]}
+        initialData={initial}
+        onSubmit={onSubmit}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText(/Exige comando/i))
+
+    await waitFor(() => {
+      expect(
+        (screen.getByLabelText(/Entradas digitais/i) as HTMLInputElement).value
+      ).toBe('0')
+      expect(
+        (screen.getByLabelText(/Saídas digitais/i) as HTMLInputElement).value
+      ).toBe('0')
+      expect(screen.getByLabelText(/Entradas digitais/i)).toBeDisabled()
+      expect(screen.getByLabelText(/Saídas digitais/i)).toBeDisabled()
+    })
+  })
 })

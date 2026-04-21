@@ -9,6 +9,7 @@ class TipoCargaChoices(models.TextChoices):
     TRANSDUTOR = "TRANSDUTOR", "Transdutor"
     TRANSMISSOR = "TRANSMISSOR", "Transmissor"
     OUTRO = "OUTRO", "Outro"
+
     
     
 
@@ -26,19 +27,26 @@ class TipoProtecaoMotorChoices(models.TextChoices):
     FUSIVEL = "FUSIVEL", "Fusível"
     FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
     MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
-    OUTRO = "OUTRO", "Outro"
+
 
 class TipoProtecaoResistenciaChoices(models.TextChoices):
     DISJUNTOR_MOTOR = "DISJUNTOR_MOTOR", "Disjuntor Motor"
     FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
     MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
-    OUTRO = "OUTRO", "Outro"
+
     
+class TipoAcionamentoResistenciaChoices(models.TextChoices):
+    CONTATOR = "CONTATOR", "Contator"
+    RELE_ESTADO_SOLIDO = "RELE_ESTADO_SOLIDO", "Relé de Estado Sólido"
+
+
+
 class TipoConexaoCargaPainelChoices(models.TextChoices):
     CONEXAO_BORNES_COM_PE = "CONEXAO_BORNES_COM_PE", "Conexão a bornes com PE"
     CONEXAO_BORNES_SEM_PE = "CONEXAO_BORNES_SEM_PE", "Conexão a bornes sem PE"
     CONEXAO_DIRETO_COMPONENTE = "CONEXAO_DIRETO_COMPONENTE", "Conexão direta ao componente"
     OUTROS = "OUTROS", "Outros"
+
 
 
 class TipoValvulaChoices(models.TextChoices):
@@ -47,6 +55,19 @@ class TipoValvulaChoices(models.TextChoices):
     MOTORIZADA = "MOTORIZADA", "Motorizada"
     PNEUMATICA = "PNEUMATICA", "Pneumática"
     OUTRA = "OUTRA", "Outra"
+
+class TipoProtecaoValvulaChoices(models.TextChoices):
+    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini disjuntor"
+    BORNE_FUSIVEL = "BORNE_FUSIVEL", "Borne Fusível"
+    SEM_PROTECAO = "SEM_PROTECAO", "Sem proteção"
+
+
+class TipoAcionamentoValvulaChoices(models.TextChoices):
+    SOLENOIDE_DIRETO = "SOLENOIDE_DIRETO", "Solenoide direto"
+    RELE_ESTADO_SOLIDO = "RELE_ESTADO_SOLIDO", "Relé de Estado Sólido"
+    RELE_ACOPLADOR = "RELE_ACOPLADOR", "Relé Acoplador"
+    CONTATOR = "CONTATOR", "Contator"
+
 
 
 class TipoSensorChoices(models.TextChoices):
@@ -58,7 +79,7 @@ class TipoSensorChoices(models.TextChoices):
     TERMOSTATO = "TERMOSTATO", "Termostato"
     CHAVE_NIVEL = "CHAVE_NIVEL", "Chave de nível"
     ENCODER = "ENCODER", "Encoder"
-    OUTRO = "OUTRO", "Outro"
+
 
 
 class TipoTransdutorChoices(models.TextChoices):
@@ -69,12 +90,12 @@ class TipoTransdutorChoices(models.TextChoices):
     POSICAO = "POSICAO", "Posição"
     CORRENTE = "CORRENTE", "Corrente"
     TENSAO = "TENSAO", "Tensão"
-    OUTRO = "OUTRO", "Outro"
+
     
 class TipoClimatizacaoPainelChoices(models.TextChoices):
     VENTILADOR = "VENTILADOR", "Ventilador"
     EXAUSTOR = "EXAUSTOR", "Exaustor"
     AR_CONDICIONADO = "AR_CONDICIONADO", "Ar Condicionado"
-    OUTRO = "OUTRO", "Outro"
+
     
     

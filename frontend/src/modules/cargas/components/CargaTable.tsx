@@ -14,17 +14,25 @@ function em(val: string | null | undefined) {
 }
 
 /** Potência sempre na unidade cadastrada (potencia_corrente_valor / potencia_corrente_unidade). */
+function formatDecimal(value: string | number, digits: number): string {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return String(value)
+  return n.toFixed(digits)
+}
+
 function formatPotencia(c: CargaListItem) {
   if (c.potencia_corrente_valor != null && c.potencia_corrente_valor !== '') {
     const u = c.potencia_corrente_unidade ?? ''
-    return u ? `${c.potencia_corrente_valor} ${u}` : c.potencia_corrente_valor
+    const digits = 2
+    const valor = formatDecimal(c.potencia_corrente_valor, digits)
+    return u ? `${valor} ${u}` : valor
   }
   return '—'
 }
 
 function formatCorrente(c: CargaListItem) {
   if (c.corrente_calculada_a != null && c.corrente_calculada_a !== '') {
-    return `${c.corrente_calculada_a} A`
+    return `${formatDecimal(c.corrente_calculada_a, 2)} A`
   }
   return '—'
 }
@@ -76,14 +84,14 @@ export default function CargaTable({
               <td>{formatPotencia(c)}</td>
               <td>{formatCorrente(c)}</td>
               <td>
-                <div>{em(c.projeto_tensao_display)}</div>
-                {c.projeto_tipo_corrente_display ? (
+                <div>{em(c.tensao_carga_display ?? c.projeto_tensao_display)}</div>
+                {(c.tipo_corrente_carga_display ?? c.projeto_tipo_corrente_display) ? (
                   <div className="small text-muted">
-                    {c.projeto_tipo_corrente_display}
+                    {c.tipo_corrente_carga_display ?? c.projeto_tipo_corrente_display}
                   </div>
                 ) : null}
               </td>
-              <td>{em(c.projeto_fases_display)}</td>
+              <td>{em(c.fases_carga_display)}</td>
               <td>{c.quantidade}</td>
               <td>{c.ativo ? 'Sim' : 'Não'}</td>
               {canManage ? (

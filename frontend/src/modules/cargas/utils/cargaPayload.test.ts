@@ -26,17 +26,17 @@ describe('cargaFormToApiPayload', () => {
     )
     expect(body.exige_protecao).toBe(true)
     expect(body.exige_seccionamento).toBe(false)
-    expect(body.exige_fonte_auxiliar).toBe(false)
+    expect(body).not.toHaveProperty('exige_fonte_auxiliar')
   })
 
   it('remove strings vazias do motor antes de enviar', () => {
     const form = cargaFormInitial('p')
     form.motor = {
       ...defaultMotor(),
-      tempo_partida_s: '',
+      tensao_motor: 220,
     }
     const body = cargaFormToApiPayload(form) as { motor: Record<string, unknown> }
-    expect(body.motor.tempo_partida_s).toBeNull()
+    expect(body.motor.tensao_motor).toBe(220)
   })
 
   it('envia valvula com números quando preenchidos', () => {
@@ -61,7 +61,7 @@ describe('cargaFormToApiPayload', () => {
     let form = applyTipoChange(cargaFormInitial('p'), 'RESISTENCIA')
     form.resistencia = defaultResistencia()
     const body = cargaFormToApiPayload(form)
-    expect(body.resistencia).toEqual(expect.objectContaining({ quantidade_etapas: 1 }))
+    expect(body.resistencia).toEqual(expect.objectContaining({ potencia_kw: 1 }))
   })
 
   it('envia sensor com tipo_sinal_analogico null quando vazio', () => {

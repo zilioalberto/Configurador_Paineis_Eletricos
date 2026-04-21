@@ -5,19 +5,14 @@ from cargas.models import Carga
 
 def calcular_totais_io_plc(projeto) -> dict[str, int]:
     """
-    Soma pontos de I/O declarados nas cargas ativas (quantidade × ocorrência).
+    Soma pontos de I/O declarados nas cargas ativas.
     """
     tot_ed = tot_sd = tot_ea = tot_sa = 0
     for c in Carga.objects.filter(projeto=projeto, ativo=True):
-        q = c.quantidade
-        if c.ocupa_entrada_digital:
-            tot_ed += q
-        if c.ocupa_saida_digital:
-            tot_sd += q
-        if c.ocupa_entrada_analogica:
-            tot_ea += q
-        if c.ocupa_saida_analogica:
-            tot_sa += q
+        tot_ed += c.quantidade_entradas_digitais or 0
+        tot_sd += c.quantidade_saidas_digitais or 0
+        tot_ea += c.quantidade_entradas_analogicas or 0
+        tot_sa += c.quantidade_saidas_analogicas or 0
     return {
         "total_entradas_digitais": tot_ed,
         "total_saidas_digitais": tot_sd,
