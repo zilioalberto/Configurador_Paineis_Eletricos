@@ -348,34 +348,60 @@ export default function ComposicaoPage() {
     [executarExportacao, projetoId, snapshot]
   )
 
+  const modalComposicao = useMemo(() => {
+    if (confirmExportFmt !== null) {
+      return {
+        title: 'Existem pendências na composição',
+        message:
+          'Há pendências em aberto. O ideal é resolver todas antes de exportar. Deseja exportar mesmo assim?',
+        confirmLabel: 'Exportar mesmo assim',
+        isConfirming: exportando !== null,
+        tipo: 'export' as const,
+      }
+    }
+    if (itemReabrir !== null) {
+      return {
+        title: 'Reabrir item aprovado?',
+        message:
+          'Este item sairá da composição aprovada e voltará para sugestões de itens, para você aprovar novamente ou alterar.',
+        confirmLabel: 'Reabrir item',
+        isConfirming: reabrirComposicaoItemMutation.isPending,
+        tipo: 'reabrir' as const,
+      }
+    }
+    return null
+  }, [
+    confirmExportFmt,
+    exportando,
+    itemReabrir,
+    reabrirComposicaoItemMutation.isPending,
+  ])
+
   return (
     <div className="container-fluid">
       <ConfirmModal
-        show={confirmExportFmt !== null}
-        title="Existem pendências na composição"
-        message="Há pendências em aberto. O ideal é resolver todas antes de exportar. Deseja exportar mesmo assim?"
-        confirmLabel="Exportar mesmo assim"
+        show={modalComposicao !== null}
+        title={modalComposicao?.title ?? ''}
+        message={modalComposicao?.message ?? ''}
+        confirmLabel={modalComposicao?.confirmLabel ?? 'Confirmar'}
         cancelLabel="Cancelar"
         confirmVariant="warning"
-        isConfirming={exportando !== null}
-        onCancel={() => setConfirmExportFmt(null)}
-        onConfirm={() => {
-          if (!confirmExportFmt) return
-          const fmt = confirmExportFmt
+        isConfirming={modalComposicao?.isConfirming ?? false}
+        onCancel={() => {
           setConfirmExportFmt(null)
-          void executarExportacao(fmt)
+          setItemReabrir(null)
         }}
-      />
-      <ConfirmModal
-        show={itemReabrir !== null}
-        title="Reabrir item aprovado?"
-        message="Este item sairá da composição aprovada e voltará para sugestões de itens, para você aprovar novamente ou alterar."
-        confirmLabel="Reabrir item"
-        cancelLabel="Cancelar"
-        confirmVariant="warning"
-        isConfirming={reabrirComposicaoItemMutation.isPending}
-        onCancel={() => setItemReabrir(null)}
-        onConfirm={() => void onReabrirItemAprovado()}
+        onConfirm={() => {
+          if (!modalComposicao) return
+          if (modalComposicao.tipo === 'export') {
+            if (!confirmExportFmt) return
+            const fmt = confirmExportFmt
+            setConfirmExportFmt(null)
+            void executarExportacao(fmt)
+            return
+          }
+          void onReabrirItemAprovado()
+        }}
       />
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
