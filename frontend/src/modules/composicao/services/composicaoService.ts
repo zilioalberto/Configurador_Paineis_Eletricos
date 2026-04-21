@@ -5,6 +5,7 @@ import type {
   InclusaoManualItem,
   ProdutoAlternativa,
 } from '../types/composicao'
+import { nomeArquivoContentDisposition, slugNomeArquivo } from './composicaoExportHelpers'
 
 export async function obterComposicaoPorProjeto(
   projetoId: string
@@ -58,6 +59,16 @@ export async function aprovarSugestao(
   return response.data
 }
 
+export async function reabrirComposicaoItem(
+  composicaoItemId: string
+): Promise<{ snapshot: ComposicaoSnapshot }> {
+  const response = await apiClient.post<{ snapshot: ComposicaoSnapshot }>(
+    `/composicao/itens/${composicaoItemId}/reabrir/`,
+    {}
+  )
+  return response.data
+}
+
 export type AdicionarInclusaoManualBody = {
   produto_id: string
   quantidade?: string
@@ -84,22 +95,6 @@ export async function removerInclusaoManual(
   return response.data
 }
 
-function nomeArquivoContentDisposition(cd: string | undefined, fallback: string): string {
-  if (!cd) return fallback
-  const star = /filename\*=UTF-8''([^;\n]+)/i.exec(cd)
-  if (star) {
-    try {
-      return decodeURIComponent(star[1].trim().replace(/^"+|"+$/g, ''))
-    } catch {
-      /* ignore */
-    }
-  }
-  const quoted = /filename="([^"]+)"/i.exec(cd)
-  if (quoted) return quoted[1].trim()
-  const plain = /filename=([^;\s]+)/i.exec(cd)
-  return plain ? plain[1].trim().replace(/^"+|"+$/g, '') : fallback
-}
-
 function dispararDownloadBlob(blob: Blob, nome: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -113,25 +108,33 @@ function dispararDownloadBlob(blob: Blob, nome: string): void {
 }
 
 /** Lista completa: composição aprovada, inclusões manuais e pendências (.xlsx). */
-export async function exportarComposicaoListaXlsx(projetoId: string): Promise<void> {
+export async function exportarComposicaoListaXlsx(
+  projetoId: string,
+  nomeProjeto?: string
+): Promise<void> {
   const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/xlsx/`, {
     responseType: 'blob',
   })
+  const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.xlsx`
   const nome = nomeArquivoContentDisposition(
     res.headers['content-disposition'],
-    `${projetoId}_composicao_completa.xlsx`
+    fallback
   )
   dispararDownloadBlob(res.data, nome)
 }
 
 /** Mesma listagem em PDF (inclui pendências). */
-export async function exportarComposicaoListaPdf(projetoId: string): Promise<void> {
+export async function exportarComposicaoListaPdf(
+  projetoId: string,
+  nomeProjeto?: string
+): Promise<void> {
   const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/pdf/`, {
     responseType: 'blob',
   })
+  const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.pdf`
   const nome = nomeArquivoContentDisposition(
     res.headers['content-disposition'],
-    `${projetoId}_composicao_completa.pdf`
+    fallback
   )
   dispararDownloadBlob(res.data, nome)
 }

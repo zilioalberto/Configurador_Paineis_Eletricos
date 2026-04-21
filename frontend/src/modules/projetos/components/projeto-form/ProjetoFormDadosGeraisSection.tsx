@@ -11,47 +11,52 @@ import { renderSelectOptions } from './renderSelectOptions'
 export function ProjetoFormDadosGeraisSection({
   formData,
   onFieldChange,
+  responsavelOptions = [],
+  canEditResponsavel = false,
+  showStatus = true,
   readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
   const ro = readOnlyExceptStatus
 
   return (
     <>
-      <div className="col-12">
-        <div className="projeto-form-status-panel rounded-3 border p-3 p-md-4">
-          <div className="row g-3 align-items-end">
-            <div className="col-md-5 col-lg-4">
-              <label className="form-label fw-semibold mb-1" htmlFor="projeto-form-status">
-                Status do projeto
-              </label>
-              <select
-                id="projeto-form-status"
-                name="status"
-                className="form-select form-select-lg"
-                value={formData.status}
-                onChange={onFieldChange}
-              >
-                {renderSelectOptions(statusOptions)}
-              </select>
-            </div>
-            <div className="col-md-7 col-lg-8">
-              {ro ? (
-                <p className="small text-muted mb-0 projeto-form-status-hint" role="status">
-                  Com status <strong>Finalizado</strong>, os demais campos ficam bloqueados para
-                  edição. Use <strong>Salvar</strong> para gravar esta situação. Para alterar
-                  outros dados, mude para <strong>Em andamento</strong>, salve e edite
-                  normalmente.
-                </p>
-              ) : (
-                <p className="small text-muted mb-0">
-                  Defina se o projeto segue em elaboração ou já foi encerrado. Alterações nos
-                  demais campos só são permitidas com status <strong>Em andamento</strong>.
-                </p>
-              )}
+      {showStatus ? (
+        <div className="col-12">
+          <div className="projeto-form-status-panel rounded-3 border p-3 p-md-4">
+            <div className="row g-3 align-items-end">
+              <div className="col-md-5 col-lg-4">
+                <label className="form-label fw-semibold mb-1" htmlFor="projeto-form-status">
+                  Status do projeto
+                </label>
+                <select
+                  id="projeto-form-status"
+                  name="status"
+                  className="form-select form-select-lg"
+                  value={formData.status}
+                  onChange={onFieldChange}
+                >
+                  {renderSelectOptions(statusOptions)}
+                </select>
+              </div>
+              <div className="col-md-7 col-lg-8">
+                {ro ? (
+                  <p className="small text-muted mb-0 projeto-form-status-hint" role="status">
+                    Com status <strong>Finalizado</strong>, os demais campos ficam bloqueados para
+                    edição. Use <strong>Salvar</strong> para gravar esta situação. Para alterar
+                    outros dados, mude para <strong>Em andamento</strong>, salve e edite
+                    normalmente.
+                  </p>
+                ) : (
+                  <p className="small text-muted mb-0">
+                    Defina se o projeto segue em elaboração ou já foi encerrado. Alterações nos
+                    demais campos só são permitidas com status <strong>Em andamento</strong>.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="col-md-4">
         <label className="form-label">Código</label>
@@ -94,6 +99,24 @@ export function ProjetoFormDadosGeraisSection({
           onChange={onFieldChange}
           disabled={ro}
         />
+      </div>
+
+      <div className="col-md-6">
+        <label className="form-label">Responsável</label>
+        <select
+          name="responsavel"
+          className="form-select"
+          value={formData.responsavel ?? ''}
+          onChange={onFieldChange}
+          disabled={ro || !canEditResponsavel}
+        >
+          <option value="">Não definido</option>
+          {responsavelOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="col-md-3">

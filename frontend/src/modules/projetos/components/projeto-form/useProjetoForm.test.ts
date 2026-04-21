@@ -45,4 +45,79 @@ describe('useProjetoForm', () => {
     expect(result.current.formData.numero_fases).toBe(3)
     expect(result.current.formData.frequencia).toBe(60)
   })
+
+  it('ao desmarcar possui_seccionamento zera tipo_seccionamento', () => {
+    const onSubmit = vi.fn()
+    const { result } = renderHook(() =>
+      useProjetoForm({
+        onSubmit,
+        initialData: {
+          ...projetoFormInitialState,
+          possui_seccionamento: true,
+          tipo_seccionamento: 'SECCIONADORA',
+        },
+      })
+    )
+
+    const cb = document.createElement('input')
+    cb.type = 'checkbox'
+    cb.name = 'possui_seccionamento'
+    cb.checked = false
+
+    act(() => {
+      result.current.handleFieldChange({
+        target: cb,
+      } as unknown as ChangeEvent<HTMLInputElement>)
+    })
+
+    expect(result.current.formData.possui_seccionamento).toBe(false)
+    expect(result.current.formData.tipo_seccionamento).toBeNull()
+  })
+
+  it('ao marcar possui_seccionamento com valor NENHUM redefine para null', () => {
+    const onSubmit = vi.fn()
+    const { result } = renderHook(() =>
+      useProjetoForm({
+        onSubmit,
+        initialData: {
+          ...projetoFormInitialState,
+          possui_seccionamento: false,
+          tipo_seccionamento: 'NENHUM',
+        },
+      })
+    )
+
+    const cb = document.createElement('input')
+    cb.type = 'checkbox'
+    cb.name = 'possui_seccionamento'
+    cb.checked = true
+
+    act(() => {
+      result.current.handleFieldChange({
+        target: cb,
+      } as unknown as ChangeEvent<HTMLInputElement>)
+    })
+
+    expect(result.current.formData.possui_seccionamento).toBe(true)
+    expect(result.current.formData.tipo_seccionamento).toBeNull()
+  })
+
+  it('normaliza responsavel para numero e null quando vazio', () => {
+    const onSubmit = vi.fn()
+    const { result } = renderHook(() => useProjetoForm({ onSubmit, initialData: projetoFormInitialState }))
+
+    act(() => {
+      result.current.handleFieldChange({
+        target: { name: 'responsavel', value: '7', type: 'text' },
+      } as unknown as ChangeEvent<HTMLInputElement>)
+    })
+    expect(result.current.formData.responsavel).toBe(7)
+
+    act(() => {
+      result.current.handleFieldChange({
+        target: { name: 'responsavel', value: '', type: 'text' },
+      } as unknown as ChangeEvent<HTMLInputElement>)
+    })
+    expect(result.current.formData.responsavel).toBeNull()
+  })
 })

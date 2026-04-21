@@ -1,4 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import type { Projeto } from '../types/projeto'
 
@@ -40,6 +43,11 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
       <div className="col-md-4">
         <strong>Cliente</strong>
         <div>{projeto.cliente || '-'}</div>
+      </div>
+
+      <div className="col-md-4">
+        <strong>Responsável</strong>
+        <div>{projeto.responsavel_nome || '-'}</div>
       </div>
 
       <div className="col-md-3">
@@ -225,7 +233,12 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
 }
 
 export default function ProjetoDetailPage() {
+  const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const canEditProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
+  const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
+  const canViewComposicao = hasPermission(user, PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS)
+  const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
   const { data: projeto, isPending, isError, error: loadError } =
     useProjetoDetailQuery(id)
 
@@ -240,27 +253,41 @@ export default function ProjetoDetailPage() {
         </div>
         {id && (
           <div className="d-flex flex-wrap gap-2">
+            {canViewCargas ? (
+              <Link
+                to={`/cargas?projeto=${encodeURIComponent(id)}`}
+                className="btn btn-outline-primary"
+              >
+                Cargas do projeto
+              </Link>
+            ) : null}
+            {canViewDimensionamento ? (
+              <Link
+                to={`/dimensionamento?projeto=${encodeURIComponent(id)}`}
+                className="btn btn-outline-secondary"
+              >
+                Dimensionamento
+              </Link>
+            ) : null}
+            {canViewComposicao ? (
+              <Link
+                to={`/composicao?projeto=${encodeURIComponent(id)}`}
+                className="btn btn-outline-secondary"
+              >
+                Composição
+              </Link>
+            ) : null}
             <Link
-              to={`/cargas?projeto=${encodeURIComponent(id)}`}
-              className="btn btn-outline-primary"
+              to={`/projetos/${id}/fluxo/cargas`}
+              className="btn btn-outline-info"
             >
-              Cargas do projeto
+              Wizard do projeto
             </Link>
-            <Link
-              to={`/dimensionamento?projeto=${encodeURIComponent(id)}`}
-              className="btn btn-outline-secondary"
-            >
-              Dimensionamento
-            </Link>
-            <Link
-              to={`/composicao?projeto=${encodeURIComponent(id)}`}
-              className="btn btn-outline-secondary"
-            >
-              Composição
-            </Link>
-            <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
-              Editar projeto
-            </Link>
+            {canEditProjeto ? (
+              <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
+                Editar projeto
+              </Link>
+            ) : null}
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ from .valvula import CargaValvula
 from .resistencia import CargaResistencia
 from .sensor import CargaSensor
 from .transdutor import CargaTransdutor
+from .modelo import CargaModelo
 
 __all__ = [
     "Carga",
@@ -12,4 +13,5 @@ __all__ = [
     "CargaResistencia",
     "CargaSensor",
     "CargaTransdutor",
+    "CargaModelo",
 ]

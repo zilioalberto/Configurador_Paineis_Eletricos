@@ -78,8 +78,26 @@ export interface Projeto {
   tipo_seccionamento_display?: string | null
 
   ativo?: boolean
+  responsavel?: number | null
+  responsavel_nome?: string | null
+  criado_por?: string | null
+  criado_por_nome?: string | null
+  atualizado_por?: string | null
+  atualizado_por_nome?: string | null
   criado_em?: string
   atualizado_em?: string
+}
+
+export interface ProjetoEvento {
+  id: string
+  projeto: string
+  usuario: string | null
+  usuario_nome?: string | null
+  modulo: string
+  acao: string
+  descricao: string
+  detalhes: Record<string, unknown>
+  criado_em: string
 }
 
 export interface ProjetoFormData {
@@ -121,4 +139,12 @@ export interface ProjetoFormData {
 
   possui_seccionamento: boolean
   tipo_seccionamento: TipoSeccionamento | null
+  responsavel: number | null
+}
+
+export interface ProjetoResponsavelOption {
+  id: number
+  label: string
+  email: string
+  tipo_usuario: string
 }

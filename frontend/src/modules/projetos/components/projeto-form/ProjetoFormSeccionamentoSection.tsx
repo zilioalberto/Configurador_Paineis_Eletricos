@@ -9,6 +9,9 @@ export function ProjetoFormSeccionamentoSection({
   readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
   const ro = readOnlyExceptStatus
+  const opcoesTipoSeccionamento = formData.possui_seccionamento
+    ? tipoSeccionamentoOptions.filter((opt) => opt.value !== 'NENHUM')
+    : tipoSeccionamentoOptions
 
   return (
     <>
@@ -36,7 +39,7 @@ export function ProjetoFormSeccionamentoSection({
           disabled={ro || !formData.possui_seccionamento}
         >
           <option value="">Selecione</option>
-          {renderSelectOptions(tipoSeccionamentoOptions)}
+          {renderSelectOptions(opcoesTipoSeccionamento)}
         </select>
       </div>
     </>

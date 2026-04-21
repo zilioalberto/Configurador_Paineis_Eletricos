@@ -1,5 +1,10 @@
 import apiClient from '@/services/apiClient'
-import type { Projeto, ProjetoFormData } from '../types/projeto'
+import type {
+  Projeto,
+  ProjetoEvento,
+  ProjetoFormData,
+  ProjetoResponsavelOption,
+} from '../types/projeto'
 
 const BASE_URL = '/projetos/'
 
@@ -26,10 +31,20 @@ export async function obterProjeto(id: string): Promise<Projeto> {
   return response.data
 }
 
+export async function listarHistoricoProjeto(id: string): Promise<ProjetoEvento[]> {
+  const response = await apiClient.get<ProjetoEvento[]>(`${BASE_URL}${id}/historico/`)
+  return response.data
+}
+
 export async function alocarCodigoProjeto(): Promise<{ codigo: string }> {
   const response = await apiClient.post<{ codigo: string }>(
     `${BASE_URL}alocar-codigo/`
   )
+  return response.data
+}
+
+export async function listarResponsaveisProjeto(): Promise<ProjetoResponsavelOption[]> {
+  const response = await apiClient.get<ProjetoResponsavelOption[]>(`${BASE_URL}responsaveis/`)
   return response.data
 }
 

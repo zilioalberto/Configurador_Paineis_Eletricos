@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
+import CargaModeloOpcionalSection from '../components/CargaModeloOpcionalSection'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { useUpdateCargaMutation } from '../hooks/useCargaMutations'
-import type { CargaFormData } from '../types/carga'
+import type { CargaFormData, CargaModelo } from '../types/carga'
+import { applyTipoChange } from '../utils/cargaFormDefaults'
 import { cargaDetailToForm } from '../utils/cargaDetailToForm'
 import { cargaFormToApiPayload } from '../utils/cargaPayload'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
@@ -28,11 +30,19 @@ export default function CargaEditPage() {
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
 
   const updateMutation = useUpdateCargaMutation()
+  const [formSeed, setFormSeed] = useState<CargaFormData | null>(null)
+  const [formDraft, setFormDraft] = useState<CargaFormData | null>(null)
 
   const initialData = useMemo(() => {
     if (!carga) return null
     return cargaDetailToForm(carga)
   }, [carga])
+
+  useEffect(() => {
+    if (!initialData) return
+    setFormSeed(initialData)
+    setFormDraft(initialData)
+  }, [initialData])
 
   const projetoDaCarga = useMemo(
     () => (carga ? projetos.find((p) => p.id === carga.projeto) : undefined),
@@ -58,15 +68,43 @@ export default function CargaEditPage() {
     })
   }, [isLoadError, loadQueryError, showToast])
 
+  const aplicarModelo = useCallback(
+    (modelo: CargaModelo) => {
+      if (!formDraft) return
+      const next = applyTipoChange(formDraft, modelo.tipo)
+      const payload = modelo.payload as Record<string, unknown>
+      if (typeof payload.quantidade === 'number') {
+        next.quantidade = payload.quantidade
+      }
+      if (payload.motor && next.motor) next.motor = payload.motor as typeof next.motor
+      if (payload.valvula && next.valvula) next.valvula = payload.valvula as typeof next.valvula
+      if (payload.resistencia && next.resistencia) {
+        next.resistencia = payload.resistencia as typeof next.resistencia
+      }
+      if (payload.sensor && next.sensor) next.sensor = payload.sensor as typeof next.sensor
+      if (payload.transdutor && next.transdutor) {
+        next.transdutor = payload.transdutor as typeof next.transdutor
+      }
+      next.descricao = modelo.nome
+      setFormSeed({ ...next })
+      setFormDraft(next)
+      showToast({
+        variant: 'success',
+        message: `Modelo "${modelo.nome}" aplicado ao formulário.`,
+      })
+    },
+    [formDraft, showToast]
+  )
+
   async function handleSubmit(data: CargaFormData) {
     if (!id) return
     try {
-      await updateMutation.mutateAsync({
+      const updated = await updateMutation.mutateAsync({
         id,
         body: cargaFormToApiPayload(data),
       })
       showToast({ variant: 'success', message: 'Carga atualizada com sucesso.' })
-      navigate(`/cargas/${id}`)
+      navigate(`/cargas?projeto=${encodeURIComponent(updated.projeto)}`)
     } catch (err) {
       console.error(err)
       showToast({
@@ -127,17 +165,26 @@ export default function CargaEditPage() {
           {id &&
             !loadingCarga &&
             !isLoadError &&
-            initialData &&
+            formSeed &&
             projetos.length > 0 &&
             !edicaoBloqueada && (
-              <CargaForm
-                key={id}
-                projetos={projetos}
-                initialData={initialData}
-                onSubmit={handleSubmit}
-                loading={updateMutation.isPending}
-                lockProjeto
-              />
+              <>
+                <CargaModeloOpcionalSection
+                  key={`${id}-modelo`}
+                  modeloQueryScope="edit"
+                  onAplicarModelo={aplicarModelo}
+                />
+
+                <CargaForm
+                  key={`${id}-form`}
+                  projetos={projetos}
+                  initialData={formSeed}
+                  onChange={setFormDraft}
+                  onSubmit={handleSubmit}
+                  loading={updateMutation.isPending}
+                  lockProjeto
+                />
+              </>
             )}
         </div>
       </div>

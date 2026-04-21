@@ -4,6 +4,8 @@ import type { Projeto } from '../types/projeto'
 type ProjetoTableProps = {
   projetos: Projeto[]
   onDeleteRequest: (id: string) => void
+  canEdit: boolean
+  canDelete: boolean
 }
 
 function formatarNumeroFases(numeroFases: number | null): string {
@@ -36,6 +38,8 @@ function getStatusBadgeClass(status: string): string {
 export default function ProjetoTable({
   projetos,
   onDeleteRequest,
+  canEdit,
+  canDelete,
 }: ProjetoTableProps) {
   if (projetos.length === 0) {
     return <div className="alert alert-info mb-0">Nenhum projeto encontrado.</div>
@@ -49,6 +53,7 @@ export default function ProjetoTable({
             <th>Código</th>
             <th>Nome</th>
             <th>Cliente</th>
+            <th>Responsável</th>
             <th>Status</th>
             <th>Tipo painel</th>
             <th>Corrente</th>
@@ -66,6 +71,8 @@ export default function ProjetoTable({
               <td>{projeto.nome}</td>
 
               <td>{projeto.cliente || '-'}</td>
+
+              <td>{projeto.responsavel_nome || '-'}</td>
 
               <td>
                 <span className={getStatusBadgeClass(projeto.status)}>
@@ -89,21 +96,31 @@ export default function ProjetoTable({
                   >
                     Visualizar
                   </Link>
-
                   <Link
-                    to={`/projetos/${projeto.id}/editar`}
-                    className="btn btn-sm btn-outline-warning"
+                    to={`/projetos/${projeto.id}/fluxo/cargas`}
+                    className="btn btn-sm btn-outline-info"
                   >
-                    Editar
+                    Wizard
                   </Link>
 
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => onDeleteRequest(projeto.id)}
-                  >
-                    Excluir
-                  </button>
+                  {canEdit ? (
+                    <Link
+                      to={`/projetos/${projeto.id}/editar`}
+                      className="btn btn-sm btn-outline-warning"
+                    >
+                      Editar
+                    </Link>
+                  ) : null}
+
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => onDeleteRequest(projeto.id)}
+                    >
+                      Excluir
+                    </button>
+                  ) : null}
                 </div>
               </td>
             </tr>

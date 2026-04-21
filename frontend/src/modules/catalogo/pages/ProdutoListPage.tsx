@@ -1,6 +1,9 @@
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProdutoTable from '../components/ProdutoTable'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
@@ -10,9 +13,11 @@ import { useProdutoListQuery } from '../hooks/useProdutoListQuery'
 type DeleteTarget = { id: string; label: string }
 
 export default function ProdutoListPage() {
+  const { user } = useAuth()
   const [filtroCategoria, setFiltroCategoria] = useState<string>('')
   const { showToast } = useToast()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const canManageProdutos = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
 
   const { data: categorias = [], isPending: loadingCat } = useCategoriaListQuery()
   const categoriaQuery = filtroCategoria || null
@@ -102,9 +107,11 @@ export default function ProdutoListPage() {
           >
             Atualizar
           </button>
-          <Link to="/catalogo/novo" className="btn btn-primary">
-            Novo produto
-          </Link>
+          {canManageProdutos ? (
+            <Link to="/catalogo/novo" className="btn btn-primary">
+              Novo produto
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -145,7 +152,11 @@ export default function ProdutoListPage() {
             </div>
           )}
           {!loadingProdutos && !isError && (
-            <ProdutoTable produtos={produtos} onDeleteRequest={onDeleteRequest} />
+            <ProdutoTable
+              produtos={produtos}
+              onDeleteRequest={onDeleteRequest}
+              canManage={canManageProdutos}
+            />
           )}
         </div>
       </div>

@@ -42,7 +42,11 @@ from .gerais import (
     StatusPendenciaChoices,
 )   
 
-from .usuarios import TipoUsuarioChoices
+from .usuarios import (
+    DEFAULT_PERMISSIONS_BY_TIPO,
+    PermissaoUsuarioChoices,
+    TipoUsuarioChoices,
+)
 
 
 __all__ = [
@@ -86,4 +90,6 @@ __all__ = [
     
     # USUÁRIOS
     "TipoUsuarioChoices",
+    "PermissaoUsuarioChoices",
+    "DEFAULT_PERMISSIONS_BY_TIPO",
 ]

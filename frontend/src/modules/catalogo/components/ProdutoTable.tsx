@@ -4,13 +4,18 @@ import type { ProdutoListItem } from '../types/produto'
 type ProdutoTableProps = {
   produtos: ProdutoListItem[]
   onDeleteRequest: (id: string) => void
+  canManage: boolean
 }
 
-export default function ProdutoTable({ produtos, onDeleteRequest }: ProdutoTableProps) {
+export default function ProdutoTable({
+  produtos,
+  onDeleteRequest,
+  canManage,
+}: Readonly<ProdutoTableProps>) {
   if (produtos.length === 0) {
     return (
       <p className="text-muted mb-0">
-        Nenhum produto encontrado. <Link to="/catalogo/novo">Cadastrar produto</Link>
+        Nenhum produto encontrado. {canManage ? <Link to="/catalogo/novo">Cadastrar produto</Link> : null}
       </p>
     )
   }
@@ -26,7 +31,7 @@ export default function ProdutoTable({ produtos, onDeleteRequest }: ProdutoTable
             <th>Fabricante</th>
             <th>Valor unit.</th>
             <th>Ativo</th>
-            <th className="text-end">Ações</th>
+            {canManage ? <th className="text-end">Ações</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -44,23 +49,25 @@ export default function ProdutoTable({ produtos, onDeleteRequest }: ProdutoTable
               <td>{p.fabricante || '—'}</td>
               <td>{p.valor_unitario}</td>
               <td>{p.ativo ? 'Sim' : 'Não'}</td>
-              <td className="text-end">
-                <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
-                  <Link
-                    to={`/catalogo/${p.id}/editar`}
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-danger"
-                    onClick={() => onDeleteRequest(p.id)}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </td>
+              {canManage ? (
+                <td className="text-end">
+                  <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
+                    <Link
+                      to={`/catalogo/${p.id}/editar`}
+                      className="btn btn-sm btn-outline-primary"
+                    >
+                      Editar
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => onDeleteRequest(p.id)}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

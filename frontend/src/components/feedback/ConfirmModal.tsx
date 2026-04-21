@@ -6,7 +6,7 @@ export type ConfirmModalProps = {
   message: string
   confirmLabel?: string
   cancelLabel?: string
-  confirmVariant?: 'danger' | 'primary'
+  confirmVariant?: 'danger' | 'primary' | 'warning'
   isConfirming?: boolean
   onConfirm: () => void
   onCancel: () => void

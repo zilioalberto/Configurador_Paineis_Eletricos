@@ -99,4 +99,5 @@ export const projetoFormInitialState: ProjetoFormData = {
 
   possui_seccionamento: false,
   tipo_seccionamento: null,
+  responsavel: null,
 }

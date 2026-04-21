@@ -19,6 +19,7 @@ function RouteFallback() {
 
 export default function MainLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [sectionHighlighted, setSectionHighlighted] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -36,6 +37,35 @@ export default function MainLayout() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+
+  useEffect(() => {
+    const hash = location.hash?.trim()
+    if (!hash || hash === '#') return
+
+    const id = decodeURIComponent(hash.slice(1))
+    const scrollToHashTarget = () => {
+      const target = document.getElementById(id)
+      if (!target) return
+
+      const topOffset = 96
+      const targetTop = target.getBoundingClientRect().top + window.scrollY - topOffset
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: 'smooth',
+      })
+
+      target.classList.remove('app-hash-target-highlight')
+      target.classList.add('app-hash-target-highlight')
+      setSectionHighlighted(true)
+      window.setTimeout(() => {
+        target.classList.remove('app-hash-target-highlight')
+        setSectionHighlighted(false)
+      }, 1800)
+    }
+
+    const raf = window.requestAnimationFrame(scrollToHashTarget)
+    return () => window.cancelAnimationFrame(raf)
+  }, [location.hash, location.pathname])
 
   return (
     <div className="d-flex app-shell" style={{ minHeight: '100vh' }}>
@@ -57,6 +87,11 @@ export default function MainLayout() {
         />
 
         <main className="app-main flex-grow-1">
+          {sectionHighlighted ? (
+            <div className="app-hash-highlight-pill" role="status" aria-live="polite">
+              Navegacao concluida
+            </div>
+          ) : null}
           <Suspense fallback={<RouteFallback />}>
             <div className="app-page">
               <Outlet />

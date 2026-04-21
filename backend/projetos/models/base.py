@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, models
+from django.conf import settings
 
 from core.models import BaseModel
 from core.models.mixins import AtivacaoMixin
@@ -19,6 +20,28 @@ from core.choices import (
 
 
 class Projeto(BaseModel, AtivacaoMixin):
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projetos_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projetos_atualizados",
+    )
+    responsavel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projetos_responsavel",
+    )
+
     codigo = models.CharField(
         max_length=50,
         unique=True,

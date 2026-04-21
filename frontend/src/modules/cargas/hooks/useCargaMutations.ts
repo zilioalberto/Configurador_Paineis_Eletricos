@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { composicaoQueryKeys } from '@/modules/composicao/composicaoQueryKeys'
+import { dimensionamentoQueryKeys } from '@/modules/dimensionamento/dimensionamentoQueryKeys'
 import { cargaQueryKeys } from '../cargaQueryKeys'
 import {
   atualizarCarga,
@@ -15,6 +17,12 @@ export function useCreateCargaMutation() {
       void queryClient.invalidateQueries({ queryKey: cargaQueryKeys.all })
       void queryClient.invalidateQueries({
         queryKey: cargaQueryKeys.list(carga.projeto),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: composicaoQueryKeys.snapshot(carga.projeto),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: dimensionamentoQueryKeys.porProjeto(carga.projeto),
       })
       queryClient.setQueryData(cargaQueryKeys.detail(carga.id), carga)
     },
@@ -37,6 +45,12 @@ export function useUpdateCargaMutation() {
       void queryClient.invalidateQueries({
         queryKey: cargaQueryKeys.list(carga.projeto),
       })
+      void queryClient.invalidateQueries({
+        queryKey: composicaoQueryKeys.snapshot(carga.projeto),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: dimensionamentoQueryKeys.porProjeto(carga.projeto),
+      })
       queryClient.setQueryData(cargaQueryKeys.detail(carga.id), carga)
     },
   })
@@ -52,6 +66,12 @@ export function useDeleteCargaMutation(projetoId: string | null) {
       if (projetoId) {
         void queryClient.invalidateQueries({
           queryKey: cargaQueryKeys.list(projetoId),
+        })
+        void queryClient.invalidateQueries({
+          queryKey: composicaoQueryKeys.snapshot(projetoId),
+        })
+        void queryClient.invalidateQueries({
+          queryKey: dimensionamentoQueryKeys.porProjeto(projetoId),
         })
       }
       queryClient.removeQueries({ queryKey: cargaQueryKeys.detail(deletedId) })
