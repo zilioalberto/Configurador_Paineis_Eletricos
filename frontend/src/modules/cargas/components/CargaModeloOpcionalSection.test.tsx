@@ -6,7 +6,7 @@ import type { CargaModelo } from '@/modules/cargas/types/carga'
 import CargaModeloOpcionalSection from './CargaModeloOpcionalSection'
 
 const useQueryMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((_options: unknown) => ({
     data: [] as CargaModelo[],
     isPending: false,
   }))
@@ -31,7 +31,7 @@ describe('CargaModeloOpcionalSection', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     useQueryMock.mockClear()
-    useQueryMock.mockImplementation(() => ({
+    useQueryMock.mockImplementation((_options: unknown) => ({
       data: [],
       isPending: false,
     }))
@@ -66,7 +66,7 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('após buscar e selecionar modelo, Aplicar modelo chama onAplicarModelo', async () => {
     const modelo = makeModelo()
-    useQueryMock.mockImplementation(() => ({
+    useQueryMock.mockImplementation((_options: unknown) => ({
       data: [modelo],
       isPending: false,
     }))
@@ -96,15 +96,15 @@ describe('CargaModeloOpcionalSection', () => {
 
     expect(
       useQueryMock.mock.calls.some((call) => {
-        const opts = call[0] as { queryKey?: string[] }
-        return opts?.queryKey?.join('|') === 'cargas|modelos|test-scope|mo'
+        const opts = call[0] as unknown as { queryKey?: readonly string[] }
+        return opts.queryKey?.join('|') === 'cargas|modelos|test-scope|mo'
       })
     ).toBe(true)
   })
 
   it('Enter na lista aplica modelo diretamente', async () => {
     const modelo = makeModelo({ id: 'm2', nome: 'Valvula X', tipo: 'VALVULA' })
-    useQueryMock.mockImplementation(() => ({
+    useQueryMock.mockImplementation((_options: unknown) => ({
       data: [modelo],
       isPending: false,
     }))
