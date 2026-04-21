@@ -1,3 +1,5 @@
+"""Fixtures partilhados por toda a suíte (acessíveis a `projetos`, `composicao_painel`, etc.)."""
+
 import pytest
 
 from core.choices import FrequenciaChoices, NumeroFasesChoices, TipoConexaoAlimetacaoChoices
