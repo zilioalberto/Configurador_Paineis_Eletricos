@@ -99,6 +99,38 @@ function renderPage() {
 }
 
 describe('ProjetoEditPage', () => {
+  it('exibe aviso quando id não é informado na rota', async () => {
+    useProjetoDetailQueryMock.mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    render(
+      <MemoryRouter initialEntries={['/projetos/editar']}>
+        <Routes>
+          <Route path="/projetos/editar" element={<ProjetoEditPage />} />
+        </Routes>
+      </MemoryRouter>,
+      { wrapper }
+    )
+
+    expect(await screen.findByText(/Projeto não informado/i)).toBeInTheDocument()
+  })
+
+  it('mostra estado de carregamento do projeto', async () => {
+    useProjetoDetailQueryMock.mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    renderPage()
+    expect(await screen.findByText(/Carregando dados do projeto/i)).toBeInTheDocument()
+  })
+
   it('mostra erro de carregamento', async () => {
     const refetch = vi.fn()
     useProjetoDetailQueryMock.mockReturnValue({

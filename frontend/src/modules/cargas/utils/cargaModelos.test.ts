@@ -69,4 +69,11 @@ describe('aplicarModeloNoFormulario', () => {
     expect(r.tag).toBe('')
     expect((r as { observacoes?: string }).observacoes).toBe('x')
   })
+
+  it('ignora payload array como objeto inválido', () => {
+    const r = aplicarModeloNoFormulario('pid-2', 'MOTOR', [])
+    expect(r.projeto).toBe('pid-2')
+    expect(r.tipo).toBe('MOTOR')
+    expect(r.quantidade).toBe(1)
+  })
 })

@@ -58,4 +58,29 @@ describe('MainLayout', () => {
     expect(screen.getByText('Pagina filha')).toBeInTheDocument()
     expect(screen.getByText('Rodape')).toBeInTheDocument()
   })
+
+  it('realça seção quando a rota tem hash', () => {
+    const rafSpy = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb: FrameRequestCallback) => {
+        cb(0)
+        return 1
+      })
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+
+    render(
+      <MemoryRouter initialEntries={['/#secao-a']}>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<div id="secao-a">Destino</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Destino')).toBeInTheDocument()
+    expect(screen.getByText(/Navegacao concluida/i)).toBeInTheDocument()
+    expect(rafSpy).toHaveBeenCalled()
+  })
 })

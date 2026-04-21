@@ -1,8 +1,10 @@
 import pytest
 from rest_framework import serializers
 
-from projetos.api.serializers import ProjetoSerializer
-from projetos.models import Projeto
+from django.contrib.auth import get_user_model
+
+from projetos.api.serializers import ProjetoEventoSerializer, ProjetoSerializer
+from projetos.models import Projeto, ProjetoEvento
 
 
 def test_validate_codigo_normaliza_e_valida():
@@ -46,3 +48,26 @@ def test_serializer_init_torna_codigo_read_only_com_instance(criar_projeto):
 def test_serializer_init_codigo_editavel_em_criacao():
     ser = ProjetoSerializer()
     assert ser.fields["codigo"].read_only is False
+
+
+@pytest.mark.django_db
+def test_projeto_evento_serializer_usuario_nome_e_model_str(criar_projeto):
+    User = get_user_model()
+    user = User.objects.create_user(
+        email="evento-serializer@test.com",
+        password="evento-serializer-12345",
+        is_active=True,
+    )
+    projeto = criar_projeto(nome="Evento", codigo="06002-26")
+    evento = ProjetoEvento.objects.create(
+        projeto=projeto,
+        usuario=user,
+        modulo="projeto",
+        acao="editado",
+        descricao="Projeto atualizado",
+        detalhes={"x": 1},
+    )
+    data = ProjetoEventoSerializer(evento).data
+    assert "usuario_nome" in data
+    assert data["descricao"] == "Projeto atualizado"
+    assert str(projeto.id) in str(evento)

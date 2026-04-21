@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from cargas.models import Carga
+from cargas.models import Carga, CargaMotor
 from catalogo.models import Produto
 from composicao_painel.models import (
     ComposicaoInclusaoManual,
@@ -14,6 +14,12 @@ from composicao_painel.models import (
 )
 from composicao_painel.services.export_lista_completa import (
     COLUNAS,
+    _corrente_para_carga,
+    _pdf_para_text,
+    _potencia_carga,
+    _status_composicao_export,
+    _status_sugestao_export,
+    _txt,
     nome_arquivo_seguro,
     montar_linhas_export,
     render_pdf_bytes,
@@ -25,6 +31,7 @@ from core.choices import (
     StatusPendenciaChoices,
     StatusSugestaoChoices,
     TensaoChoices,
+    UnidadePotenciaCorrenteChoices,
 )
 from core.choices.cargas import TipoCargaChoices
 from core.choices.produtos import UnidadeMedidaChoices
@@ -150,4 +157,58 @@ def test_render_xlsx_e_pdf_bytes(criar_projeto):
     assert isinstance(xlsx, bytes) and len(xlsx) > 100
     pdf = render_pdf_bytes(projeto, header, linhas)
     assert pdf.startswith(b"%PDF")
+
+
+@pytest.mark.django_db
+def test_helpers_export_cobrem_branches_de_texto_e_status(criar_projeto):
+    projeto = criar_projeto(nome="H", codigo="09912-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M9",
+        descricao="Motor",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    CargaMotor.objects.create(
+        carga=carga,
+        potencia_corrente_valor=Decimal("7.50"),
+        potencia_corrente_unidade=UnidadePotenciaCorrenteChoices.CV,
+    )
+    assert _txt(None) == ""
+    assert _txt(Decimal("10.00")) == "10"
+    assert _potencia_carga(carga).startswith("7.50")
+    assert _corrente_para_carga(Decimal("12.30"), carga) == "12.3"
+    assert _pdf_para_text("a<b\nc>") == "a&lt;b<br/>c&gt;"
+    assert _pdf_para_text("   ") == " "
+
+    produto = Produto.objects.create(
+        codigo="EXP-H1",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    item = ComposicaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        quantidade=Decimal("1"),
+        ordem=9,
+        observacoes="nota\n[STATUS_APROVACAO] Aprovado manualmente",
+    )
+    assert _status_composicao_export(item) == "Aprovado manualmente"
+    item.observacoes = "sem marcador"
+    assert _status_composicao_export(item) == "Aprovado"
+
+    sug = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        quantidade=Decimal("1"),
+        ordem=11,
+        status=StatusSugestaoChoices.PENDENTE,
+    )
+    assert _status_sugestao_export(sug) == "Aguardando aprovação"
 

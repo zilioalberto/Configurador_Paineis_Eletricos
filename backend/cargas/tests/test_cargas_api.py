@@ -9,6 +9,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from cargas.models import Carga, CargaModelo
+from cargas.api.serializers import CargaModeloSerializer
 from core.choices import TensaoChoices
 from core.choices.cargas import TipoCargaChoices
 from core.choices.eletrica import TipoSinalChoices
@@ -178,3 +179,37 @@ def test_create_sensor_analogico_sem_tipo_sinal_analogico_400(
     r = client.post(url, body, format="json")
     assert r.status_code == 400
     assert "sensor" in r.data
+
+
+@pytest.mark.django_db
+def test_carga_modelo_serializer_limpa_payload_por_tipo():
+    ser = CargaModeloSerializer(
+        data={
+            "nome": "Modelo Limpo",
+            "tipo": TipoCargaChoices.MOTOR,
+            "payload": {
+                "quantidade": 2,
+                "motor": {"tipo_partida": "DIRETA"},
+                "sensor": {"tipo_sinal": TipoSinalChoices.DIGITAL},
+            },
+            "ativo": True,
+        }
+    )
+    assert ser.is_valid(), ser.errors
+    assert ser.validated_data["payload"] == {
+        "quantidade": 2,
+        "motor": {"tipo_partida": "DIRETA"},
+    }
+
+
+@pytest.mark.django_db
+def test_carga_modelo_str(admin_client):
+    _, user = admin_client
+    modelo = CargaModelo.objects.create(
+        nome="Modelo String",
+        tipo=TipoCargaChoices.OUTRO,
+        payload={},
+        criado_por=user,
+        atualizado_por=user,
+    )
+    assert str(modelo) == "Modelo String"

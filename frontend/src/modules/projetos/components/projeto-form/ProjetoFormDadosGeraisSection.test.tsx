@@ -48,4 +48,26 @@ describe('ProjetoFormDadosGeraisSection', () => {
     )
     expect(screen.getByRole('status')).toHaveTextContent(/Finalizado/)
   })
+
+  it('renderiza opções de responsável quando permitido', () => {
+    render(
+      <div className="row g-3">
+        <ProjetoFormDadosGeraisSection
+          formData={{ ...projetoFormInitialState, responsavel: 'u-1' }}
+          onFieldChange={vi.fn()}
+          responsavelOptions={[{ id: 'u-1', label: 'Maria Gestora' }]}
+          canEditResponsavel
+          showStatus={false}
+          readOnlyExceptStatus={false}
+        />
+      </div>
+    )
+
+    expect(screen.getByRole('option', { name: 'Maria Gestora' })).toBeInTheDocument()
+    const responsavelSelect = screen
+      .getAllByRole('combobox')
+      .find((el) => el.getAttribute('name') === 'responsavel')
+    expect(responsavelSelect).toBeTruthy()
+    expect(responsavelSelect).toBeEnabled()
+  })
 })

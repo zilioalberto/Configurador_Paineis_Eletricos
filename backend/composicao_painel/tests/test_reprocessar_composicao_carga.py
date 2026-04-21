@@ -2,6 +2,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from django.core.exceptions import ValidationError
 
 from cargas.models import Carga
 from catalogo.models import Produto
@@ -84,3 +85,33 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
     assert PendenciaItem.objects.filter(projeto=projeto, carga=carga).count() == 0
     mock_d.assert_called_once_with(projeto, carga)
     mock_c.assert_called_once_with(projeto, carga)
+
+
+@pytest.mark.django_db
+def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
+    projeto_real = criar_projeto(nome="P2", codigo="08002-26", tensao_nominal=TensaoChoices.V380)
+    projeto_fake = criar_projeto(nome="P3", codigo="08003-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto_real,
+        tag="M02",
+        descricao="Motor 2",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+
+    with (
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_disjuntor_motor_para_carga"
+        ) as mock_d,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_contatora_para_carga",
+            side_effect=ValidationError("erro esperado"),
+        ) as mock_c,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+        ) as mock_dim,
+    ):
+        reprocessar_composicao_painel_para_carga(projeto_fake, carga)
+
+    mock_d.assert_called_once_with(projeto_real, carga)
+    mock_c.assert_called_once_with(projeto_real, carga)
+    mock_dim.assert_called_once_with(projeto_real)

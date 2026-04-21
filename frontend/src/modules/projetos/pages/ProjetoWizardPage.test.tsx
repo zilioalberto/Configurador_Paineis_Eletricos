@@ -63,6 +63,25 @@ vi.mock('@/modules/composicao/hooks/useReavaliarPendenciasMutation', () => ({
 import ProjetoWizardPage from '@/modules/projetos/pages/ProjetoWizardPage'
 
 describe('ProjetoWizardPage', () => {
+  it('redireciona para lista quando rota não tem id', () => {
+    useProjetoDetailQueryMock.mockReturnValue({ data: undefined, isPending: false })
+    useCargaListQueryMock.mockReturnValue({ data: [] })
+    useDimensionamentoQueryMock.mockReturnValue({ data: null })
+    useComposicaoSnapshotQueryMock.mockReturnValue({ data: null })
+    useQueryMock.mockReturnValue({ data: [] })
+
+    render(
+      <MemoryRouter initialEntries={['/projetos/fluxo/cargas']}>
+        <Routes>
+          <Route path="/projetos/fluxo/:etapa" element={<ProjetoWizardPage />} />
+          <Route path="/projetos" element={<div>Lista de projetos</div>} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Lista de projetos')).toBeInTheDocument()
+  })
+
   it('renderiza etapas do wizard e histórico', () => {
     useProjetoDetailQueryMock.mockReturnValue({
       data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
@@ -91,6 +110,33 @@ describe('ProjetoWizardPage', () => {
     expect(screen.getByText(/Audit trail/i)).toBeInTheDocument()
     expect(screen.getByText(/Última ação:/i)).toBeInTheDocument()
     expect(screen.getByText(/Rastreabilidade do projeto/i)).toBeInTheDocument()
+  })
+
+  it('exibe estados bloqueados sem cargas e sem dimensionamento', () => {
+    useProjetoDetailQueryMock.mockReturnValue({
+      data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
+      isPending: false,
+    })
+    useCargaListQueryMock.mockReturnValue({ data: [] })
+    useDimensionamentoQueryMock.mockReturnValue({ data: null })
+    useComposicaoSnapshotQueryMock.mockReturnValue({ data: { totais: { sugestoes: 0, pendencias: 0 } } })
+    useQueryMock.mockReturnValue({ data: [] })
+
+    render(
+      <MemoryRouter initialEntries={['/projetos/p1/fluxo/composicao']}>
+        <Routes>
+          <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText(/Sem cálculo salvo para este projeto/i)).toBeInTheDocument()
+    expect(screen.getAllByText('Bloqueado').length).toBeGreaterThan(0)
+    const blockedStepLink = screen
+      .getAllByRole('link', { name: /Abrir etapa/i })
+      .find((link) => link.getAttribute('aria-disabled') === 'true')
+    expect(blockedStepLink).toBeTruthy()
+    fireEvent.click(blockedStepLink!)
   })
 
   it('aciona recalculo e geração de composição pelos botões rápidos', () => {

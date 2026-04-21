@@ -37,6 +37,7 @@ describe('composicaoService chamadas REST', () => {
   })
 
   it('GET snapshot do projeto', async () => {
+    getMock.mockResolvedValueOnce({ data: { projeto: 'pid' } })
     await obterComposicaoPorProjeto('pid')
     expect(getMock).toHaveBeenCalledWith('/composicao/projeto/pid/')
   })
@@ -58,8 +59,14 @@ describe('composicaoService chamadas REST', () => {
   })
 
   it('GET alternativas da sugestão', async () => {
-    await listarAlternativasSugestao('sid')
+    getMock.mockResolvedValueOnce({
+      data: {
+        alternativas: [{ id: 'a1', codigo: 'ALT-1', descricao: 'Alt', fabricante: '' }],
+      },
+    })
+    const alternativas = await listarAlternativasSugestao('sid')
     expect(getMock).toHaveBeenCalledWith('/composicao/sugestoes/sid/alternativas/')
+    expect(alternativas).toHaveLength(1)
   })
 
   it('POST aprovar sem produto substituto envia objeto vazio', async () => {
@@ -72,6 +79,11 @@ describe('composicaoService chamadas REST', () => {
     expect(postMock).toHaveBeenCalledWith('/composicao/sugestoes/sid/aprovar/', {
       produto_id: 'prod-99',
     })
+  })
+
+  it('POST aprovar com produto_id vazio envia objeto vazio', async () => {
+    await aprovarSugestao('sid', '')
+    expect(postMock).toHaveBeenCalledWith('/composicao/sugestoes/sid/aprovar/', {})
   })
 
   it('POST reabrir item', async () => {
@@ -97,6 +109,14 @@ describe('composicaoService chamadas REST', () => {
 })
 
 describe('composicaoService downloads', () => {
+  let anchor: {
+    href: string
+    download: string
+    rel: string
+    click: ReturnType<typeof vi.fn>
+    remove: ReturnType<typeof vi.fn>
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     getMock.mockResolvedValue({
@@ -105,7 +125,7 @@ describe('composicaoService downloads', () => {
     })
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const anchor = {
+    anchor = {
       href: '',
       download: '',
       rel: '',
@@ -127,6 +147,8 @@ describe('composicaoService downloads', () => {
       '/composicao/projeto/proj-x/export/xlsx/',
       expect.objectContaining({ responseType: 'blob' })
     )
+    expect(anchor.download).toContain('.xlsx')
+    expect(anchor.click).toHaveBeenCalled()
   })
 
   it('exportarComposicaoListaPdf chama GET blob no endpoint pdf', async () => {
@@ -136,5 +158,17 @@ describe('composicaoService downloads', () => {
       '/composicao/projeto/proj-y/export/pdf/',
       expect.objectContaining({ responseType: 'blob' })
     )
+    expect(anchor.download).toContain('.pdf')
+  })
+
+  it('respeita filename do content-disposition no download', async () => {
+    getMock.mockResolvedValueOnce({
+      data: new Blob(['x']),
+      headers: {
+        'content-disposition': 'attachment; filename="arquivo-custom.pdf"',
+      },
+    })
+    await exportarComposicaoListaPdf('proj-z', 'Nome Ignorado')
+    expect(anchor.download).toBe('arquivo-custom.pdf')
   })
 })

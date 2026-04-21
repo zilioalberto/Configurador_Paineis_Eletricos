@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 
 from cargas.models import Carga
 from catalogo.models import Produto
+from composicao_painel.api.views import _nome_usuario_auditoria
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from core.choices import (
     CategoriaProdutoNomeChoices,
@@ -60,6 +61,22 @@ def usuario_sem_permissao_almox():
         tipo_usuario=TipoUsuarioChoices.USUARIO,
     )
     return _auth_client(user.email, raw), user
+
+
+def test_nome_usuario_auditoria_fallbacks():
+    class U:
+        def __init__(self, full_name="", email="", username=""):
+            self._full_name = full_name
+            self.email = email
+            self.username = username
+
+        def get_full_name(self):
+            return self._full_name
+
+    assert _nome_usuario_auditoria(U(full_name="Nome Sobrenome")) == "Nome Sobrenome"
+    assert _nome_usuario_auditoria(U(email="u@test.com")) == "u@test.com"
+    assert _nome_usuario_auditoria(U(username="user1")) == "user1"
+    assert _nome_usuario_auditoria(None) == "utilizador"
 
 
 @pytest.mark.django_db
@@ -119,6 +136,21 @@ class TestComposicaoGerarSugestoesView:
         response = client.post(url, {}, format="json")
         assert response.status_code == 400
         assert "detail" in response.json()
+
+    @patch("composicao_painel.api.views.gerar_sugestoes_painel")
+    def test_post_converte_limpar_antes_string_para_bool(self, mock_gerar, admin_client, criar_projeto):
+        mock_gerar.return_value = {
+            "total_sugestoes": 0,
+            "erros": [],
+            "sugestoes_descartadas_aprovadas": 0,
+        }
+        client, _ = admin_client
+        projeto = criar_projeto(nome="GS", codigo="09103-26", tensao_nominal=TensaoChoices.V380)
+        url = reverse("composicao-projeto-gerar-sugestoes", kwargs={"projeto_id": projeto.id})
+        response = client.post(url, {"limpar_antes": "yes"}, format="json")
+        assert response.status_code == 200
+        _, kwargs = mock_gerar.call_args
+        assert kwargs["limpar_antes"] is True
 
 
 @pytest.mark.django_db

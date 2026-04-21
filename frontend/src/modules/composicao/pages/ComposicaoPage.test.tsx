@@ -1,12 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useProjetoListQueryMock = vi.hoisted(() => vi.fn())
 const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaPdfMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaXlsxMock = vi.hoisted(() => vi.fn())
+const showToastMock = vi.hoisted(() => vi.fn())
+const lastConfirmModalProps = vi.hoisted(
+  () => ({ current: null as null | Record<string, unknown> })
+)
 
 vi.mock('@/modules/auth/AuthContext', () => ({
   useAuth: () => useAuthMock(),
@@ -55,13 +59,23 @@ vi.mock('@/modules/composicao/services/composicaoService', () => ({
 }))
 
 vi.mock('@/components/feedback', () => ({
-  ConfirmModal: () => null,
-  useToast: () => ({ showToast: vi.fn() }),
+  ConfirmModal: (props: Record<string, unknown>) => {
+    lastConfirmModalProps.current = props
+    return null
+  },
+  useToast: () => ({ showToast: showToastMock }),
 }))
 
 import ComposicaoPage from '@/modules/composicao/pages/ComposicaoPage'
 
 describe('ComposicaoPage', () => {
+  beforeEach(() => {
+    exportarComposicaoListaPdfMock.mockClear()
+    exportarComposicaoListaXlsxMock.mockClear()
+    showToastMock.mockClear()
+    lastConfirmModalProps.current = null
+  })
+
   const baseProjetos = [
     {
       id: 'p1',
@@ -174,5 +188,48 @@ describe('ComposicaoPage', () => {
         'PRJ-01 - Cliente X - Projeto 1'
       )
     })
+  })
+
+  it('quando há pendências abre confirmação antes de exportar', async () => {
+    useAuthMock.mockReturnValue({
+      user: {
+        email: 'u@test.com',
+        first_name: '',
+        last_name: '',
+        tipo_usuario: 'USUARIO',
+        permissoes: ['almoxarifado.separar_material'],
+      },
+    })
+    useProjetoListQueryMock.mockReturnValue({ data: baseProjetos, isPending: false })
+    useComposicaoSnapshotQueryMock.mockReturnValue({
+      data: {
+        ...snapshotBase,
+        pendencias: [{ id: 'pen-1', descricao: 'x' }],
+        totais: { ...snapshotBase.totais, pendencias: 1 },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    showToastMock.mockClear()
+    lastConfirmModalProps.current = null
+
+    render(
+      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
+        <ComposicaoPage />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /^Excel$/i }))
+    await waitFor(() =>
+      expect(lastConfirmModalProps.current?.show).toBe(true)
+    )
+    expect(exportarComposicaoListaXlsxMock).not.toHaveBeenCalled()
+
+    const onConfirm = lastConfirmModalProps.current?.onConfirm as (() => void) | undefined
+    expect(onConfirm).toBeDefined()
+    onConfirm?.()
+    await waitFor(() => expect(exportarComposicaoListaXlsxMock).toHaveBeenCalled())
   })
 })
