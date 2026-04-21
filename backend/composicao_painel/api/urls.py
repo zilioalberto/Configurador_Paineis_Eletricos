@@ -6,6 +6,7 @@ from composicao_painel.api.views import (
     ComposicaoGerarSugestoesView,
     ComposicaoInclusaoManualCreateView,
     ComposicaoInclusaoManualDestroyView,
+    ComposicaoItemReabrirView,
     ComposicaoProjetoSnapshotView,
     ComposicaoReavaliarPendenciasView,
     SugestaoAlternativasView,
@@ -57,5 +58,10 @@ urlpatterns = [
         "composicao/inclusoes-manuais/<uuid:inclusao_id>/",
         ComposicaoInclusaoManualDestroyView.as_view(),
         name="composicao-inclusao-manual-detail",
+    ),
+    path(
+        "composicao/itens/<uuid:composicao_item_id>/reabrir/",
+        ComposicaoItemReabrirView.as_view(),
+        name="composicao-item-reabrir",
     ),
 ]

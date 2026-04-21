@@ -25,6 +25,7 @@ from composicao_painel.models import (
     ComposicaoInclusaoManual,
     ComposicaoItem,
     PendenciaItem,
+    SugestaoItem,
 )
 from core.choices.cargas import TipoCargaChoices
 from projetos.models import Projeto
@@ -47,6 +48,7 @@ COLUNAS = [
     "Memória de cálculo",
     "Status",
 ]
+STATUS_MARKER = "[STATUS_APROVACAO]"
 
 
 def _txt(v) -> str:
@@ -105,7 +107,26 @@ def _corrente_ref_item(item: ComposicaoItem) -> str:
     return _corrente_para_carga(item.corrente_referencia_a, item.carga)
 
 
-def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
+def _status_composicao_export(item: ComposicaoItem) -> str:
+    observacoes = _txt(item.observacoes)
+    if observacoes:
+        for linha in observacoes.splitlines():
+            if STATUS_MARKER in linha:
+                status = linha.split(STATUS_MARKER, 1)[1].strip()
+                if status:
+                    return status
+    return "Aprovado"
+
+
+def _status_sugestao_export(sugestao: SugestaoItem) -> str:
+    if str(sugestao.status) == "PENDENTE":
+        return "Aguardando aprovação"
+    return sugestao.get_status_display()
+
+
+def montar_linhas_export(
+    projeto: Projeto, *, incluir_memoria_calculo: bool = True
+) -> tuple[list[str], list[list[str]]]:
     """Retorna (cabeçalhos, linhas) com strings para planilha/PDF."""
     linhas: list[list[str]] = []
 
@@ -137,7 +158,39 @@ def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
                 _txt(item.quantidade),
                 _txt(item.observacoes),
                 _txt(item.memoria_calculo),
-                "",
+                _status_composicao_export(item),
+            ]
+        )
+
+    qs_sug = (
+        SugestaoItem.objects.filter(projeto=projeto)
+        .select_related(
+            "produto",
+            "carga",
+            "carga__motor",
+            "carga__resistencia",
+        )
+        .order_by("ordem", "id")
+    )
+    for sug in qs_sug:
+        carga = sug.carga
+        linhas.append(
+            [
+                "Sugestão de item",
+                sug.get_parte_painel_display(),
+                sug.get_categoria_produto_display(),
+                _txt(carga.tag) if carga else "",
+                _txt(carga.descricao) if carga else "",
+                carga.get_tipo_display() if carga else "",
+                _potencia_carga(carga),
+                _corrente_para_carga(sug.corrente_referencia_a, carga),
+                _txt(sug.produto.codigo),
+                _txt(sug.produto.descricao),
+                _txt(sug.produto.fabricante),
+                _txt(sug.quantidade),
+                _txt(sug.observacoes),
+                _txt(sug.memoria_calculo),
+                _status_sugestao_export(sug),
             ]
         )
 
@@ -164,7 +217,7 @@ def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
                 _txt(inc.quantidade),
                 _txt(inc.observacoes),
                 "",
-                "",
+                "Aprovado",
             ]
         )
 
@@ -199,13 +252,23 @@ def montar_linhas_export(projeto: Projeto) -> tuple[list[str], list[list[str]]]:
             ]
         )
 
-    return COLUNAS, linhas
+    header = list(COLUNAS)
+    if not incluir_memoria_calculo:
+        memoria_idx = header.index("Memória de cálculo")
+        header = [col for i, col in enumerate(header) if i != memoria_idx]
+        linhas = [[cel for i, cel in enumerate(row) if i != memoria_idx] for row in linhas]
+
+    return header, linhas
 
 
 def nome_arquivo_seguro(projeto: Projeto, extensao: str) -> str:
-    base = _txt(projeto.codigo) or str(projeto.id)[:8]
-    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in base) or "projeto"
-    return f"{safe}_composicao_completa.{extensao}"
+    partes = [_txt(projeto.codigo), _txt(getattr(projeto, "cliente", "")), _txt(projeto.nome)]
+    base = " - ".join([p for p in partes if p]) or str(projeto.id)[:8]
+    invalidos = '<>:"/\\|?*'
+    safe = "".join("_" if c in invalidos else c for c in base).strip(" .")
+    if not safe:
+        safe = "projeto"
+    return f"{safe}.{extensao}"
 
 
 def render_xlsx_bytes(projeto: Projeto, header: list[str], linhas: list[list[str]]) -> bytes:

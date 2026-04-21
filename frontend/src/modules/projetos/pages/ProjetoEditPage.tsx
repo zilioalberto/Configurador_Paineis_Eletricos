@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import ProjetoForm from '../components/ProjetoForm'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { useUpdateProjetoMutation } from '../hooks/useProjetoMutations'
 import type { Projeto, ProjetoFormData } from '../types/projeto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { projetoQueryKeys } from '../projetoQueryKeys'
+import { listarResponsaveisProjeto } from '../services/projetoService'
 
 function projetoParaFormData(projeto: Projeto): ProjetoFormData {
   return {
@@ -46,11 +52,16 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
     fator_demanda: projeto.fator_demanda ?? '1.00',
 
     possui_seccionamento: projeto.possui_seccionamento,
-    tipo_seccionamento: projeto.tipo_seccionamento,
+    tipo_seccionamento:
+      projeto.possui_seccionamento && projeto.tipo_seccionamento === 'NENHUM'
+        ? null
+        : projeto.tipo_seccionamento,
+    responsavel: projeto.responsavel ?? null,
   }
 }
 
 export default function ProjetoEditPage() {
+  const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -65,6 +76,11 @@ export default function ProjetoEditPage() {
   } = useProjetoDetailQuery(id)
 
   const updateMutation = useUpdateProjetoMutation()
+  const canEditResponsavel = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
+  const { data: responsavelOptions = [] } = useQuery({
+    queryKey: [...projetoQueryKeys.all, 'responsaveis'],
+    queryFn: listarResponsaveisProjeto,
+  })
 
   useEffect(() => {
     loadErrorToastSent.current = false
@@ -150,6 +166,9 @@ export default function ProjetoEditPage() {
               onSubmit={handleSubmit}
               loading={updateMutation.isPending}
               initialData={initialData}
+              responsavelOptions={responsavelOptions}
+              canEditResponsavel={canEditResponsavel}
+              showStatus={false}
             />
           )}
         </div>

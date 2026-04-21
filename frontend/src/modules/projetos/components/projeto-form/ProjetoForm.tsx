@@ -1,4 +1,4 @@
-import type { ProjetoFormData } from '../../types/projeto'
+import type { ProjetoFormData, ProjetoResponsavelOption } from '../../types/projeto'
 import { ProjetoFormAlimentacaoSection } from './ProjetoFormAlimentacaoSection'
 import { ProjetoFormDadosGeraisSection } from './ProjetoFormDadosGeraisSection'
 import { ProjetoFormIdentificacaoSegurancaSection } from './ProjetoFormIdentificacaoSegurancaSection'
@@ -10,12 +10,18 @@ type ProjetoFormProps = {
   onSubmit: (data: ProjetoFormData) => Promise<void>
   loading?: boolean
   initialData?: ProjetoFormData
+  responsavelOptions?: ProjetoResponsavelOption[]
+  canEditResponsavel?: boolean
+  showStatus?: boolean
 }
 
 export default function ProjetoForm({
   onSubmit,
   loading = false,
   initialData,
+  responsavelOptions = [],
+  canEditResponsavel = false,
+  showStatus = true,
 }: ProjetoFormProps) {
   const { formData, handleFieldChange, handleSubmit } = useProjetoForm({
     onSubmit,
@@ -27,6 +33,9 @@ export default function ProjetoForm({
     formData,
     onFieldChange: handleFieldChange,
     readOnlyExceptStatus,
+    responsavelOptions,
+    canEditResponsavel,
+    showStatus,
   }
 
   return (

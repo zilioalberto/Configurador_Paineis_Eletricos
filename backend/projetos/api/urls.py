@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from projetos.api.views import (
     DashboardResumoView,
     ProjetoAlocarCodigoView,
+    ProjetoResponsavelOptionsView,
     ProjetoViewSet,
 )
 
@@ -16,5 +17,10 @@ urlpatterns = [
         "projetos/alocar-codigo/",
         ProjetoAlocarCodigoView.as_view(),
         name="projetos-alocar-codigo",
+    ),
+    path(
+        "projetos/responsaveis/",
+        ProjetoResponsavelOptionsView.as_view(),
+        name="projetos-responsaveis",
     ),
 ] + router.urls

@@ -23,7 +23,39 @@ vi.mock('@/modules/usuarios/services/usuariosAdminService', () => ({
 
 import UsuariosAdminPage from '@/modules/usuarios/pages/UsuariosAdminPage'
 
-function renderPage() {
+const tipoUsuarioChoicesBase = [
+  { value: 'USUARIO', label: 'Colaborador' },
+  { value: 'ADMIN', label: 'Administrador' },
+]
+
+const permissionOptionsBase = {
+  permissions: [
+    { value: 'projeto.visualizar', label: 'Ver projetos' },
+    { value: 'projeto.criar', label: 'Criar projetos' },
+  ],
+  defaults_by_tipo: {
+    USUARIO: ['projeto.visualizar'],
+    ADMIN: ['projeto.visualizar', 'projeto.criar'],
+  },
+}
+
+const adminUsersBase = [
+  {
+    id: 10,
+    email: 'tais@empresa.com',
+    first_name: 'Tais',
+    last_name: '',
+    telefone: '',
+    tipo_usuario: 'USUARIO',
+    permissoes_extras: [],
+    permissoes_negadas: [],
+    permissoes_efetivas: ['projeto.visualizar'],
+    is_active: true,
+    date_created: new Date().toISOString(),
+  },
+]
+
+function renderUsuariosAdminPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -34,41 +66,19 @@ function renderPage() {
   )
 }
 
+function setupUsuariosAdminPage() {
+  fetchTipoUsuarioChoices.mockResolvedValue(tipoUsuarioChoicesBase)
+  fetchUserPermissionOptions.mockResolvedValue(permissionOptionsBase)
+  fetchAdminUsers.mockResolvedValue(adminUsersBase)
+  createAdminUser.mockResolvedValue({ id: 11 })
+  updateAdminUser.mockResolvedValue({ id: 10 })
+}
+
 describe('UsuariosAdminPage', () => {
   it('carrega, cria e edita utilizador', async () => {
-    fetchTipoUsuarioChoices.mockResolvedValue([
-      { value: 'USUARIO', label: 'Colaborador' },
-      { value: 'ADMIN', label: 'Administrador' },
-    ])
-    fetchUserPermissionOptions.mockResolvedValue({
-      permissions: [
-        { value: 'projeto.visualizar', label: 'Ver projetos' },
-        { value: 'projeto.criar', label: 'Criar projetos' },
-      ],
-      defaults_by_tipo: {
-        USUARIO: ['projeto.visualizar'],
-        ADMIN: ['projeto.visualizar', 'projeto.criar'],
-      },
-    })
-    fetchAdminUsers.mockResolvedValue([
-      {
-        id: 10,
-        email: 'tais@empresa.com',
-        first_name: 'Tais',
-        last_name: '',
-        telefone: '',
-        tipo_usuario: 'USUARIO',
-        permissoes_extras: [],
-        permissoes_negadas: [],
-        permissoes_efetivas: ['projeto.visualizar'],
-        is_active: true,
-        date_created: new Date().toISOString(),
-      },
-    ])
-    createAdminUser.mockResolvedValue({ id: 11 })
-    updateAdminUser.mockResolvedValue({ id: 10 })
+    setupUsuariosAdminPage()
 
-    renderPage()
+    renderUsuariosAdminPage()
 
     await screen.findByText('Utilizadores registados')
     await screen.findByText('tais@empresa.com')

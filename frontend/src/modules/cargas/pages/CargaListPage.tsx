@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -10,6 +11,8 @@ import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
+import { useRecalcularDimensionamentoMutation } from '@/modules/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
@@ -28,8 +31,13 @@ export default function CargaListPage() {
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [autoRecalcFeedback, setAutoRecalcFeedback] = useState('')
+  const autoRecalcKeyRef = useRef<string>('')
+  const autoRecalcPendingRef = useRef(false)
+  const autoRecalcFeedbackTimerRef = useRef<number | null>(null)
   const canManageCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
+  const canEditarProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
 
@@ -52,6 +60,14 @@ export default function CargaListPage() {
     error: loadError,
     refetch,
   } = useCargaListQuery(projetoIdListagem)
+  const {
+    data: resumoDimensionamento,
+    isPending: loadingResumoDimensionamento,
+    isError: isResumoError,
+    error: resumoError,
+    refetch: refetchResumoDimensionamento,
+  } = useDimensionamentoQuery(projetoIdListagem)
+  const recalcMutation = useRecalcularDimensionamentoMutation(projetoIdListagem)
 
   const deleteMutation = useDeleteCargaMutation(projetoIdListagem)
 
@@ -59,6 +75,11 @@ export default function CargaListPage() {
     const p = projetoSelecionado
     return p ? `${p.codigo} — ${p.nome}` : ''
   }, [projetoSelecionado])
+  const podeRecalcularDimensionamento = canEditarProjeto && !projetoFinalizado
+  const cargasSignature = useMemo(
+    () => cargas.map((c) => `${c.id}:${c.atualizado_em ?? ''}`).join('|'),
+    [cargas]
+  )
 
   useEffect(() => {
     if (!projetoId || loadingProjetos || projetos.length === 0) return
@@ -114,6 +135,71 @@ export default function CargaListPage() {
     }
   }, [deleteTarget, deleteMutation, showToast])
 
+  const onRecalcularDimensionamento = useCallback(async () => {
+    if (!projetoIdListagem || !podeRecalcularDimensionamento) return
+    try {
+      await recalcMutation.mutateAsync()
+      showToast({
+        variant: 'success',
+        message: 'Dimensionamento recalculado com base nas cargas atuais.',
+      })
+    } catch (err) {
+      console.error(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível recalcular',
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+    }
+  }, [projetoIdListagem, podeRecalcularDimensionamento, recalcMutation, showToast])
+
+  useEffect(() => {
+    if (!projetoIdListagem || !podeRecalcularDimensionamento) return
+    if (loadingCargas || isError) return
+
+    const key = `${projetoIdListagem}|${cargasSignature}`
+    if (!cargasSignature || autoRecalcKeyRef.current === key || autoRecalcPendingRef.current) {
+      return
+    }
+
+    autoRecalcPendingRef.current = true
+    setAutoRecalcFeedback('Atualizando resumo automaticamente...')
+    void (async () => {
+      try {
+        await recalcMutation.mutateAsync()
+        autoRecalcKeyRef.current = key
+        setAutoRecalcFeedback('Resumo atualizado automaticamente.')
+        if (autoRecalcFeedbackTimerRef.current) {
+          window.clearTimeout(autoRecalcFeedbackTimerRef.current)
+        }
+        autoRecalcFeedbackTimerRef.current = window.setTimeout(() => {
+          setAutoRecalcFeedback('')
+          autoRecalcFeedbackTimerRef.current = null
+        }, 2200)
+      } catch (err) {
+        console.error(err)
+        setAutoRecalcFeedback('')
+      } finally {
+        autoRecalcPendingRef.current = false
+      }
+    })()
+  }, [
+    projetoIdListagem,
+    podeRecalcularDimensionamento,
+    loadingCargas,
+    isError,
+    cargasSignature,
+    recalcMutation,
+  ])
+
+  useEffect(() => {
+    return () => {
+      if (autoRecalcFeedbackTimerRef.current) {
+        window.clearTimeout(autoRecalcFeedbackTimerRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="container-fluid">
       <ConfirmModal
@@ -141,14 +227,30 @@ export default function CargaListPage() {
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
+          {projetoId ? (
+            <Link
+              to={`/projetos/${projetoId}/fluxo/cargas`}
+              className="btn btn-outline-info"
+            >
+              Voltar ao wizard
+            </Link>
+          ) : null}
           <button
             type="button"
             className="btn btn-outline-secondary"
-            onClick={() => void refetch()}
+            onClick={() => {
+              void refetch()
+              void refetchResumoDimensionamento()
+            }}
             disabled={!projetoIdListagem}
           >
             Atualizar
           </button>
+          {canManageCargas ? (
+            <Link to="/cargas/modelos" className="btn btn-outline-secondary">
+              Modelos de carga
+            </Link>
+          ) : null}
           {canManageCargas ? (
             <Link
               to={
@@ -163,6 +265,14 @@ export default function CargaListPage() {
               }}
             >
               Nova carga
+            </Link>
+          ) : null}
+          {projetoIdListagem ? (
+            <Link
+              to={`/composicao?projeto=${encodeURIComponent(projetoIdListagem)}`}
+              className="btn btn-outline-primary"
+            >
+              Próxima etapa: Composição
             </Link>
           ) : null}
         </div>
@@ -248,6 +358,103 @@ export default function CargaListPage() {
           )}
         </div>
       </div>
+
+      {projetoIdListagem ? (
+        <div className="card mt-3" id="dimensionamento-resumo">
+          <div className="card-body">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 className="h5 mb-0">Resumo de dimensionamento</h2>
+              <div className="d-flex gap-2">
+                {canEditarProjeto ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    disabled={!podeRecalcularDimensionamento || recalcMutation.isPending}
+                    onClick={() => void onRecalcularDimensionamento()}
+                  >
+                    {recalcMutation.isPending ? 'Recalculando...' : 'Recalcular'}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            {autoRecalcFeedback ? (
+              <p className="small text-muted mb-3">{autoRecalcFeedback}</p>
+            ) : null}
+
+            {projetoFinalizado ? (
+              <div className="alert alert-secondary" role="status">
+                Projeto finalizado: visualização somente leitura. O recálculo não está
+                disponível.
+              </div>
+            ) : null}
+
+            {loadingResumoDimensionamento ? (
+              <p className="text-muted mb-0">Carregando resumo...</p>
+            ) : null}
+
+            {!loadingResumoDimensionamento && isResumoError ? (
+              <div className="alert alert-danger mb-0" role="alert">
+                {resumoError instanceof Error
+                  ? resumoError.message
+                  : 'Não foi possível carregar o dimensionamento.'}
+              </div>
+            ) : null}
+
+            {!loadingResumoDimensionamento && !isResumoError && resumoDimensionamento ? (
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <div className="card border-primary h-100">
+                    <div className="card-body">
+                      <h3 className="h6 text-primary mb-3">Corrente total de entrada</h3>
+                      <p className="display-6 mb-1">
+                        {resumoDimensionamento.corrente_total_painel_a}
+                      </p>
+                      <p className="text-muted small mb-0">
+                        Ampères (A) - soma das cargas motor ativas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-md-6">
+                  <div className="card h-100">
+                    <div className="card-body">
+                      <h3 className="h6 mb-3">Seccionamento geral</h3>
+                      <dl className="row small mb-0">
+                        <dt className="col-sm-5">Previsto no projeto</dt>
+                        <dd className="col-sm-7">
+                          {resumoDimensionamento.possui_seccionamento ? 'Sim' : 'Não'}
+                        </dd>
+                        <dt className="col-sm-5">Tipo</dt>
+                        <dd className="col-sm-7">
+                          {resumoDimensionamento.possui_seccionamento
+                            ? resumoDimensionamento.tipo_seccionamento_display ??
+                              resumoDimensionamento.tipo_seccionamento ??
+                              '—'
+                            : '—'}
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-12">
+                  <p className="small text-muted mb-0">
+                    Projeto: <strong>{projetoLabel || projetoIdListagem}</strong>
+                    {resumoDimensionamento.atualizado_em ? (
+                      <>
+                        {' '}
+                        · Atualizado em{' '}
+                        {new Date(resumoDimensionamento.atualizado_em).toLocaleString()}
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

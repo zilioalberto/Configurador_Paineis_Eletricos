@@ -12,6 +12,7 @@ function makeProjeto(): Projeto {
     nome: 'Projeto teste',
     descricao: '',
     cliente: 'Cliente',
+    responsavel_nome: 'Fulano Responsável',
     status: 'EM_ANDAMENTO',
     status_display: 'Em andamento',
     tipo_painel: 'AUTOMACAO',
@@ -59,6 +60,7 @@ describe('ProjetoTable', () => {
     )
 
     expect(screen.getByRole('link', { name: 'Visualizar' })).toBeInTheDocument()
+    expect(screen.getByText('Fulano Responsável')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument()
   })

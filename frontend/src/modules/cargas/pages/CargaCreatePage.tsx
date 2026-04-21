@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -7,9 +7,12 @@ import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
+import CargaModeloOpcionalSection from '../components/CargaModeloOpcionalSection'
+import { useCargaListQuery } from '../hooks/useCargaListQuery'
 import { useCreateCargaMutation } from '../hooks/useCargaMutations'
-import type { CargaFormData } from '../types/carga'
+import type { CargaFormData, CargaModelo, TipoCarga } from '../types/carga'
 import { cargaFormInitial } from '../utils/cargaFormDefaults'
+import { aplicarModeloNoFormulario } from '../utils/cargaModelos'
 import { cargaFormToApiPayload } from '../utils/cargaPayload'
 import { filtrarProjetosComEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
@@ -27,6 +30,8 @@ export default function CargaCreatePage() {
   const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
 
   const createMutation = useCreateCargaMutation()
+  const [formSeed, setFormSeed] = useState<CargaFormData>(() => cargaFormInitial(''))
+  const [formDraft, setFormDraft] = useState<CargaFormData>(() => cargaFormInitial(''))
 
   const initialData = useMemo(() => {
     const fromQuery =
@@ -37,6 +42,51 @@ export default function CargaCreatePage() {
     const pid = fromQuery || projetosEditaveis[0]?.id || ''
     return cargaFormInitial(pid)
   }, [projetoQuery, projetosEditaveis])
+
+  useEffect(() => {
+    setFormSeed(initialData)
+    setFormDraft(initialData)
+  }, [initialData])
+
+  const { data: cargasProjetoAtual = [] } = useCargaListQuery(formDraft.projeto || null)
+
+  const proximoTagSugerido = useMemo(() => {
+    const PREFIX_BY_TIPO: Record<TipoCarga, string> = {
+      MOTOR: 'M',
+      VALVULA: 'V',
+      RESISTENCIA: 'R',
+      SENSOR: 'S',
+      TRANSDUTOR: 'T',
+      TRANSMISSOR: 'TM',
+      OUTRO: 'O',
+    }
+    const prefix = PREFIX_BY_TIPO[formDraft.tipo]
+    if (!prefix) return ''
+    const matcher = new RegExp(`^${prefix}(\\d+)$`, 'i')
+    const maxSeq = cargasProjetoAtual.reduce((acc, carga) => {
+      const match = matcher.exec(carga.tag.trim())
+      if (!match) return acc
+      const seq = Number(match[1])
+      return Number.isFinite(seq) && seq > acc ? seq : acc
+    }, 0)
+    return `${prefix}${String(maxSeq + 1).padStart(2, '0')}`
+  }, [cargasProjetoAtual, formDraft.tipo])
+
+  const aplicarModelo = useCallback(
+    (modelo: CargaModelo) => {
+      const projetoId = formSeed.projeto || initialData.projeto
+      if (!projetoId) return
+      const next = aplicarModeloNoFormulario(projetoId, modelo.tipo, modelo.payload)
+      next.descricao = modelo.nome
+      setFormSeed(next)
+      setFormDraft(next)
+      showToast({
+        variant: 'success',
+        message: `Modelo "${modelo.nome}" aplicado ao formulário.`,
+      })
+    },
+    [formSeed.projeto, initialData.projeto, showToast]
+  )
 
   async function handleSubmit(data: CargaFormData) {
     if (!data.projeto) {
@@ -56,7 +106,7 @@ export default function CargaCreatePage() {
     try {
       const created = await createMutation.mutateAsync(cargaFormToApiPayload(data))
       showToast({ variant: 'success', message: 'Carga criada com sucesso.' })
-      navigate(`/cargas/${created.id}`)
+      navigate(`/cargas?projeto=${encodeURIComponent(created.projeto)}`)
     } catch (err) {
       console.error(err)
       showToast({
@@ -75,6 +125,11 @@ export default function CargaCreatePage() {
           Informe o projeto e o tipo de carga. Os parâmetros específicos são preenchidos
           com valores padrão ao mudar o tipo (você pode ajustar antes de salvar).
         </p>
+        <div className="mt-2">
+          <Link to="/cargas/modelos" className="btn btn-sm btn-outline-secondary">
+            Gerenciar modelos de carga
+          </Link>
+        </div>
       </div>
 
       <div className="card">
@@ -101,13 +156,22 @@ export default function CargaCreatePage() {
             )}
 
           {!loadingProjetos && projetosEditaveis.length > 0 && (
-            <CargaForm
-              projetos={projetosEditaveis}
-              initialData={initialData}
-              onSubmit={handleSubmit}
-              loading={createMutation.isPending}
-              lockProjeto={false}
-            />
+            <>
+              <CargaModeloOpcionalSection
+                modeloQueryScope="create"
+                onAplicarModelo={aplicarModelo}
+              />
+
+              <CargaForm
+                projetos={projetosEditaveis}
+                initialData={formSeed}
+                suggestedTag={proximoTagSugerido}
+                onChange={setFormDraft}
+                onSubmit={handleSubmit}
+                loading={createMutation.isPending}
+                lockProjeto={false}
+              />
+            </>
           )}
         </div>
       </div>

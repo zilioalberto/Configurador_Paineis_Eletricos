@@ -53,6 +53,7 @@ export default function ProjetoTable({
             <th>Código</th>
             <th>Nome</th>
             <th>Cliente</th>
+            <th>Responsável</th>
             <th>Status</th>
             <th>Tipo painel</th>
             <th>Corrente</th>
@@ -70,6 +71,8 @@ export default function ProjetoTable({
               <td>{projeto.nome}</td>
 
               <td>{projeto.cliente || '-'}</td>
+
+              <td>{projeto.responsavel_nome || '-'}</td>
 
               <td>
                 <span className={getStatusBadgeClass(projeto.status)}>
@@ -92,6 +95,12 @@ export default function ProjetoTable({
                     className="btn btn-sm btn-outline-primary"
                   >
                     Visualizar
+                  </Link>
+                  <Link
+                    to={`/projetos/${projeto.id}/fluxo/cargas`}
+                    className="btn btn-sm btn-outline-info"
+                  >
+                    Wizard
                   </Link>
 
                   {canEdit ? (

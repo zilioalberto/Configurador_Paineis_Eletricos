@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { authUser } from '@/test/factories/authUser'
 
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useProjetoDetailQueryMock = vi.hoisted(() => vi.fn())
@@ -48,54 +49,38 @@ const projeto = {
   tipo_seccionamento: null,
 }
 
+function setupProjetoDetailPage(permissoes: string[] = []) {
+  useAuthMock.mockReturnValue({ user: authUser(permissoes) })
+  useProjetoDetailQueryMock.mockReturnValue({
+    data: projeto,
+    isPending: false,
+    isError: false,
+    error: null,
+  })
+  render(
+    <MemoryRouter initialEntries={['/projetos/p-1']}>
+      <Routes>
+        <Route path="/projetos/:id" element={<ProjetoDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
 describe('ProjetoDetailPage', () => {
   it('esconde acoes sem permissao', () => {
-    useAuthMock.mockReturnValue({
-      user: { email: 'u@test.com', first_name: '', last_name: '', tipo_usuario: 'USUARIO' },
-    })
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: projeto,
-      isPending: false,
-      isError: false,
-      error: null,
-    })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p-1']}>
-        <Routes>
-          <Route path="/projetos/:id" element={<ProjetoDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    setupProjetoDetailPage()
 
     expect(screen.queryByRole('link', { name: /Editar projeto/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Composição/i })).not.toBeInTheDocument()
   })
 
   it('exibe acoes com permissoes necessarias', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.visualizar', 'projeto.editar', 'almoxarifado.visualizar_tarefas', 'material.visualizar_lista'],
-      },
-    })
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: projeto,
-      isPending: false,
-      isError: false,
-      error: null,
-    })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p-1']}>
-        <Routes>
-          <Route path="/projetos/:id" element={<ProjetoDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    setupProjetoDetailPage([
+      'projeto.visualizar',
+      'projeto.editar',
+      'almoxarifado.visualizar_tarefas',
+      'material.visualizar_lista',
+    ])
 
     expect(screen.getByRole('link', { name: /Editar projeto/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Composição/i })).toBeInTheDocument()

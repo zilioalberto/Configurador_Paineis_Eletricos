@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { authUser } from '@/test/factories/authUser'
 
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useDashboardResumoQueryMock = vi.hoisted(() => vi.fn())
@@ -32,54 +33,37 @@ const resumoMock = {
   ],
 }
 
+function setupDashboardPage(permissoes: string[] = []) {
+  useAuthMock.mockReturnValue({ user: authUser(permissoes, { email: 'a@b.com' }) })
+  useDashboardResumoQueryMock.mockReturnValue({
+    data: resumoMock,
+    isPending: false,
+    isError: false,
+    error: null,
+    isFetching: false,
+    refetch: vi.fn(),
+  })
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>
+  )
+}
+
 describe('DashboardPage', () => {
   it('esconde links sem permissao correspondente', () => {
-    useAuthMock.mockReturnValue({
-      user: { email: 'a@b.com', first_name: '', last_name: '', tipo_usuario: 'USUARIO' },
-    })
-    useDashboardResumoQueryMock.mockReturnValue({
-      data: resumoMock,
-      isPending: false,
-      isError: false,
-      error: null,
-      isFetching: false,
-      refetch: vi.fn(),
-    })
-
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    )
+    setupDashboardPage()
 
     expect(screen.getByText('Projetos ativos')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Abrir composição/i })).not.toBeInTheDocument()
   })
 
   it('mostra links quando ha permissao', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'a@b.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.visualizar', 'material.visualizar_lista', 'almoxarifado.visualizar_tarefas'],
-      },
-    })
-    useDashboardResumoQueryMock.mockReturnValue({
-      data: resumoMock,
-      isPending: false,
-      isError: false,
-      error: null,
-      isFetching: false,
-      refetch: vi.fn(),
-    })
-
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
-    )
+    setupDashboardPage([
+      'projeto.visualizar',
+      'material.visualizar_lista',
+      'almoxarifado.visualizar_tarefas',
+    ])
 
     expect(screen.getByRole('link', { name: /Abrir composição/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Gerir catálogo/i })).toBeInTheDocument()

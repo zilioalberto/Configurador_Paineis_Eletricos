@@ -1,0 +1,75 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+
+import { projetoFormInitialState } from '@/modules/projetos/components/projeto-form/formOptions'
+import { ProjetoFormDadosGeraisSection } from '@/modules/projetos/components/projeto-form/ProjetoFormDadosGeraisSection'
+
+describe('ProjetoFormDadosGeraisSection', () => {
+  it('altera nome e cliente', () => {
+    const onFieldChange = vi.fn()
+    render(
+      <div className="row g-3">
+        <ProjetoFormDadosGeraisSection
+          formData={{ ...projetoFormInitialState, nome: 'A', cliente: 'B' }}
+          onFieldChange={onFieldChange}
+          responsavelOptions={[]}
+          canEditResponsavel={false}
+          showStatus
+          readOnlyExceptStatus={false}
+        />
+      </div>
+    )
+
+    fireEvent.change(document.querySelector('input[name="nome"]')!, {
+      target: { value: 'Novo' },
+    })
+    expect(onFieldChange).toHaveBeenCalled()
+
+    fireEvent.change(document.querySelector('input[name="cliente"]')!, {
+      target: { value: 'Cliente X' },
+    })
+    expect(screen.getByText(/Nome/i)).toBeInTheDocument()
+  })
+
+  it('mostra hint de bloqueio quando finalizado', () => {
+    render(
+      <div className="row g-3">
+        <ProjetoFormDadosGeraisSection
+          formData={{
+            ...projetoFormInitialState,
+            status: 'FINALIZADO',
+            nome: 'P',
+          }}
+          onFieldChange={vi.fn()}
+          readOnlyExceptStatus
+          showStatus
+        />
+      </div>
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(/Finalizado/)
+  })
+
+  it('renderiza opções de responsável quando permitido', () => {
+    render(
+      <div className="row g-3">
+        <ProjetoFormDadosGeraisSection
+          formData={{ ...projetoFormInitialState, responsavel: 1 }}
+          onFieldChange={vi.fn()}
+          responsavelOptions={[
+            { id: 1, label: 'Maria Gestora', email: 'maria@test.com', tipo_usuario: 'USUARIO' },
+          ]}
+          canEditResponsavel
+          showStatus={false}
+          readOnlyExceptStatus={false}
+        />
+      </div>
+    )
+
+    expect(screen.getByRole('option', { name: 'Maria Gestora' })).toBeInTheDocument()
+    const responsavelSelect = screen
+      .getAllByRole('combobox')
+      .find((el) => el.getAttribute('name') === 'responsavel')
+    expect(responsavelSelect).toBeTruthy()
+    expect(responsavelSelect).toBeEnabled()
+  })
+})

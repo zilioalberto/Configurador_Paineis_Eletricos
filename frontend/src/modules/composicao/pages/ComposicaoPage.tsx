@@ -1,6 +1,6 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useToast } from '@/components/feedback'
+import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -12,16 +12,33 @@ import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQu
 import { useAprovarSugestaoMutation } from '../hooks/useAprovarSugestaoMutation'
 import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import { useGerarSugestoesMutation } from '../hooks/useGerarSugestoesMutation'
+import { useReabrirComposicaoItemMutation } from '../hooks/useReabrirComposicaoItemMutation'
 import { useReavaliarPendenciasMutation } from '../hooks/useReavaliarPendenciasMutation'
 import {
   exportarComposicaoListaPdf,
   exportarComposicaoListaXlsx,
 } from '../services/composicaoService'
-import type { CargaDetalhe, ProjetoAlimentacaoSnapshot, SugestaoItem } from '../types/composicao'
+import type {
+  CargaDetalhe,
+  ComposicaoItem,
+  ProjetoAlimentacaoSnapshot,
+  SugestaoItem,
+} from '../types/composicao'
 
 function em(v: string | null | undefined) {
   if (v == null || v === '') return '—'
   return v
+}
+
+function montarNomeArquivoProjeto(
+  codigo: string | null | undefined,
+  cliente: string | null | undefined,
+  nome: string | null | undefined
+) {
+  return [codigo, cliente, nome]
+    .map((valor) => (valor ?? '').trim())
+    .filter((valor) => valor !== '')
+    .join(' - ')
 }
 
 function formatPotenciaCarga(c: CargaDetalhe | null | undefined) {
@@ -84,6 +101,9 @@ export default function ComposicaoPage() {
     null
   )
   const [exportando, setExportando] = useState<'pdf' | 'xlsx' | null>(null)
+  const [confirmExportFmt, setConfirmExportFmt] = useState<'pdf' | 'xlsx' | null>(null)
+  const [aprovandoTodas, setAprovandoTodas] = useState(false)
+  const [itemReabrir, setItemReabrir] = useState<ComposicaoItem | null>(null)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const {
@@ -91,7 +111,6 @@ export default function ComposicaoPage() {
     isPending: loadingSnap,
     isError,
     error: loadError,
-    refetch,
   } = useComposicaoSnapshotQuery(projetoId || null)
 
   const projetoSelecionado = useMemo(
@@ -107,6 +126,7 @@ export default function ComposicaoPage() {
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
   const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
   const aprovarMutation = useAprovarSugestaoMutation(projetoId || null)
+  const reabrirComposicaoItemMutation = useReabrirComposicaoItemMutation(projetoId || null)
 
   const {
     data: alternativas = [],
@@ -158,6 +178,7 @@ export default function ComposicaoPage() {
     try {
       const data = await gerarMutation.mutateAsync(true)
       const erros = data.geracao?.erros_etapas ?? []
+      const descartadas = data.geracao?.sugestoes_descartadas_aprovadas ?? 0
       if (erros.length > 0) {
         showToast({
           variant: 'warning',
@@ -167,7 +188,10 @@ export default function ComposicaoPage() {
       } else {
         showToast({
           variant: 'success',
-          message: 'Sugestões de composição atualizadas.',
+          message:
+            descartadas > 0
+              ? `Sugestões atualizadas. ${descartadas} item(ns) já aprovado(s) não foram reabertos.`
+              : 'Sugestões de composição atualizadas.',
         })
       }
     } catch (err) {
@@ -236,13 +260,60 @@ export default function ComposicaoPage() {
 
   const composicaoItens = snapshot?.composicao_itens ?? []
 
-  const onExportLista = useCallback(
+  const onReabrirItemAprovado = useCallback(async () => {
+    if (!itemReabrir || !podeEditar) return
+    try {
+      await reabrirComposicaoItemMutation.mutateAsync({ composicaoItemId: itemReabrir.id })
+      showToast({
+        variant: 'success',
+        message: 'Item reaberto e devolvido para sugestões de itens.',
+      })
+      setItemReabrir(null)
+    } catch (err) {
+      console.error(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível reabrir item aprovado',
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+    }
+  }, [itemReabrir, podeEditar, reabrirComposicaoItemMutation, showToast])
+
+  const onAprovarTodas = useCallback(async () => {
+    if (!podeEditar || !snapshot || snapshot.sugestoes.length === 0) return
+    try {
+      setAprovandoTodas(true)
+      for (const sugestao of snapshot.sugestoes) {
+        await aprovarMutation.mutateAsync({ sugestaoId: sugestao.id, produtoId: null })
+      }
+      showToast({
+        variant: 'success',
+        message: 'Todas as sugestões foram aprovadas.',
+      })
+    } catch (err) {
+      console.error(err)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível aprovar todas',
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+    } finally {
+      setAprovandoTodas(false)
+    }
+  }, [aprovarMutation, podeEditar, showToast, snapshot])
+
+  const executarExportacao = useCallback(
     async (fmt: 'pdf' | 'xlsx') => {
-      if (!projetoId) return
+      if (!projetoId || !snapshot) return
       setExportando(fmt)
       try {
-        if (fmt === 'xlsx') await exportarComposicaoListaXlsx(projetoId)
-        else await exportarComposicaoListaPdf(projetoId)
+        const nomeProjeto = montarNomeArquivoProjeto(
+          projetoSelecionado?.codigo ?? snapshot.projeto_codigo,
+          projetoSelecionado?.cliente,
+          projetoSelecionado?.nome ?? snapshot.projeto_nome
+        )
+        if (fmt === 'xlsx') await exportarComposicaoListaXlsx(projetoId, nomeProjeto)
+        else await exportarComposicaoListaPdf(projetoId, nomeProjeto)
         showToast({ variant: 'success', message: 'Download iniciado.' })
       } catch (err) {
         console.error(err)
@@ -255,11 +326,83 @@ export default function ComposicaoPage() {
         setExportando(null)
       }
     },
-    [projetoId, showToast]
+    [
+      projetoId,
+      projetoSelecionado?.cliente,
+      projetoSelecionado?.codigo,
+      projetoSelecionado?.nome,
+      showToast,
+      snapshot,
+    ]
   )
+
+  const onExportLista = useCallback(
+    (fmt: 'pdf' | 'xlsx') => {
+      if (!snapshot || !projetoId) return
+      if (snapshot.pendencias.length > 0) {
+        setConfirmExportFmt(fmt)
+        return
+      }
+      void executarExportacao(fmt)
+    },
+    [executarExportacao, projetoId, snapshot]
+  )
+
+  const modalComposicao = useMemo(() => {
+    if (confirmExportFmt !== null) {
+      return {
+        title: 'Existem pendências na composição',
+        message:
+          'Há pendências em aberto. O ideal é resolver todas antes de exportar. Deseja exportar mesmo assim?',
+        confirmLabel: 'Exportar mesmo assim',
+        isConfirming: exportando !== null,
+        tipo: 'export' as const,
+      }
+    }
+    if (itemReabrir !== null) {
+      return {
+        title: 'Reabrir item aprovado?',
+        message:
+          'Este item sairá da composição aprovada e voltará para sugestões de itens, para você aprovar novamente ou alterar.',
+        confirmLabel: 'Reabrir item',
+        isConfirming: reabrirComposicaoItemMutation.isPending,
+        tipo: 'reabrir' as const,
+      }
+    }
+    return null
+  }, [
+    confirmExportFmt,
+    exportando,
+    itemReabrir,
+    reabrirComposicaoItemMutation.isPending,
+  ])
 
   return (
     <div className="container-fluid">
+      <ConfirmModal
+        show={modalComposicao !== null}
+        title={modalComposicao?.title ?? ''}
+        message={modalComposicao?.message ?? ''}
+        confirmLabel={modalComposicao?.confirmLabel ?? 'Confirmar'}
+        cancelLabel="Cancelar"
+        confirmVariant="warning"
+        isConfirming={modalComposicao?.isConfirming ?? false}
+        onCancel={() => {
+          setConfirmExportFmt(null)
+          setItemReabrir(null)
+        }}
+        onConfirm={() => {
+          if (!modalComposicao) return
+          if (modalComposicao.tipo === 'export') {
+            if (!confirmExportFmt) return
+            const fmt = confirmExportFmt
+            setConfirmExportFmt(null)
+            void executarExportacao(fmt)
+            return
+          }
+          void onReabrirItemAprovado()
+        }}
+      />
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 className="h3 mb-1">Composição do painel</h1>
@@ -269,15 +412,14 @@ export default function ComposicaoPage() {
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap align-items-center">
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => void refetch()}
-            disabled={!projetoId}
-          >
-            Atualizar
-          </button>
-          <span className="text-muted small d-none d-md-inline">Exportar lista</span>
+          {projetoId ? (
+            <Link
+              to={`/projetos/${projetoId}/fluxo/composicao`}
+              className="btn btn-outline-info"
+            >
+              Voltar ao wizard
+            </Link>
+          ) : null}
           <button
             type="button"
             className="btn btn-outline-success"
@@ -339,7 +481,11 @@ export default function ComposicaoPage() {
             e o{' '}
             {canViewDimensionamento ? (
               <Link
-                to={projetoId ? `/dimensionamento?projeto=${projetoId}` : '/dimensionamento'}
+                to={
+                  projetoId
+                    ? `/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`
+                    : '/cargas'
+                }
               >
                 dimensionamento
               </Link>
@@ -410,7 +556,92 @@ export default function ComposicaoPage() {
           </div>
 
           <div className="col-12">
-            <h2 className="h5 mb-3">Sugestões de itens</h2>
+            <h2 className="h5 mb-3">Composição aprovada</h2>
+            {composicaoItens.length === 0 ? (
+              <p className="text-muted small mb-0">
+                Nenhum item aprovado ainda. Use &quot;Aprovar&quot; nas sugestões.
+              </p>
+            ) : (
+              <div className="table-responsive app-data-table">
+                <table className="table table-sm table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Tag</th>
+                      <th>Descrição</th>
+                      <th>Tipo</th>
+                      <th>Potência</th>
+                      <th>Corrente</th>
+                      <th>Tensão</th>
+                      <th>Fases</th>
+                      <th>Qtd.</th>
+                      <th>Categoria</th>
+                      <th>Produto</th>
+                      <th>Código</th>
+                      <th>Status</th>
+                      {podeEditar ? <th className="text-end">Ações</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {composicaoItens.map((c) => (
+                      <tr key={c.id}>
+                        <td>{c.carga ? c.carga.tag : '—'}</td>
+                        <td>{textoDescricaoCarga(c.carga)}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {em(c.carga?.tipo_display)}
+                          </span>
+                        </td>
+                        <td>{formatPotenciaCarga(c.carga)}</td>
+                        <td>{formatCorrenteCarga(c.carga)}</td>
+                        <CelulaTensaoProjeto pa={c.projeto_alimentacao} />
+                        <td>{formatNumeroFasesProjeto(c.projeto_alimentacao)}</td>
+                        <td>{c.quantidade}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {c.categoria_produto_display ?? c.categoria_produto}
+                          </span>
+                        </td>
+                        <td className="small">{c.produto?.descricao ?? '—'}</td>
+                        <td>
+                          <span className="fw-semibold font-monospace">
+                            {c.produto_codigo ?? c.produto?.codigo ?? '—'}
+                          </span>
+                        </td>
+                        <td>{c.status_display ?? 'Aprovado'}</td>
+                        {podeEditar ? (
+                          <td className="text-end text-nowrap">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-warning"
+                              disabled={reabrirComposicaoItemMutation.isPending}
+                              onClick={() => setItemReabrir(c)}
+                            >
+                              Reabrir
+                            </button>
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="col-12">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 className="h5 mb-0">Sugestões de itens</h2>
+              {podeEditar && snapshot.sugestoes.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-success"
+                  disabled={aprovarMutation.isPending || aprovandoTodas}
+                  onClick={() => void onAprovarTodas()}
+                >
+                  {aprovandoTodas ? 'Aprovando todas...' : 'Aprovar todas'}
+                </button>
+              ) : null}
+            </div>
             {snapshot.sugestoes.length === 0 ? (
               <p className="text-muted small mb-0">
                 Nenhuma sugestão ainda. Use &quot;Gerar sugestões&quot; após cadastrar cargas
@@ -468,7 +699,7 @@ export default function ComposicaoPage() {
                             <button
                               type="button"
                               className="btn btn-sm btn-success me-1"
-                              disabled={aprovarMutation.isPending}
+                              disabled={aprovarMutation.isPending || aprovandoTodas}
                               onClick={() => void onAprovar(s.id, null)}
                             >
                               Aprovar
@@ -476,71 +707,13 @@ export default function ComposicaoPage() {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-primary"
-                              disabled={aprovarMutation.isPending}
+                              disabled={aprovarMutation.isPending || aprovandoTodas}
                               onClick={() => abrirAlterarSugestao(s)}
                             >
                               Alterar
                             </button>
                           </td>
                         ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="col-12">
-            <h2 className="h5 mb-3">Composição aprovada</h2>
-            {composicaoItens.length === 0 ? (
-              <p className="text-muted small mb-0">
-                Nenhum item aprovado ainda. Use &quot;Aprovar&quot; nas sugestões.
-              </p>
-            ) : (
-              <div className="table-responsive app-data-table">
-                <table className="table table-sm table-hover align-middle">
-                  <thead>
-                    <tr>
-                      <th>Tag</th>
-                      <th>Descrição</th>
-                      <th>Tipo</th>
-                      <th>Potência</th>
-                      <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
-                      <th>Qtd.</th>
-                      <th>Categoria</th>
-                      <th>Produto</th>
-                      <th>Código</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {composicaoItens.map((c) => (
-                      <tr key={c.id}>
-                        <td>{c.carga ? c.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(c.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(c.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(c.carga)}</td>
-                        <td>{formatCorrenteCarga(c.carga)}</td>
-                        <CelulaTensaoProjeto pa={c.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(c.projeto_alimentacao)}</td>
-                        <td>{c.quantidade}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {c.categoria_produto_display ?? c.categoria_produto}
-                          </span>
-                        </td>
-                        <td className="small">{c.produto?.descricao ?? '—'}</td>
-                        <td>
-                          <span className="fw-semibold font-monospace">
-                            {c.produto_codigo ?? c.produto?.codigo ?? '—'}
-                          </span>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -656,15 +829,23 @@ export default function ComposicaoPage() {
             </div>
           </div>
 
+          <InclusaoManualCatalogoSection
+            projetoId={projetoId}
+            podeEditar={podeEditar}
+            inclusoes={snapshot.inclusoes_manuais ?? []}
+          />
+
           <div className="col-12">
-            <div className="card bg-light border-0">
-              <div className="card-body">
-                <h3 className="h6">Memória de cálculo (sugestões)</h3>
+            <details className="card bg-light border-0">
+              <summary className="card-body py-3" style={{ cursor: 'pointer' }}>
+                <strong>Memorial de cálculos (sugestões)</strong>
+              </summary>
+              <div className="card-body pt-0">
                 <p className="small text-muted mb-2">
                   Detalhes técnicos registrados pelo motor de sugestões (backend).
                 </p>
                 {snapshot.sugestoes.filter((s) => s.memoria_calculo).length === 0 ? (
-                  <p className="small mb-0 text-muted">Sem memória de cálculo preenchida.</p>
+                  <p className="small mb-0 text-muted">Sem memorial de cálculo preenchido.</p>
                 ) : (
                   <ul className="list-unstyled small mb-0">
                     {snapshot.sugestoes
@@ -680,14 +861,8 @@ export default function ComposicaoPage() {
                   </ul>
                 )}
               </div>
-            </div>
+            </details>
           </div>
-
-          <InclusaoManualCatalogoSection
-            projetoId={projetoId}
-            podeEditar={podeEditar}
-            inclusoes={snapshot.inclusoes_manuais ?? []}
-          />
         </div>
       )}
 

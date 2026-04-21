@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from composicao_painel.models import SugestaoItem
+from composicao_painel.models import ComposicaoItem, SugestaoItem
 from composicao_painel.services.sugestoes.seccionadoras import (
     gerar_sugestao_seccionamento,
 )
@@ -63,6 +63,36 @@ def montar_etapas_geracao(projeto):
     return etapas
 
 
+def remover_sugestoes_ja_aprovadas(projeto) -> int:
+    """Remove sugestões que já possuem item aprovado na composição."""
+    chaves_aprovadas = set(
+        ComposicaoItem.objects.filter(projeto=projeto).values_list(
+            "parte_painel",
+            "categoria_produto",
+            "carga_id",
+        )
+    )
+    if not chaves_aprovadas:
+        return 0
+
+    sugestoes_ids = [
+        sug_id
+        for sug_id, parte, categoria, carga_id in SugestaoItem.objects.filter(
+            projeto=projeto
+        ).values_list("id", "parte_painel", "categoria_produto", "carga_id")
+        if (parte, categoria, carga_id) in chaves_aprovadas
+    ]
+    if not sugestoes_ids:
+        return 0
+
+    deletados, _ = SugestaoItem.objects.filter(id__in=sugestoes_ids).delete()
+    print(
+        "[ORQUESTRADOR] Sugestões descartadas por já estarem aprovadas: "
+        f"{deletados}"
+    )
+    return deletados
+
+
 @transaction.atomic
 def gerar_sugestoes_painel(projeto, limpar_antes=False):
     print("\n" + "=" * 100)
@@ -112,11 +142,14 @@ def gerar_sugestoes_painel(projeto, limpar_antes=False):
                 }
             )
 
+    total_descartadas_aprovadas = remover_sugestoes_ja_aprovadas(projeto)
+
     resultado_final = {
         "projeto_id": projeto.id,
         "total_sugestoes": len(sugestoes_geradas),
         "sugestoes": sugestoes_geradas,
         "erros": erros,
+        "sugestoes_descartadas_aprovadas": total_descartadas_aprovadas,
     }
 
     print("-" * 100)

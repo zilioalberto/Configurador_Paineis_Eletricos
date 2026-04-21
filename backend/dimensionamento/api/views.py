@@ -9,6 +9,7 @@ from dimensionamento.models import ResumoDimensionamento
 from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from core.permissions import PermissionKeys
 from projetos.models import Projeto
+from projetos.services.rastreabilidade import registrar_evento_projeto
 
 
 class DimensionamentoPorProjetoView(APIView):
@@ -37,6 +38,14 @@ class DimensionamentoRecalcularView(APIView):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
         resumo = calcular_e_salvar_dimensionamento_basico(projeto)
         resumo = ResumoDimensionamento.objects.select_related("projeto").get(pk=resumo.pk)
+        registrar_evento_projeto(
+            projeto=projeto,
+            usuario=request.user,
+            modulo="dimensionamento",
+            acao="recalculado",
+            descricao="Dimensionamento recalculado.",
+            detalhes={"corrente_total_painel_a": str(resumo.corrente_total_painel_a)},
+        )
         return Response(
             ResumoDimensionamentoSerializer(resumo).data,
             status=status.HTTP_200_OK,

@@ -25,8 +25,10 @@ import { renderCargaSelectOptions } from './renderCargaSelectOptions'
 type CargaFormProps = {
   projetos: Projeto[]
   onSubmit: (data: CargaFormData) => Promise<void>
+  onChange?: (data: CargaFormData) => void
   loading?: boolean
   initialData: CargaFormData
+  suggestedTag?: string
   /** Se true, não permite trocar o projeto (edição). */
   lockProjeto?: boolean
 }
@@ -34,15 +36,31 @@ type CargaFormProps = {
 export default function CargaForm({
   projetos,
   onSubmit,
+  onChange,
   loading = false,
   initialData,
+  suggestedTag,
   lockProjeto = false,
 }: CargaFormProps) {
   const [formData, setFormData] = useState<CargaFormData>(initialData)
+  const [lastAutoTag, setLastAutoTag] = useState('')
 
   useEffect(() => {
     setFormData(initialData)
+    setLastAutoTag(initialData.tag)
   }, [initialData])
+
+  useEffect(() => {
+    onChange?.(formData)
+  }, [formData, onChange])
+
+  useEffect(() => {
+    if (!suggestedTag) return
+    if (formData.tag === suggestedTag) return
+    if (formData.tag.trim() && formData.tag !== lastAutoTag) return
+    setFormData((prev) => ({ ...prev, tag: suggestedTag }))
+    setLastAutoTag(suggestedTag)
+  }, [formData.tag, lastAutoTag, suggestedTag])
 
   const projetoSelecionado = useMemo(
     () => projetos.find((p) => p.id === formData.projeto),

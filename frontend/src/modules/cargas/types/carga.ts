@@ -73,6 +73,14 @@ export type CargaFormData = {
   transdutor: CargaTransdutorPayload | null
 }
 
+export type CargaModelo = {
+  id: string
+  nome: string
+  tipo: TipoCarga
+  payload: Record<string, unknown>
+  ativo: boolean
+}
+
 export type CargaListItem = {
   id: string
   projeto: string

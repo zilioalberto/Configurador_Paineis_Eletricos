@@ -2,7 +2,7 @@ import re
 
 from rest_framework import serializers
 
-from projetos.models import Projeto
+from projetos.models import Projeto, ProjetoEvento
 
 
 class ProjetoSerializer(serializers.ModelSerializer):
@@ -34,6 +34,9 @@ class ProjetoSerializer(serializers.ModelSerializer):
         source="get_tipo_climatizacao_display",
         read_only=True,
     )
+    criado_por_nome = serializers.SerializerMethodField()
+    atualizado_por_nome = serializers.SerializerMethodField()
+    responsavel_nome = serializers.SerializerMethodField()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,6 +46,10 @@ class ProjetoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Projeto
         fields = "__all__"
+        read_only_fields = (
+            "criado_por",
+            "atualizado_por",
+        )
 
     def validate_codigo(self, value):
         if value is None or (isinstance(value, str) and not value.strip()):
@@ -60,6 +67,27 @@ class ProjetoSerializer(serializers.ModelSerializer):
             if qs.exists():
                 raise serializers.ValidationError("Este código já está em uso.")
         return v
+
+    def get_criado_por_nome(self, obj):
+        user = obj.criado_por
+        if not user:
+            return None
+        nome = (f"{user.first_name} {user.last_name}").strip()
+        return nome or user.email
+
+    def get_atualizado_por_nome(self, obj):
+        user = obj.atualizado_por
+        if not user:
+            return None
+        nome = (f"{user.first_name} {user.last_name}").strip()
+        return nome or user.email
+
+    def get_responsavel_nome(self, obj):
+        user = obj.responsavel
+        if not user:
+            return None
+        nome = (f"{user.first_name} {user.last_name}").strip()
+        return nome or user.email
 
 
 class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
@@ -79,3 +107,28 @@ class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
             "criado_em",
             "atualizado_em",
         )
+
+
+class ProjetoEventoSerializer(serializers.ModelSerializer):
+    usuario_nome = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjetoEvento
+        fields = (
+            "id",
+            "projeto",
+            "usuario",
+            "usuario_nome",
+            "modulo",
+            "acao",
+            "descricao",
+            "detalhes",
+            "criado_em",
+        )
+
+    def get_usuario_nome(self, obj):
+        user = obj.usuario
+        if not user:
+            return None
+        nome = (f"{user.first_name} {user.last_name}").strip()
+        return nome or user.email
