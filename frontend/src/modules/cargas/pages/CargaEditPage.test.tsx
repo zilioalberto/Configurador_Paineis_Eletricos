@@ -58,6 +58,8 @@ const cargaApi = {
   ativo: true,
 }
 
+const projetoListBase = [{ id: 'p1', nome: 'P', codigo: 'P-1', status: 'EM_ANDAMENTO' }]
+
 function renderWithId(id: string) {
   return render(
     <MemoryRouter initialEntries={[`/cargas/${id}/editar`]}>
@@ -69,19 +71,47 @@ function renderWithId(id: string) {
   )
 }
 
+function setupCargaEditPage({
+  id = 'carga-1',
+  cargaDetail,
+  projetoList = projetoListBase,
+}: {
+  id?: string
+  cargaDetail: Parameters<typeof mockCargaDetailQuery>[0]
+  projetoList?: unknown[]
+}) {
+  mockCargaDetailQuery(cargaDetail)
+  useProjetoListQueryMock.mockReturnValue({ data: projetoList, isPending: false })
+  return renderWithId(id)
+}
+
+function mockCargaDetailQuery(
+  overrides: Partial<{
+    data: unknown
+    isPending: boolean
+    isError: boolean
+    error: unknown
+    refetch: ReturnType<typeof vi.fn>
+  }>
+) {
+  useCargaDetailQueryMock.mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    ...overrides,
+  })
+}
+
 describe('CargaEditPage', () => {
   it('mostra erro de carregamento e permite refetch', async () => {
     const refetch = vi.fn()
-    useCargaDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: false,
-      isError: true,
-      error: new Error('x'),
-      refetch,
+    setupCargaEditPage({
+      id: 'c1',
+      cargaDetail: { isError: true, error: new Error('x'), refetch },
+      projetoList: [],
     })
-    useProjetoListQueryMock.mockReturnValue({ data: [], isPending: false })
-
-    renderWithId('c1')
 
     expect(await screen.findByText(/Não foi possível carregar esta carga/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Tentar novamente/i }))
@@ -91,26 +121,7 @@ describe('CargaEditPage', () => {
   it('submete atualização com sucesso', async () => {
     navigate.mockClear()
     mutateAsync.mockClear()
-    useCargaDetailQueryMock.mockReturnValue({
-      data: cargaApi,
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
-    useProjetoListQueryMock.mockReturnValue({
-      data: [
-        {
-          id: 'p1',
-          nome: 'P',
-          codigo: 'P-1',
-          status: 'EM_ANDAMENTO',
-        },
-      ],
-      isPending: false,
-    })
-
-    renderWithId('carga-1')
+    setupCargaEditPage({ id: 'carga-1', cargaDetail: { data: cargaApi } })
 
     await screen.findByRole('heading', { name: /Editar carga/i })
 

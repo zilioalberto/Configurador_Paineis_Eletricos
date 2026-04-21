@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import ProjetoListPage from '@/modules/projetos/pages/ProjetoListPage'
+import { authUser } from '@/test/factories/authUser'
 
 import { projetoListaLinha } from './projetoListaTestFactories'
 
@@ -47,31 +48,27 @@ function renderLista() {
   )
 }
 
+function setupProjetoListPage({
+  permissoes = [],
+  data = [],
+}: {
+  permissoes?: string[]
+  data?: unknown[]
+}) {
+  useAuthMock.mockReturnValue({ user: authUser(permissoes) })
+  mockListaQuery(data)
+  renderLista()
+}
+
 describe('ProjetoListPage', () => {
   it('oculta botao novo projeto sem permissao de criacao', () => {
-    useAuthMock.mockReturnValue({
-      user: { email: 'u@test.com', first_name: '', last_name: '', tipo_usuario: 'USUARIO' },
-    })
-    mockListaQuery([])
-
-    renderLista()
+    setupProjetoListPage({})
 
     expect(screen.queryByRole('link', { name: /Novo Projeto/i })).not.toBeInTheDocument()
   })
 
   it('exibe botao novo projeto e permite atualizar lista', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.criar', 'projeto.visualizar'],
-      },
-    })
-    mockListaQuery([])
-
-    renderLista()
+    setupProjetoListPage({ permissoes: ['projeto.criar', 'projeto.visualizar'] })
 
     expect(screen.getByRole('link', { name: /Novo Projeto/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Atualizar/i }))
@@ -79,16 +76,9 @@ describe('ProjetoListPage', () => {
   })
 
   it('filtra projetos pelo nome do responsável', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.visualizar'],
-      },
-    })
-    mockListaQuery([
+    setupProjetoListPage({
+      permissoes: ['projeto.visualizar'],
+      data: [
       projetoListaLinha({
         id: 'p1',
         codigo: '04001-26',
@@ -103,9 +93,8 @@ describe('ProjetoListPage', () => {
         responsavel_nome: 'Matheus',
         status: 'EM_ANDAMENTO',
       }),
-    ])
-
-    renderLista()
+    ],
+    })
 
     fireEvent.change(screen.getByLabelText(/Buscar por responsável/i), {
       target: { value: 'tais' },
@@ -116,16 +105,9 @@ describe('ProjetoListPage', () => {
   })
 
   it('filtra projetos por código, nome, cliente e status', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.visualizar'],
-      },
-    })
-    mockListaQuery([
+    setupProjetoListPage({
+      permissoes: ['projeto.visualizar'],
+      data: [
       projetoListaLinha({
         id: 'p1',
         codigo: '04001-26',
@@ -142,9 +124,8 @@ describe('ProjetoListPage', () => {
         responsavel_nome: 'Matheus',
         status: 'FINALIZADO',
       }),
-    ])
-
-    renderLista()
+    ],
+    })
 
     fireEvent.change(screen.getByLabelText(/Buscar por código/i), {
       target: { value: '04001' },
@@ -181,16 +162,9 @@ describe('ProjetoListPage', () => {
   })
 
   it('limpa todos os filtros ao clicar em limpar filtros', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['projeto.visualizar'],
-      },
-    })
-    mockListaQuery([
+    setupProjetoListPage({
+      permissoes: ['projeto.visualizar'],
+      data: [
       projetoListaLinha({
         id: 'p1',
         codigo: '04001-26',
@@ -207,9 +181,8 @@ describe('ProjetoListPage', () => {
         responsavel_nome: 'Matheus',
         status: 'FINALIZADO',
       }),
-    ])
-
-    renderLista()
+    ],
+    })
 
     fireEvent.change(screen.getByLabelText(/Buscar por nome/i), {
       target: { value: 'beta' },

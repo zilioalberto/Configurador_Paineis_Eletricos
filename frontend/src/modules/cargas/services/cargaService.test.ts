@@ -42,6 +42,12 @@ describe('cargaService', () => {
     expect(await listarCargas('p')).toEqual([])
   })
 
+  it('listarCargas com projeto vazio envia params coerentes', async () => {
+    getMock.mockResolvedValueOnce({ data: [] })
+    await listarCargas('')
+    expect(getMock).toHaveBeenCalledWith('/cargas/', { params: { projeto: '' } })
+  })
+
   it('listarModelosCarga envia params e devolve dados', async () => {
     getMock.mockResolvedValueOnce({ data: [{ id: 'm1' }] })
     await expect(listarModelosCarga({ tipo: 'MOTOR', q: 'bomba' })).resolves.toEqual([

@@ -59,13 +59,21 @@ const projetoEditavel = {
   status: 'EM_ANDAMENTO',
 }
 
+const cargaListQueryBase = {
+  data: [],
+  isPending: false,
+  isError: false,
+  error: null,
+  refetch: vi.fn(),
+}
+
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
-function renderPage(search = '') {
+function renderCargaCreatePage(search = '') {
   return render(
     <MemoryRouter initialEntries={[`/cargas/novo${search}`]}>
       <CargaCreatePage />
@@ -74,34 +82,36 @@ function renderPage(search = '') {
   )
 }
 
+function mockCreatePageQueries({
+  projetos,
+  cargas = cargaListQueryBase,
+}: {
+  projetos: unknown[]
+  cargas?: typeof cargaListQueryBase
+}) {
+  useProjetoListQueryMock.mockReturnValue({ data: projetos, isPending: false })
+  useCargaListQueryMock.mockReturnValue(cargas)
+}
+
 describe('CargaCreatePage', () => {
   beforeEach(() => {
     mutateAsync.mockReset()
     mutateAsync.mockResolvedValue({ projeto: 'p-editavel' })
-    useCargaListQueryMock.mockReturnValue({
-      data: [],
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    useCargaListQueryMock.mockReturnValue(cargaListQueryBase)
   })
 
   it('mostra aviso quando não existem projetos', () => {
     showToastFn.mockClear()
-    useProjetoListQueryMock.mockReturnValue({ data: [], isPending: false })
-    renderPage()
+    mockCreatePageQueries({ projetos: [] })
+    renderCargaCreatePage()
     expect(
       screen.getByText(/É necessário ter pelo menos um projeto cadastrado/i)
     ).toBeInTheDocument()
   })
 
   it('mostra aviso quando todos os projetos estão finalizados', () => {
-    useProjetoListQueryMock.mockReturnValue({
-      data: [{ ...projetoEditavel, id: 'x', status: 'FINALIZADO' }],
-      isPending: false,
-    })
-    renderPage()
+    mockCreatePageQueries({ projetos: [{ ...projetoEditavel, id: 'x', status: 'FINALIZADO' }] })
+    renderCargaCreatePage()
     expect(
       screen.getByText(/Todos os projetos estão finalizados/i)
     ).toBeInTheDocument()
@@ -111,19 +121,9 @@ describe('CargaCreatePage', () => {
     navigate.mockClear()
     mutateAsync.mockClear()
     showToastFn.mockClear()
-    useProjetoListQueryMock.mockReturnValue({
-      data: [projetoEditavel],
-      isPending: false,
-    })
-    useCargaListQueryMock.mockReturnValue({
-      data: [],
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    mockCreatePageQueries({ projetos: [projetoEditavel] })
 
-    renderPage('?projeto=p-editavel')
+    renderCargaCreatePage('?projeto=p-editavel')
 
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: /Nova carga/i })).toBeInTheDocument()
@@ -144,19 +144,9 @@ describe('CargaCreatePage', () => {
   it('mostra erro quando a API de criação falha', async () => {
     showToastFn.mockClear()
     mutateAsync.mockRejectedValueOnce(new Error('falha rede'))
-    useProjetoListQueryMock.mockReturnValue({
-      data: [projetoEditavel],
-      isPending: false,
-    })
-    useCargaListQueryMock.mockReturnValue({
-      data: [],
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    mockCreatePageQueries({ projetos: [projetoEditavel] })
 
-    renderPage('?projeto=p-editavel')
+    renderCargaCreatePage('?projeto=p-editavel')
     await screen.findByRole('heading', { name: /Nova carga/i })
 
     fireEvent.change(document.querySelector('input[name="descricao"]')!, {

@@ -24,10 +24,16 @@ class TipoProtecaoMotorChoices(models.TextChoices):
     DISJUNTOR_MOTOR = "DISJUNTOR_MOTOR", "Disjuntor Motor"
     RELE_SOBRECARGA = "RELE_SOBRECARGA", "Relé de Sobrecarga"
     FUSIVEL = "FUSIVEL", "Fusível"
+    FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
+    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
+    OUTRO = "OUTRO", "Outro"
+
+class TipoProtecaoResistenciaChoices(models.TextChoices):
+    DISJUNTOR_MOTOR = "DISJUNTOR_MOTOR", "Disjuntor Motor"
+    FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
     MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
     OUTRO = "OUTRO", "Outro"
     
-
 class TipoConexaoCargaPainelChoices(models.TextChoices):
     CONEXAO_BORNES_COM_PE = "CONEXAO_BORNES_COM_PE", "Conexão a bornes com PE"
     CONEXAO_BORNES_SEM_PE = "CONEXAO_BORNES_SEM_PE", "Conexão a bornes sem PE"

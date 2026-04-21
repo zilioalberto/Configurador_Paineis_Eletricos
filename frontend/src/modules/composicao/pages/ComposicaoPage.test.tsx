@@ -8,8 +8,12 @@ const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaPdfMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaXlsxMock = vi.hoisted(() => vi.fn())
 const showToastMock = vi.hoisted(() => vi.fn())
+type ConfirmModalPropsShape = {
+  show?: boolean
+  onConfirm?: () => void
+}
 const lastConfirmModalProps = vi.hoisted(
-  () => ({ current: null as null | Record<string, unknown> })
+  () => ({ current: null as null | ConfirmModalPropsShape })
 )
 
 vi.mock('@/modules/auth/AuthContext', () => ({
@@ -59,7 +63,7 @@ vi.mock('@/modules/composicao/services/composicaoService', () => ({
 }))
 
 vi.mock('@/components/feedback', () => ({
-  ConfirmModal: (props: Record<string, unknown>) => {
+  ConfirmModal: (props: ConfirmModalPropsShape) => {
     lastConfirmModalProps.current = props
     return null
   },
@@ -95,18 +99,53 @@ describe('ComposicaoPage', () => {
     totais: { sugestoes: 0, pendencias: 0, composicao_itens: 0, inclusoes_manuais: 0 },
   }
 
-  it('oculta acao de gerar sugestoes sem permissao de separacao', () => {
+  function userComPermissaoSeparar() {
+    return {
+      email: 'u@test.com',
+      first_name: '',
+      last_name: '',
+      tipo_usuario: 'USUARIO',
+      permissoes: ['almoxarifado.separar_material'],
+    }
+  }
+
+  function setupComposicaoPage({
+    user,
+    projetos = baseProjetos,
+    snapshot = snapshotBase,
+  }: {
+    user?: ReturnType<typeof userComPermissaoSeparar> | {
+      email: string
+      first_name: string
+      last_name: string
+      tipo_usuario: string
+      permissoes?: string[]
+    }
+    projetos?: unknown[]
+    snapshot?: unknown
+  }) {
     useAuthMock.mockReturnValue({
-      user: { email: 'u@test.com', first_name: '', last_name: '', tipo_usuario: 'USUARIO' },
+      user:
+        user ??
+        {
+          email: 'u@test.com',
+          first_name: '',
+          last_name: '',
+          tipo_usuario: 'USUARIO',
+        },
     })
-    useProjetoListQueryMock.mockReturnValue({ data: [], isPending: false })
+    useProjetoListQueryMock.mockReturnValue({ data: projetos, isPending: false })
     useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: null,
+      data: snapshot,
       isPending: false,
       isError: false,
       error: null,
       refetch: vi.fn(),
     })
+  }
+
+  it('oculta acao de gerar sugestoes sem permissao de separacao', () => {
+    setupComposicaoPage({ user: undefined, projetos: [], snapshot: null })
 
     render(
       <MemoryRouter>
@@ -120,16 +159,7 @@ describe('ComposicaoPage', () => {
   })
 
   it('exibe erro quando falha ao carregar snapshot', () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['almoxarifado.separar_material'],
-      },
-    })
-    useProjetoListQueryMock.mockReturnValue({ data: baseProjetos, isPending: false })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: null })
     useComposicaoSnapshotQueryMock.mockReturnValue({
       data: null,
       isPending: false,
@@ -148,23 +178,7 @@ describe('ComposicaoPage', () => {
   })
 
   it('permite exportar excel e pdf com projeto selecionado', async () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['almoxarifado.separar_material'],
-      },
-    })
-    useProjetoListQueryMock.mockReturnValue({ data: baseProjetos, isPending: false })
-    useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: snapshotBase,
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
 
     render(
       <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
@@ -191,26 +205,14 @@ describe('ComposicaoPage', () => {
   })
 
   it('quando há pendências abre confirmação antes de exportar', async () => {
-    useAuthMock.mockReturnValue({
-      user: {
-        email: 'u@test.com',
-        first_name: '',
-        last_name: '',
-        tipo_usuario: 'USUARIO',
-        permissoes: ['almoxarifado.separar_material'],
-      },
-    })
-    useProjetoListQueryMock.mockReturnValue({ data: baseProjetos, isPending: false })
-    useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: {
+    setupComposicaoPage({
+      user: userComPermissaoSeparar(),
+      projetos: baseProjetos,
+      snapshot: {
         ...snapshotBase,
         pendencias: [{ id: 'pen-1', descricao: 'x' }],
         totais: { ...snapshotBase.totais, pendencias: 1 },
       },
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
     })
     showToastMock.mockClear()
     lastConfirmModalProps.current = null
@@ -227,7 +229,8 @@ describe('ComposicaoPage', () => {
     )
     expect(exportarComposicaoListaXlsxMock).not.toHaveBeenCalled()
 
-    const onConfirm = lastConfirmModalProps.current?.onConfirm as (() => void) | undefined
+    const modalProps = lastConfirmModalProps.current as ConfirmModalPropsShape | null
+    const onConfirm = modalProps?.onConfirm
     expect(onConfirm).toBeDefined()
     onConfirm?.()
     await waitFor(() => expect(exportarComposicaoListaXlsxMock).toHaveBeenCalled())

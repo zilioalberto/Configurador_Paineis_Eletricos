@@ -40,6 +40,12 @@ function qcWrapper(qc: QueryClient, { children }: { children: ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
+function renderMutationHook<T>(qc: QueryClient, hook: () => T) {
+  return renderHook(hook, {
+    wrapper: (props) => qcWrapper(qc, props),
+  })
+}
+
 describe('useProjetoMutations', () => {
   it('create invalida listas e grava detalhe', async () => {
     criarProjeto.mockResolvedValue({
@@ -50,9 +56,7 @@ describe('useProjetoMutations', () => {
     const qc = createClient()
     const inv = vi.spyOn(qc, 'invalidateQueries')
 
-    const { result } = renderHook(() => useCreateProjetoMutation(), {
-      wrapper: (props) => qcWrapper(qc, props),
-    })
+    const { result } = renderMutationHook(qc, () => useCreateProjetoMutation())
 
     await result.current.mutateAsync({} as ProjetoFormData)
 
@@ -79,9 +83,7 @@ describe('useProjetoMutations', () => {
 
     const inv = vi.spyOn(qc, 'invalidateQueries')
 
-    const { result } = renderHook(() => useUpdateProjetoMutation(), {
-      wrapper: (props) => qcWrapper(qc, props),
-    })
+    const { result } = renderMutationHook(qc, () => useUpdateProjetoMutation())
 
     await result.current.mutateAsync({
       id: 'p42',
@@ -116,9 +118,7 @@ describe('useProjetoMutations', () => {
 
     const inv = vi.spyOn(qc, 'invalidateQueries')
 
-    const { result } = renderHook(() => useUpdateProjetoMutation(), {
-      wrapper: (props) => qcWrapper(qc, props),
-    })
+    const { result } = renderMutationHook(qc, () => useUpdateProjetoMutation())
 
     await result.current.mutateAsync({
       id: 'p7',
@@ -137,9 +137,7 @@ describe('useProjetoMutations', () => {
     const qc = createClient()
     const rm = vi.spyOn(qc, 'removeQueries')
 
-    const { result } = renderHook(() => useDeleteProjetoMutation(), {
-      wrapper: (props) => qcWrapper(qc, props),
-    })
+    const { result } = renderMutationHook(qc, () => useDeleteProjetoMutation())
 
     await result.current.mutateAsync('del-id')
 

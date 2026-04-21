@@ -98,15 +98,28 @@ function renderPage() {
   )
 }
 
+function mockProjetoDetailQuery(
+  overrides: Partial<{
+    data: unknown
+    isPending: boolean
+    isError: boolean
+    error: unknown
+    refetch: ReturnType<typeof vi.fn>
+  }>
+) {
+  useProjetoDetailQueryMock.mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    ...overrides,
+  })
+}
+
 describe('ProjetoEditPage', () => {
   it('exibe aviso quando id não é informado na rota', async () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    mockProjetoDetailQuery({})
     render(
       <MemoryRouter initialEntries={['/projetos/editar']}>
         <Routes>
@@ -120,26 +133,14 @@ describe('ProjetoEditPage', () => {
   })
 
   it('mostra estado de carregamento do projeto', async () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: true,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    mockProjetoDetailQuery({ isPending: true })
     renderPage()
     expect(await screen.findByText(/Carregando dados do projeto/i)).toBeInTheDocument()
   })
 
   it('mostra erro de carregamento', async () => {
     const refetch = vi.fn()
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: false,
-      isError: true,
-      error: new Error('falhou'),
-      refetch,
-    })
+    mockProjetoDetailQuery({ isError: true, error: new Error('falhou'), refetch })
     renderPage()
     expect(
       await screen.findByText(/Não foi possível carregar os dados deste projeto/i)
@@ -151,13 +152,7 @@ describe('ProjetoEditPage', () => {
   it('carrega formulário e submete atualização', async () => {
     navigate.mockClear()
     mutateAsync.mockClear()
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: projetoMinimo,
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
+    mockProjetoDetailQuery({ data: projetoMinimo })
     renderPage()
 
     await screen.findByRole('heading', { name: /Editar Projeto/i })

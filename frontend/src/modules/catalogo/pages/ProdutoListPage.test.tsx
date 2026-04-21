@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { authUser } from '@/test/factories/authUser'
 
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useCategoriaListQueryMock = vi.hoisted(() => vi.fn())
@@ -29,25 +30,26 @@ vi.mock('@/components/feedback', () => ({
 
 import ProdutoListPage from '@/modules/catalogo/pages/ProdutoListPage'
 
+function setupProdutoListPage() {
+  useAuthMock.mockReturnValue({ user: authUser() })
+  useCategoriaListQueryMock.mockReturnValue({ data: [], isPending: false })
+  useProdutoListQueryMock.mockReturnValue({
+    data: [],
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  })
+  render(
+    <MemoryRouter>
+      <ProdutoListPage />
+    </MemoryRouter>
+  )
+}
+
 describe('ProdutoListPage', () => {
   it('oculta botao novo produto sem permissao de gestao', () => {
-    useAuthMock.mockReturnValue({
-      user: { email: 'u@test.com', first_name: '', last_name: '', tipo_usuario: 'USUARIO' },
-    })
-    useCategoriaListQueryMock.mockReturnValue({ data: [], isPending: false })
-    useProdutoListQueryMock.mockReturnValue({
-      data: [],
-      isPending: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    })
-
-    render(
-      <MemoryRouter>
-        <ProdutoListPage />
-      </MemoryRouter>
-    )
+    setupProdutoListPage()
 
     expect(screen.queryByRole('link', { name: /Novo produto/i })).not.toBeInTheDocument()
   })

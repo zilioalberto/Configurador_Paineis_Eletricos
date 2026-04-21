@@ -62,47 +62,61 @@ vi.mock('@/modules/composicao/hooks/useReavaliarPendenciasMutation', () => ({
 
 import ProjetoWizardPage from '@/modules/projetos/pages/ProjetoWizardPage'
 
+const projetoBase = { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' }
+const cargasComItem = [{ id: 'c1' }]
+const dimensionamentoBase = { corrente_total_painel_a: '33.1' }
+const composicaoTotaisBase = { totais: { sugestoes: 0, pendencias: 0, composicao_itens: 0 } }
+
+function mockWizardData({
+  projeto = projetoBase,
+  cargas = [],
+  dimensionamento = null,
+  composicao = null,
+  historico = [],
+}: {
+  projeto?: unknown
+  cargas?: unknown[]
+  dimensionamento?: unknown
+  composicao?: unknown
+  historico?: unknown[]
+}) {
+  useProjetoDetailQueryMock.mockReturnValue({ data: projeto, isPending: false })
+  useCargaListQueryMock.mockReturnValue({ data: cargas })
+  useDimensionamentoQueryMock.mockReturnValue({ data: dimensionamento })
+  useComposicaoSnapshotQueryMock.mockReturnValue({ data: composicao })
+  useQueryMock.mockReturnValue({ data: historico })
+}
+
+function renderWizard(initialEntry: string, includeListRoute = false) {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
+        <Route path="/projetos/fluxo/:etapa" element={<ProjetoWizardPage />} />
+        {includeListRoute ? <Route path="/projetos" element={<div>Lista de projetos</div>} /> : null}
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
 describe('ProjetoWizardPage', () => {
   it('redireciona para lista quando rota não tem id', () => {
-    useProjetoDetailQueryMock.mockReturnValue({ data: undefined, isPending: false })
-    useCargaListQueryMock.mockReturnValue({ data: [] })
-    useDimensionamentoQueryMock.mockReturnValue({ data: null })
-    useComposicaoSnapshotQueryMock.mockReturnValue({ data: null })
-    useQueryMock.mockReturnValue({ data: [] })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/fluxo/cargas']}>
-        <Routes>
-          <Route path="/projetos/fluxo/:etapa" element={<ProjetoWizardPage />} />
-          <Route path="/projetos" element={<div>Lista de projetos</div>} />
-        </Routes>
-      </MemoryRouter>
-    )
+    mockWizardData({ projeto: undefined })
+    renderWizard('/projetos/fluxo/cargas', true)
 
     expect(screen.getByText('Lista de projetos')).toBeInTheDocument()
   })
 
   it('renderiza etapas do wizard e histórico', () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
-      isPending: false,
+    mockWizardData({
+      cargas: cargasComItem,
+      dimensionamento: dimensionamentoBase,
+      composicao: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 0 } },
+      historico: [
+        { id: 'e1', descricao: 'Projeto criado.', modulo: 'projeto', criado_em: new Date().toISOString() },
+      ],
     })
-    useCargaListQueryMock.mockReturnValue({ data: [{ id: 'c1' }] })
-    useDimensionamentoQueryMock.mockReturnValue({ data: { corrente_total_painel_a: '33.1' } })
-    useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 0 } },
-    })
-    useQueryMock.mockReturnValue({
-      data: [{ id: 'e1', descricao: 'Projeto criado.', modulo: 'projeto', criado_em: new Date().toISOString() }],
-    })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p1/fluxo/cargas']}>
-        <Routes>
-          <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderWizard('/projetos/p1/fluxo/cargas')
 
     expect(screen.getByText(/Wizard do Projeto/i)).toBeInTheDocument()
     expect(screen.getByText(/Ações rápidas do fluxo/i)).toBeInTheDocument()
@@ -113,22 +127,8 @@ describe('ProjetoWizardPage', () => {
   })
 
   it('exibe estados bloqueados sem cargas e sem dimensionamento', () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
-      isPending: false,
-    })
-    useCargaListQueryMock.mockReturnValue({ data: [] })
-    useDimensionamentoQueryMock.mockReturnValue({ data: null })
-    useComposicaoSnapshotQueryMock.mockReturnValue({ data: { totais: { sugestoes: 0, pendencias: 0 } } })
-    useQueryMock.mockReturnValue({ data: [] })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p1/fluxo/composicao']}>
-        <Routes>
-          <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    mockWizardData({ composicao: { totais: { sugestoes: 0, pendencias: 0 } } })
+    renderWizard('/projetos/p1/fluxo/composicao')
 
     expect(screen.getByText(/Sem cálculo salvo para este projeto/i)).toBeInTheDocument()
     expect(screen.getAllByText('Bloqueado').length).toBeGreaterThan(0)
@@ -140,27 +140,15 @@ describe('ProjetoWizardPage', () => {
   })
 
   it('aciona recalculo e geração de composição pelos botões rápidos', () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
-      isPending: false,
+    mockWizardData({
+      cargas: cargasComItem,
+      dimensionamento: dimensionamentoBase,
+      composicao: composicaoTotaisBase,
     })
-    useCargaListQueryMock.mockReturnValue({ data: [{ id: 'c1' }] })
-    useDimensionamentoQueryMock.mockReturnValue({ data: { corrente_total_painel_a: '33.1' } })
-    useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: { totais: { sugestoes: 0, pendencias: 0, composicao_itens: 0 } },
-    })
-    useQueryMock.mockReturnValue({ data: [] })
     gerarMutateAsyncMock.mockResolvedValue({ geracao: { erros_etapas: [] } })
     recalcMutateAsyncMock.mockResolvedValue({})
     reavaliarMutateAsyncMock.mockResolvedValue({})
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p1/fluxo/composicao']}>
-        <Routes>
-          <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderWizard('/projetos/p1/fluxo/composicao')
 
     fireEvent.click(screen.getByRole('button', { name: /Recalcular agora/i }))
     fireEvent.click(screen.getByRole('button', { name: /Gerar sugestões/i }))
@@ -172,31 +160,15 @@ describe('ProjetoWizardPage', () => {
   })
 
   it('indica pronto para exportação quando fluxo técnico está concluído', () => {
-    useProjetoDetailQueryMock.mockReturnValue({
-      data: { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' },
-      isPending: false,
-    })
-    useCargaListQueryMock.mockReturnValue({
-      data: [{ id: 'c1', atualizado_em: '2026-04-10T10:00:00.000Z' }],
-    })
-    useDimensionamentoQueryMock.mockReturnValue({
-      data: {
+    mockWizardData({
+      cargas: [{ id: 'c1', atualizado_em: '2026-04-10T10:00:00.000Z' }],
+      dimensionamento: {
         corrente_total_painel_a: '33.1',
         atualizado_em: '2026-04-10T11:00:00.000Z',
       },
+      composicao: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 1 } },
     })
-    useComposicaoSnapshotQueryMock.mockReturnValue({
-      data: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 1 } },
-    })
-    useQueryMock.mockReturnValue({ data: [] })
-
-    render(
-      <MemoryRouter initialEntries={['/projetos/p1/fluxo/composicao']}>
-        <Routes>
-          <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderWizard('/projetos/p1/fluxo/composicao')
 
     expect(screen.getByText(/Pronto para exportação/i)).toBeInTheDocument()
     expect(

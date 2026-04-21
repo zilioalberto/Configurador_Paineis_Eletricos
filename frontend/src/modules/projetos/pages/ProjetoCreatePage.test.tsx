@@ -57,35 +57,47 @@ vi.mock('../components/projeto-form/ProjetoForm', () => ({
 
 import ProjetoCreatePage from '@/modules/projetos/pages/ProjetoCreatePage'
 
+function createTestClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } })
+}
+
+function renderProjetoCreatePage() {
+  const qc = createTestClient()
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <ProjetoCreatePage />
+      </MemoryRouter>
+    </QueryClientProvider>
+  )
+}
+
+function mockProjetoCreateApis() {
+  mutateAsync.mockResolvedValue({ id: 'uuid-1' })
+  postMock.mockImplementation((url: string) => {
+    if (String(url).includes('alocar-codigo')) {
+      return Promise.resolve({ data: { codigo: '04001-26' } })
+    }
+    return Promise.resolve({ data: { id: 'uuid-1' } })
+  })
+  getMock.mockImplementation((url: string) => {
+    if (String(url).includes('responsaveis')) {
+      return Promise.resolve({
+        data: [{ id: 10, label: 'Utilizador Teste', email: 'u@test.com', tipo_usuario: 'ORCAMENTISTA' }],
+      })
+    }
+    return Promise.resolve({ data: [] })
+  })
+}
+
 describe('ProjetoCreatePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mutateAsync.mockResolvedValue({ id: 'uuid-1' })
-    postMock.mockImplementation((url: string) => {
-      if (String(url).includes('alocar-codigo')) {
-        return Promise.resolve({ data: { codigo: '04001-26' } })
-      }
-      return Promise.resolve({ data: { id: 'uuid-1' } })
-    })
-    getMock.mockImplementation((url: string) => {
-      if (String(url).includes('responsaveis')) {
-        return Promise.resolve({
-          data: [{ id: 10, label: 'Utilizador Teste', email: 'u@test.com', tipo_usuario: 'ORCAMENTISTA' }],
-        })
-      }
-      return Promise.resolve({ data: [] })
-    })
+    mockProjetoCreateApis()
   })
 
   it('cria projeto e mostra toast de sucesso', async () => {
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter>
-          <ProjetoCreatePage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    )
+    renderProjetoCreatePage()
     expect(screen.getByRole('heading', { name: /Novo Projeto/i })).toBeInTheDocument()
     const btn = await screen.findByRole('button', { name: /enviar-teste/i })
     fireEvent.click(btn)

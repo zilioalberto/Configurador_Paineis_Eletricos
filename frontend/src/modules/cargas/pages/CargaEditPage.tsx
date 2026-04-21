@@ -170,13 +170,13 @@ export default function CargaEditPage() {
             !edicaoBloqueada && (
               <>
                 <CargaModeloOpcionalSection
-                  key={id}
+                  key={`${id}-modelo`}
                   modeloQueryScope="edit"
                   onAplicarModelo={aplicarModelo}
                 />
 
                 <CargaForm
-                  key={id}
+                  key={`${id}-form`}
                   projetos={projetos}
                   initialData={formSeed}
                   onChange={setFormDraft}

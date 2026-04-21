@@ -40,7 +40,7 @@ const produto = {
   valor_unitario: '10.00',
 }
 
-function renderPage(id: string) {
+function renderProdutoDetailPage(id: string) {
   return render(
     <MemoryRouter initialEntries={[`/catalogo/${id}`]}>
       <Routes>
@@ -50,51 +50,48 @@ function renderPage(id: string) {
   )
 }
 
+function mockProdutoDetailQuery(
+  overrides: Partial<{
+    data: unknown
+    isPending: boolean
+    isError: boolean
+    error: unknown
+  }>
+) {
+  useProdutoDetailQueryMock.mockReturnValue({
+    data: undefined,
+    isPending: false,
+    isError: false,
+    error: null,
+    ...overrides,
+  })
+}
+
 describe('ProdutoDetailPage', () => {
   it('mostra carregamento', () => {
-    useProdutoDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: true,
-      isError: false,
-      error: null,
-    })
-    renderPage('pr1')
+    mockProdutoDetailQuery({ isPending: true })
+    renderProdutoDetailPage('pr1')
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument()
   })
 
   it('mostra erro da API', () => {
-    useProdutoDetailQueryMock.mockReturnValue({
-      data: undefined,
-      isPending: false,
-      isError: true,
-      error: new Error('falhou'),
-    })
-    renderPage('pr1')
+    mockProdutoDetailQuery({ isError: true, error: new Error('falhou') })
+    renderProdutoDetailPage('pr1')
     expect(screen.getByText(/falhou|Erro/i)).toBeInTheDocument()
   })
 
   it('mostra código e navega ao fechar', () => {
     navigate.mockClear()
-    useProdutoDetailQueryMock.mockReturnValue({
-      data: produto,
-      isPending: false,
-      isError: false,
-      error: null,
-    })
-    renderPage('pr1')
+    mockProdutoDetailQuery({ data: produto })
+    renderProdutoDetailPage('pr1')
     expect(screen.getByText('ABC')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Fechar/i }))
     expect(navigate).toHaveBeenCalledWith('/catalogo')
   })
 
   it('mostra link editar quando permitido', () => {
-    useProdutoDetailQueryMock.mockReturnValue({
-      data: produto,
-      isPending: false,
-      isError: false,
-      error: null,
-    })
-    renderPage('pr1')
+    mockProdutoDetailQuery({ data: produto })
+    renderProdutoDetailPage('pr1')
     expect(screen.getByRole('link', { name: /Editar/i })).toHaveAttribute(
       'href',
       '/catalogo/pr1/editar'

@@ -54,10 +54,18 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
+function renderCargaModelosPage() {
+  return render(<CargaModelosPage />, { wrapper })
+}
+
+function mockModelosLista(modelos: CargaModelo[] = []) {
+  listarModelosCarga.mockResolvedValue(modelos)
+}
+
 describe('CargaModelosPage', () => {
   it('lista modelos e avisa quando nome está vazio ao gravar', async () => {
     showToastFn.mockClear()
-    listarModelosCarga.mockResolvedValueOnce([
+    mockModelosLista([
       {
         id: 'mm',
         nome: 'Modelo A',
@@ -67,7 +75,7 @@ describe('CargaModelosPage', () => {
       } satisfies CargaModelo,
     ])
 
-    render(<CargaModelosPage />, { wrapper })
+    renderCargaModelosPage()
 
     expect(await screen.findByRole('heading', { name: /Modelos de carga/i })).toBeInTheDocument()
     expect(await screen.findByText('Modelo A')).toBeInTheDocument()
@@ -85,9 +93,9 @@ describe('CargaModelosPage', () => {
   it('cria modelo quando nome preenchido', async () => {
     showToastFn.mockClear()
     criarModeloCarga.mockClear()
-    listarModelosCarga.mockResolvedValue([])
+    mockModelosLista()
 
-    render(<CargaModelosPage />, { wrapper })
+    renderCargaModelosPage()
 
     fireEvent.change(screen.getByPlaceholderText(/Motor trifásico/i), {
       target: { value: 'Novo modelo' },
@@ -104,7 +112,7 @@ describe('CargaModelosPage', () => {
     showToastFn.mockClear()
     atualizarModeloCarga.mockClear()
     deletarModeloCarga.mockClear()
-    listarModelosCarga.mockResolvedValue([
+    mockModelosLista([
       {
         id: 'm1',
         nome: 'Modelo Motor',
@@ -128,7 +136,7 @@ describe('CargaModelosPage', () => {
       } satisfies CargaModelo,
     ])
 
-    render(<CargaModelosPage />, { wrapper })
+    renderCargaModelosPage()
     expect(await screen.findByText('Modelo Motor')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Editar/i }))
@@ -146,9 +154,9 @@ describe('CargaModelosPage', () => {
   it('mostra toast de erro ao falhar criação', async () => {
     criarModeloCarga.mockRejectedValueOnce(new Error('erro ao criar'))
     showToastFn.mockClear()
-    listarModelosCarga.mockResolvedValue([])
+    mockModelosLista()
 
-    render(<CargaModelosPage />, { wrapper })
+    renderCargaModelosPage()
     fireEvent.change(screen.getByPlaceholderText(/Motor trifásico/i), {
       target: { value: 'Modelo com falha' },
     })
@@ -165,23 +173,24 @@ describe('CargaModelosPage', () => {
   })
 
   it('alterna tipo e renderiza blocos específicos', async () => {
-    listarModelosCarga.mockResolvedValue([])
-    render(<CargaModelosPage />, { wrapper })
+    mockModelosLista()
+    renderCargaModelosPage()
 
     const tipoSelect = screen
       .getAllByRole('combobox')
       .find((el) => (el as HTMLSelectElement).querySelector('option[value="VALVULA"]'))
     expect(tipoSelect).toBeTruthy()
-    fireEvent.change(tipoSelect, { target: { value: 'VALVULA' } })
+    const tipoSelectEl = tipoSelect as HTMLElement
+    fireEvent.change(tipoSelectEl, { target: { value: 'VALVULA' } })
     expect(await screen.findByText('Parâmetros da válvula')).toBeInTheDocument()
 
-    fireEvent.change(tipoSelect, { target: { value: 'RESISTENCIA' } })
+    fireEvent.change(tipoSelectEl, { target: { value: 'RESISTENCIA' } })
     expect(await screen.findByText('Parâmetros da resistência')).toBeInTheDocument()
 
-    fireEvent.change(tipoSelect, { target: { value: 'SENSOR' } })
+    fireEvent.change(tipoSelectEl, { target: { value: 'SENSOR' } })
     expect(await screen.findByText('Parâmetros do sensor')).toBeInTheDocument()
 
-    fireEvent.change(tipoSelect, { target: { value: 'TRANSDUTOR' } })
+    fireEvent.change(tipoSelectEl, { target: { value: 'TRANSDUTOR' } })
     expect(await screen.findByText('Parâmetros do transdutor')).toBeInTheDocument()
   })
 })

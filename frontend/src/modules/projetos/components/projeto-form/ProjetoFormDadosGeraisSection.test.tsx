@@ -53,9 +53,11 @@ describe('ProjetoFormDadosGeraisSection', () => {
     render(
       <div className="row g-3">
         <ProjetoFormDadosGeraisSection
-          formData={{ ...projetoFormInitialState, responsavel: 'u-1' }}
+          formData={{ ...projetoFormInitialState, responsavel: 1 }}
           onFieldChange={vi.fn()}
-          responsavelOptions={[{ id: 'u-1', label: 'Maria Gestora' }]}
+          responsavelOptions={[
+            { id: 1, label: 'Maria Gestora', email: 'maria@test.com', tipo_usuario: 'USUARIO' },
+          ]}
           canEditResponsavel
           showStatus={false}
           readOnlyExceptStatus={false}

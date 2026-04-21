@@ -4,42 +4,32 @@ import { describe, expect, it } from 'vitest'
 
 import DimensionamentoPage from '@/modules/dimensionamento/pages/DimensionamentoPage'
 
+function renderDimensionamentoRedirect(initialEntry: string, destinationText: string) {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <Routes>
+        <Route path="/dimensionamento" element={<DimensionamentoPage />} />
+        <Route path="/cargas" element={<div>{destinationText}</div>} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
 describe('DimensionamentoPage', () => {
   it('redireciona para cargas sem projeto', () => {
-    render(
-      <MemoryRouter initialEntries={['/dimensionamento']}>
-        <Routes>
-          <Route path="/dimensionamento" element={<DimensionamentoPage />} />
-          <Route path="/cargas" element={<div>Destino cargas</div>} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderDimensionamentoRedirect('/dimensionamento', 'Destino cargas')
 
     expect(screen.getByText('Destino cargas')).toBeInTheDocument()
   })
 
   it('redireciona para cargas com projeto e ancora do resumo', () => {
-    render(
-      <MemoryRouter initialEntries={['/dimensionamento?projeto=p1']}>
-        <Routes>
-          <Route path="/dimensionamento" element={<DimensionamentoPage />} />
-          <Route path="/cargas" element={<div>Destino cargas projeto</div>} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderDimensionamentoRedirect('/dimensionamento?projeto=p1', 'Destino cargas projeto')
 
     expect(screen.getByText('Destino cargas projeto')).toBeInTheDocument()
   })
 
   it('mantem compatibilidade da rota antiga', () => {
-    render(
-      <MemoryRouter initialEntries={['/dimensionamento?projeto=abc-123']}>
-        <Routes>
-          <Route path="/dimensionamento" element={<DimensionamentoPage />} />
-          <Route path="/cargas" element={<div>Compatibilidade ok</div>} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderDimensionamentoRedirect('/dimensionamento?projeto=abc-123', 'Compatibilidade ok')
 
     expect(screen.getByText('Compatibilidade ok')).toBeInTheDocument()
   })
