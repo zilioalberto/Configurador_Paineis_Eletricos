@@ -45,7 +45,7 @@ describe('produtoDetailToForm', () => {
       unidade_medida: 'UN',
       valor_unitario: '12',
       ativo: true,
-      especificacao_gateway: { ip: '1.1.1.1' },
+      especificacao_gateway: { ip: '192.0.2.1' }, // TEST-NET-1 (RFC 5737), só mock
     } as ProdutoDetail
     const form = produtoDetailToForm(p, categorias)
     expect(form.especificacao).toEqual({ fromApi: true })

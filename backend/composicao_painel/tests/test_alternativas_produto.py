@@ -4,13 +4,24 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.exceptions import FieldError
 
+from cargas.models import Carga, CargaResistencia
 from catalogo.models import Produto
+from composicao_painel.models import SugestaoItem
 from composicao_painel.services.alternativas_produto import (
     _corrente_referencia_sugestao,
     listar_alternativas_para_sugestao,
 )
-from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
-from core.choices.cargas import TipoCargaChoices
+from core.choices import (
+    CategoriaProdutoNomeChoices,
+    NumeroFasesChoices,
+    PartesPainelChoices,
+    TensaoChoices,
+)
+from core.choices.cargas import (
+    TipoAcionamentoResistenciaChoices,
+    TipoCargaChoices,
+    TipoProtecaoResistenciaChoices,
+)
 from core.choices.eletrica import TipoCorrenteChoices
 from core.choices.produtos import UnidadeMedidaChoices
 
@@ -25,9 +36,6 @@ def test_corrente_referencia_usa_campo_da_sugestao():
 
 @pytest.mark.django_db
 def test_corrente_referencia_motor_usa_corrente_calculada(criar_projeto, criar_carga_motor):
-    from cargas.models import Carga
-    from composicao_painel.models import SugestaoItem
-
     projeto = criar_projeto(nome="Alt", codigo="99001-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(
         projeto=projeto,
@@ -56,6 +64,323 @@ def test_corrente_referencia_motor_usa_corrente_calculada(criar_projeto, criar_c
     ref = _corrente_referencia_sugestao(sugestao)
     assert ref is not None
     assert ref == sugestao.carga.motor.corrente_calculada_a
+
+
+@pytest.mark.django_db
+def test_corrente_referencia_resistencia_usa_corrente_calculada(criar_projeto):
+    projeto = criar_projeto(nome="AltR", codigo="99002-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R1",
+        descricao="RES",
+        tipo=TipoCargaChoices.RESISTENCIA,
+    )
+    CargaResistencia.objects.create(
+        carga=carga,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        potencia_kw=Decimal("2.000"),
+    )
+    produto = Produto.objects.create(
+        codigo="ALT-R",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    ref = _corrente_referencia_sugestao(sugestao)
+    assert ref == carga.resistencia.corrente_calculada_a
+
+
+@pytest.mark.django_db
+def test_corrente_referencia_motor_sem_motor_retorna_none(criar_projeto):
+    projeto = criar_projeto(nome="AltM", codigo="99003-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M0",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    produto = Produto.objects.create(
+        codigo="ALT-M0",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    assert _corrente_referencia_sugestao(sugestao) is None
+
+
+@pytest.mark.django_db
+def test_corrente_referencia_outro_tipo_retorna_none(criar_projeto):
+    projeto = criar_projeto(nome="AltV", codigo="99004-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="V1",
+        descricao="V",
+        tipo=TipoCargaChoices.VALVULA,
+    )
+    produto = Produto.objects.create(
+        codigo="ALT-V",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    assert _corrente_referencia_sugestao(sugestao) is None
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_contatora_executa_seletor_real(criar_projeto, criar_carga_motor):
+    projeto = criar_projeto(nome="Int", codigo="99100-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M1",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="INT-P",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_contatora_resistencia_executa_tipo_acionamento(criar_projeto):
+    projeto = criar_projeto(nome="IntR", codigo="99101-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R1",
+        descricao="R",
+        tipo=TipoCargaChoices.RESISTENCIA,
+    )
+    CargaResistencia.objects.create(
+        carga=carga,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+        potencia_kw=Decimal("3.000"),
+    )
+    produto = Produto.objects.create(
+        codigo="INT-R",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_motor_executa_seletor_real(criar_projeto, criar_carga_motor):
+    projeto = criar_projeto(nome="IntD", codigo="99102-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M2",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="INT-DM",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_motor_resistencia_protecao(criar_projeto):
+    projeto = criar_projeto(nome="IntDR", codigo="99103-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R2",
+        descricao="R",
+        tipo=TipoCargaChoices.RESISTENCIA,
+    )
+    CargaResistencia.objects.create(
+        carga=carga,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        tipo_protecao=TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+        potencia_kw=Decimal("1.000"),
+    )
+    produto = Produto.objects.create(
+        codigo="INT-DMR",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_motor_modo_quando_sem_especificacao(criar_projeto, criar_carga_motor):
+    projeto = criar_projeto(nome="IntDM2", codigo="99104-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M3",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="INT-DM2",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_seccionadora_executa_seletor_real(criar_projeto, criar_carga_motor):
+    projeto = criar_projeto(nome="IntS", codigo="99105-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M4",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="INT-S",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.SECCIONADORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        produto=produto,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.SECCIONADORA,
+        corrente_referencia_a=None,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao.carga.refresh_from_db()
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_cm_executa_seletor_real(criar_projeto):
+    projeto = criar_projeto(nome="IntCM", codigo="99106-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="INT-CM",
+        descricao="P",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        produto=produto,
+        parte_painel=PartesPainelChoices.PROTECAO_GERAL,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
+        corrente_referencia_a=Decimal("40"),
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    qs = listar_alternativas_para_sugestao(sugestao)
+    assert not qs.exists()
 
 
 @pytest.mark.django_db
