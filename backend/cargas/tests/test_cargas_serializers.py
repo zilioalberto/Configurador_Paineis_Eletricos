@@ -23,6 +23,7 @@ from cargas.models import (
 )
 from core.choices import TensaoChoices, TipoSinalChoices
 from core.choices.cargas import TipoCargaChoices
+from core.choices.eletrica import NumeroFasesChoices
 
 
 def test_default_spec_payload_e_merge_spec_helpers():
@@ -31,6 +32,25 @@ def test_default_spec_payload_e_merge_spec_helpers():
     assert motor_defaults["potencia_corrente_unidade"] == "CV"
     merged = _merge_spec({"a": 1, "b": 2}, {"b": None, "c": 3})
     assert merged == {"a": 1, "b": 2, "c": 3}
+
+
+@pytest.mark.parametrize(
+    ("tipo", "campo_esperado"),
+    [
+        (TipoCargaChoices.MOTOR, "tipo_partida"),
+        (TipoCargaChoices.VALVULA, "tipo_valvula"),
+        (TipoCargaChoices.RESISTENCIA, "potencia_kw"),
+        (TipoCargaChoices.SENSOR, "tipo_sensor"),
+        (TipoCargaChoices.TRANSDUTOR, "tipo_transdutor"),
+    ],
+)
+def test_default_spec_payload_cobre_todos_os_tipos_com_especificacao(
+    tipo,
+    campo_esperado,
+):
+    payload = _default_spec_payload(tipo)
+
+    assert campo_esperado in payload
 
 
 @pytest.mark.django_db
@@ -253,3 +273,110 @@ def test_carga_detail_serializer_get_nesteds_com_e_sem_dados():
 
     obj_sem = _ObjSemNested(TipoCargaChoices.TRANSDUTOR, SimpleNamespace())
     assert ser.get_transdutor(obj_sem) is None
+
+
+def test_carga_detail_serializer_getters_rejeitam_tipo_diferente():
+    ser = CargaDetailSerializer()
+    obj = SimpleNamespace(
+        tipo=TipoCargaChoices.TRANSMISSOR,
+        motor=SimpleNamespace(),
+        valvula=SimpleNamespace(),
+        resistencia=SimpleNamespace(),
+        sensor=SimpleNamespace(),
+        transdutor=SimpleNamespace(),
+    )
+
+    assert ser.get_motor(obj) is None
+    assert ser.get_valvula(obj) is None
+    assert ser.get_resistencia(obj) is None
+    assert ser.get_sensor(obj) is None
+    assert ser.get_transdutor(obj) is None
+
+
+def test_carga_list_serializer_getters_para_motor_e_resistencia():
+    ser = CargaListSerializer()
+    projeto = SimpleNamespace(
+        tensao_nominal=380,
+        get_tipo_corrente_display=lambda: "CA",
+    )
+    obj_motor = SimpleNamespace(
+        tipo=TipoCargaChoices.MOTOR,
+        projeto=projeto,
+        motor=SimpleNamespace(
+            corrente_calculada_a=Decimal("2.50"),
+            potencia_corrente_valor=Decimal("1.00"),
+            potencia_corrente_unidade="CV",
+            tensao_motor=380,
+            get_numero_fases_display=lambda: "Trifásico",
+        ),
+    )
+    obj_resistencia = SimpleNamespace(
+        tipo=TipoCargaChoices.RESISTENCIA,
+        projeto=projeto,
+        resistencia=SimpleNamespace(
+            corrente_calculada_a=Decimal("4.00"),
+            potencia_kw=Decimal("2.000"),
+            tensao_resistencia=220,
+            get_numero_fases_display=lambda: "Monofásico",
+        ),
+    )
+
+    assert ser.get_corrente_calculada_a(obj_motor) == Decimal("2.50")
+    assert ser.get_potencia_corrente_valor(obj_motor) == Decimal("1.00")
+    assert ser.get_potencia_corrente_unidade(obj_motor) == "CV"
+    assert ser.get_tensao_carga_display(obj_motor) == "380 V"
+    assert ser.get_fases_carga_display(obj_motor) == "Trifásico"
+
+    assert ser.get_corrente_calculada_a(obj_resistencia) == Decimal("4.00")
+    assert ser.get_potencia_corrente_valor(obj_resistencia) == Decimal("2.000")
+    assert ser.get_potencia_corrente_unidade(obj_resistencia) == "kW"
+    assert ser.get_tensao_carga_display(obj_resistencia) == "220 V"
+    assert ser.get_fases_carga_display(obj_resistencia) == "Monofásico"
+
+
+@pytest.mark.django_db
+def test_carga_write_create_default_spec_para_valvula(criar_projeto):
+    projeto = criar_projeto(nome="SW3", codigo="18006-26", tensao_nominal=TensaoChoices.V380)
+
+    ser = CargaWriteSerializer(
+        data={
+            "projeto": str(projeto.id),
+            "tag": "V1",
+            "descricao": "V1",
+            "tipo": TipoCargaChoices.VALVULA,
+            "quantidade": 1,
+        }
+    )
+    assert ser.is_valid(), ser.errors
+    carga = ser.save()
+
+    assert CargaValvula.objects.filter(carga=carga).exists()
+    assert CargaValvula.objects.get(carga=carga).quantidade_solenoides == 1
+
+
+@pytest.mark.django_db
+def test_carga_write_update_cria_nested_quando_mesmo_tipo_sem_especificacao(criar_projeto):
+    projeto = criar_projeto(nome="SW4", codigo="18007-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R2",
+        descricao="Resistencia",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    ser = CargaWriteSerializer(
+        instance=carga,
+        data={
+            "resistencia": {
+                "numero_fases": NumeroFasesChoices.TRIFASICO,
+                "tensao_resistencia": TensaoChoices.V380,
+                "potencia_kw": "1.500",
+            }
+        },
+        partial=True,
+    )
+
+    assert ser.is_valid(), ser.errors
+    ser.save()
+
+    assert CargaResistencia.objects.filter(carga=carga, potencia_kw="1.500").exists()
