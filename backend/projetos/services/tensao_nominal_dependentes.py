@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
+from math import sqrt
 
 from django.db import transaction
 from django.utils import timezone
 
 from cargas.models import Carga, CargaMotor
 from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
-from core.choices import UnidadePotenciaCorrenteChoices
+from core.choices import (
+    NumeroFasesChoices,
+    TipoPartidaMotorChoices,
+    UnidadePotenciaCorrenteChoices,
+)
 from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from projetos.models import Projeto
 
@@ -32,6 +37,26 @@ def _escalar_entrada_ampere_motores(
         motor.potencia_corrente_valor = (
             motor.potencia_corrente_valor * ratio
         ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _alinhar_tensao_motor_com_projeto(motor: CargaMotor, tensao_projeto: int | None) -> None:
+    """Mantém a tensão do motor válida para partidas que seguem a tensão do projeto."""
+    if not tensao_projeto:
+        return
+
+    partidas_com_tensao_do_projeto = {
+        TipoPartidaMotorChoices.DIRETA,
+        TipoPartidaMotorChoices.ESTRELA_TRIANGULO,
+        TipoPartidaMotorChoices.SOFT_STARTER,
+    }
+    if motor.tipo_partida not in partidas_com_tensao_do_projeto:
+        return
+
+    if motor.numero_fases == NumeroFasesChoices.MONOFASICO:
+        motor.tensao_motor = int(round(int(tensao_projeto) / sqrt(3)))
+        return
+
+    motor.tensao_motor = int(tensao_projeto)
 
 
 @transaction.atomic
@@ -60,6 +85,7 @@ def reiniciar_dependentes_apos_alteracao_tensao_nominal(
         tensao_nominal_nova=projeto.tensao_nominal,
     )
     for motor in motores:
+        _alinhar_tensao_motor_com_projeto(motor, projeto.tensao_nominal)
         motor.save()
 
     Carga.objects.filter(projeto=projeto).update(atualizado_em=timezone.now())
