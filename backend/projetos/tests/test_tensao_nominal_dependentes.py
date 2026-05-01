@@ -10,7 +10,7 @@ from projetos.services.tensao_nominal_dependentes import (
 
 
 @pytest.mark.django_db
-def test_escala_entrada_ampere_quando_tensao_projeto_muda(criar_projeto):
+def test_escala_entrada_ampere_quando_tensao_projeto_muda(criar_projeto, criar_carga_motor):
     projeto = criar_projeto(nome="P", codigo="07001-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(
         projeto=projeto,
@@ -18,10 +18,11 @@ def test_escala_entrada_ampere_quando_tensao_projeto_muda(criar_projeto):
         descricao="Motor",
         tipo=TipoCargaChoices.MOTOR,
     )
-    CargaMotor.objects.create(
+    criar_carga_motor(
         carga=carga,
         potencia_corrente_valor=Decimal("10.00"),
         potencia_corrente_unidade=UnidadePotenciaCorrenteChoices.A,
+        tensao_motor=TensaoChoices.V380,
     )
 
     projeto.tensao_nominal = TensaoChoices.V220

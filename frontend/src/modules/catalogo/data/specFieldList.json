@@ -1089,10 +1089,6 @@
       "django": "CharField"
     },
     {
-      "name": "profundidade_util_mm",
-      "django": "DecimalField"
-    },
-    {
       "name": "placa_largura_util_mm",
       "django": "DecimalField"
     },

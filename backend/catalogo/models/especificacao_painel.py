@@ -40,14 +40,6 @@ class EspecificacaoPainel(BaseModel):
         help_text="Ex.: IP54, IP55, IP65.",
     )
 
-    profundidade_util_mm = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Profundidade útil interna.",
-    )
-
     placa_largura_util_mm = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -93,7 +85,6 @@ class EspecificacaoPainel(BaseModel):
             self.cor = CorPainelChoices.RAL7035
 
         for medida in (
-            self.profundidade_util_mm,
             self.placa_largura_util_mm,
             self.placa_altura_util_mm,
         ):

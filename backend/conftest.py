@@ -2,7 +2,14 @@
 
 import pytest
 
-from core.choices import FrequenciaChoices, NumeroFasesChoices, TipoConexaoAlimetacaoChoices
+from cargas.models import CargaMotor
+from core.choices import (
+    FrequenciaChoices,
+    NumeroFasesChoices,
+    TensaoChoices,
+    TipoConexaoAlimetacaoChoices,
+    UnidadePotenciaCorrenteChoices,
+)
 from projetos.models import Projeto
 
 
@@ -25,5 +32,22 @@ def criar_projeto(projeto_ca_minimo_kwargs):
             codigo=codigo,
             **{**projeto_ca_minimo_kwargs, **extra},
         )
+
+    return _criar
+
+
+@pytest.fixture
+def criar_carga_motor():
+    """Factory com defaults estáveis para CargaMotor em testes."""
+
+    def _criar(*, carga, **extra):
+        payload = {
+            "carga": carga,
+            "potencia_corrente_valor": "1.00",
+            "potencia_corrente_unidade": UnidadePotenciaCorrenteChoices.CV,
+            "tensao_motor": TensaoChoices.V220,
+        }
+        payload.update(extra)
+        return CargaMotor.objects.create(**payload)
 
     return _criar

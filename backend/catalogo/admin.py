@@ -545,7 +545,6 @@ class EspecificacaoPainelAdmin(admin.ModelAdmin):
         "tipo_instalacao",
         "material",
         "grau_protecao_ip",
-        "profundidade_util_mm",
         "placa_largura_util_mm",
         "placa_altura_util_mm",
         "placa_acabamento",
