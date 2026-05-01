@@ -62,3 +62,57 @@ def test_corrente_total_considera_fase_mais_sobrecarregada():
     # Distribuição ótima em 3 fases: [10, 10, 0]
     # Corrente total de referência deve ser a fase mais carregada = 10 A.
     assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("10.00")
+
+
+def _spec_ma(corrente_ma: int, quantidade: int, numero_fases: int | None):
+    return SimpleNamespace(
+        corrente_calculada_a=None,
+        corrente_consumida_ma=corrente_ma,
+        numero_fases=numero_fases,
+        carga=SimpleNamespace(quantidade=quantidade),
+    )
+
+
+def test_corrente_total_usa_corrente_consumida_ma_quando_sem_calculada():
+    projeto = SimpleNamespace(numero_fases=1, fator_demanda=Decimal("1.00"))
+    # 5000 mA => 5 A, quantidade 2 => 10 A na fase única
+    modelos = [_FakeModel([_spec_ma(5000, 2, 1)])]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("10.00")
+
+
+def test_corrente_total_ignora_espec_sem_corrente():
+    projeto = SimpleNamespace(numero_fases=1, fator_demanda=None)
+    sem_corrente = SimpleNamespace(
+        corrente_calculada_a=None,
+        corrente_consumida_ma=None,
+        numero_fases=1,
+        carga=SimpleNamespace(quantidade=1),
+    )
+    modelos = [_FakeModel([sem_corrente])]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("0.00")
+
+
+def test_corrente_total_quantidade_invalida_usa_um():
+    projeto = SimpleNamespace(numero_fases=1, fator_demanda=Decimal("1.00"))
+    espec = SimpleNamespace(
+        corrente_calculada_a=Decimal("4"),
+        corrente_consumida_ma=None,
+        numero_fases=1,
+        carga=SimpleNamespace(quantidade="não-numérico"),
+    )
+    corrente_total_service.MODELOS_COM_CORRENTE = [_FakeModel([espec])]
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("4.00")
+
+
+def test_corrente_total_numero_fases_espec_invalido_trata_como_monofasico():
+    projeto = SimpleNamespace(numero_fases=3, fator_demanda=Decimal("1.00"))
+    espec = SimpleNamespace(
+        corrente_calculada_a=Decimal("9"),
+        corrente_consumida_ma=None,
+        numero_fases="x",
+        carga=SimpleNamespace(quantidade=1),
+    )
+    corrente_total_service.MODELOS_COM_CORRENTE = [_FakeModel([espec])]
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("9.00")
