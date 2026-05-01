@@ -108,7 +108,7 @@ describe('ProdutoEditPage', () => {
   })
 
   it('sem id mostra alerta', () => {
-    useParams.mockReturnValue({})
+    useParams.mockReturnValue({} as { id: string })
     useProdutoDetailQueryMock.mockReturnValue({
       data: undefined,
       isPending: false,
