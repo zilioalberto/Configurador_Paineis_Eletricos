@@ -107,4 +107,26 @@ describe('cargaDetailToForm', () => {
     expect(f.ativo).toBe(false)
     expect(f.local_instalacao).toBe('')
   })
+
+  it('VALVULA sem nested usa defaultValvula', () => {
+    const d: CargaDetail = { ...base, tipo: 'VALVULA' }
+    expect(cargaDetailToForm(d).valvula?.tipo_valvula).toBe('SOLENOIDE')
+  })
+
+  it('TRANSDUTOR: quantidade_fios vazio permanece string vazia', () => {
+    const d: CargaDetail = {
+      ...base,
+      tipo: 'TRANSDUTOR',
+      transdutor: {
+        tipo_transdutor: 'PRESSAO',
+        faixa_medicao: '',
+        tipo_sinal_analogico: 'CORRENTE_4_20MA',
+        tensao_alimentacao: 24,
+        tipo_corrente: 'CC',
+        corrente_consumida_ma: '15',
+        quantidade_fios: '',
+      },
+    }
+    expect(cargaDetailToForm(d).transdutor?.quantidade_fios).toBe('')
+  })
 })

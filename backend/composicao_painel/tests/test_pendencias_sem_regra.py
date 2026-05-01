@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cargas.models import Carga
+from cargas.models import Carga, CargaResistencia
 from composicao_painel.models import PendenciaItem
 from composicao_painel.services.sugestoes.pendencias_sem_regra import (
     sincronizar_pendencias_cargas_sem_regra_catalogo,
@@ -138,3 +138,37 @@ def test_valvula_gera_pendencia_sem_regra(criar_projeto):
     )
     criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
     assert len(criadas) == 1
+
+
+@pytest.mark.django_db
+def test_resistencia_memoria_quando_cargaresistencia_some_antes_da_memoria(
+    criar_projeto,
+):
+    """Cobre `except CargaResistencia.DoesNotExist` em `_memoria_e_descricao_carga_sem_regra`."""
+    projeto = criar_projeto(nome="PSX", codigo="13007-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R99",
+        descricao="Res",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    mock_r = SimpleNamespace(
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    calls = {"n": 0}
+
+    def get_side_effect(*_a, **_kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return mock_r
+        raise CargaResistencia.DoesNotExist
+
+    with patch(
+        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
+        side_effect=get_side_effect,
+    ):
+        criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 1
+    assert "CargaResistência" in criadas[0].memoria_calculo or "CargaResist" in criadas[0].memoria_calculo

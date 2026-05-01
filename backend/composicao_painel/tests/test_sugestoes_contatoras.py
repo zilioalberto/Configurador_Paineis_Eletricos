@@ -199,3 +199,31 @@ def test_gerar_sugestoes_contatoras_remove_anteriores_e_itera(
     ):
         out = gerar_sugestoes_contatoras(projeto)
     assert len(out) == 1
+
+
+@pytest.mark.django_db
+def test_gerar_sugestoes_contatoras_duas_cargas_motor(
+    criar_projeto,
+    criar_carga_motor,
+):
+    projeto = criar_projeto(nome="CT8", codigo="14108-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="CT-P8",
+        descricao="K",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    for tag in ("MC", "MD"):
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag=tag,
+            descricao="M",
+            tipo=TipoCargaChoices.MOTOR,
+        )
+        criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
+        return_value=Produto.objects.filter(pk=produto.pk),
+    ):
+        out = gerar_sugestoes_contatoras(projeto)
+    assert len(out) == 2

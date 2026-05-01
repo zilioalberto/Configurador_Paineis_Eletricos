@@ -46,7 +46,9 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
 
     PAINEL = "PAINEL", "Painel"
     CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
-   
+
+    OUTROS = "OUTROS", "Outros"
+
     SEM_REGRA_SUGESTAO_AUTOMATICA = (
         "SEM_REGRA_SUGESTAO_AUTOMATICA",
         "Sem regra de sugestão automática",

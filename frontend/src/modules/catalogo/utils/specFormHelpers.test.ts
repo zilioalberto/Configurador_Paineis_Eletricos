@@ -70,4 +70,19 @@ describe('specFormHelpers', () => {
     )
     expect(p.possui_dissipador).toBe(true)
   })
+
+  it('especFormParaPayload IntegerField inválido vira null', () => {
+    const p = especFormParaPayload(
+      {
+        corrente_ac3_a: '10',
+        tensao_bobina_v: '24',
+        contatos_aux_na: 'x',
+        contatos_aux_nf: '0',
+        modo_montagem: 'TRILHO_DIN',
+        tipo_corrente_bobina: 'CC',
+      },
+      'CONTATORA',
+    )
+    expect(p.contatos_aux_na).toBeNull()
+  })
 })

@@ -1,11 +1,12 @@
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import FieldError
 
 from cargas.models import Carga, CargaResistencia
-from catalogo.models import Produto
+from catalogo.models import EspecificacaoDisjuntorCaixaMoldada, Produto
 from composicao_painel.models import SugestaoItem
 from composicao_painel.services.alternativas_produto import (
     _corrente_referencia_sugestao,
@@ -23,7 +24,12 @@ from core.choices.cargas import (
     TipoProtecaoResistenciaChoices,
 )
 from core.choices.eletrica import TipoCorrenteChoices
-from core.choices.produtos import UnidadeMedidaChoices
+from core.choices.produtos import (
+    ConfiguracaoDisparadorDisjuntorCMChoices,
+    ModoMontagemChoices,
+    NumeroPolosChoices,
+    UnidadeMedidaChoices,
+)
 
 
 @pytest.mark.django_db
@@ -32,6 +38,14 @@ def test_corrente_referencia_usa_campo_da_sugestao():
     s.corrente_referencia_a = Decimal("12.5")
     s.carga = None
     assert _corrente_referencia_sugestao(s) == Decimal("12.5")
+
+
+@pytest.mark.django_db
+def test_corrente_referencia_sem_corrente_na_sugestao_sem_carga_retorna_none():
+    s = MagicMock()
+    s.corrente_referencia_a = None
+    s.carga = None
+    assert _corrente_referencia_sugestao(s) is None
 
 
 @pytest.mark.django_db
@@ -550,3 +564,64 @@ def test_listar_alternativas_disjuntor_cm_sucesso():
     ) as m_sel:
         assert listar_alternativas_para_sugestao(s) is fake_qs
     assert m_sel.call_args.kwargs["corrente_nominal"] == Decimal("32")
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_cm_passa_modo_montagem_do_produto(criar_projeto):
+    projeto = criar_projeto(nome="AltCM", codigo="99107-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="ALT-CM-SPEC",
+        descricao="CM com spec",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    EspecificacaoDisjuntorCaixaMoldada.objects.create(
+        produto=produto,
+        corrente_nominal_a=Decimal("100"),
+        numero_polos=NumeroPolosChoices.P3,
+        configuracao_disparador=(
+            ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_IR_II_FIXOS
+        ),
+        capacidade_interrupcao_380v_ka=Decimal("50"),
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        produto=produto,
+        parte_painel=PartesPainelChoices.PROTECAO_GERAL,
+        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
+        corrente_referencia_a=Decimal("15"),
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    fake_qs = Produto.objects.none()
+    with patch(
+        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
+        return_value=fake_qs,
+    ) as m_sel:
+        assert listar_alternativas_para_sugestao(sugestao) is fake_qs
+    assert m_sel.call_args.kwargs["modo_montagem"] == ModoMontagemChoices.TRILHO_DIN
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_disjuntor_cm_excecao_ao_ler_modo_montagem_ignora():
+    class SpecRuim:
+        @property
+        def modo_montagem(self):
+            raise RuntimeError("spec indisponível")
+
+    prod = SimpleNamespace(especificacao_disjuntor_caixa_moldada=SpecRuim())
+    s = MagicMock()
+    s.categoria_produto = CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA
+    s.corrente_referencia_a = Decimal("8")
+    s.produto_id = 1
+    s.carga_id = None
+    s.produto = prod
+    fake_qs = Produto.objects.none()
+    with patch(
+        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
+        return_value=fake_qs,
+    ) as m_sel:
+        assert listar_alternativas_para_sugestao(s) is fake_qs
+    assert m_sel.call_args.kwargs["modo_montagem"] is None

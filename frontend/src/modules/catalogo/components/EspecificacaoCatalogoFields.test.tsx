@@ -97,3 +97,21 @@ describe('EspecificacaoCatalogoFields - rele estado solido', () => {
     })
   })
 })
+
+describe('EspecificacaoCatalogoFields - BORNE (campos genéricos)', () => {
+  it('renderiza campos da especificação e propaga alteração', () => {
+    const onPatch = vi.fn()
+    render(
+      <EspecificacaoCatalogoFields
+        categoria="BORNE"
+        value={{ tipo_borne: 'PARAFUSO', secao_min_mm2: '1.5' }}
+        onPatch={onPatch}
+      />,
+    )
+    expect(screen.getByLabelText(/Tipo Borne/i)).toBeInTheDocument()
+    const secaoMin = screen.getByLabelText(/Secao Min Mm2/i)
+    expect(secaoMin).toHaveValue('1.5')
+    fireEvent.change(secaoMin, { target: { value: '2.5' } })
+    expect(onPatch).toHaveBeenCalledWith({ secao_min_mm2: '2.5' })
+  })
+})

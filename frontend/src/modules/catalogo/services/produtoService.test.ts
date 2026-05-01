@@ -32,7 +32,7 @@ describe('produtoService', () => {
     getMock.mockResolvedValueOnce({
       data: {
         count: 99,
-        next: 'http://x?page=2',
+        next: 'https://x.example/page?page=2',
         previous: null,
         results: [{ id: 'p1', codigo: 'C1' }],
       },

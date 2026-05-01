@@ -220,3 +220,31 @@ def test_gerar_sugestoes_disjuntores_motor_sem_cargas_elegiveis(criar_projeto):
         tipo=TipoCargaChoices.SENSOR,
     )
     assert gerar_sugestoes_disjuntores_motor(projeto) == []
+
+
+@pytest.mark.django_db
+def test_gerar_sugestoes_disjuntores_motor_duas_cargas_motor(
+    criar_projeto,
+    criar_carga_motor,
+):
+    projeto = criar_projeto(nome="DM11", codigo="14011-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="DM-P11",
+        descricao="D",
+        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    for tag in ("MA", "MB"):
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag=tag,
+            descricao="M",
+            tipo=TipoCargaChoices.MOTOR,
+        )
+        criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
+        return_value=Produto.objects.filter(pk=produto.pk),
+    ):
+        out = gerar_sugestoes_disjuntores_motor(projeto)
+    assert len(out) == 2
