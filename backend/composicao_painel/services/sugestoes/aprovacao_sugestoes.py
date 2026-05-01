@@ -61,6 +61,7 @@ def aprovar_sugestao_item(
         parte_painel=sugestao.parte_painel,
         categoria_produto=sugestao.categoria_produto,
         carga=sugestao.carga,
+        indice_escopo=sugestao.indice_escopo,
         defaults={
             "produto": produto_final,
             "quantidade": sugestao.quantidade,
@@ -120,6 +121,7 @@ def reabrir_composicao_item_para_sugestao(
         parte_painel=item.parte_painel,
         categoria_produto=item.categoria_produto,
         carga=item.carga,
+        indice_escopo=item.indice_escopo,
         defaults={
             "produto": item.produto,
             "quantidade": item.quantidade,

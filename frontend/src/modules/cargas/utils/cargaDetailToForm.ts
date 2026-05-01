@@ -1,3 +1,4 @@
+import { normalizarTipoProtecaoMotorNoForm } from '../constants/cargaChoiceOptions'
 import type { CargaDetail, CargaFormData } from '../types/carga'
 import {
   defaultMotor,
@@ -35,7 +36,9 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
       rendimento_percentual: str(d.motor.rendimento_percentual, '85.00'),
       fator_potencia: str(d.motor.fator_potencia, '0.85'),
       tipo_partida: str(d.motor.tipo_partida, 'DIRETA'),
-      tipo_protecao: str(d.motor.tipo_protecao, 'DISJUNTOR_MOTOR'),
+      tipo_protecao: normalizarTipoProtecaoMotorNoForm(
+        str(d.motor.tipo_protecao, 'DISJUNTOR_MOTOR')
+      ),
       reversivel: Boolean(d.motor.reversivel),
       freio_motor: Boolean(d.motor.freio_motor),
       tipo_conexao_painel: str(
@@ -48,6 +51,14 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
   }
 
   if (d.tipo === 'VALVULA' && d.valvula) {
+    let tipoAcionamento = str(d.valvula.tipo_acionamento, 'SOLENOIDE_DIRETO')
+    let tipoReleInterface = str(d.valvula.tipo_rele_interface, '')
+    if (tipoAcionamento === 'RELE_ESTADO_SOLIDO') {
+      if (!tipoReleInterface) tipoReleInterface = 'ESTADO_SOLIDO'
+      tipoAcionamento = 'RELE_INTERFACE'
+    } else if (tipoAcionamento === 'RELE_ACOPLADOR') {
+      tipoAcionamento = 'RELE_INTERFACE'
+    }
     nested.valvula = {
       tipo_valvula: str(d.valvula.tipo_valvula, 'SOLENOIDE'),
       quantidade_vias: str(d.valvula.quantidade_vias, ''),
@@ -59,19 +70,30 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
       tipo_corrente: str(d.valvula.tipo_corrente, 'CC') as 'CA' | 'CC',
       corrente_consumida_ma: str(d.valvula.corrente_consumida_ma, '200.00'),
       tipo_protecao: str(d.valvula.tipo_protecao, 'MINIDISJUNTOR'),
-      tipo_acionamento: str(d.valvula.tipo_acionamento, 'SOLENOIDE_DIRETO'),
+      tipo_acionamento: tipoAcionamento,
+      tipo_rele_interface:
+        tipoAcionamento === 'RELE_INTERFACE'
+          ? tipoReleInterface || 'ELETROMECANICA'
+          : '',
     }
   } else if (d.tipo === 'VALVULA') {
     nested.valvula = defaultValvula()
   }
 
   if (d.tipo === 'RESISTENCIA' && d.resistencia) {
+    const ta = str(d.resistencia.tipo_acionamento, 'CONTATOR')
     nested.resistencia = {
       numero_fases: num(d.resistencia.numero_fases, 3),
       tensao_resistencia: num(d.resistencia.tensao_resistencia, 380),
       tipo_protecao: str(d.resistencia.tipo_protecao, 'MINIDISJUNTOR'),
-      tipo_acionamento: str(d.resistencia.tipo_acionamento, 'CONTATOR'),
+      tipo_acionamento: ta,
+      tipo_rele_interface: str(d.resistencia.tipo_rele_interface, ''),
       potencia_kw: str(d.resistencia.potencia_kw, '1.000'),
+    }
+    if (nested.resistencia.tipo_acionamento !== 'RELE_INTERFACE') {
+      nested.resistencia.tipo_rele_interface = ''
+    } else if (!nested.resistencia.tipo_rele_interface) {
+      nested.resistencia.tipo_rele_interface = 'ELETROMECANICA'
     }
   } else if (d.tipo === 'RESISTENCIA') {
     nested.resistencia = defaultResistencia()

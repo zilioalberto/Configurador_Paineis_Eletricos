@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cargas.models import Carga, CargaResistencia
+from cargas.models import Carga, CargaResistencia, CargaSensor
 from composicao_painel.models import PendenciaItem
 from composicao_painel.services.sugestoes.pendencias_sem_regra import (
     sincronizar_pendencias_cargas_sem_regra_catalogo,
@@ -13,13 +13,16 @@ from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
     TipoCargaChoices,
     TipoProtecaoResistenciaChoices,
+    TipoSensorChoices,
 )
+from core.choices.eletrica import TipoSinalChoices
 
 
 @pytest.mark.django_db
-def test_resistencia_fusivel_rele_gera_pendencia_sem_regra(criar_projeto):
+def test_resistencia_rele_estado_solido_nao_gera_pendencia_sem_regra(criar_projeto):
+    """Resistência com RELE_ESTADO_SOLIDO tem gerador de sugestão (catálogo)."""
     projeto = criar_projeto(nome="PSR", codigo="13001-26", tensao_nominal=TensaoChoices.V380)
-    carga = Carga.objects.create(
+    Carga.objects.create(
         projeto=projeto,
         tag="R01",
         descricao="Res",
@@ -35,11 +38,8 @@ def test_resistencia_fusivel_rele_gera_pendencia_sem_regra(criar_projeto):
         return_value=resistencia_mock,
     ):
         criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
-    assert len(criadas) == 1
-    assert PendenciaItem.objects.filter(projeto=projeto, carga=carga).count() == 1
-    p = criadas[0]
-    assert p.categoria_produto == CategoriaProdutoNomeChoices.SEM_REGRA_SUGESTAO_AUTOMATICA
-    assert p.parte_painel == PartesPainelChoices.PROTECAO_GERAL
+    assert len(criadas) == 0
+    assert PendenciaItem.objects.filter(projeto=projeto).count() == 0
 
 
 @pytest.mark.django_db
@@ -81,7 +81,7 @@ def test_motor_nao_gera_pendencia_sem_regra(criar_projeto):
 
 @pytest.mark.django_db
 def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_projeto):
-    """Segunda sincronização sem pendências quando antes havia registro."""
+    """Segunda sincronização sem pendências quando a carga passa a ter regra de catálogo."""
     projeto = criar_projeto(nome="PSR3", codigo="13004-26", tensao_nominal=TensaoChoices.V380)
     Carga.objects.create(
         projeto=projeto,
@@ -90,8 +90,8 @@ def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_proje
         tipo=TipoCargaChoices.RESISTENCIA,
         quantidade=1,
     )
-    rele_fusivel = SimpleNamespace(
-        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+    sem_regra_catalogo = SimpleNamespace(
+        tipo_acionamento="ACIONAMENTO_SEM_GERADOR",
         tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
     )
     com_contator = SimpleNamespace(
@@ -100,7 +100,7 @@ def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_proje
     )
     with patch(
         "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-        return_value=rele_fusivel,
+        return_value=sem_regra_catalogo,
     ):
         assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 1
     with patch(
@@ -112,9 +112,9 @@ def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_proje
 
 
 @pytest.mark.django_db
-def test_sensor_gera_pendencia_sem_regra(criar_projeto):
+def test_sensor_sem_cargasensor_gera_pendencia_sem_regra(criar_projeto):
     projeto = criar_projeto(nome="PSS", codigo="13005-26", tensao_nominal=TensaoChoices.V380)
-    carga = Carga.objects.create(
+    Carga.objects.create(
         projeto=projeto,
         tag="S01",
         descricao="Sensor",
@@ -124,6 +124,27 @@ def test_sensor_gera_pendencia_sem_regra(criar_projeto):
     criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
     assert len(criadas) == 1
     assert "Não há gerador" in criadas[0].memoria_calculo
+
+
+@pytest.mark.django_db
+def test_sensor_com_cargasensor_nao_gera_pendencia_sem_regra(criar_projeto):
+    """Com CargaSensor há etapa de bornes (sugestão ou pendência específica)."""
+    projeto = criar_projeto(nome="PSS2", codigo="13005b-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="S02",
+        descricao="Sensor",
+        tipo=TipoCargaChoices.SENSOR,
+        quantidade=1,
+    )
+    CargaSensor.objects.create(
+        carga=carga,
+        tipo_sensor=TipoSensorChoices.INDUTIVO,
+        tipo_sinal=TipoSinalChoices.DIGITAL,
+        quantidade_fios=3,
+    )
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 0
 
 
 @pytest.mark.django_db
@@ -154,7 +175,7 @@ def test_resistencia_memoria_quando_cargaresistencia_some_antes_da_memoria(
         quantidade=1,
     )
     mock_r = SimpleNamespace(
-        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_acionamento="ACIONAMENTO_SEM_GERADOR",
         tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
     )
     calls = {"n": 0}

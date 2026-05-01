@@ -62,7 +62,8 @@ def _default_spec_payload(tipo: str) -> dict:
             "tipo_corrente": "CC",
             "corrente_consumida_ma": Decimal("200.00"),
             "tipo_protecao": "BORNE_FUSIVEL",
-            "tipo_acionamento": "RELE_ESTADO_SOLIDO",
+            "tipo_acionamento": "SOLENOIDE_DIRETO",
+            "tipo_rele_interface": None,
         }
     if tipo == TipoCargaChoices.RESISTENCIA:
         return {
@@ -70,6 +71,7 @@ def _default_spec_payload(tipo: str) -> dict:
             "tensao_resistencia": 380,
             "tipo_protecao": "FUSIVEL_ULTRARRAPIDO",
             "tipo_acionamento": "RELE_ESTADO_SOLIDO",
+            "tipo_rele_interface": None,
             "potencia_kw": Decimal("1.000"),
         }
     if tipo == TipoCargaChoices.SENSOR:
@@ -450,11 +452,6 @@ class CargaDetailSerializer(serializers.ModelSerializer):
 class CargaWriteSerializer(serializers.ModelSerializer):
     projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
     projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
-    motor = CargaMotorSerializer(required=False, allow_null=True)
-    valvula = CargaValvulaSerializer(required=False, allow_null=True)
-    resistencia = CargaResistenciaSerializer(required=False, allow_null=True)
-    sensor = CargaSensorSerializer(required=False, allow_null=True)
-    transdutor = CargaTransdutorSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Carga
@@ -485,6 +482,25 @@ class CargaWriteSerializer(serializers.ModelSerializer):
             "transdutor",
         )
         read_only_fields = ("id", "projeto_codigo", "projeto_nome")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        partial = kwargs.get("partial", False)
+        self.fields["motor"] = CargaMotorSerializer(
+            required=False, allow_null=True, partial=partial
+        )
+        self.fields["valvula"] = CargaValvulaSerializer(
+            required=False, allow_null=True, partial=partial
+        )
+        self.fields["resistencia"] = CargaResistenciaSerializer(
+            required=False, allow_null=True, partial=partial
+        )
+        self.fields["sensor"] = CargaSensorSerializer(
+            required=False, allow_null=True, partial=partial
+        )
+        self.fields["transdutor"] = CargaTransdutorSerializer(
+            required=False, allow_null=True, partial=partial
+        )
 
     def validate(self, attrs):
         tipo = attrs.get("tipo", self.instance.tipo if self.instance else None)

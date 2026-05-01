@@ -33,6 +33,8 @@ export type CargaValvulaPayload = {
   corrente_consumida_ma: string
   tipo_protecao: string
   tipo_acionamento: string
+  /** Preenchido quando `tipo_acionamento` é `RELE_INTERFACE`. */
+  tipo_rele_interface: string
 }
 
 export type CargaResistenciaPayload = {
@@ -40,6 +42,8 @@ export type CargaResistenciaPayload = {
   tensao_resistencia: number
   tipo_protecao: string
   tipo_acionamento: string
+  /** Preenchido quando `tipo_acionamento` é `RELE_INTERFACE`. */
+  tipo_rele_interface: string
   potencia_kw: string
 }
 

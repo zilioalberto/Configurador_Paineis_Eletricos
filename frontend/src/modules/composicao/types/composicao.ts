@@ -20,6 +20,11 @@ export type CargaDetalhe = {
   potencia_corrente_unidade?: string | null
   potencia_corrente_unidade_display?: string | null
   corrente_a?: string | null
+  /** Tensão nominal da carga (ex.: motor, resistência), não a do projeto. */
+  tensao_carga_v?: number | null
+  tensao_carga_display?: string | null
+  numero_fases_carga?: number | null
+  numero_fases_carga_display?: string | null
 }
 
 export type ProjetoAlimentacaoSnapshot = {
@@ -45,6 +50,7 @@ export type SugestaoItem = {
   memoria_calculo?: string
   observacoes?: string
   ordem: number
+  indice_escopo?: number
   produto?: ProdutoMini | null
   produto_codigo?: string | null
   carga: CargaDetalhe | null
@@ -64,6 +70,7 @@ export type ComposicaoItem = {
   memoria_calculo?: string
   observacoes?: string
   ordem: number
+  indice_escopo?: number
   produto?: ProdutoMini | null
   produto_codigo?: string | null
   carga: CargaDetalhe | null
@@ -99,6 +106,7 @@ export type PendenciaItem = {
   status: string
   status_display?: string
   ordem: number
+  indice_escopo?: number
   carga: CargaDetalhe | null
   projeto_alimentacao?: ProjetoAlimentacaoSnapshot
   criado_em?: string

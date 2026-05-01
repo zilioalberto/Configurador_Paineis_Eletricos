@@ -73,7 +73,16 @@ export default function CargaTable({
           {cargas.map((c) => (
             <tr key={c.id}>
               <td>
-                <Link to={`/cargas/${c.id}`}>{c.tag}</Link>
+                <Link
+                  to={`/cargas/${c.id}`}
+                  state={{
+                    from: projetoId
+                      ? `/cargas?projeto=${encodeURIComponent(projetoId)}`
+                      : '/cargas',
+                  }}
+                >
+                  {c.tag}
+                </Link>
               </td>
               <td>{c.descricao}</td>
               <td>

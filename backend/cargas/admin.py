@@ -67,6 +67,7 @@ class CargaValvulaInline(admin.StackedInline):
                 "corrente_consumida_ma",
                 "tipo_protecao",
                 "tipo_acionamento",
+                "tipo_rele_interface",
             )
         }),
     )

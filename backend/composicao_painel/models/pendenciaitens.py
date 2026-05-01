@@ -53,6 +53,11 @@ class PendenciaItem(BaseModel):
 
     ordem = models.PositiveIntegerField(default=0)
 
+    indice_escopo = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Índice para múltiplas pendências do mesmo escopo (ex.: contatoras Y-Δ).",
+    )
+
     class Meta:
         verbose_name = "Pendência de Item"
         verbose_name_plural = "Pendências de Itens"
@@ -64,9 +69,15 @@ class PendenciaItem(BaseModel):
                 name="uq_pendencia_item_proj_parte_categoria_sem_carga",
             ),
             models.UniqueConstraint(
-                fields=["projeto", "parte_painel", "categoria_produto", "carga"],
+                fields=[
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                    "indice_escopo",
+                ],
                 condition=Q(carga__isnull=False),
-                name="uq_pendencia_item_proj_parte_categoria_carga",
+                name="uq_pendencia_item_proj_parte_categoria_carga_escopo",
             ),
         ]
 

@@ -28,21 +28,47 @@ export const tipoCorrenteOptions = [
   { value: 'CC', label: 'Corrente Contínua (CC)' },
 ] as const
 
-export const tipoPartidaMotorOptions = [
+/** Partidas exibidas no cadastro/edição de carga motor (Servo Drive não é oferecido no formulário). */
+export const tipoPartidaMotorOptionsCargaMotor = [
   { value: 'DIRETA', label: 'Direta' },
   { value: 'ESTRELA_TRIANGULO', label: 'Estrela-Triângulo' },
   { value: 'SOFT_STARTER', label: 'Soft Starter' },
   { value: 'INVERSOR', label: 'Inversor' },
+] as const
+
+/** Lista completa (ex.: referência API); preferir `tipoPartidaMotorOptionsCargaMotor` nos selects de carga. */
+export const tipoPartidaMotorOptions = [
+  ...tipoPartidaMotorOptionsCargaMotor,
   { value: 'SERVO_DRIVE', label: 'Servo Drive' },
 ] as const
+
+type TipoPartidaMotorOpt = { readonly value: string; readonly label: string }
+
+/** Opções do select: sem Servo Drive, exceto se o valor atual já for legado `SERVO_DRIVE`. */
+export function getTipoPartidaMotorSelectOptions(
+  valorAtual: string
+): readonly TipoPartidaMotorOpt[] {
+  if (valorAtual === 'SERVO_DRIVE') {
+    return [
+      { value: 'SERVO_DRIVE', label: 'Servo Drive' },
+      ...tipoPartidaMotorOptionsCargaMotor,
+    ]
+  }
+  return tipoPartidaMotorOptionsCargaMotor
+}
 
 export const tipoProtecaoMotorOptions = [
   { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
   { value: 'RELE_SOBRECARGA', label: 'Relé de sobrecarga' },
   { value: 'FUSIVEL', label: 'Fusível' },
   { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
-  { value: 'FUSIVEL_ULTRARRAPIDO', label: 'Fusível ultrarrápido' },
 ] as const
+
+/** API ainda pode devolver FUSIVEL_ULTRARRAPIDO em motor; não entra no select. */
+export function normalizarTipoProtecaoMotorNoForm(valor: string): string {
+  if (valor === 'FUSIVEL_ULTRARRAPIDO') return 'FUSIVEL'
+  return valor
+}
 
 export const tipoProtecaoValvulaOptions = [
   { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
@@ -52,10 +78,40 @@ export const tipoProtecaoValvulaOptions = [
 
 export const tipoAcionamentoValvulaOptions = [
   { value: 'SOLENOIDE_DIRETO', label: 'Solenoide direto' },
-  { value: 'RELE_ESTADO_SOLIDO', label: 'Relé de estado sólido' },
-  { value: 'RELE_ACOPLADOR', label: 'Relé acoplador' },
+  { value: 'RELE_INTERFACE', label: 'Relé de interface' },
   { value: 'CONTATOR', label: 'Contator' },
 ] as const
+
+/** Subtipo quando o acionamento da válvula é relé de interface. */
+export const tipoReleInterfaceValvulaOptions = [
+  { value: 'ELETROMECANICA', label: 'Eletromecânica' },
+  { value: 'ESTADO_SOLIDO', label: 'Estado sólido' },
+] as const
+
+type TipoAcionamentoValvulaOpt = {
+  readonly value: string
+  readonly label: string
+}
+
+/** Inclui valor legado `RELE_ESTADO_SOLIDO` no select até normalizar no formulário. */
+export function getTipoAcionamentoValvulaSelectOptions(
+  valorAtual: string
+): readonly TipoAcionamentoValvulaOpt[] {
+  if (valorAtual === 'RELE_ESTADO_SOLIDO' || valorAtual === 'RELE_ACOPLADOR') {
+    const legado =
+      valorAtual === 'RELE_ACOPLADOR'
+        ? {
+            value: 'RELE_ACOPLADOR',
+            label: 'Relé de interface (código antigo — salve para migrar)',
+          }
+        : {
+            value: 'RELE_ESTADO_SOLIDO',
+            label: 'Relé de estado sólido (legado — salve para migrar)',
+          }
+    return [legado, ...tipoAcionamentoValvulaOptions]
+  }
+  return tipoAcionamentoValvulaOptions
+}
 
 export const tipoProtecaoResistenciaOptions = [
   { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
@@ -66,6 +122,7 @@ export const tipoProtecaoResistenciaOptions = [
 export const tipoAcionamentoResistenciaOptions = [
   { value: 'CONTATOR', label: 'Contator' },
   { value: 'RELE_ESTADO_SOLIDO', label: 'Relé de estado sólido' },
+  { value: 'RELE_INTERFACE', label: 'Relé de interface' },
 ] as const
 
 export const tipoConexaoCargaPainelOptions = [

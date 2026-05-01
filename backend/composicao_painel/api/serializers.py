@@ -1,7 +1,10 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
-from cargas.models import Carga
+from cargas.models import Carga, CargaResistencia
 from cargas.models.motor import CargaMotor
+from cargas.models.valvula import CargaValvula
 from catalogo.models import Produto
 from composicao_painel.models import (
     ComposicaoInclusaoManual,
@@ -33,6 +36,24 @@ def _motor_ou_none(carga):
         return None
 
 
+def _resistencia_ou_none(carga):
+    if carga is None or str(carga.tipo) != TipoCargaChoices.RESISTENCIA.value:
+        return None
+    try:
+        return carga.resistencia
+    except CargaResistencia.DoesNotExist:
+        return None
+
+
+def _valvula_ou_none(carga):
+    if carga is None or str(carga.tipo) != TipoCargaChoices.VALVULA.value:
+        return None
+    try:
+        return carga.valvula
+    except CargaValvula.DoesNotExist:
+        return None
+
+
 class CargaComposicaoSerializer(serializers.ModelSerializer):
     """Snapshot da carga para telas de composição (lê `descricao` e motor no ORM)."""
 
@@ -41,6 +62,10 @@ class CargaComposicaoSerializer(serializers.ModelSerializer):
     potencia_corrente_unidade = serializers.SerializerMethodField()
     potencia_corrente_unidade_display = serializers.SerializerMethodField()
     corrente_a = serializers.SerializerMethodField()
+    tensao_carga_v = serializers.SerializerMethodField()
+    tensao_carga_display = serializers.SerializerMethodField()
+    numero_fases_carga = serializers.SerializerMethodField()
+    numero_fases_carga_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Carga
@@ -55,6 +80,10 @@ class CargaComposicaoSerializer(serializers.ModelSerializer):
             "potencia_corrente_unidade",
             "potencia_corrente_unidade_display",
             "corrente_a",
+            "tensao_carga_v",
+            "tensao_carga_display",
+            "numero_fases_carga",
+            "numero_fases_carga_display",
         )
 
     def get_corrente_a(self, obj):
@@ -66,6 +95,12 @@ class CargaComposicaoSerializer(serializers.ModelSerializer):
         elif corrente is None and str(obj.tipo) == TipoCargaChoices.RESISTENCIA.value:
             r = getattr(obj, "resistencia", None)
             corrente = getattr(r, "corrente_calculada_a", None) if r else None
+        elif corrente is None and str(obj.tipo) == TipoCargaChoices.VALVULA.value:
+            v = _valvula_ou_none(obj)
+            if v and v.corrente_consumida_ma is not None:
+                corrente = (Decimal(v.corrente_consumida_ma) / Decimal("1000")).quantize(
+                    Decimal("0.0001")
+                )
         return str(corrente) if corrente is not None else None
 
     def get_potencia_corrente_valor(self, obj):
@@ -81,6 +116,48 @@ class CargaComposicaoSerializer(serializers.ModelSerializer):
     def get_potencia_corrente_unidade_display(self, obj):
         m = _motor_ou_none(obj)
         return m.get_potencia_corrente_unidade_display() if m else None
+
+    def get_tensao_carga_v(self, obj):
+        m = _motor_ou_none(obj)
+        if m and m.tensao_motor is not None:
+            return int(m.tensao_motor)
+        r = _resistencia_ou_none(obj)
+        if r and r.tensao_resistencia is not None:
+            return int(r.tensao_resistencia)
+        v = _valvula_ou_none(obj)
+        if v and v.tensao_alimentacao is not None:
+            return int(v.tensao_alimentacao)
+        return None
+
+    def get_tensao_carga_display(self, obj):
+        m = _motor_ou_none(obj)
+        if m and m.tensao_motor is not None:
+            return m.get_tensao_motor_display()
+        r = _resistencia_ou_none(obj)
+        if r and r.tensao_resistencia is not None:
+            return r.get_tensao_resistencia_display()
+        v = _valvula_ou_none(obj)
+        if v and v.tensao_alimentacao is not None:
+            return v.get_tensao_alimentacao_display()
+        return None
+
+    def get_numero_fases_carga(self, obj):
+        m = _motor_ou_none(obj)
+        if m and m.numero_fases is not None:
+            return int(m.numero_fases)
+        r = _resistencia_ou_none(obj)
+        if r and r.numero_fases is not None:
+            return int(r.numero_fases)
+        return None
+
+    def get_numero_fases_carga_display(self, obj):
+        m = _motor_ou_none(obj)
+        if m and m.numero_fases is not None:
+            return m.get_numero_fases_display()
+        r = _resistencia_ou_none(obj)
+        if r and r.numero_fases is not None:
+            return r.get_numero_fases_display()
+        return None
 
 
 class ProjetoAlimentacaoSerializer(serializers.ModelSerializer):
@@ -196,6 +273,7 @@ class SugestaoItemSerializer(serializers.ModelSerializer):
             "memoria_calculo",
             "observacoes",
             "ordem",
+            "indice_escopo",
             "produto",
             "produto_codigo",
             "carga",
@@ -247,6 +325,7 @@ class ComposicaoItemSerializer(serializers.ModelSerializer):
             "memoria_calculo",
             "observacoes",
             "ordem",
+            "indice_escopo",
             "produto",
             "produto_codigo",
             "carga",
@@ -302,6 +381,7 @@ class PendenciaItemSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "ordem",
+            "indice_escopo",
             "carga",
             "projeto_alimentacao",
             "criado_em",

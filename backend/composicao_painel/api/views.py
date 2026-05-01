@@ -51,6 +51,7 @@ def _composicao_select_related():
         "carga",
         "carga__motor",
         "carga__resistencia",
+        "carga__valvula",
         "projeto",
     )
 
@@ -81,6 +82,7 @@ def _snapshot(projeto: Projeto) -> dict:
             "carga",
             "carga__motor",
             "carga__resistencia",
+            "carga__valvula",
         )
         .order_by("ordem", "id")
     )
@@ -229,6 +231,7 @@ class SugestaoAlternativasView(APIView):
                 "carga",
                 "carga__motor",
                 "carga__resistencia",
+                "carga__valvula",
             ),
             pk=sugestao_id,
         )

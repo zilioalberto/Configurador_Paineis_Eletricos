@@ -3,6 +3,28 @@ from composicao_painel.services.sugestoes.contatoras import reprocessar_contator
 from composicao_painel.services.sugestoes.disjuntores_motor import (
     reprocessar_disjuntor_motor_para_carga,
 )
+from composicao_painel.services.sugestoes.rele_sobrecarga import (
+    reprocessar_rele_sobrecarga_para_carga,
+)
+from composicao_painel.services.sugestoes.fusivel import reprocessar_fusivel_para_carga
+from composicao_painel.services.sugestoes.minidisjuntores import (
+    reprocessar_minidisjuntores_para_carga,
+)
+from composicao_painel.services.sugestoes.soft_starter import (
+    reprocessar_soft_starter_para_carga,
+)
+from composicao_painel.services.sugestoes.inversores_frequencia import (
+    reprocessar_inversores_frequencia_para_carga,
+)
+from composicao_painel.services.sugestoes.reles_estado_solido import (
+    reprocessar_rele_estado_solido_para_carga,
+)
+from composicao_painel.services.sugestoes.reles_interface import (
+    reprocessar_rele_interface_para_carga,
+)
+from composicao_painel.services.sugestoes.bornes import (
+    reprocessar_bornes_para_carga,
+)
 from composicao_painel.services.sugestoes.seccionadoras import (
     reprocessar_seccionamento_para_pendencia,
 )
@@ -12,6 +34,7 @@ from core.choices import (
     PartesPainelChoices,
     StatusPendenciaChoices,
 )
+from core.choices.cargas import TipoCargaChoices
 
 
 def reavaliar_pendencias_projeto(projeto):
@@ -79,6 +102,103 @@ def reavaliar_pendencias_projeto(projeto):
                 reprocessar_contatora_para_carga(projeto, pendencia.carga)
 
             elif (
+                pendencia.parte_painel == PartesPainelChoices.ACIONAMENTO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.SOFT_STARTER
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de soft starter sem carga vinculada.",
+                        }
+                    )
+                    continue
+                reprocessar_soft_starter_para_carga(projeto, pendencia.carga)
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.ACIONAMENTO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.INVERSOR_FREQUENCIA
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de inversor de frequência sem carga vinculada.",
+                        }
+                    )
+                    continue
+                reprocessar_inversores_frequencia_para_carga(
+                    projeto, pendencia.carga
+                )
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.ACIONAMENTO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.RELE_ESTADO_SOLIDO
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de relé de estado sólido sem carga vinculada.",
+                        }
+                    )
+                    continue
+                if pendencia.carga.tipo != TipoCargaChoices.RESISTENCIA:
+                    resultado["categorias_nao_mapeadas"].append(
+                        f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
+                    )
+                    continue
+                reprocessar_rele_estado_solido_para_carga(
+                    projeto, pendencia.carga
+                )
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.ACIONAMENTO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.RELE_INTERFACE
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de relé de interface sem carga vinculada.",
+                        }
+                    )
+                    continue
+                if pendencia.carga.tipo not in (
+                    TipoCargaChoices.VALVULA,
+                    TipoCargaChoices.RESISTENCIA,
+                ):
+                    resultado["categorias_nao_mapeadas"].append(
+                        f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
+                    )
+                    continue
+                reprocessar_rele_interface_para_carga(projeto, pendencia.carga)
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.BORNES
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.BORNE
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de borne sem carga vinculada.",
+                        }
+                    )
+                    continue
+                if pendencia.carga.tipo != TipoCargaChoices.VALVULA:
+                    resultado["categorias_nao_mapeadas"].append(
+                        f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
+                    )
+                    continue
+                reprocessar_bornes_para_carga(projeto, pendencia.carga)
+
+            elif (
                 pendencia.parte_painel == PartesPainelChoices.PROTECAO_CARGA
                 and pendencia.categoria_produto
                 == CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR
@@ -92,6 +212,59 @@ def reavaliar_pendencias_projeto(projeto):
                     )
                     continue
                 reprocessar_disjuntor_motor_para_carga(projeto, pendencia.carga)
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.PROTECAO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.MINIDISJUNTOR
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de minidisjuntor sem carga vinculada.",
+                        }
+                    )
+                    continue
+                if pendencia.carga.tipo not in (
+                    TipoCargaChoices.MOTOR,
+                    TipoCargaChoices.RESISTENCIA,
+                ):
+                    resultado["categorias_nao_mapeadas"].append(
+                        f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
+                    )
+                    continue
+                reprocessar_minidisjuntores_para_carga(projeto, pendencia.carga)
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.PROTECAO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.RELE_SOBRECARGA
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de relé de sobrecarga sem carga vinculada.",
+                        }
+                    )
+                    continue
+                reprocessar_rele_sobrecarga_para_carga(projeto, pendencia.carga)
+
+            elif (
+                pendencia.parte_painel == PartesPainelChoices.PROTECAO_CARGA
+                and pendencia.categoria_produto
+                == CategoriaProdutoNomeChoices.FUSIVEL
+            ):
+                if pendencia.carga_id is None:
+                    resultado["erros"].append(
+                        {
+                            "categoria_produto": pendencia.categoria_produto,
+                            "erro": "Pendência de fusível sem carga vinculada.",
+                        }
+                    )
+                    continue
+                reprocessar_fusivel_para_carga(projeto, pendencia.carga)
 
             elif pendencia.parte_painel == PartesPainelChoices.SECCIONAMENTO:
                 reprocessar_seccionamento_para_pendencia(projeto, pendencia)

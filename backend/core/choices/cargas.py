@@ -34,6 +34,7 @@ class TipoProtecaoResistenciaChoices(models.TextChoices):
 class TipoAcionamentoResistenciaChoices(models.TextChoices):
     CONTATOR = "CONTATOR", "Contator"
     RELE_ESTADO_SOLIDO = "RELE_ESTADO_SOLIDO", "Relé de Estado Sólido"
+    RELE_INTERFACE = "RELE_INTERFACE", "Relé de interface"
 
 
 
@@ -60,9 +61,13 @@ class TipoProtecaoValvulaChoices(models.TextChoices):
 
 class TipoAcionamentoValvulaChoices(models.TextChoices):
     SOLENOIDE_DIRETO = "SOLENOIDE_DIRETO", "Solenoide direto"
-    RELE_ESTADO_SOLIDO = "RELE_ESTADO_SOLIDO", "Relé de Estado Sólido"
-    RELE_ACOPLADOR = "RELE_ACOPLADOR", "Relé Acoplador"
+    RELE_INTERFACE = "RELE_INTERFACE", "Relé de interface"
     CONTATOR = "CONTATOR", "Contator"
+
+
+class TipoReleInterfaceValvulaChoices(models.TextChoices):
+    ELETROMECANICA = "ELETROMECANICA", "Eletromecânica"
+    ESTADO_SOLIDO = "ESTADO_SOLIDO", "Estado sólido"
 
 
 

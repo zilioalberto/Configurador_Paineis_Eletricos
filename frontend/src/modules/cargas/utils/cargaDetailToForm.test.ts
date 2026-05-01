@@ -40,6 +40,21 @@ describe('cargaDetailToForm', () => {
     expect(f.motor?.potencia_corrente_unidade).toBe('CV')
   })
 
+  it('MOTOR: tipo_protecao FUSIVEL_ULTRARRAPIDO vira FUSIVEL no form', () => {
+    const d = {
+      ...base,
+      tipo: 'MOTOR' as const,
+      motor: {
+        potencia_corrente_valor: '1',
+        potencia_corrente_unidade: 'A',
+        numero_fases: 3,
+        tensao_motor: 380,
+        tipo_protecao: 'FUSIVEL_ULTRARRAPIDO',
+      },
+    } as unknown as CargaDetail
+    expect(cargaDetailToForm(d).motor?.tipo_protecao).toBe('FUSIVEL')
+  })
+
   it('VALVULA com nested e RESISTENCIA sem nested', () => {
     const v: CargaDetail = {
       ...base,
@@ -59,9 +74,29 @@ describe('cargaDetailToForm', () => {
       },
     }
     expect(cargaDetailToForm(v).valvula?.tipo_valvula).toBe('SOLENOIDE')
+    expect(cargaDetailToForm(v).valvula?.tipo_rele_interface).toBe('')
 
     const r: CargaDetail = { ...base, tipo: 'RESISTENCIA' }
     expect(cargaDetailToForm(r).resistencia?.potencia_kw).toBeDefined()
+  })
+
+  it('VALVULA: legado RELE_ESTADO_SOLIDO normaliza para relé de interface', () => {
+    const v: CargaDetail = {
+      ...base,
+      tipo: 'VALVULA',
+      valvula: {
+        tipo_valvula: 'SOLENOIDE',
+        quantidade_solenoides: 1,
+        tensao_alimentacao: 24,
+        tipo_corrente: 'CC',
+        corrente_consumida_ma: '100',
+        tipo_protecao: 'MINIDISJUNTOR',
+        tipo_acionamento: 'RELE_ESTADO_SOLIDO',
+      },
+    }
+    const f = cargaDetailToForm(v)
+    expect(f.valvula?.tipo_acionamento).toBe('RELE_INTERFACE')
+    expect(f.valvula?.tipo_rele_interface).toBe('ESTADO_SOLIDO')
   })
 
   it('SENSOR: quantidade_fios vazio permanece string vazia', () => {

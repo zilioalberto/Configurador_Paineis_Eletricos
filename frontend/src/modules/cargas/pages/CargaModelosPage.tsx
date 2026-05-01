@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/components/feedback'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -6,10 +6,12 @@ import {
   numeroFasesOptions,
   tensaoOptions,
   tipoAcionamentoResistenciaOptions,
-  tipoAcionamentoValvulaOptions,
+  getTipoAcionamentoValvulaSelectOptions,
+  tipoReleInterfaceValvulaOptions,
   tipoConexaoCargaPainelOptions,
   tipoCorrenteOptions,
-  tipoPartidaMotorOptions,
+  getTipoPartidaMotorSelectOptions,
+  normalizarTipoProtecaoMotorNoForm,
   tipoProtecaoMotorOptions,
   tipoProtecaoResistenciaOptions,
   tipoProtecaoValvulaOptions,
@@ -41,7 +43,15 @@ function modeloToFormData(modelo: CargaModelo): CargaFormData {
   if (typeof payload.quantidade === 'number') {
     base.quantidade = payload.quantidade
   }
-  if (payload.motor && base.motor) base.motor = payload.motor as typeof base.motor
+  if (payload.motor && base.motor) {
+    const motor = { ...base.motor, ...(payload.motor as typeof base.motor) }
+    base.motor = {
+      ...motor,
+      tipo_protecao: normalizarTipoProtecaoMotorNoForm(
+        String(motor.tipo_protecao || 'DISJUNTOR_MOTOR')
+      ),
+    }
+  }
   if (payload.valvula && base.valvula) base.valvula = payload.valvula as typeof base.valvula
   if (payload.resistencia && base.resistencia) {
     base.resistencia = payload.resistencia as typeof base.resistencia
@@ -68,6 +78,14 @@ export default function CargaModelosPage() {
   const patchMotor = useCallback((patch: Partial<NonNullable<CargaFormData['motor']>>) => {
     setBase((prev) => (prev.motor ? { ...prev, motor: { ...prev.motor, ...patch } } : prev))
   }, [])
+
+  const tipoPartidaMotorSelectOptions = useMemo(
+    () =>
+      getTipoPartidaMotorSelectOptions(
+        base.motor?.tipo_partida ?? ''
+      ),
+    [base.motor?.tipo_partida]
+  )
   const patchValvula = useCallback(
     (patch: Partial<NonNullable<CargaFormData['valvula']>>) => {
       setBase((prev) =>
@@ -295,7 +313,7 @@ export default function CargaModelosPage() {
                     value={base.motor.tipo_partida}
                     onChange={(event) => patchMotor({ tipo_partida: event.target.value })}
                   >
-                    {renderCargaSelectOptions(tipoPartidaMotorOptions)}
+                    {renderCargaSelectOptions(tipoPartidaMotorSelectOptions)}
                   </select>
                 </div>
                 <div className="col-md-4">
@@ -455,13 +473,42 @@ export default function CargaModelosPage() {
                   <select
                     className="form-select"
                     value={base.valvula.tipo_acionamento}
-                    onChange={(event) =>
-                      patchValvula({ tipo_acionamento: event.target.value })
-                    }
+                    onChange={(event) => {
+                      const nv = event.target.value
+                      const valvula = base.valvula
+                      if (!valvula) return
+                      if (nv === 'RELE_INTERFACE') {
+                        patchValvula({
+                          tipo_acionamento: nv,
+                          tipo_rele_interface:
+                            valvula.tipo_rele_interface || 'ELETROMECANICA',
+                        })
+                      } else {
+                        patchValvula({ tipo_acionamento: nv, tipo_rele_interface: '' })
+                      }
+                    }}
                   >
-                    {renderCargaSelectOptions(tipoAcionamentoValvulaOptions)}
+                    {renderCargaSelectOptions(
+                      getTipoAcionamentoValvulaSelectOptions(
+                        base.valvula.tipo_acionamento
+                      )
+                    )}
                   </select>
                 </div>
+                {base.valvula.tipo_acionamento === 'RELE_INTERFACE' && (
+                  <div className="col-md-4">
+                    <label className="form-label">Tipo de relé de interface</label>
+                    <select
+                      className="form-select"
+                      value={base.valvula.tipo_rele_interface || 'ELETROMECANICA'}
+                      onChange={(event) =>
+                        patchValvula({ tipo_rele_interface: event.target.value })
+                      }
+                    >
+                      {renderCargaSelectOptions(tipoReleInterfaceValvulaOptions)}
+                    </select>
+                  </div>
+                )}
                 <div className="col-md-4">
                   <div className="form-check mt-2">
                     <input
@@ -538,13 +585,41 @@ export default function CargaModelosPage() {
                   <select
                     className="form-select"
                     value={base.resistencia.tipo_acionamento}
-                    onChange={(event) =>
-                      patchResistencia({ tipo_acionamento: event.target.value })
-                    }
+                    onChange={(event) => {
+                      const nv = event.target.value
+                      const resistencia = base.resistencia
+                      if (!resistencia) return
+                      if (nv === 'RELE_INTERFACE') {
+                        patchResistencia({
+                          tipo_acionamento: nv,
+                          tipo_rele_interface:
+                            resistencia.tipo_rele_interface || 'ELETROMECANICA',
+                        })
+                      } else {
+                        patchResistencia({
+                          tipo_acionamento: nv,
+                          tipo_rele_interface: '',
+                        })
+                      }
+                    }}
                   >
                     {renderCargaSelectOptions(tipoAcionamentoResistenciaOptions)}
                   </select>
                 </div>
+                {base.resistencia.tipo_acionamento === 'RELE_INTERFACE' && (
+                  <div className="col-md-4">
+                    <label className="form-label">Tipo de relé de interface</label>
+                    <select
+                      className="form-select"
+                      value={base.resistencia.tipo_rele_interface || 'ELETROMECANICA'}
+                      onChange={(event) =>
+                        patchResistencia({ tipo_rele_interface: event.target.value })
+                      }
+                    >
+                      {renderCargaSelectOptions(tipoReleInterfaceValvulaOptions)}
+                    </select>
+                  </div>
+                )}
               </>
             )}
 

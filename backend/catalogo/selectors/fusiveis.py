@@ -10,11 +10,18 @@ from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
 def selecionar_fusiveis(
     corrente_nominal_min_a: Decimal | float | None = None,
+    corrente_nominal_maior_que_a: Decimal | float | None = None,
     tipo_fusivel: str | None = None,
 ) -> QuerySet[Produto]:
     kw: dict = {}
     if corrente_nominal_min_a is not None:
         kw["corrente_nominal_a__gte"] = corrente_nominal_min_a
+    if corrente_nominal_maior_que_a is not None:
+        kw["corrente_nominal_a__gt"] = corrente_nominal_maior_que_a
     if tipo_fusivel:
         kw["tipo_fusivel"] = tipo_fusivel
-    return filtrar_produtos_especificacao(Cat.FUSIVEL, **kw)
+    return filtrar_produtos_especificacao(
+        Cat.FUSIVEL,
+        ordenar=("especificacao_fusivel__corrente_nominal_a", "codigo", "descricao"),
+        **kw,
+    )

@@ -64,6 +64,14 @@ class SugestaoItem(BaseModel):
 
     ordem = models.PositiveIntegerField(default=0)
 
+    indice_escopo = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=(
+            "Diferencia várias sugestões da mesma categoria para a mesma carga "
+            "(ex.: K1/K2/K3 em estrela-triângulo). Padrão 0."
+        ),
+    )
+
     class Meta:
         verbose_name = "Sugestão de Item"
         verbose_name_plural = "Sugestões de Itens"
@@ -75,9 +83,15 @@ class SugestaoItem(BaseModel):
                 name="uq_sugestao_item_proj_parte_categoria_sem_carga",
             ),
             models.UniqueConstraint(
-                fields=["projeto", "parte_painel", "categoria_produto", "carga"],
+                fields=[
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "carga",
+                    "indice_escopo",
+                ],
                 condition=Q(carga__isnull=False),
-                name="uq_sugestao_item_proj_parte_categoria_carga",
+                name="uq_sugestao_item_proj_parte_categoria_carga_escopo",
             ),
         ]
 

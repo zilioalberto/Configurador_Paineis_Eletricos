@@ -75,6 +75,15 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_contatora_para_carga"
         ) as mock_c,
         patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
+        ) as mock_md,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_soft_starter_para_carga"
+        ) as mock_ss,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
+        ) as mock_if,
+        patch(
             "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
         ),
     ):
@@ -85,6 +94,9 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
     assert PendenciaItem.objects.filter(projeto=projeto, carga=carga).count() == 0
     mock_d.assert_called_once_with(projeto, carga)
     mock_c.assert_called_once_with(projeto, carga)
+    mock_md.assert_called_once_with(projeto, carga)
+    mock_ss.assert_called_once_with(projeto, carga)
+    mock_if.assert_called_once_with(projeto, carga)
 
 
 @pytest.mark.django_db
@@ -107,6 +119,15 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
             side_effect=ValidationError("erro esperado"),
         ) as mock_c,
         patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
+        ) as mock_md,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_soft_starter_para_carga"
+        ) as mock_ss,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
+        ) as mock_if,
+        patch(
             "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
         ) as mock_dim,
     ):
@@ -114,4 +135,7 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
 
     mock_d.assert_called_once_with(projeto_real, carga)
     mock_c.assert_called_once_with(projeto_real, carga)
+    mock_md.assert_called_once_with(projeto_real, carga)
+    mock_ss.assert_called_once_with(projeto_real, carga)
+    mock_if.assert_called_once_with(projeto_real, carga)
     mock_dim.assert_called_once_with(projeto_real)

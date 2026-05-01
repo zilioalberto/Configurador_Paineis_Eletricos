@@ -46,7 +46,8 @@ export function defaultValvula(): CargaValvulaPayload {
     tipo_corrente: 'CC',
     corrente_consumida_ma: '200.00',
     tipo_protecao: 'BORNE_FUSIVEL',
-    tipo_acionamento: 'RELE_ESTADO_SOLIDO',
+    tipo_acionamento: 'SOLENOIDE_DIRETO',
+    tipo_rele_interface: '',
   }
 }
 
@@ -56,6 +57,7 @@ export function defaultResistencia(): CargaResistenciaPayload {
     tensao_resistencia: 380,
     tipo_protecao: 'FUSIVEL_ULTRARRAPIDO',
     tipo_acionamento: 'RELE_ESTADO_SOLIDO',
+    tipo_rele_interface: '',
     potencia_kw: '1.00',
   }
 }

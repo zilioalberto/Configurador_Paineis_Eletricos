@@ -21,9 +21,11 @@ import {
 import type {
   CargaDetalhe,
   ComposicaoItem,
-  ProjetoAlimentacaoSnapshot,
+  PendenciaItem,
   SugestaoItem,
 } from '../types/composicao'
+
+const STATUS_APROVACAO_MARKER = '[STATUS_APROVACAO]'
 
 function em(v: string | null | undefined) {
   if (v == null || v === '') return '—'
@@ -61,14 +63,24 @@ function textoDescricaoCarga(c: CargaDetalhe | null | undefined) {
   return s.trim() === '' ? '—' : s
 }
 
-function formatNumeroFasesProjeto(pa: ProjetoAlimentacaoSnapshot | undefined) {
-  if (pa?.numero_fases != null) {
-    return String(pa.numero_fases)
+function formatNumeroFasesCarga(c: CargaDetalhe | null | undefined) {
+  if (c?.numero_fases_carga_display?.trim()) {
+    return c.numero_fases_carga_display
   }
-  if (pa?.numero_fases_display && pa.numero_fases_display.trim() !== '') {
-    return pa.numero_fases_display
+  if (c?.numero_fases_carga != null) {
+    return String(c.numero_fases_carga)
   }
   return '—'
+}
+
+/** Texto de função do item (ex.: contatora K1, freio); remove linhas de status de aprovação. */
+function textoPapelItem(observacoes: string | null | undefined) {
+  if (!observacoes?.trim()) return ''
+  return observacoes
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(STATUS_APROVACAO_MARKER))
+    .join('\n')
+    .trim()
 }
 
 function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
@@ -78,15 +90,131 @@ function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
   return '—'
 }
 
-function CelulaTensaoProjeto({ pa }: { pa: ProjetoAlimentacaoSnapshot | undefined }) {
-  if (!pa) return <td>—</td>
+function CelulaTensaoCarga({ carga }: { carga: CargaDetalhe | null | undefined }) {
+  const label =
+    carga?.tensao_carga_display?.trim() ||
+    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '')
+  if (!label) return <td>—</td>
+  return <td className="small">{label}</td>
+}
+
+/** Linha de agrupamento no topo de cada bloco de tag (tabela única). */
+function LinhaSeparadoraGrupoPorTag({
+  colSpan,
+  tituloTag,
+  carga,
+}: {
+  colSpan: number
+  tituloTag: string
+  carga: CargaDetalhe | null
+}) {
+  const tensao =
+    carga?.tensao_carga_display?.trim() ||
+    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
   return (
-    <td className="small">
-      <div>{em(pa.tensao_nominal_display)}</div>
-      {pa.tipo_corrente_display ? (
-        <div className="small text-muted">{pa.tipo_corrente_display}</div>
-      ) : null}
-    </td>
+    <tr className="table-secondary">
+      <td colSpan={colSpan} className="py-2">
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <span className="badge text-bg-primary rounded-pill">{tituloTag}</span>
+          {carga ? (
+            <>
+              <span className="badge text-bg-secondary">{em(carga.tipo_display)}</span>
+              <span className="fw-semibold">{textoDescricaoCarga(carga)}</span>
+              <span className="small text-muted ms-lg-auto d-flex flex-wrap gap-3">
+                <span>Pot.: {formatPotenciaCarga(carga)}</span>
+                <span>Corr.: {formatCorrenteCarga(carga)}</span>
+                <span>Tensão (carga): {tensao}</span>
+                <span>Fases: {formatNumeroFasesCarga(carga)}</span>
+              </span>
+            </>
+          ) : null}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+/** Itens de painel geral (ex.: seccionamento) sem `carga` associada no snapshot. */
+const CHAVE_AGRUPAMENTO_SEM_TAG = '__sem_tag__'
+
+type GrupoItensPorTag<T> = {
+  chave: string
+  tituloTag: string
+  carga: CargaDetalhe | null
+  itens: T[]
+}
+
+function ordenarPorOrdemLista<T extends { ordem: number }>(itens: T[]): T[] {
+  return [...itens].sort((a, b) => a.ordem - b.ordem)
+}
+
+function agruparPorTagCarga<T extends { carga: CargaDetalhe | null; ordem: number }>(
+  itens: T[]
+): GrupoItensPorTag<T>[] {
+  const map = new Map<string, T[]>()
+  for (const item of itens) {
+    const raw = item.carga?.tag?.trim()
+    const chave = raw && raw !== '' ? raw : CHAVE_AGRUPAMENTO_SEM_TAG
+    const arr = map.get(chave) ?? []
+    arr.push(item)
+    map.set(chave, arr)
+  }
+  const comTag: [string, T[]][] = []
+  let semTag: T[] | undefined
+  for (const [chave, grupo] of map) {
+    if (chave === CHAVE_AGRUPAMENTO_SEM_TAG) {
+      semTag = ordenarPorOrdemLista(grupo)
+    } else {
+      comTag.push([chave, ordenarPorOrdemLista(grupo)])
+    }
+  }
+  comTag.sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+  const out: GrupoItensPorTag<T>[] = comTag.map(([tag, grupo]) => ({
+    chave: tag,
+    tituloTag: tag,
+    carga: grupo[0]?.carga ?? null,
+    itens: grupo,
+  }))
+  if (semTag?.length) {
+    out.push({
+      chave: CHAVE_AGRUPAMENTO_SEM_TAG,
+      tituloTag: 'Painel geral (sem carga)',
+      carga: null,
+      itens: semTag,
+    })
+  }
+  return out
+}
+
+function CabecalhoGrupoCarga({
+  tituloTag,
+  carga,
+}: {
+  tituloTag: string
+  carga: CargaDetalhe | null
+}) {
+  if (!carga) {
+    return (
+      <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
+        <span className="badge text-bg-secondary rounded-pill">{tituloTag}</span>
+      </div>
+    )
+  }
+  const tensao =
+    carga.tensao_carga_display?.trim() ||
+    (carga.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
+  return (
+    <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
+      <span className="badge text-bg-primary rounded-pill">{tituloTag}</span>
+      <span className="badge text-bg-secondary">{em(carga.tipo_display)}</span>
+      <span className="fw-medium">{textoDescricaoCarga(carga)}</span>
+      <div className="small text-muted ms-lg-auto d-flex flex-wrap gap-x-3 gap-y-1">
+        <span>Pot.: {formatPotenciaCarga(carga)}</span>
+        <span>Corr.: {formatCorrenteCarga(carga)}</span>
+        <span>Tensão (carga): {tensao}</span>
+        <span>Fases: {formatNumeroFasesCarga(carga)}</span>
+      </div>
+    </div>
   )
 }
 
@@ -259,6 +387,24 @@ export default function ComposicaoPage() {
   )
 
   const composicaoItens = snapshot?.composicao_itens ?? []
+
+  const gruposComposicaoAprovada = useMemo(
+    () => agruparPorTagCarga(composicaoItens),
+    [composicaoItens]
+  )
+  const gruposSugestoes = useMemo(
+    () => agruparPorTagCarga(snapshot?.sugestoes ?? []),
+    [snapshot?.sugestoes]
+  )
+  const gruposPendencias = useMemo(
+    () => agruparPorTagCarga(snapshot?.pendencias ?? []),
+    [snapshot?.pendencias]
+  )
+  const gruposMemorialCalculos = useMemo(() => {
+    const comMemoria =
+      snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
+    return agruparPorTagCarga(comMemoria)
+  }, [snapshot?.sugestoes])
 
   const onReabrirItemAprovado = useCallback(async () => {
     if (!itemReabrir || !podeEditar) return
@@ -572,8 +718,9 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Papel / função</th>
                       <th>Qtd.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
@@ -582,48 +729,56 @@ export default function ComposicaoPage() {
                       {podeEditar ? <th className="text-end">Ações</th> : null}
                     </tr>
                   </thead>
-                  <tbody>
-                    {composicaoItens.map((c) => (
-                      <tr key={c.id}>
-                        <td>{c.carga ? c.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(c.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(c.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(c.carga)}</td>
-                        <td>{formatCorrenteCarga(c.carga)}</td>
-                        <CelulaTensaoProjeto pa={c.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(c.projeto_alimentacao)}</td>
-                        <td>{c.quantidade}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {c.categoria_produto_display ?? c.categoria_produto}
-                          </span>
-                        </td>
-                        <td className="small">{c.produto?.descricao ?? '—'}</td>
-                        <td>
-                          <span className="fw-semibold font-monospace">
-                            {c.produto_codigo ?? c.produto?.codigo ?? '—'}
-                          </span>
-                        </td>
-                        <td>{c.status_display ?? 'Aprovado'}</td>
-                        {podeEditar ? (
-                          <td className="text-end text-nowrap">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-warning"
-                              disabled={reabrirComposicaoItemMutation.isPending}
-                              onClick={() => setItemReabrir(c)}
-                            >
-                              Reabrir
-                            </button>
+                  {gruposComposicaoAprovada.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={podeEditar ? 14 : 13}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((c) => (
+                        <tr key={c.id}>
+                          <td>{c.carga ? c.carga.tag : '—'}</td>
+                          <td>{textoDescricaoCarga(c.carga)}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {em(c.carga?.tipo_display)}
+                            </span>
                           </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
+                          <td>{formatPotenciaCarga(c.carga)}</td>
+                          <td>{formatCorrenteCarga(c.carga)}</td>
+                          <CelulaTensaoCarga carga={c.carga} />
+                          <td>{formatNumeroFasesCarga(c.carga)}</td>
+                          <td className="small">{em(textoPapelItem(c.observacoes))}</td>
+                          <td>{c.quantidade}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {c.categoria_produto_display ?? c.categoria_produto}
+                            </span>
+                          </td>
+                          <td className="small">{c.produto?.descricao ?? '—'}</td>
+                          <td>
+                            <span className="fw-semibold font-monospace">
+                              {c.produto_codigo ?? c.produto?.codigo ?? '—'}
+                            </span>
+                          </td>
+                          <td>{c.status_display ?? 'Aprovado'}</td>
+                          {podeEditar ? (
+                            <td className="text-end text-nowrap">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-warning"
+                                disabled={reabrirComposicaoItemMutation.isPending}
+                                onClick={() => setItemReabrir(c)}
+                              >
+                                Reabrir
+                              </button>
+                            </td>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -658,8 +813,9 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Papel / função</th>
                       <th>Qtd.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
@@ -668,56 +824,64 @@ export default function ComposicaoPage() {
                       {podeEditar ? <th className="text-end">Ações</th> : null}
                     </tr>
                   </thead>
-                  <tbody>
-                    {snapshot.sugestoes.map((s) => (
-                      <tr key={s.id}>
-                        <td>{s.carga ? s.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(s.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(s.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(s.carga)}</td>
-                        <td>{formatCorrenteCarga(s.carga)}</td>
-                        <CelulaTensaoProjeto pa={s.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(s.projeto_alimentacao)}</td>
-                        <td>{s.quantidade}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {s.categoria_produto_display ?? s.categoria_produto}
-                          </span>
-                        </td>
-                        <td className="small">{s.produto?.descricao ?? '—'}</td>
-                        <td>
-                          <span className="fw-semibold font-monospace">
-                            {s.produto_codigo ?? s.produto?.codigo ?? '—'}
-                          </span>
-                        </td>
-                        <td>{s.status_display ?? s.status}</td>
-                        {podeEditar ? (
-                          <td className="text-end text-nowrap">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-success me-1"
-                              disabled={aprovarMutation.isPending || aprovandoTodas}
-                              onClick={() => void onAprovar(s.id, null)}
-                            >
-                              Aprovar
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              disabled={aprovarMutation.isPending || aprovandoTodas}
-                              onClick={() => abrirAlterarSugestao(s)}
-                            >
-                              Alterar
-                            </button>
+                  {gruposSugestoes.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={podeEditar ? 14 : 13}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((s) => (
+                        <tr key={s.id}>
+                          <td>{s.carga ? s.carga.tag : '—'}</td>
+                          <td>{textoDescricaoCarga(s.carga)}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {em(s.carga?.tipo_display)}
+                            </span>
                           </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
+                          <td>{formatPotenciaCarga(s.carga)}</td>
+                          <td>{formatCorrenteCarga(s.carga)}</td>
+                          <CelulaTensaoCarga carga={s.carga} />
+                          <td>{formatNumeroFasesCarga(s.carga)}</td>
+                          <td className="small">{em(textoPapelItem(s.observacoes))}</td>
+                          <td>{s.quantidade}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {s.categoria_produto_display ?? s.categoria_produto}
+                            </span>
+                          </td>
+                          <td className="small">{s.produto?.descricao ?? '—'}</td>
+                          <td>
+                            <span className="fw-semibold font-monospace">
+                              {s.produto_codigo ?? s.produto?.codigo ?? '—'}
+                            </span>
+                          </td>
+                          <td>{s.status_display ?? s.status}</td>
+                          {podeEditar ? (
+                            <td className="text-end text-nowrap">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-success me-1"
+                                disabled={aprovarMutation.isPending || aprovandoTodas}
+                                onClick={() => void onAprovar(s.id, null)}
+                              >
+                                Aprovar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                disabled={aprovarMutation.isPending || aprovandoTodas}
+                                onClick={() => abrirAlterarSugestao(s)}
+                              >
+                                Alterar
+                              </button>
+                            </td>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -741,9 +905,10 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
-                      <th>Qtd.</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Parte do painel</th>
+                      <th>Obs.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
                       <th>Código</th>
@@ -751,33 +916,43 @@ export default function ComposicaoPage() {
                       <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {snapshot.pendencias.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.carga ? p.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(p.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(p.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(p.carga)}</td>
-                        <td>{formatCorrenteCarga(p.carga)}</td>
-                        <CelulaTensaoProjeto pa={p.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(p.projeto_alimentacao)}</td>
-                        <td>—</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {p.categoria_produto_display ?? p.categoria_produto}
-                          </span>
-                        </td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td className="small">{p.descricao}</td>
-                        <td>{p.status_display ?? p.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  {gruposPendencias.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={14}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((p: PendenciaItem) => (
+                        <tr key={p.id}>
+                          <td>{p.carga ? p.carga.tag : '—'}</td>
+                          <td>{textoDescricaoCarga(p.carga)}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {em(p.carga?.tipo_display)}
+                            </span>
+                          </td>
+                          <td>{formatPotenciaCarga(p.carga)}</td>
+                          <td>{formatCorrenteCarga(p.carga)}</td>
+                          <CelulaTensaoCarga carga={p.carga} />
+                          <td>{formatNumeroFasesCarga(p.carga)}</td>
+                          <td className="small">
+                            {p.parte_painel_display ?? p.parte_painel}
+                          </td>
+                          <td className="small">{em(textoPapelItem(p.observacoes))}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {p.categoria_produto_display ?? p.categoria_produto}
+                            </span>
+                          </td>
+                          <td>—</td>
+                          <td>—</td>
+                          <td className="small">{p.descricao}</td>
+                          <td>{p.status_display ?? p.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -845,21 +1020,26 @@ export default function ComposicaoPage() {
                 <p className="small text-muted mb-2">
                   Detalhes técnicos registrados pelo motor de sugestões (backend).
                 </p>
-                {snapshot.sugestoes.filter((s) => s.memoria_calculo).length === 0 ? (
+                {gruposMemorialCalculos.length === 0 ? (
                   <p className="small mb-0 text-muted">Sem memorial de cálculo preenchido.</p>
                 ) : (
-                  <ul className="list-unstyled small mb-0">
-                    {snapshot.sugestoes
-                      .filter((s) => s.memoria_calculo)
-                      .map((s) => (
-                        <li key={s.id} className="mb-2">
-                          <strong>{s.produto_codigo ?? s.produto?.codigo}</strong>
-                          <pre className="mt-1 mb-0 p-2 bg-white border rounded small overflow-auto">
-                            {s.memoria_calculo}
-                          </pre>
-                        </li>
-                      ))}
-                  </ul>
+                  <div className="vstack gap-3 small">
+                    {gruposMemorialCalculos.map((grupo) => (
+                      <div key={grupo.chave} className="border rounded overflow-hidden">
+                        <CabecalhoGrupoCarga tituloTag={grupo.tituloTag} carga={grupo.carga} />
+                        <ul className="list-unstyled mb-0 p-2 bg-white">
+                          {grupo.itens.map((s) => (
+                            <li key={s.id} className="mb-2">
+                              <strong>{s.produto_codigo ?? s.produto?.codigo ?? '—'}</strong>
+                              <pre className="mt-1 mb-0 p-2 bg-body-tertiary border rounded small overflow-auto">
+                                {s.memoria_calculo}
+                              </pre>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </details>

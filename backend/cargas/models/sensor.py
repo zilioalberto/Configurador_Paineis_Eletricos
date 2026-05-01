@@ -70,6 +70,13 @@ class CargaSensor(models.Model):
         help_text="Quantidade de fios do sensor.",
     )
 
+    range_medicao = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Faixa de medição (opcional).",
+    )
+
     pnp = models.BooleanField(default=False)
     npn = models.BooleanField(default=False)
 

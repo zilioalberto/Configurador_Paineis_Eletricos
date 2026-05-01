@@ -49,9 +49,13 @@ const baseProjeto = {
   status: 'EM_ANDAMENTO',
 }
 
-function renderPage(initial = '/cargas/c1') {
+function renderPage(initial = '/cargas/c1', locationState?: { from: string }) {
+  const entries =
+    locationState !== undefined
+      ? [{ pathname: initial, state: locationState }]
+      : [initial]
   return render(
-    <MemoryRouter initialEntries={[initial]}>
+    <MemoryRouter initialEntries={entries}>
       <CargaDetailPage />
     </MemoryRouter>,
     { wrapper }
@@ -315,6 +319,100 @@ describe('CargaDetailPage', () => {
     renderPage('/cargas/c3')
     expect(screen.getByRole('heading', { name: 'Transdutor' })).toBeInTheDocument()
     expect(screen.getByText('Corrente alternada (CA)')).toBeInTheDocument()
+  })
+
+  it('link Fechar aponta para lista filtrada pelo projeto da carga', () => {
+    useCargaDetailQuery.mockReturnValue({
+      data: {
+        id: 'c1',
+        projeto: 'p1',
+        projeto_codigo: 'P-1',
+        projeto_nome: 'Proj',
+        tag: 'M1',
+        descricao: 'M',
+        tipo: 'MOTOR',
+        tipo_display: 'Motor',
+        quantidade: 1,
+        local_instalacao: '',
+        observacoes: '',
+        exige_protecao: true,
+        exige_seccionamento: false,
+        exige_comando: false,
+        quantidade_entradas_digitais: 0,
+        quantidade_entradas_analogicas: 0,
+        quantidade_saidas_digitais: 0,
+        quantidade_saidas_analogicas: 0,
+        quantidade_entradas_rapidas: 0,
+        ativo: true,
+        motor: {
+          potencia_corrente_valor: '1',
+          potencia_corrente_unidade: 'CV',
+          potencia_kw_calculada: null,
+          corrente_calculada_a: null,
+          rendimento_percentual: null,
+          fator_potencia: null,
+          tipo_partida: 'DIRETA',
+          tipo_protecao: 'DISJUNTOR_MOTOR',
+          numero_fases: 3,
+          tensao_motor: 380,
+          reversivel: false,
+          freio_motor: false,
+        },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+    })
+    renderPage()
+    const fechar = screen.getByRole('link', { name: 'Fechar' })
+    expect(fechar).toHaveAttribute('href', '/cargas?projeto=p1')
+  })
+
+  it('link Fechar prioriza state.from vindo da listagem', () => {
+    useCargaDetailQuery.mockReturnValue({
+      data: {
+        id: 'c1',
+        projeto: 'p1',
+        projeto_codigo: 'P-1',
+        projeto_nome: 'Proj',
+        tag: 'M1',
+        descricao: 'M',
+        tipo: 'MOTOR',
+        tipo_display: 'Motor',
+        quantidade: 1,
+        local_instalacao: '',
+        observacoes: '',
+        exige_protecao: true,
+        exige_seccionamento: false,
+        exige_comando: false,
+        quantidade_entradas_digitais: 0,
+        quantidade_entradas_analogicas: 0,
+        quantidade_saidas_digitais: 0,
+        quantidade_saidas_analogicas: 0,
+        quantidade_entradas_rapidas: 0,
+        ativo: true,
+        motor: {
+          potencia_corrente_valor: '1',
+          potencia_corrente_unidade: 'CV',
+          potencia_kw_calculada: null,
+          corrente_calculada_a: null,
+          rendimento_percentual: null,
+          fator_potencia: null,
+          tipo_partida: 'DIRETA',
+          tipo_protecao: 'DISJUNTOR_MOTOR',
+          numero_fases: 3,
+          tensao_motor: 380,
+          reversivel: false,
+          freio_motor: false,
+        },
+      },
+      isPending: false,
+      isError: false,
+      error: null,
+    })
+    renderPage('/cargas/c1', { from: '/cargas?projeto=outro-id' })
+    const fechar = screen.getByRole('link', { name: 'Fechar' })
+    expect(fechar).toHaveAttribute('href', '/cargas?projeto=outro-id')
   })
 
   it('link editar quando projeto editável', () => {

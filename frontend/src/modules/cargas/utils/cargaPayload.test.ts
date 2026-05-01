@@ -39,6 +39,18 @@ describe('cargaFormToApiPayload', () => {
     expect(body.motor.tensao_motor).toBe(220)
   })
 
+  it('usa defaults de fases e tensão quando motor veio incompleto', () => {
+    const form = cargaFormInitial('p')
+    form.motor = {
+      ...defaultMotor(),
+      numero_fases: undefined as unknown as number,
+      tensao_motor: undefined as unknown as number,
+    }
+    const body = cargaFormToApiPayload(form) as { motor: Record<string, unknown> }
+    expect(body.motor.numero_fases).toBe(3)
+    expect(body.motor.tensao_motor).toBe(380)
+  })
+
   it('envia valvula com números quando preenchidos', () => {
     let form = applyTipoChange(cargaFormInitial('p'), 'VALVULA')
     form.valvula = {

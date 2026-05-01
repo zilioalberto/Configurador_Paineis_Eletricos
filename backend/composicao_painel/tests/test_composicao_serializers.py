@@ -2,9 +2,10 @@ from decimal import Decimal
 
 import pytest
 
-from cargas.models import Carga
+from cargas.models import Carga, CargaValvula
 from catalogo.models import Produto
 from composicao_painel.api.serializers import (
+    CargaComposicaoSerializer,
     ComposicaoItemSerializer,
     InclusaoManualCreateSerializer,
     SugestaoItemSerializer,
@@ -13,6 +14,7 @@ from composicao_painel.api.serializers import (
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
 from core.choices.cargas import TipoCargaChoices
+from core.choices.eletrica import TipoCorrenteChoices
 from core.choices.produtos import UnidadeMedidaChoices
 
 
@@ -60,6 +62,8 @@ def test_sugestao_item_serializer_inclui_snapshot_carga_e_projeto(
     assert data["produto_codigo"] == "COMP-P1"
     assert data["carga"]["tag"] == "M01"
     assert data["carga"]["corrente_a"] == "7.5"
+    assert data["carga"]["tensao_carga_v"] == TensaoChoices.V380
+    assert data["carga"]["numero_fases_carga"] == 3
     assert data["projeto_alimentacao"]["tensao_nominal"] == TensaoChoices.V380
 
 
@@ -84,6 +88,26 @@ def test_composicao_item_serializer_status_display_from_marker(criar_projeto):
     )
     data = ComposicaoItemSerializer(item).data
     assert data["status_display"] == "Reaberto e aprovado"
+
+
+@pytest.mark.django_db
+def test_carga_composicao_serializer_valvula_tensao_e_corrente(criar_projeto):
+    projeto = criar_projeto(nome="CompV", codigo="22003-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="V01",
+        descricao="Válvula piloto",
+        tipo=TipoCargaChoices.VALVULA,
+    )
+    CargaValvula.objects.create(
+        carga=carga,
+        tensao_alimentacao=TensaoChoices.V24,
+        tipo_corrente=TipoCorrenteChoices.CC,
+        corrente_consumida_ma=Decimal("200.00"),
+    )
+    data = CargaComposicaoSerializer(carga).data
+    assert data["tensao_carga_v"] == TensaoChoices.V24
+    assert data["corrente_a"] == "0.2000"
 
 
 def test_inclusao_manual_create_serializer_defaults():

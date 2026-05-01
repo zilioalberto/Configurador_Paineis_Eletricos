@@ -2,6 +2,9 @@ from typing import Optional
 
 from cargas.models import Carga, CargaMotor, CargaResistencia
 from composicao_painel.models import SugestaoItem, PendenciaItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+    executar_com_savepoint_por_carga,
+)
 
 from catalogo.selectors.disjuntores_motor import selecionar_disjuntores_motor
 
@@ -307,12 +310,12 @@ def gerar_sugestoes_disjuntores_motor(projeto):
 
     print(f"[DISJUNTORES MOTOR] Total de cargas elegíveis: {cargas.count()}")
 
-    sugestoes_criadas = []
-
-    for carga in cargas:
-        sugestao = processar_sugestao_disjuntor_motor_para_carga(projeto, carga)
-        if sugestao is not None:
-            sugestoes_criadas.append(sugestao)
+    sugestoes_criadas = executar_com_savepoint_por_carga(
+        projeto,
+        cargas,
+        "[DISJUNTORES MOTOR]",
+        processar_sugestao_disjuntor_motor_para_carga,
+    )
 
     print("-" * 100)
     print(f"[DISJUNTORES MOTOR] Total de sugestões criadas: {len(sugestoes_criadas)}")

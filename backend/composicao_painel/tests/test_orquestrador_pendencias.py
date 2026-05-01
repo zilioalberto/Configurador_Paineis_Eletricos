@@ -41,6 +41,57 @@ def test_reavaliar_contatora_sem_carga_registra_erro(criar_projeto):
 
 
 @pytest.mark.django_db
+def test_reavaliar_soft_starter_sem_carga_registra_erro(criar_projeto):
+    projeto = criar_projeto(nome="OPSS", codigo="16021-26", tensao_nominal=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.SOFT_STARTER,
+        descricao="pend",
+        ordem=45,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    r = reavaliar_pendencias_projeto(projeto)
+    assert len(r["erros"]) == 1
+    assert "soft starter" in r["erros"][0]["erro"].lower()
+
+
+@pytest.mark.django_db
+def test_reavaliar_inversor_frequencia_sem_carga_registra_erro(criar_projeto):
+    projeto = criar_projeto(nome="OPIF", codigo="16022-26", tensao_nominal=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.INVERSOR_FREQUENCIA,
+        descricao="pend",
+        ordem=46,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    r = reavaliar_pendencias_projeto(projeto)
+    assert len(r["erros"]) == 1
+    assert "inversor" in r["erros"][0]["erro"].lower()
+
+
+@pytest.mark.django_db
+def test_reavaliar_minidisjuntor_sem_carga_registra_erro(criar_projeto):
+    projeto = criar_projeto(nome="OPMD", codigo="16020-26", tensao_nominal=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        descricao="pend",
+        ordem=30,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    r = reavaliar_pendencias_projeto(projeto)
+    assert len(r["erros"]) == 1
+    assert "minidisjuntor" in r["erros"][0]["erro"].lower()
+
+
+@pytest.mark.django_db
 def test_reavaliar_disjuntor_motor_sem_carga_registra_erro(criar_projeto):
     projeto = criar_projeto(nome="OP2", codigo="16002-26", tensao_nominal=TensaoChoices.V380)
     PendenciaItem.objects.create(
@@ -55,6 +106,40 @@ def test_reavaliar_disjuntor_motor_sem_carga_registra_erro(criar_projeto):
     r = reavaliar_pendencias_projeto(projeto)
     assert len(r["erros"]) == 1
     assert "disjuntor motor" in r["erros"][0]["erro"].lower()
+
+
+@pytest.mark.django_db
+def test_reavaliar_rele_sobrecarga_sem_carga_registra_erro(criar_projeto):
+    projeto = criar_projeto(nome="OP7", codigo="16007-26", tensao_nominal=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.RELE_SOBRECARGA,
+        descricao="pend",
+        ordem=30,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    r = reavaliar_pendencias_projeto(projeto)
+    assert len(r["erros"]) == 1
+    assert "relé de sobrecarga" in r["erros"][0]["erro"].lower()
+
+
+@pytest.mark.django_db
+def test_reavaliar_fusivel_sem_carga_registra_erro(criar_projeto):
+    projeto = criar_projeto(nome="OP9", codigo="16009-26", tensao_nominal=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+        descricao="pend",
+        ordem=30,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    r = reavaliar_pendencias_projeto(projeto)
+    assert len(r["erros"]) == 1
+    assert "fusível" in r["erros"][0]["erro"].lower()
 
 
 @pytest.mark.django_db
@@ -87,6 +172,68 @@ def test_reavaliar_contatora_com_carga_chama_reprocessar(
     mock_r.assert_called_once_with(projeto, carga)
     assert CategoriaProdutoNomeChoices.CONTATORA in r["categorias_reavaliadas"]
     assert r["pendencias_analisadas"] == 1
+
+
+@pytest.mark.django_db
+def test_reavaliar_rele_sobrecarga_com_carga_chama_reprocessar(
+    criar_projeto,
+    criar_carga_motor,
+):
+    projeto = criar_projeto(nome="OP8", codigo="16008-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M8",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.RELE_SOBRECARGA,
+        descricao="pend",
+        ordem=30,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_rele_sobrecarga_para_carga"
+    ) as mock_r:
+        mock_r.return_value = None
+        r = reavaliar_pendencias_projeto(projeto)
+    mock_r.assert_called_once_with(projeto, carga)
+    assert CategoriaProdutoNomeChoices.RELE_SOBRECARGA in r["categorias_reavaliadas"]
+
+
+@pytest.mark.django_db
+def test_reavaliar_fusivel_com_carga_chama_reprocessar(
+    criar_projeto,
+    criar_carga_motor,
+):
+    projeto = criar_projeto(nome="OP10", codigo="16010-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M10",
+        descricao="M",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+        descricao="pend",
+        ordem=30,
+        status=StatusPendenciaChoices.ABERTA,
+    )
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_fusivel_para_carga"
+    ) as mock_r:
+        mock_r.return_value = None
+        r = reavaliar_pendencias_projeto(projeto)
+    mock_r.assert_called_once_with(projeto, carga)
+    assert CategoriaProdutoNomeChoices.FUSIVEL in r["categorias_reavaliadas"]
 
 
 @pytest.mark.django_db
