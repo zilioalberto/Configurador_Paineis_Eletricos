@@ -69,7 +69,7 @@ describe('CargaDetailPage', () => {
   })
 
   it('mostra alerta quando id ausente', () => {
-    useParams.mockReturnValue({})
+    useParams.mockReturnValue({} as { id: string })
     useCargaDetailQuery.mockReturnValue({
       data: undefined,
       isPending: false,
