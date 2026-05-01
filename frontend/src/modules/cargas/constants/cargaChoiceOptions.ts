@@ -6,6 +6,28 @@ export const unidadePotenciaCorrenteOptions = [
   { value: 'A', label: 'A' },
 ] as const
 
+export const numeroFasesOptions = [
+  { value: '1', label: 'Monofásico' },
+  { value: '3', label: 'Trifásico' },
+] as const
+
+export const tensaoOptions = [
+  { value: '12', label: '12 V' },
+  { value: '24', label: '24 V' },
+  { value: '48', label: '48 V' },
+  { value: '90', label: '90 V' },
+  { value: '110', label: '110 V' },
+  { value: '127', label: '127 V' },
+  { value: '220', label: '220 V' },
+  { value: '380', label: '380 V' },
+  { value: '440', label: '440 V' },
+] as const
+
+export const tipoCorrenteOptions = [
+  { value: 'CA', label: 'Corrente Alternada (CA)' },
+  { value: 'CC', label: 'Corrente Contínua (CC)' },
+] as const
+
 export const tipoPartidaMotorOptions = [
   { value: 'DIRETA', label: 'Direta' },
   { value: 'ESTRELA_TRIANGULO', label: 'Estrela-Triângulo' },
@@ -18,8 +40,32 @@ export const tipoProtecaoMotorOptions = [
   { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
   { value: 'RELE_SOBRECARGA', label: 'Relé de sobrecarga' },
   { value: 'FUSIVEL', label: 'Fusível' },
-  { value: 'MINI_DISJUNTOR', label: 'Mini disjuntor' },
-  { value: 'OUTRO', label: 'Outro' },
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
+  { value: 'FUSIVEL_ULTRARRAPIDO', label: 'Fusível ultrarrápido' },
+] as const
+
+export const tipoProtecaoValvulaOptions = [
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
+  { value: 'BORNE_FUSIVEL', label: 'Borne fusível' },
+  { value: 'SEM_PROTECAO', label: 'Sem proteção' },
+] as const
+
+export const tipoAcionamentoValvulaOptions = [
+  { value: 'SOLENOIDE_DIRETO', label: 'Solenoide direto' },
+  { value: 'RELE_ESTADO_SOLIDO', label: 'Relé de estado sólido' },
+  { value: 'RELE_ACOPLADOR', label: 'Relé acoplador' },
+  { value: 'CONTATOR', label: 'Contator' },
+] as const
+
+export const tipoProtecaoResistenciaOptions = [
+  { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
+  { value: 'FUSIVEL_ULTRARRAPIDO', label: 'Fusível ultrarrápido' },
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
+] as const
+
+export const tipoAcionamentoResistenciaOptions = [
+  { value: 'CONTATOR', label: 'Contator' },
+  { value: 'RELE_ESTADO_SOLIDO', label: 'Relé de estado sólido' },
 ] as const
 
 export const tipoConexaoCargaPainelOptions = [
@@ -49,12 +95,12 @@ export const tipoSensorOptions = [
   { value: 'TERMOSTATO', label: 'Termostato' },
   { value: 'CHAVE_NIVEL', label: 'Chave de nível' },
   { value: 'ENCODER', label: 'Encoder' },
-  { value: 'OUTRO', label: 'Outro' },
 ] as const
 
 export const tipoSinalOptions = [
   { value: 'DIGITAL', label: 'Digital' },
   { value: 'ANALOGICO', label: 'Analógico' },
+  { value: 'ANALOGICO_DIGITAL', label: 'Analógico/Digital' },
   { value: 'PULSO', label: 'Pulso' },
   { value: 'COMUNICACAO', label: 'Comunicação' },
 ] as const
@@ -77,5 +123,4 @@ export const tipoTransdutorOptions = [
   { value: 'POSICAO', label: 'Posição' },
   { value: 'CORRENTE', label: 'Corrente' },
   { value: 'TENSAO', label: 'Tensão' },
-  { value: 'OUTRO', label: 'Outro' },
 ] as const

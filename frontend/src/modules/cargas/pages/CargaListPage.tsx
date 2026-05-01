@@ -410,7 +410,7 @@ export default function CargaListPage() {
                         {resumoDimensionamento.corrente_total_painel_a}
                       </p>
                       <p className="text-muted small mb-0">
-                        Ampères (A) - soma das cargas motor ativas
+                        Ampères (A) - soma das cargas ativas consideradas no dimensionamento
                       </p>
                     </div>
                   </div>

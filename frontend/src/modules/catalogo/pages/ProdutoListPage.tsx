@@ -15,6 +15,8 @@ type DeleteTarget = { id: string; label: string }
 export default function ProdutoListPage() {
   const { user } = useAuth()
   const [filtroCategoria, setFiltroCategoria] = useState<string>('')
+  const [paginaAtual, setPaginaAtual] = useState<number>(1)
+  const pageSize = 50
   const { showToast } = useToast()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const canManageProdutos = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
@@ -22,17 +24,19 @@ export default function ProdutoListPage() {
   const { data: categorias = [], isPending: loadingCat } = useCategoriaListQuery()
   const categoriaQuery = filtroCategoria || null
   const {
-    data: produtos = [],
+    data: pageData,
     isPending: loadingProdutos,
     isError,
     error: loadError,
     refetch,
-  } = useProdutoListQuery(categoriaQuery)
+  } = useProdutoListQuery(categoriaQuery, paginaAtual, pageSize)
+  const produtos = pageData?.items ?? []
 
   const deleteMutation = useDeleteProdutoMutation()
 
   const onFiltroChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     setFiltroCategoria(e.target.value)
+    setPaginaAtual(1)
   }, [])
 
   const onDeleteRequest = useCallback(
@@ -95,8 +99,8 @@ export default function ProdutoListPage() {
         <div>
           <h1 className="h3 mb-1">Catálogo</h1>
           <p className="text-muted mb-0">
-            Produtos por categoria. Contatoras, disjuntores motor e seccionadoras possuem
-            campos técnicos específicos.
+            Produtos por categoria; cada item pode ter especificação técnica alinhada ao modelo
+            correspondente no servidor (painéis, cabos, PLCs, ventiladores, etc.).
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
@@ -152,11 +156,39 @@ export default function ProdutoListPage() {
             </div>
           )}
           {!loadingProdutos && !isError && (
-            <ProdutoTable
-              produtos={produtos}
-              onDeleteRequest={onDeleteRequest}
-              canManage={canManageProdutos}
-            />
+            <>
+              <ProdutoTable
+                produtos={produtos}
+                onDeleteRequest={onDeleteRequest}
+                canManage={canManageProdutos}
+              />
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                <p className="small text-muted mb-0">
+                  {`Mostrando ${produtos.length} de ${pageData?.total ?? produtos.length} itens`}
+                </p>
+                <div className="btn-group" role="group" aria-label="Paginação de produtos">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+                    disabled={loadingProdutos || !pageData?.hasPrevious}
+                  >
+                    Anterior
+                  </button>
+                  <button type="button" className="btn btn-outline-secondary" disabled>
+                    Página {paginaAtual}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setPaginaAtual((p) => p + 1)}
+                    disabled={loadingProdutos || !pageData?.hasNext}
+                  >
+                    Próxima
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

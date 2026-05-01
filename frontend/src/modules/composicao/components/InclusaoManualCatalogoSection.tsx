@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
+import { useCategoriaListQuery } from '@/modules/catalogo/hooks/useCategoriaListQuery'
 import { buscarProdutosAutocomplete } from '@/modules/catalogo/services/produtoService'
 import type { ProdutoListItem } from '@/modules/catalogo/types/produto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -38,6 +39,9 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
   const obsId = `${baseId}-obs`
 
   const wrapRef = useRef<HTMLDivElement>(null)
+  const [filtroCategoria, setFiltroCategoria] = useState('')
+  const { data: categoriasCatalogo = [], isPending: loadingCategoriasCatalogo } =
+    useCategoriaListQuery()
   const [termoBusca, setTermoBusca] = useState('')
   const [debounced, setDebounced] = useState('')
   const [aberto, setAberto] = useState(false)
@@ -63,7 +67,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     void (async () => {
       setCarregandoBusca(true)
       try {
-        const lista = await buscarProdutosAutocomplete(debounced)
+        const lista = await buscarProdutosAutocomplete(debounced, filtroCategoria || null)
         if (!cancel) setResultados(lista)
       } catch {
         if (!cancel) setResultados([])
@@ -74,7 +78,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     return () => {
       cancel = true
     }
-  }, [debounced, selecionado])
+  }, [debounced, selecionado, filtroCategoria])
 
   const itensLista =
     selecionado || debounced.length < BUSCA_MIN_CHARS ? [] : resultados
@@ -159,12 +163,31 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
           <h2 className="h5 mb-2">Inclusões manuais (catálogo)</h2>
           <p className="small text-muted mb-3">
             Acrescente materiais do catálogo que não entram pelas sugestões automáticas.
-            Busque por código, descrição ou fabricante (ex.: contatora AC3, minidisjuntor
-            monofásico).
+            Busque por código, descrição ou fabricante. Opcionalmente restrinja a busca a uma
+            categoria (PLCs, ventiladores, cabos, etc.).
           </p>
 
           {podeEditar ? (
             <div className="row g-3 mb-4">
+              <div className="col-12 col-md-6 col-xl-4">
+                <label className="form-label fw-semibold" htmlFor={`${baseId}-filtro-cat`}>
+                  Categoria (opcional)
+                </label>
+                <select
+                  id={`${baseId}-filtro-cat`}
+                  className="form-select"
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  disabled={busy || loadingCategoriasCatalogo}
+                >
+                  <option value="">Todas</option>
+                  {categoriasCatalogo.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome_display ?? c.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="col-12 col-lg-6">
                 <label className="form-label fw-semibold" htmlFor={buscaId}>
                   Buscar produto

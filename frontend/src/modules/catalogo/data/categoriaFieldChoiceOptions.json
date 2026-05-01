@@ -1,0 +1,2057 @@
+{
+  "CONTATORA": {
+    "tensao_bobina_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 48,
+        "label": "48 V"
+      },
+      {
+        "value": 90,
+        "label": "90 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 127,
+        "label": "127 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      },
+      {
+        "value": 440,
+        "label": "440 V"
+      }
+    ],
+    "tipo_corrente_bobina": [
+      {
+        "value": "CA",
+        "label": "Corrente Alternada"
+      },
+      {
+        "value": "CC",
+        "label": "Corrente Contínua"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "DISJUNTOR_MOTOR": {
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "DISJUNTOR_CAIXA_MOLDADA": {
+    "numero_polos": [
+      {
+        "value": "1P",
+        "label": "Monopolar (1P)"
+      },
+      {
+        "value": "2P",
+        "label": "Bipolar (2P)"
+      },
+      {
+        "value": "3P",
+        "label": "Tripolar (3P)"
+      },
+      {
+        "value": "4P",
+        "label": "Tetrapolar (4P)"
+      }
+    ],
+    "configuracao_disparador": [
+      {
+        "value": "TERMOMAGNETICO_IR_II_FIXOS",
+        "label": "Com disparador termomagnético, sobrecarga e curto-circuito fixos"
+      },
+      {
+        "value": "TERMOMAGNETICO_LI_IR_II_FIXOS",
+        "label": "Com disparador termomagnético, proteção LI, sobrecarga e curto-circuito fixos"
+      },
+      {
+        "value": "TERMOMAGNETICO_LI_IR_AJUSTAVEL_II_FIXO",
+        "label": "Com disparador termomagnético, proteção LI, sobrecarga ajustável e curto-circuito fixo"
+      },
+      {
+        "value": "TERMOMAGNETICO_LI_II_AJUSTAVEL",
+        "label": "Com disparador termomagnético, proteção LI e curto-circuito ajustável"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "MINIDISJUNTOR": {
+    "curva_disparo": [
+      {
+        "value": "B",
+        "label": "Curva B"
+      },
+      {
+        "value": "C",
+        "label": "Curva C"
+      },
+      {
+        "value": "D",
+        "label": "Curva D"
+      }
+    ],
+    "numero_polos": [
+      {
+        "value": "1P",
+        "label": "Monopolar (1P)"
+      },
+      {
+        "value": "2P",
+        "label": "Bipolar (2P)"
+      },
+      {
+        "value": "3P",
+        "label": "Tripolar (3P)"
+      },
+      {
+        "value": "4P",
+        "label": "Tetrapolar (4P)"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      }
+    ]
+  },
+  "RELE_SOBRECARGA": {
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "SECCIONADORA": {
+    "tipo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ],
+    "tipo_fixacao": [
+      {
+        "value": "FURO_CENTRAL_M22_5",
+        "label": "Fixação por furo central M22,5"
+      },
+      {
+        "value": "QUATRO_FUROS",
+        "label": "Fixação por quatro furos"
+      }
+    ],
+    "cor_manopla": [
+      {
+        "value": "PUNHO_PRETO",
+        "label": "Punho Preto"
+      },
+      {
+        "value": "PUNHO_VERMELHO",
+        "label": "Punho Vermelho"
+      }
+    ]
+  },
+  "FUSIVEL": {
+    "tipo_fusivel": [
+      {
+        "value": "ULTRARAPIDO",
+        "label": "Ultrarrápido"
+      },
+      {
+        "value": "RAPIDO",
+        "label": "Rápido"
+      },
+      {
+        "value": "RETARDADO",
+        "label": "Retardado"
+      }
+    ],
+    "formato": [
+      {
+        "value": "NH",
+        "label": "NH"
+      },
+      {
+        "value": "CARTUCHO",
+        "label": "Cartucho"
+      }
+    ]
+  },
+  "RELE_ESTADO_SOLIDO": {
+    "tipo_dissipador": [
+      {
+        "value": "INTEGRADO",
+        "label": "Integrado"
+      },
+      {
+        "value": "EXTERNO",
+        "label": "Externo"
+      }
+    ],
+    "tensao_ventilacao_v": [
+      {
+        "value": 24,
+        "label": "24 VCC"
+      },
+      {
+        "value": 220,
+        "label": "220 VCA"
+      }
+    ],
+    "numero_fases": [
+      {
+        "value": "1F",
+        "label": "Monofásico (1F)"
+      },
+      {
+        "value": "3F",
+        "label": "Trifásico (3F)"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "INVERSOR_FREQUENCIA": {
+    "tensao_entrada_v": [
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "numero_fases_entrada": [
+      {
+        "value": "1F",
+        "label": "Monofásico (1F)"
+      },
+      {
+        "value": "3F",
+        "label": "Trifásico (3F)"
+      }
+    ],
+    "tensao_saida_v": [
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "protocolo_comunicacao": [
+      {
+        "value": "",
+        "label": "Sem protocolo de comunicação"
+      },
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "Ethernet/IP"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "SERIAL",
+        "label": "Serial"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ]
+  },
+  "SOFT_STARTER": {
+    "tensao_nominal_v": [
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "numero_fase_controle": [
+      {
+        "value": "2F",
+        "label": "2 fases"
+      },
+      {
+        "value": "3F",
+        "label": "3 fases"
+      }
+    ],
+    "protocolo_comunicacao": [
+      {
+        "value": "",
+        "label": "Sem protocolo de comunicação"
+      },
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "Ethernet/IP"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "SERIAL",
+        "label": "Serial"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tipo_montagem": [
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "BOTAO": {
+    "tipo_botao": [
+      {
+        "value": "PULSADOR",
+        "label": "Pulsador"
+      },
+      {
+        "value": "EMERGENCIA",
+        "label": "Emergência"
+      }
+    ],
+    "tipo_acionamento": [
+      {
+        "value": "MOMENTANEO",
+        "label": "Momentâneo"
+      },
+      {
+        "value": "RETENCAO",
+        "label": "Com retenção"
+      }
+    ],
+    "cor": [
+      {
+        "value": "VERDE",
+        "label": "Verde"
+      },
+      {
+        "value": "VERMELHO",
+        "label": "Vermelho"
+      },
+      {
+        "value": "AMARELO",
+        "label": "Amarelo"
+      },
+      {
+        "value": "AZUL",
+        "label": "Azul"
+      },
+      {
+        "value": "PRETO",
+        "label": "Preto"
+      },
+      {
+        "value": "BRANCO",
+        "label": "Branco"
+      }
+    ],
+    "tensao_iluminacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "diametro_furo_mm": [
+      {
+        "value": 22,
+        "label": "22 mm"
+      },
+      {
+        "value": 30,
+        "label": "30 mm"
+      }
+    ],
+    "grau_protecao_ip": [
+      {
+        "value": "IP55",
+        "label": "IP55"
+      },
+      {
+        "value": "IP65",
+        "label": "IP65"
+      },
+      {
+        "value": "IP66",
+        "label": "IP66"
+      },
+      {
+        "value": "IP67",
+        "label": "IP67"
+      },
+      {
+        "value": "IP69K",
+        "label": "IP69K"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      }
+    ]
+  },
+  "CHAVE_SELETORA": {
+    "tipo_seletor": [
+      {
+        "value": "MANOPLA",
+        "label": "Manopla"
+      },
+      {
+        "value": "CHAVE",
+        "label": "Chave com chave"
+      }
+    ],
+    "numero_posicoes": [
+      {
+        "value": 2,
+        "label": "2"
+      },
+      {
+        "value": 3,
+        "label": "3"
+      },
+      {
+        "value": 4,
+        "label": "4"
+      }
+    ],
+    "tipo_acionamento": [
+      {
+        "value": "RETENTIVO",
+        "label": "Retentivo"
+      },
+      {
+        "value": "MOMENTANEO",
+        "label": "Momentâneo"
+      }
+    ],
+    "cor_manopla": [
+      {
+        "value": "PRETO",
+        "label": "Preto"
+      },
+      {
+        "value": "VERMELHO",
+        "label": "Vermelho"
+      },
+      {
+        "value": "AZUL",
+        "label": "Azul"
+      },
+      {
+        "value": "VERDE",
+        "label": "Verde"
+      }
+    ],
+    "diametro_furo_mm": [
+      {
+        "value": 22,
+        "label": "22 mm"
+      },
+      {
+        "value": 30,
+        "label": "30 mm"
+      }
+    ],
+    "tensao_iluminacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "grau_protecao_ip": [
+      {
+        "value": "IP55",
+        "label": "IP55"
+      },
+      {
+        "value": "IP65",
+        "label": "IP65"
+      },
+      {
+        "value": "IP66",
+        "label": "IP66"
+      },
+      {
+        "value": "IP67",
+        "label": "IP67"
+      },
+      {
+        "value": "IP69K",
+        "label": "IP69K"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      }
+    ]
+  },
+  "SINALIZADOR": {
+    "tensao_comando_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "cor": [
+      {
+        "value": "VERMELHO",
+        "label": "Vermelho"
+      },
+      {
+        "value": "VERDE",
+        "label": "Verde"
+      },
+      {
+        "value": "AMBAR",
+        "label": "Âmbar"
+      },
+      {
+        "value": "BRANCO",
+        "label": "Branco"
+      },
+      {
+        "value": "AZUL",
+        "label": "Azul"
+      }
+    ]
+  },
+  "RELE_INTERFACE": {
+    "tipo_rele": [
+      {
+        "value": "ELETROMECANICO",
+        "label": "Eletromecânico"
+      },
+      {
+        "value": "ESTADO_SOLIDO",
+        "label": "Estado sólido"
+      }
+    ],
+    "tensao_bobina_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "quantidade_contatos": [
+      {
+        "value": 1,
+        "label": "1"
+      },
+      {
+        "value": 2,
+        "label": "2"
+      },
+      {
+        "value": 3,
+        "label": "3"
+      },
+      {
+        "value": 4,
+        "label": "4"
+      }
+    ],
+    "tipo_contato": [
+      {
+        "value": "NA",
+        "label": "Normalmente Aberto (NA)"
+      },
+      {
+        "value": "NF",
+        "label": "Normalmente Fechado (NF)"
+      },
+      {
+        "value": "REVERSIVEL",
+        "label": "Reversível (NA/NF)"
+      }
+    ],
+    "tipo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ]
+  },
+  "TEMPORIZADOR": {
+    "tipo_temporizador": [
+      {
+        "value": "RELE",
+        "label": "Relé temporizado"
+      },
+      {
+        "value": "ELETRONICO",
+        "label": "Eletrônico"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tipo_funcao": [
+      {
+        "value": "ATRASO_ENERGIZACAO",
+        "label": "Atraso na energização"
+      },
+      {
+        "value": "ATRASO_DESENERGIZACAO",
+        "label": "Atraso na desenergização"
+      },
+      {
+        "value": "INTERMITENTE",
+        "label": "Intermitente"
+      },
+      {
+        "value": "MULTIFUNCAO",
+        "label": "Multifunção"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "tipo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      }
+    ]
+  },
+  "CONTROLADOR_TEMPERATURA": {
+    "tipo_sensor": [
+      {
+        "value": "PT100",
+        "label": "PT100"
+      },
+      {
+        "value": "TERMOPAR_J",
+        "label": "Termopar J"
+      },
+      {
+        "value": "TERMOPAR_K",
+        "label": "Termopar K"
+      },
+      {
+        "value": "NTC",
+        "label": "NTC"
+      },
+      {
+        "value": "UNIVERSAL",
+        "label": "Entrada universal"
+      }
+    ],
+    "tipo_controle": [
+      {
+        "value": "ON_OFF",
+        "label": "On/Off"
+      },
+      {
+        "value": "PID",
+        "label": "PID"
+      }
+    ],
+    "tipo_saida_controle": [
+      {
+        "value": "RELE",
+        "label": "Relé"
+      },
+      {
+        "value": "SSR",
+        "label": "SSR"
+      },
+      {
+        "value": "ANALOGICA_4_20MA",
+        "label": "Analógica 4-20mA"
+      },
+      {
+        "value": "ANALOGICA_0_10V",
+        "label": "Analógica 0-10V"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "PLC": {
+    "tensao_alimentacao_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 48,
+        "label": "48 V"
+      },
+      {
+        "value": 90,
+        "label": "90 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 127,
+        "label": "127 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      },
+      {
+        "value": 440,
+        "label": "440 V"
+      }
+    ],
+    "protocolo_principal": [
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "Ethernet/IP"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "SERIAL",
+        "label": "Serial"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ]
+  },
+  "EXPANSAO_PLC": {
+    "tipo_expansao": [
+      {
+        "value": "ENTRADA_DIGITAL",
+        "label": "Entrada Digital"
+      },
+      {
+        "value": "SAIDA_DIGITAL",
+        "label": "Saída Digital"
+      },
+      {
+        "value": "ENTRADA_ANALOGICA",
+        "label": "Entrada Analógica"
+      },
+      {
+        "value": "SAIDA_ANALOGICA",
+        "label": "Saída Analógica"
+      },
+      {
+        "value": "MISTA_DIGITAL",
+        "label": "Mista Digital"
+      },
+      {
+        "value": "MISTA_ANALOGICA",
+        "label": "Mista Analógica"
+      },
+      {
+        "value": "MISTA_GERAL",
+        "label": "Mista Geral"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "tipo_sinal_digital": [
+      {
+        "value": "PNP",
+        "label": "PNP"
+      },
+      {
+        "value": "NPN",
+        "label": "NPN"
+      },
+      {
+        "value": "RELE",
+        "label": "Relé"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      },
+      {
+        "value": "LATERAL",
+        "label": "Lateral do painel"
+      },
+      {
+        "value": "FUNDO",
+        "label": "Fundo do painel"
+      },
+      {
+        "value": "ACOPLADO_CONTATOR",
+        "label": "Acoplado ao contator"
+      }
+    ]
+  },
+  "IHM": {
+    "tipo_tela": [
+      {
+        "value": "TOUCH",
+        "label": "Touchscreen"
+      },
+      {
+        "value": "TECLADO",
+        "label": "Teclado"
+      },
+      {
+        "value": "TOUCH_TECLADO",
+        "label": "Touch + Teclado"
+      }
+    ],
+    "protocolo_comunicacao": [
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "EtherNet/IP"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "SERIAL",
+        "label": "Serial"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      }
+    ]
+  },
+  "MODULO_COMUNICACAO": {
+    "tipo_modulo": [
+      {
+        "value": "INTERFACE_REDE",
+        "label": "Interface rede industrial"
+      },
+      {
+        "value": "INTERFACE_SERIAL",
+        "label": "Interface serial"
+      },
+      {
+        "value": "INTERFACE_FIELDBUS",
+        "label": "Interface fieldbus"
+      },
+      {
+        "value": "MULTIPROTOCOLO",
+        "label": "Multiprotocolo"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "protocolo": [
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "EtherNet/IP"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "CANOPEN",
+        "label": "CANopen"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "MQTT",
+        "label": "MQTT"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "interface_fisica": [
+      {
+        "value": "ETHERNET",
+        "label": "Ethernet"
+      },
+      {
+        "value": "RS485",
+        "label": "RS-485"
+      },
+      {
+        "value": "RS232",
+        "label": "RS-232"
+      },
+      {
+        "value": "USB",
+        "label": "USB"
+      },
+      {
+        "value": "WIFI",
+        "label": "Wi-Fi"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "GATEWAY": {
+    "protocolo_entrada": [
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "EtherNet/IP"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "CANOPEN",
+        "label": "CANopen"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "MQTT",
+        "label": "MQTT"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "protocolo_saida": [
+      {
+        "value": "MODBUS_TCP",
+        "label": "Modbus TCP"
+      },
+      {
+        "value": "MODBUS_RTU",
+        "label": "Modbus RTU"
+      },
+      {
+        "value": "PROFINET",
+        "label": "Profinet"
+      },
+      {
+        "value": "ETHERNET_IP",
+        "label": "EtherNet/IP"
+      },
+      {
+        "value": "PROFIBUS",
+        "label": "Profibus"
+      },
+      {
+        "value": "CANOPEN",
+        "label": "CANopen"
+      },
+      {
+        "value": "OPC_UA",
+        "label": "OPC UA"
+      },
+      {
+        "value": "MQTT",
+        "label": "MQTT"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "interface_entrada": [
+      {
+        "value": "ETHERNET",
+        "label": "Ethernet"
+      },
+      {
+        "value": "RS485",
+        "label": "RS-485"
+      },
+      {
+        "value": "RS232",
+        "label": "RS-232"
+      },
+      {
+        "value": "USB",
+        "label": "USB"
+      },
+      {
+        "value": "WIFI",
+        "label": "Wi-Fi"
+      }
+    ],
+    "interface_saida": [
+      {
+        "value": "ETHERNET",
+        "label": "Ethernet"
+      },
+      {
+        "value": "RS485",
+        "label": "RS-485"
+      },
+      {
+        "value": "RS232",
+        "label": "RS-232"
+      },
+      {
+        "value": "USB",
+        "label": "USB"
+      },
+      {
+        "value": "WIFI",
+        "label": "Wi-Fi"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "SWITCH_REDE": {
+    "tipo_switch": [
+      {
+        "value": "INDUSTRIAL",
+        "label": "Industrial"
+      },
+      {
+        "value": "GERENCIAVEL",
+        "label": "Gerenciável"
+      },
+      {
+        "value": "NAO_GERENCIAVEL",
+        "label": "Não gerenciável"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tipo_porta": [
+      {
+        "value": "RJ45",
+        "label": "RJ45"
+      },
+      {
+        "value": "FIBRA",
+        "label": "Fibra"
+      },
+      {
+        "value": "MISTA",
+        "label": "Mista"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "velocidade_porta": [
+      {
+        "value": "MBPS_10",
+        "label": "10 Mbps"
+      },
+      {
+        "value": "MBPS_100",
+        "label": "100 Mbps"
+      },
+      {
+        "value": "MBPS_1000",
+        "label": "1 Gbps"
+      },
+      {
+        "value": "MBPS_10000",
+        "label": "10 Gbps"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 48,
+        "label": "48 V"
+      },
+      {
+        "value": 90,
+        "label": "90 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 127,
+        "label": "127 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      },
+      {
+        "value": 440,
+        "label": "440 V"
+      }
+    ],
+    "tipo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PAINEL",
+        "label": "Painel"
+      },
+      {
+        "value": "RACK",
+        "label": "Rack"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ]
+  },
+  "FONTE_CHAVEADA": {
+    "tensao_entrada_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 48,
+        "label": "48 V"
+      },
+      {
+        "value": 90,
+        "label": "90 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 127,
+        "label": "127 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      },
+      {
+        "value": 440,
+        "label": "440 V"
+      }
+    ],
+    "tipo_corrente_entrada": [
+      {
+        "value": "CA",
+        "label": "Corrente Alternada"
+      },
+      {
+        "value": "CC",
+        "label": "Corrente Contínua"
+      }
+    ],
+    "tensao_saida_v": [
+      {
+        "value": 12,
+        "label": "12 V"
+      },
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 48,
+        "label": "48 V"
+      },
+      {
+        "value": 90,
+        "label": "90 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 127,
+        "label": "127 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      },
+      {
+        "value": 440,
+        "label": "440 V"
+      }
+    ],
+    "tipo_corrente_saida": [
+      {
+        "value": "CA",
+        "label": "Corrente Alternada"
+      },
+      {
+        "value": "CC",
+        "label": "Corrente Contínua"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "BORNE": {
+    "tipo_borne": [
+      {
+        "value": "PASSAGEM",
+        "label": "Passagem"
+      },
+      {
+        "value": "TERRA",
+        "label": "Terra"
+      },
+      {
+        "value": "FUSIVEL",
+        "label": "Fusível"
+      },
+      {
+        "value": "SECCIONAVEL",
+        "label": "Seccionável"
+      },
+      {
+        "value": "SENSOR",
+        "label": "Sensor"
+      },
+      {
+        "value": "AFERICAO",
+        "label": "Borne de aferição"
+      }
+    ],
+    "tipo_conexao": [
+      {
+        "value": "PARAFUSO",
+        "label": "Parafuso"
+      },
+      {
+        "value": "MOLA",
+        "label": "Mola"
+      },
+      {
+        "value": "PUSH_IN",
+        "label": "Push-in"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      }
+    ]
+  },
+  "BARRAMENTO": {
+    "material": [
+      {
+        "value": "COBRE",
+        "label": "Cobre"
+      },
+      {
+        "value": "ALUMINIO",
+        "label": "Alumínio"
+      }
+    ],
+    "tipo_barramento": [
+      {
+        "value": "BARRA_CHATA",
+        "label": "Barra chata"
+      },
+      {
+        "value": "BARRAMENTO_PENTE",
+        "label": "Barramento pente"
+      },
+      {
+        "value": "BARRAMENTO_TRIFASICO",
+        "label": "Barramento trifásico"
+      },
+      {
+        "value": "BARRAMENTO_DISTRIBUICAO",
+        "label": "Barramento de distribuição"
+      }
+    ],
+    "numero_polos": [
+      {
+        "value": "1P",
+        "label": "Monopolar (1P)"
+      },
+      {
+        "value": "2P",
+        "label": "Bipolar (2P)"
+      },
+      {
+        "value": "3P",
+        "label": "Tripolar (3P)"
+      },
+      {
+        "value": "4P",
+        "label": "Tetrapolar (4P)"
+      }
+    ]
+  },
+  "CABO": {
+    "tipo_cabo": [
+      {
+        "value": "POTENCIA",
+        "label": "Potência"
+      },
+      {
+        "value": "COMANDO",
+        "label": "Comando"
+      },
+      {
+        "value": "SINAL",
+        "label": "Sinal"
+      },
+      {
+        "value": "REDE",
+        "label": "Rede / Comunicação"
+      },
+      {
+        "value": "ATERRAMENTO",
+        "label": "Aterramento"
+      }
+    ],
+    "material_condutor": [
+      {
+        "value": "COBRE",
+        "label": "Cobre"
+      },
+      {
+        "value": "ALUMINIO",
+        "label": "Alumínio"
+      }
+    ],
+    "tipo_isolacao": [
+      {
+        "value": "PVC",
+        "label": "PVC"
+      },
+      {
+        "value": "HEPR",
+        "label": "HEPR"
+      },
+      {
+        "value": "EPR",
+        "label": "EPR"
+      },
+      {
+        "value": "XLPE",
+        "label": "XLPE"
+      }
+    ],
+    "cor": [
+      {
+        "value": "PRETO",
+        "label": "Preto"
+      },
+      {
+        "value": "AZUL",
+        "label": "Azul"
+      },
+      {
+        "value": "AZUL_ESCURO",
+        "label": "Azul Escuro"
+      },
+      {
+        "value": "VERMELHO",
+        "label": "Vermelho"
+      },
+      {
+        "value": "BRANCO",
+        "label": "Branco"
+      },
+      {
+        "value": "VERDE_AMARELO",
+        "label": "Verde/Amarelo"
+      },
+      {
+        "value": "VERDE",
+        "label": "Verde"
+      },
+      {
+        "value": "AMARELO",
+        "label": "Amarelo"
+      },
+      {
+        "value": "MARROM",
+        "label": "Marrom"
+      },
+      {
+        "value": "CINZA",
+        "label": "Cinza"
+      }
+    ]
+  },
+  "CANALETA": {
+    "tipo_canaleta": [
+      {
+        "value": "FECHADA",
+        "label": "Fechada"
+      },
+      {
+        "value": "COM_RECORTE",
+        "label": "Com recorte"
+      }
+    ],
+    "material": [
+      {
+        "value": "PVC",
+        "label": "PVC"
+      },
+      {
+        "value": "METALICA",
+        "label": "Metálica"
+      }
+    ],
+    "cor": [
+      {
+        "value": "CINZA",
+        "label": "Cinza"
+      },
+      {
+        "value": "BRANCA",
+        "label": "Branca"
+      },
+      {
+        "value": "AZUL_PETROLEO",
+        "label": "Azul Petróleo"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      }
+    ]
+  },
+  "TRILHO_DIN": {
+    "tipo_trilho": [
+      {
+        "value": "TS35",
+        "label": "TS 35"
+      },
+      {
+        "value": "TS32",
+        "label": "TS 32"
+      },
+      {
+        "value": "TS15",
+        "label": "TS 15"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ],
+    "material": [
+      {
+        "value": "ACO_GALVANIZADO",
+        "label": "Aço galvanizado"
+      },
+      {
+        "value": "ACO_INOX",
+        "label": "Aço inox"
+      },
+      {
+        "value": "ALUMINIO",
+        "label": "Alumínio"
+      },
+      {
+        "value": "OUTRO",
+        "label": "Outro"
+      }
+    ]
+  },
+  "PAINEL": {
+    "tipo_painel": [
+      {
+        "value": "CAIXA_METALICA",
+        "label": "Caixa metálica"
+      },
+      {
+        "value": "CAIXA_PLASTICA",
+        "label": "Caixa plástica"
+      },
+      {
+        "value": "ARMARIO_METALICO",
+        "label": "Armário metálico"
+      },
+      {
+        "value": "PAINEL_MODULAR",
+        "label": "Painel modular"
+      }
+    ],
+    "tipo_instalacao": [
+      {
+        "value": "SOBREPOR",
+        "label": "Sobrepor"
+      },
+      {
+        "value": "EMBUTIR",
+        "label": "Embutir"
+      },
+      {
+        "value": "PISO",
+        "label": "Piso"
+      },
+      {
+        "value": "AUTO_PORTANTE",
+        "label": "Autoportante"
+      }
+    ],
+    "material": [
+      {
+        "value": "ACO_CARBONO",
+        "label": "Aço carbono"
+      },
+      {
+        "value": "ACO_INOX",
+        "label": "Aço inox"
+      },
+      {
+        "value": "ALUMINIO",
+        "label": "Alumínio"
+      },
+      {
+        "value": "POLICARBONATO",
+        "label": "Policarbonato"
+      },
+      {
+        "value": "ABS",
+        "label": "ABS"
+      }
+    ],
+    "placa_acabamento": [
+      {
+        "value": "GALVANIZADA",
+        "label": "Galvanizada"
+      },
+      {
+        "value": "PINTURA_LARANJA",
+        "label": "Pintura laranja"
+      }
+    ],
+    "cor": [
+      {
+        "value": "RAL7035",
+        "label": "RAL 7035 (cinza claro)"
+      },
+      {
+        "value": "RAL7032",
+        "label": "RAL 7032 (bege)"
+      }
+    ]
+  },
+  "CLIMATIZACAO": {
+    "tipo_climatizacao": [
+      {
+        "value": "VENTILACAO",
+        "label": "Ventilação"
+      },
+      {
+        "value": "EXAUSTOR",
+        "label": "Exaustor"
+      },
+      {
+        "value": "TROCADOR_CALOR",
+        "label": "Trocador de Calor"
+      },
+      {
+        "value": "AR_CONDICIONADO",
+        "label": "Ar-condicionado"
+      },
+      {
+        "value": "RESISTENCIA_AQUECIMENTO",
+        "label": "Resistência de Aquecimento"
+      }
+    ],
+    "tensao_alimentacao_v": [
+      {
+        "value": 24,
+        "label": "24 V"
+      },
+      {
+        "value": 110,
+        "label": "110 V"
+      },
+      {
+        "value": 220,
+        "label": "220 V"
+      },
+      {
+        "value": 380,
+        "label": "380 V"
+      }
+    ],
+    "modo_montagem": [
+      {
+        "value": "TRILHO_DIN",
+        "label": "Trilho DIN"
+      },
+      {
+        "value": "PLACA",
+        "label": "Placa de montagem"
+      },
+      {
+        "value": "PORTA",
+        "label": "Porta"
+      }
+    ]
+  }
+
+}

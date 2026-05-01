@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga
 from catalogo.models import Produto
 from composicao_painel.api.serializers import (
     ComposicaoItemSerializer,
@@ -25,7 +25,9 @@ def test_status_aprovacao_observacoes_defaults_e_marker():
 
 
 @pytest.mark.django_db
-def test_sugestao_item_serializer_inclui_snapshot_carga_e_projeto(criar_projeto):
+def test_sugestao_item_serializer_inclui_snapshot_carga_e_projeto(
+    criar_projeto, criar_carga_motor
+):
     projeto = criar_projeto(nome="Comp", codigo="22001-26", tensao_nominal=TensaoChoices.V380)
     produto = Produto.objects.create(
         codigo="COMP-P1",
@@ -39,7 +41,11 @@ def test_sugestao_item_serializer_inclui_snapshot_carga_e_projeto(criar_projeto)
         descricao="Motor",
         tipo=TipoCargaChoices.MOTOR,
     )
-    CargaMotor.objects.create(carga=carga, potencia_corrente_valor=Decimal("5.00"))
+    criar_carga_motor(
+        carga=carga,
+        potencia_corrente_valor=Decimal("5.00"),
+        tensao_motor=TensaoChoices.V380,
+    )
     sug = SugestaoItem.objects.create(
         projeto=projeto,
         carga=carga,

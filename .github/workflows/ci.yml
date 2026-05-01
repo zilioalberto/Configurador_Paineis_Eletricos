@@ -36,6 +36,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: configuracoes.settings_ci
         run: |
           pytest backend/configuracoes/tests backend/accounts/tests backend/projetos/tests \
+            backend/composicao_painel/tests backend/cargas/tests backend/catalogo/tests \
             --cov=backend \
             --cov-config=.coveragerc \
             --cov-report=xml:coverage.xml \

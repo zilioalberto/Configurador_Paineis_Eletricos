@@ -25,7 +25,6 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
     ...base,
     exige_protecao: true,
     exige_seccionamento: false,
-    exige_fonte_auxiliar: false,
   }
 
   const tipo = data.tipo as TipoCarga
@@ -33,34 +32,51 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
   if (tipo === 'MOTOR' && motor) {
     const m = omitEmptyStrings({
       ...motor,
-      tempo_partida_s: motor.tempo_partida_s || null,
+      numero_fases: Number(motor.numero_fases),
+      tensao_motor: Number(motor.tensao_motor),
     } as Record<string, unknown>)
     body.motor = m
   }
   if (tipo === 'VALVULA' && valvula) {
     body.valvula = omitEmptyStrings({
       ...valvula,
+      quantidade_solenoides: Number(valvula.quantidade_solenoides || 1),
       quantidade_vias: valvula.quantidade_vias
         ? Number(valvula.quantidade_vias)
         : null,
       quantidade_posicoes: valvula.quantidade_posicoes
         ? Number(valvula.quantidade_posicoes)
         : null,
+      tensao_alimentacao: Number(valvula.tensao_alimentacao),
+      corrente_consumida_ma: Number(valvula.corrente_consumida_ma || 0),
     } as Record<string, unknown>)
   }
   if (tipo === 'RESISTENCIA' && resistencia) {
-    body.resistencia = resistencia
+    body.resistencia = {
+      ...resistencia,
+      numero_fases: Number(resistencia.numero_fases),
+      tensao_resistencia: Number(resistencia.tensao_resistencia),
+      potencia_kw: Number(resistencia.potencia_kw || 0),
+    }
   }
   if (tipo === 'SENSOR' && sensor) {
     body.sensor = omitEmptyStrings({
       ...sensor,
       tipo_sinal_analogico: sensor.tipo_sinal_analogico || null,
+      tensao_alimentacao: Number(sensor.tensao_alimentacao),
+      corrente_consumida_ma: Number(sensor.corrente_consumida_ma || 0),
+      quantidade_fios:
+        sensor.quantidade_fios === '' ? null : Number(sensor.quantidade_fios),
     } as Record<string, unknown>)
   }
   if (tipo === 'TRANSDUTOR' && transdutor) {
     body.transdutor = omitEmptyStrings({
       ...transdutor,
       tipo_sinal_analogico: transdutor.tipo_sinal_analogico || null,
+      tensao_alimentacao: Number(transdutor.tensao_alimentacao),
+      corrente_consumida_ma: Number(transdutor.corrente_consumida_ma || 0),
+      quantidade_fios:
+        transdutor.quantidade_fios === '' ? null : Number(transdutor.quantidade_fios),
     } as Record<string, unknown>)
   }
 

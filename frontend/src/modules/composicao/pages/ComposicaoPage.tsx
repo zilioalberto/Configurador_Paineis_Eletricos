@@ -408,7 +408,8 @@ export default function ComposicaoPage() {
           <h1 className="h3 mb-1">Composição do painel</h1>
           <p className="text-muted mb-0">
             Sugestões automáticas de seccionamento, contatoras e disjuntores motor (quando
-            aplicável), com base nas cargas e no dimensionamento de corrente do projeto.
+            aplicável), com base nas cargas e no dimensionamento. Demais materiais cadastrados
+            no catálogo podem ser acrescentados manualmente na secção de inclusões.
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap align-items-center">
@@ -892,9 +893,9 @@ export default function ComposicaoPage() {
                 </div>
                 <div className="modal-body">
                   <p className="small text-muted">
-                    Mesmas regras da sugestão automática (corrente compatível; contatora com
-                    mesma bobina; montagem alinhada ao produto sugerido, quando aplicável).
-                    Selecione um produto e confirme para aprovar com substituição.
+                    Mesmas regras da sugestão automática para a categoria deste item (ex.:
+                    corrente compatível; contatora com mesma bobina; montagem alinhada quando
+                    aplicável). Selecione um produto e confirme para aprovar com substituição.
                   </p>
                   {loadingAlternativas ? (
                     <p className="small text-muted mb-0">Carregando alternativas…</p>

@@ -4,39 +4,73 @@ from unittest.mock import Mock, patch
 import pytest
 from django.core.exceptions import ValidationError
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga
 from catalogo.models import Produto
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from composicao_painel.services.sugestoes.orquestrador import (
     gerar_sugestoes_painel,
+    projeto_precisa_contatoras,
     projeto_tem_motor_com_disjuntor_motor,
     remover_sugestoes_ja_aprovadas,
 )
 from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
-from core.choices.cargas import TipoCargaChoices, TipoProtecaoMotorChoices
+from core.choices.cargas import TipoCargaChoices
 from core.choices.produtos import UnidadeMedidaChoices
+
+
+@pytest.mark.django_db
+def test_projeto_precisa_contatoras_motor_ou_resistencia_contator(criar_projeto):
+    projeto = criar_projeto(nome="OrqC", codigo="12005-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.Carga.objects.filter"
+    ) as mock_carga, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_carga.return_value.exists.return_value = True
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_precisa_contatoras(projeto) is True
+
+        mock_carga.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = True
+        assert projeto_precisa_contatoras(projeto) is True
+
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_precisa_contatoras(projeto) is False
 
 
 @pytest.mark.django_db
 def test_projeto_tem_motor_com_disjuntor_motor_true_e_false(criar_projeto):
     projeto = criar_projeto(nome="Orq", codigo="12001-26", tensao_nominal=TensaoChoices.V380)
-    carga = Carga.objects.create(
-        projeto=projeto,
-        tag="M01",
-        descricao="Motor",
-        tipo=TipoCargaChoices.MOTOR,
-    )
-    CargaMotor.objects.create(
-        carga=carga,
-        potencia_corrente_valor=Decimal("5.00"),
-        tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
-    )
-    assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_cm.return_value.exists.return_value = True
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
 
-    CargaMotor.objects.filter(carga=carga).update(
-        tipo_protecao=TipoProtecaoMotorChoices.RELE_SOBRECARGA
-    )
-    assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
+
+
+@pytest.mark.django_db
+def test_projeto_tem_disjuntor_motor_considera_resistencia_com_protecao_disjuntor(
+    criar_projeto,
+):
+    projeto = criar_projeto(nome="OrqR", codigo="12004-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = True
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
+
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
 
 
 @pytest.mark.django_db

@@ -38,6 +38,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pytest backend/configuracoes/tests backend/accounts/tests backend/projetos/tests \
+            backend/composicao_painel/tests backend/cargas/tests backend/catalogo/tests \
             -q --tb=short \
             --cov=backend \
             --cov-config=.coveragerc \

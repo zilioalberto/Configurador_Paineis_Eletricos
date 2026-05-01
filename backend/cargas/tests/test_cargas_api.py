@@ -8,7 +8,14 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from cargas.models import Carga, CargaModelo
+from cargas.models import (
+    Carga,
+    CargaModelo,
+    CargaMotor,
+    CargaResistencia,
+    CargaSensor,
+    CargaValvula,
+)
 from cargas.api.serializers import CargaModeloSerializer
 from core.choices import TensaoChoices
 from core.choices.cargas import TipoCargaChoices
@@ -42,23 +49,35 @@ def admin_client():
     return _auth_client(user.email, raw), user
 
 
-def _payload_carga_outro(projeto_id):
+@pytest.fixture
+def usuario_somente_leitura_client():
+    raw = "cargas-api-readonly-12345"
+    user = User.objects.create_user(
+        email="cargas-api-readonly@test.com",
+        password=raw,
+        is_active=True,
+        tipo_usuario=TipoUsuarioChoices.USUARIO,
+    )
+    return _auth_client(user.email, raw), user
+
+
+def _payload_carga_transmissor(projeto_id):
     return {
         "projeto": str(projeto_id),
         "tag": "O99",
-        "descricao": "Carga outro",
-        "tipo": TipoCargaChoices.OUTRO,
+        "descricao": "Carga transmissor",
+        "tipo": TipoCargaChoices.TRANSMISSOR,
         "quantidade": 1,
         "local_instalacao": "",
         "observacoes": "",
         "exige_protecao": True,
         "exige_seccionamento": False,
         "exige_comando": False,
-        "exige_fonte_auxiliar": False,
-        "ocupa_entrada_digital": False,
-        "ocupa_entrada_analogica": False,
-        "ocupa_saida_digital": False,
-        "ocupa_saida_analogica": False,
+        "quantidade_entradas_digitais": 0,
+        "quantidade_entradas_analogicas": 0,
+        "quantidade_saidas_digitais": 0,
+        "quantidade_saidas_analogicas": 0,
+        "quantidade_entradas_rapidas": 0,
         "ativo": True,
     }
 
@@ -73,7 +92,7 @@ class TestCargaViewSet:
             projeto=projeto,
             tag="O01",
             descricao="X",
-            tipo=TipoCargaChoices.OUTRO,
+            tipo=TipoCargaChoices.TRANSMISSOR,
             quantidade=1,
         )
         url = reverse("cargas-list")
@@ -86,10 +105,10 @@ class TestCargaViewSet:
         p1 = criar_projeto(nome="A", codigo="10002-26", tensao_nominal=TensaoChoices.V380)
         p2 = criar_projeto(nome="B", codigo="10003-26", tensao_nominal=TensaoChoices.V380)
         Carga.objects.create(
-            projeto=p1, tag="O02", descricao="A", tipo=TipoCargaChoices.OUTRO, quantidade=1
+            projeto=p1, tag="O02", descricao="A", tipo=TipoCargaChoices.TRANSMISSOR, quantidade=1
         )
         Carga.objects.create(
-            projeto=p2, tag="O03", descricao="B", tipo=TipoCargaChoices.OUTRO, quantidade=1
+            projeto=p2, tag="O03", descricao="B", tipo=TipoCargaChoices.TRANSMISSOR, quantidade=1
         )
         url = reverse("cargas-list")
         r = client.get(f"{url}?projeto={p1.id}")
@@ -102,7 +121,7 @@ class TestCargaViewSet:
         client, _ = admin_client
         projeto = criar_projeto(nome="C", codigo="10004-26", tensao_nominal=TensaoChoices.V380)
         url = reverse("cargas-list")
-        body = _payload_carga_outro(projeto.id)
+        body = _payload_carga_transmissor(projeto.id)
         r = client.post(url, body, format="json")
         assert r.status_code == 201
         cid = r.data["id"]
@@ -115,6 +134,94 @@ class TestCargaViewSet:
 
         r3 = client.delete(detail)
         assert r3.status_code == 204
+
+    def test_create_sem_permissao_edicao_retorna_403(
+        self, _mock_reproc, usuario_somente_leitura_client, criar_projeto
+    ):
+        client, _ = usuario_somente_leitura_client
+        projeto = criar_projeto(nome="P403", codigo="10040-26", tensao_nominal=TensaoChoices.V380)
+        url = reverse("cargas-list")
+        r = client.post(url, _payload_carga_transmissor(projeto.id), format="json")
+        assert r.status_code == 403
+
+    def test_list_campos_calculados_valvula(self, _mock_reproc, admin_client, criar_projeto):
+        client, _ = admin_client
+        projeto = criar_projeto(nome="PV", codigo="10041-26", tensao_nominal=TensaoChoices.V380)
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag="YV1",
+            descricao="Valvula",
+            tipo=TipoCargaChoices.VALVULA,
+            quantidade=1,
+        )
+        CargaValvula.objects.create(
+            carga=carga,
+            tensao_alimentacao=24,
+            tipo_corrente="CC",
+            corrente_consumida_ma="200.00",
+            quantidade_solenoides=1,
+        )
+        r = client.get(reverse("cargas-list"), {"projeto": str(projeto.id)})
+        assert r.status_code == 200
+        row = next(x for x in r.data if x["tag"] == "YV1")
+        assert str(row["corrente_calculada_a"]) == "0.200"
+        assert str(row["potencia_corrente_valor"]) == "4.80"
+        assert row["potencia_corrente_unidade"] == "W"
+        assert row["tensao_carga_display"] == "24 V"
+        assert row["tipo_corrente_carga_display"]
+
+    def test_list_fallback_quando_sem_especificacao_sensor(
+        self, _mock_reproc, admin_client, criar_projeto
+    ):
+        client, _ = admin_client
+        projeto = criar_projeto(nome="PS", codigo="10042-26", tensao_nominal=TensaoChoices.V380)
+        Carga.objects.create(
+            projeto=projeto,
+            tag="S0",
+            descricao="Sensor sem spec",
+            tipo=TipoCargaChoices.SENSOR,
+            quantidade=1,
+        )
+        r = client.get(reverse("cargas-list"), {"projeto": str(projeto.id)})
+        assert r.status_code == 200
+        row = next(x for x in r.data if x["tag"] == "S0")
+        assert row["corrente_calculada_a"] is None
+        assert row["tensao_carga_display"] == "380 V"
+
+    def test_update_troca_tipo_limpa_spec_antiga(self, _mock_reproc, admin_client, criar_projeto):
+        client, _ = admin_client
+        projeto = criar_projeto(nome="PT", codigo="10043-26", tensao_nominal=TensaoChoices.V380)
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag="M9",
+            descricao="Motor",
+            tipo=TipoCargaChoices.MOTOR,
+            quantidade=1,
+        )
+        CargaMotor.objects.create(
+            carga=carga,
+            potencia_corrente_valor="1.00",
+            potencia_corrente_unidade="CV",
+            tensao_motor=380,
+        )
+        detail = reverse("cargas-detail", kwargs={"pk": carga.id})
+        r = client.patch(
+            detail,
+            {
+                "tipo": TipoCargaChoices.RESISTENCIA,
+                "resistencia": {
+                    "numero_fases": 3,
+                    "tensao_resistencia": 380,
+                    "potencia_kw": "1.200",
+                },
+            },
+            format="json",
+        )
+        assert r.status_code == 200
+        carga.refresh_from_db()
+        assert carga.tipo == TipoCargaChoices.RESISTENCIA
+        assert not CargaMotor.objects.filter(carga=carga).exists()
+        assert CargaResistencia.objects.filter(carga=carga).exists()
 
 
 @pytest.mark.django_db
@@ -161,7 +268,7 @@ def test_create_sensor_analogico_sem_tipo_sinal_analogico_400(
     projeto = criar_projeto(nome="S", codigo="10006-26", tensao_nominal=TensaoChoices.V380)
     url = reverse("cargas-list")
     body = {
-        **_payload_carga_outro(projeto.id),
+        **_payload_carga_transmissor(projeto.id),
         "tag": "S01",
         "descricao": "Sensor",
         "tipo": TipoCargaChoices.SENSOR,
@@ -173,7 +280,6 @@ def test_create_sensor_analogico_sem_tipo_sinal_analogico_400(
             "npn": False,
             "normalmente_aberto": False,
             "normalmente_fechado": False,
-            "range_medicao": "",
         },
     }
     r = client.post(url, body, format="json")
@@ -207,9 +313,73 @@ def test_carga_modelo_str(admin_client):
     _, user = admin_client
     modelo = CargaModelo.objects.create(
         nome="Modelo String",
-        tipo=TipoCargaChoices.OUTRO,
+        tipo=TipoCargaChoices.TRANSMISSOR,
         payload={},
         criado_por=user,
         atualizado_por=user,
     )
     assert str(modelo) == "Modelo String"
+
+
+@pytest.mark.django_db
+@patch("cargas.api.views.reprocessar_composicao_painel_para_carga")
+def test_create_motor_soft_starter_com_tensao_diferente_retorna_mensagem_amigavel(
+    _mock_reproc, admin_client, criar_projeto
+):
+    client, _ = admin_client
+    projeto = criar_projeto(
+        nome="M", codigo="10007-26", tensao_nominal=TensaoChoices.V380
+    )
+    url = reverse("cargas-list")
+    body = {
+        **_payload_carga_transmissor(projeto.id),
+        "tag": "M02",
+        "descricao": "Motor com tensão inválida",
+        "tipo": TipoCargaChoices.MOTOR,
+        "motor": {
+            "potencia_corrente_valor": "1.00",
+            "potencia_corrente_unidade": "CV",
+            "tipo_partida": "SOFT_STARTER",
+            "numero_fases": 3,
+            "tensao_motor": 220,
+        },
+    }
+    r = client.post(url, body, format="json")
+    assert r.status_code == 400
+    assert "motor" in r.data
+    assert "tensao_motor" in r.data["motor"]
+    assert "A tensão do motor deve ser igual à tensão do projeto" in str(
+        r.data["motor"]["tensao_motor"]
+    )
+
+
+@pytest.mark.django_db
+@patch("cargas.api.views.reprocessar_composicao_painel_para_carga")
+def test_create_resistencia_com_tensao_diferente_retorna_mensagem_amigavel(
+    _mock_reproc, admin_client, criar_projeto
+):
+    client, _ = admin_client
+    projeto = criar_projeto(
+        nome="R", codigo="10008-26", tensao_nominal=TensaoChoices.V380
+    )
+    url = reverse("cargas-list")
+    body = {
+        **_payload_carga_transmissor(projeto.id),
+        "tag": "R01",
+        "descricao": "Resistência com tensão inválida",
+        "tipo": TipoCargaChoices.RESISTENCIA,
+        "resistencia": {
+            "numero_fases": 3,
+            "tensao_resistencia": 220,
+            "potencia_kw": "1.500",
+        },
+    }
+    r = client.post(url, body, format="json")
+    assert r.status_code == 400
+    assert "resistencia" in r.data
+    assert "tensao_resistencia" in r.data["resistencia"]
+    assert "A tensão da resistência deve ser igual à tensão do projeto" in str(
+        r.data["resistencia"]["tensao_resistencia"]
+    )
+
+
