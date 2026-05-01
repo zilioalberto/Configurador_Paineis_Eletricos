@@ -109,3 +109,32 @@ def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_proje
     ):
         assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 0
     assert PendenciaItem.objects.filter(projeto=projeto).count() == 0
+
+
+@pytest.mark.django_db
+def test_sensor_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSS", codigo="13005-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="S01",
+        descricao="Sensor",
+        tipo=TipoCargaChoices.SENSOR,
+        quantidade=1,
+    )
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 1
+    assert "Não há gerador" in criadas[0].memoria_calculo
+
+
+@pytest.mark.django_db
+def test_valvula_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSV", codigo="13006-26", tensao_nominal=TensaoChoices.V380)
+    Carga.objects.create(
+        projeto=projeto,
+        tag="V01",
+        descricao="Válvula",
+        tipo=TipoCargaChoices.VALVULA,
+        quantidade=1,
+    )
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 1
