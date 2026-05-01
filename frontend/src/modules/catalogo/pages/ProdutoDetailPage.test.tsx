@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const navigate = vi.hoisted(() => vi.fn())
+const useAuthMock = vi.hoisted(() => vi.fn())
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
@@ -13,13 +14,7 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('@/modules/auth/AuthContext', () => ({
-  useAuth: () => ({
-    user: {
-      email: 'a@test.com',
-      tipo_usuario: 'ADMIN',
-      permissoes: ['material.editar_lista'],
-    },
-  }),
+  useAuth: () => useAuthMock(),
 }))
 
 const useProdutoDetailQueryMock = vi.hoisted(() => vi.fn())
@@ -68,6 +63,16 @@ function mockProdutoDetailQuery(
 }
 
 describe('ProdutoDetailPage', () => {
+  beforeEach(() => {
+    useAuthMock.mockReturnValue({
+      user: {
+        email: 'a@test.com',
+        tipo_usuario: 'ADMIN',
+        permissoes: ['material.editar_lista'],
+      },
+    })
+  })
+
   it('mostra carregamento', () => {
     mockProdutoDetailQuery({ isPending: true })
     renderProdutoDetailPage('pr1')
@@ -96,5 +101,38 @@ describe('ProdutoDetailPage', () => {
       'href',
       '/catalogo/pr1/editar'
     )
+  })
+
+  it('não mostra ações de edição sem permissão', () => {
+    useAuthMock.mockReturnValue({
+      user: {
+        email: 'u@test.com',
+        tipo_usuario: 'USUARIO',
+        permissoes: [],
+      },
+    })
+    mockProdutoDetailQuery({ data: produto })
+    renderProdutoDetailPage('pr1')
+    expect(screen.queryByRole('link', { name: /Editar/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Novo produto/i })).not.toBeInTheDocument()
+  })
+
+  it('renderiza bloco de especificação quando payload contém dados', () => {
+    mockProdutoDetailQuery({
+      data: {
+        ...produto,
+        categoria_nome: 'CONTATORA',
+        especificacao_contatora: {
+          corrente_ac3_a: '9.0',
+          corrente_ac1_a: '12.0',
+          tensao_bobina_v: 24,
+          tipo_corrente_bobina: 'CC',
+          modo_montagem: 'TRILHO_DIN',
+        },
+      },
+    })
+    renderProdutoDetailPage('pr1')
+    expect(screen.getByText(/Especificação/i)).toBeInTheDocument()
+    expect(screen.getByText('9.0')).toBeInTheDocument()
   })
 })
