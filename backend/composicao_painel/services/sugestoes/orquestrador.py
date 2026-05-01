@@ -11,9 +11,17 @@ from composicao_painel.services.sugestoes.contatoras import (
 from composicao_painel.services.sugestoes.disjuntores_motor import (
     gerar_sugestoes_disjuntores_motor,
 )
+from composicao_painel.services.sugestoes.pendencias_sem_regra import (
+    sincronizar_pendencias_cargas_sem_regra_catalogo,
+)
 
-from cargas.models import CargaMotor
-from core.choices.cargas import TipoProtecaoMotorChoices
+from cargas.models import Carga, CargaMotor, CargaResistencia
+from core.choices.cargas import (
+    TipoAcionamentoResistenciaChoices,
+    TipoCargaChoices,
+    TipoProtecaoMotorChoices,
+    TipoProtecaoResistenciaChoices,
+)
 
 
 ETAPAS_GERACAO_BASE = [
@@ -28,15 +36,46 @@ def limpar_sugestoes_projeto(projeto):
     print(f"[ORQUESTRADOR] Registros removidos: {deletados}")
 
 
+def projeto_precisa_contatoras(projeto) -> bool:
+    """
+    Indica se o projeto tem cargas que podem gerar sugestão de contatora:
+    alguma carga MOTOR, ou resistência com tipo_acionamento CONTATOR.
+    """
+    tem_motor = Carga.objects.filter(
+        projeto=projeto,
+        ativo=True,
+        tipo=TipoCargaChoices.MOTOR,
+    ).exists()
+    tem_resistencia_contator = CargaResistencia.objects.filter(
+        carga__projeto=projeto,
+        carga__ativo=True,
+        carga__tipo=TipoCargaChoices.RESISTENCIA,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+    ).exists()
+    existe = tem_motor or tem_resistencia_contator
+
+    print(
+        "[ORQUESTRADOR] projeto_precisa_contatoras = "
+        f"{existe} para projeto {projeto.id}"
+    )
+    return existe
+
+
 def projeto_tem_motor_com_disjuntor_motor(projeto) -> bool:
     """
-    Verifica se existe ao menos um motor do projeto cuja proteção
-    seja DISJUNTOR_MOTOR.
+    Verifica se o projeto exige geração de sugestões de disjuntor motor:
+    motor com proteção disjuntor motor ou resistência com tipo_protecao
+    DISJUNTOR_MOTOR.
     """
-    existe = CargaMotor.objects.filter(
+    existe_motor = CargaMotor.objects.filter(
         carga__projeto=projeto,
         tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
     ).exists()
+    existe_resistencia = CargaResistencia.objects.filter(
+        carga__projeto=projeto,
+        tipo_protecao=TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR,
+    ).exists()
+    existe = existe_motor or existe_resistencia
 
     print(
         "[ORQUESTRADOR] projeto_tem_motor_com_disjuntor_motor = "
@@ -144,12 +183,15 @@ def gerar_sugestoes_painel(projeto, limpar_antes=False):
 
     total_descartadas_aprovadas = remover_sugestoes_ja_aprovadas(projeto)
 
+    pendencias_sem_regra = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+
     resultado_final = {
         "projeto_id": projeto.id,
         "total_sugestoes": len(sugestoes_geradas),
         "sugestoes": sugestoes_geradas,
         "erros": erros,
         "sugestoes_descartadas_aprovadas": total_descartadas_aprovadas,
+        "pendencias_cargas_sem_regra_catalogo": len(pendencias_sem_regra),
     }
 
     print("-" * 100)

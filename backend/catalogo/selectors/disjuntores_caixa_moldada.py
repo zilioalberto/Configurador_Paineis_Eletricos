@@ -8,7 +8,7 @@ from core.choices.produtos import CategoriaProdutoNomeChoices
 
 def selecionar_disjuntores_caixa_moldada(
     corrente_nominal: Decimal | float | int,
-    tipo_montagem: str | None = None,
+    modo_montagem: str | None = None,
     niveis: int | None = 1,
 ) -> QuerySet[Produto]:
     """
@@ -16,7 +16,7 @@ def selecionar_disjuntores_caixa_moldada(
 
     Regras:
     - corrente_nominal_a >= corrente_nominal
-    - opcionalmente filtra por tipo_montagem
+    - opcionalmente filtra por modo_montagem
     - limita os resultados aos primeiros 'niveis' de corrente compatível
 
     Exemplo:
@@ -38,9 +38,9 @@ def selecionar_disjuntores_caixa_moldada(
         especificacao_disjuntor_caixa_moldada__corrente_nominal_a__gte=corrente_nominal,
     )
 
-    if tipo_montagem:
+    if modo_montagem:
         qs_base = qs_base.filter(
-            especificacao_disjuntor_caixa_moldada__tipo_montagem=tipo_montagem
+            especificacao_disjuntor_caixa_moldada__modo_montagem=modo_montagem
         )
 
     qs_base = qs_base.select_related("especificacao_disjuntor_caixa_moldada")

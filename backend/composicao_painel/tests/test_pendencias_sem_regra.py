@@ -1,0 +1,111 @@
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+from cargas.models import Carga
+from composicao_painel.models import PendenciaItem
+from composicao_painel.services.sugestoes.pendencias_sem_regra import (
+    sincronizar_pendencias_cargas_sem_regra_catalogo,
+)
+from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
+from core.choices.cargas import (
+    TipoAcionamentoResistenciaChoices,
+    TipoCargaChoices,
+    TipoProtecaoResistenciaChoices,
+)
+
+
+@pytest.mark.django_db
+def test_resistencia_fusivel_rele_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSR", codigo="13001-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R01",
+        descricao="Res",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    resistencia_mock = SimpleNamespace(
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    with patch(
+        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
+        return_value=resistencia_mock,
+    ):
+        criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 1
+    assert PendenciaItem.objects.filter(projeto=projeto, carga=carga).count() == 1
+    p = criadas[0]
+    assert p.categoria_produto == CategoriaProdutoNomeChoices.SEM_REGRA_SUGESTAO_AUTOMATICA
+    assert p.parte_painel == PartesPainelChoices.PROTECAO_GERAL
+
+
+@pytest.mark.django_db
+def test_resistencia_contator_nao_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSR2", codigo="13002-26", tensao_nominal=TensaoChoices.V380)
+    Carga.objects.create(
+        projeto=projeto,
+        tag="R02",
+        descricao="Res",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    resistencia_mock = SimpleNamespace(
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    with patch(
+        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
+        return_value=resistencia_mock,
+    ):
+        criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 0
+
+
+@pytest.mark.django_db
+def test_motor_nao_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSM", codigo="13003-26", tensao_nominal=TensaoChoices.V380)
+    Carga.objects.create(
+        projeto=projeto,
+        tag="M01",
+        descricao="Motor",
+        tipo=TipoCargaChoices.MOTOR,
+        quantidade=1,
+    )
+
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 0
+
+
+@pytest.mark.django_db
+def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_projeto):
+    """Segunda sincronização sem pendências quando antes havia registro."""
+    projeto = criar_projeto(nome="PSR3", codigo="13004-26", tensao_nominal=TensaoChoices.V380)
+    Carga.objects.create(
+        projeto=projeto,
+        tag="R03",
+        descricao="Res",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    rele_fusivel = SimpleNamespace(
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    com_contator = SimpleNamespace(
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    with patch(
+        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
+        return_value=rele_fusivel,
+    ):
+        assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 1
+    with patch(
+        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
+        return_value=com_contator,
+    ):
+        assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 0
+    assert PendenciaItem.objects.filter(projeto=projeto).count() == 0

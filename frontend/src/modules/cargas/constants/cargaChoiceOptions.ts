@@ -40,12 +40,12 @@ export const tipoProtecaoMotorOptions = [
   { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
   { value: 'RELE_SOBRECARGA', label: 'Relé de sobrecarga' },
   { value: 'FUSIVEL', label: 'Fusível' },
-  { value: 'MINI_DISJUNTOR', label: 'Mini disjuntor' },
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
   { value: 'FUSIVEL_ULTRARRAPIDO', label: 'Fusível ultrarrápido' },
 ] as const
 
 export const tipoProtecaoValvulaOptions = [
-  { value: 'MINI_DISJUNTOR', label: 'Mini disjuntor' },
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
   { value: 'BORNE_FUSIVEL', label: 'Borne fusível' },
   { value: 'SEM_PROTECAO', label: 'Sem proteção' },
 ] as const
@@ -60,7 +60,7 @@ export const tipoAcionamentoValvulaOptions = [
 export const tipoProtecaoResistenciaOptions = [
   { value: 'DISJUNTOR_MOTOR', label: 'Disjuntor motor' },
   { value: 'FUSIVEL_ULTRARRAPIDO', label: 'Fusível ultrarrápido' },
-  { value: 'MINI_DISJUNTOR', label: 'Mini disjuntor' },
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
 ] as const
 
 export const tipoAcionamentoResistenciaOptions = [

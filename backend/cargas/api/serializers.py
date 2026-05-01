@@ -24,7 +24,6 @@ TIPO_TO_KEY = {
     TipoCargaChoices.SENSOR: "sensor",
     TipoCargaChoices.TRANSDUTOR: "transdutor",
     TipoCargaChoices.TRANSMISSOR: None,
-    TipoCargaChoices.OUTRO: None,
 }
 
 MODEL_BY_KEY = {

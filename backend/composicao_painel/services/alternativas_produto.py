@@ -48,6 +48,10 @@ def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produt
                 modo = prod_ref.especificacao_contatora.modo_montagem
             except Exception:
                 modo = None
+        tipo_acionamento = None
+        if sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
+            r = getattr(sugestao.carga, "resistencia", None)
+            tipo_acionamento = getattr(r, "tipo_acionamento", None) if r else None
         return selecionar_contatoras(
             tipo_carga=sugestao.carga.tipo,
             corrente_nominal=corrente,
@@ -55,6 +59,7 @@ def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produt
             tipo_corrente_comando=projeto.tipo_corrente_comando,
             modo_montagem=modo,
             niveis=0,
+            tipo_acionamento=tipo_acionamento,
         )
 
     if cat == CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR:
@@ -67,10 +72,17 @@ def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produt
                 modo = prod_ref.especificacao_disjuntor_motor.modo_montagem
             except Exception:
                 modo = None
+        tipo_carga = sugestao.carga.tipo if sugestao.carga_id else None
+        tipo_protecao = None
+        if sugestao.carga and sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
+            r = getattr(sugestao.carga, "resistencia", None)
+            tipo_protecao = getattr(r, "tipo_protecao", None) if r else None
         return selecionar_disjuntores_motor(
             corrente_nominal=corrente,
             modo_montagem=modo,
             niveis=0,
+            tipo_carga=tipo_carga,
+            tipo_protecao=tipo_protecao,
         )
 
     if cat == CategoriaProdutoNomeChoices.SECCIONADORA:
@@ -98,13 +110,13 @@ def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produt
             try:
                 spec = getattr(prod_ref, "especificacao_disjuntor_caixa_moldada", None)
                 if spec is not None:
-                    tipo_m = spec.tipo_montagem
+                    tipo_m = spec.modo_montagem
             except Exception:
                 tipo_m = None
         try:
             return selecionar_disjuntores_caixa_moldada(
                 corrente_nominal=corrente,
-                tipo_montagem=tipo_m,
+                modo_montagem=tipo_m,
                 niveis=0,
             )
         except FieldError:

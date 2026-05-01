@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db.models import F, ExpressionWrapper, DecimalField, QuerySet
 
 from catalogo.models import Produto
+from core.choices.cargas import TipoCargaChoices, TipoProtecaoResistenciaChoices
 from core.choices.produtos import CategoriaProdutoNomeChoices
 
 
@@ -10,9 +11,14 @@ def selecionar_disjuntores_motor(
     corrente_nominal: Decimal | float | int,
     modo_montagem: str | None = None,
     niveis: int | None = 1,
+    tipo_carga: str | None = None,
+    tipo_protecao: str | None = None,
 ) -> QuerySet[Produto]:
     """
     Retorna disjuntores motor compatíveis com a corrente informada.
+
+    Quando tipo_carga é RESISTENCIA, só aplica se tipo_protecao (CargaResistencia)
+    for DISJUNTOR_MOTOR; caso contrário retorna vazio.
 
     Regras:
     - faixa_ajuste_min_a <= corrente_nominal <= faixa_ajuste_max_a
@@ -33,6 +39,10 @@ def selecionar_disjuntores_motor(
 
     if corrente_nominal is None:
         return Produto.objects.none()
+
+    if tipo_carga == TipoCargaChoices.RESISTENCIA:
+        if tipo_protecao != TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR:
+            return Produto.objects.none()
 
     qs_base = Produto.objects.filter(
         ativo=True,

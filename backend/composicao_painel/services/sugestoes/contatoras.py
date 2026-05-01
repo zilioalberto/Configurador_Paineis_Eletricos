@@ -12,7 +12,7 @@ from core.choices import (
     StatusPendenciaChoices,
     CategoriaProdutoNomeChoices,
 )
-from core.choices.cargas import TipoCargaChoices
+from core.choices.cargas import TipoAcionamentoResistenciaChoices, TipoCargaChoices
 
 
 def _validar_projeto_contatora(projeto) -> None:
@@ -40,6 +40,12 @@ def _limpar_escopo_contatora_carga(projeto, carga) -> None:
 def processar_sugestao_contatora_para_carga(projeto, carga) -> Optional[SugestaoItem]:
     """
     Gera ou atualiza sugestão/pendência de contatora para uma única carga.
+
+    - MOTOR: segue a lógica de contatora de acionamento (AC3).
+    - RESISTENCIA: só aplica se CargaResistencia.tipo_acionamento for CONTATOR
+      (alinhado a catalogo.selectors.selecionar_contatoras); caso contrário
+      limpa o escopo desta carga e não gera sugestão.
+
     Não remove registros de outras cargas.
     """
     _validar_projeto_contatora(projeto)
@@ -50,6 +56,7 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> Optional[Sugestao
 
     corrente_referencia = None
     campo_catalogo = None
+    tipo_acionamento_resistencia = None
 
     if carga.tipo == TipoCargaChoices.MOTOR:
         print("[CONTATORAS] Carga do tipo MOTOR")
@@ -122,10 +129,23 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> Optional[Sugestao
 
         corrente_referencia = carga_resistencia.corrente_calculada_a
         campo_catalogo = "corrente_ac1_a"
+        tipo_acionamento_resistencia = carga_resistencia.tipo_acionamento
 
     else:
         print(
             f"[CONTATORAS] Tipo de carga {carga.tipo} não tratado para contatora. Pulando."
+        )
+        return None
+
+    if (
+        carga.tipo == TipoCargaChoices.RESISTENCIA
+        and tipo_acionamento_resistencia
+        != TipoAcionamentoResistenciaChoices.CONTATOR
+    ):
+        _limpar_escopo_contatora_carga(projeto, carga)
+        print(
+            "[CONTATORAS] Resistência sem acionamento por contator; "
+            "não gera sugestão de contatora."
         )
         return None
 
@@ -167,6 +187,7 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> Optional[Sugestao
         tipo_corrente_comando=projeto.tipo_corrente_comando,
         modo_montagem=None,
         niveis=1,
+        tipo_acionamento=tipo_acionamento_resistencia,
     )
 
     opcoes_lista = list(opcoes)
@@ -174,10 +195,17 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> Optional[Sugestao
         f"[CONTATORAS] Quantidade de opções retornadas pelo selector: {len(opcoes_lista)}"
     )
 
+    linha_acionamento_res = ""
+    if carga.tipo == TipoCargaChoices.RESISTENCIA and tipo_acionamento_resistencia:
+        linha_acionamento_res = (
+            f"Tipo de acionamento (resistência): {tipo_acionamento_resistencia}\n"
+        )
+
     memoria_calculo = (
         f"[CONTATORA]\n"
         f"Carga: {carga}\n"
         f"Tipo de carga: {carga.tipo}\n"
+        f"{linha_acionamento_res}"
         f"Corrente de referência: {corrente_referencia} A\n"
         f"Campo do catálogo considerado: {campo_catalogo}\n"
         f"Tensão bobina requerida: {projeto.tensao_comando} V\n"
@@ -246,6 +274,10 @@ def reprocessar_contatora_para_carga(projeto, carga) -> Optional[SugestaoItem]:
 def gerar_sugestoes_contatoras(projeto):
     """
     Gera sugestões de contatoras para todas as cargas ativas do projeto.
+
+    Por carga: MOTOR usa contatora de comando AC3; RESISTENCIA só se
+    tipo_acionamento na CargaResistencia for CONTATOR.
+
     Remove antes todas as sugestões/pendências de contatora do projeto.
     """
     print("\n" + "=" * 100)

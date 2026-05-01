@@ -7,11 +7,7 @@ class TipoCargaChoices(models.TextChoices):
     RESISTENCIA = "RESISTENCIA", "Resistência"
     SENSOR = "SENSOR", "Sensor"
     TRANSDUTOR = "TRANSDUTOR", "Transdutor"
-    TRANSMISSOR = "TRANSMISSOR", "Transmissor"
-    OUTRO = "OUTRO", "Outro"
-
-    
-    
+    TRANSMISSOR = "TRANSMISSOR", "Transmissor"   
 
 
 class TipoPartidaMotorChoices(models.TextChoices):
@@ -26,13 +22,13 @@ class TipoProtecaoMotorChoices(models.TextChoices):
     RELE_SOBRECARGA = "RELE_SOBRECARGA", "Relé de Sobrecarga"
     FUSIVEL = "FUSIVEL", "Fusível"
     FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
-    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
+    MINIDISJUNTOR = "MINIDISJUNTOR", "Minidisjuntor"
 
 
 class TipoProtecaoResistenciaChoices(models.TextChoices):
     DISJUNTOR_MOTOR = "DISJUNTOR_MOTOR", "Disjuntor Motor"
     FUSIVEL_ULTRARRAPIDO = "FUSIVEL_ULTRARRAPIDO", "Fusível Ultrarrápido"
-    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini Disjuntor"
+    MINIDISJUNTOR = "MINIDISJUNTOR", "Minidisjuntor"
 
     
 class TipoAcionamentoResistenciaChoices(models.TextChoices):
@@ -57,7 +53,7 @@ class TipoValvulaChoices(models.TextChoices):
     OUTRA = "OUTRA", "Outra"
 
 class TipoProtecaoValvulaChoices(models.TextChoices):
-    MINI_DISJUNTOR = "MINI_DISJUNTOR", "Mini disjuntor"
+    MINIDISJUNTOR = "MINIDISJUNTOR", "Minidisjuntor"
     BORNE_FUSIVEL = "BORNE_FUSIVEL", "Borne Fusível"
     SEM_PROTECAO = "SEM_PROTECAO", "Sem proteção"
 

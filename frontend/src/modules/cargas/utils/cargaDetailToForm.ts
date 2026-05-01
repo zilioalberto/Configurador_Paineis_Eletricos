@@ -58,7 +58,7 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
       tensao_alimentacao: num(d.valvula.tensao_alimentacao, 24),
       tipo_corrente: str(d.valvula.tipo_corrente, 'CC') as 'CA' | 'CC',
       corrente_consumida_ma: str(d.valvula.corrente_consumida_ma, '200.00'),
-      tipo_protecao: str(d.valvula.tipo_protecao, 'MINI_DISJUNTOR'),
+      tipo_protecao: str(d.valvula.tipo_protecao, 'MINIDISJUNTOR'),
       tipo_acionamento: str(d.valvula.tipo_acionamento, 'SOLENOIDE_DIRETO'),
     }
   } else if (d.tipo === 'VALVULA') {
@@ -69,7 +69,7 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
     nested.resistencia = {
       numero_fases: num(d.resistencia.numero_fases, 3),
       tensao_resistencia: num(d.resistencia.tensao_resistencia, 380),
-      tipo_protecao: str(d.resistencia.tipo_protecao, 'MINI_DISJUNTOR'),
+      tipo_protecao: str(d.resistencia.tipo_protecao, 'MINIDISJUNTOR'),
       tipo_acionamento: str(d.resistencia.tipo_acionamento, 'CONTATOR'),
       potencia_kw: str(d.resistencia.potencia_kw, '1.000'),
     }

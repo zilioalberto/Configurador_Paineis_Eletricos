@@ -36,6 +36,7 @@ class Produto(
     categoria = models.CharField(
         max_length=50,
         choices=CategoriaProdutoNomeChoices.choices,
+        db_index=True,
     )
 
     unidade_medida = models.CharField(

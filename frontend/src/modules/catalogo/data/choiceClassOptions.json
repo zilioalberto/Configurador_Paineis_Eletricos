@@ -1,0 +1,1772 @@
+{
+  "CategoriaProdutoNomeChoices": [
+    {
+      "value": "CONTATORA",
+      "label": "Contatora"
+    },
+    {
+      "value": "DISJUNTOR_MOTOR",
+      "label": "Disjuntor Motor"
+    },
+    {
+      "value": "DISJUNTOR_CAIXA_MOLDADA",
+      "label": "Disjuntor Caixa Moldada"
+    },
+    {
+      "value": "MINIDISJUNTOR",
+      "label": "Minidisjuntor"
+    },
+    {
+      "value": "RELE_SOBRECARGA",
+      "label": "Relé de Sobrecarga"
+    },
+    {
+      "value": "SECCIONADORA",
+      "label": "Seccionadora"
+    },
+    {
+      "value": "FUSIVEL",
+      "label": "Fusível"
+    },
+    {
+      "value": "RELE_ESTADO_SOLIDO",
+      "label": "Relé Estado Sólido"
+    },
+    {
+      "value": "INVERSOR_FREQUENCIA",
+      "label": "Inversor de Frequência"
+    },
+    {
+      "value": "SOFT_STARTER",
+      "label": "Soft Starter"
+    },
+    {
+      "value": "BOTAO",
+      "label": "Botão de Comando"
+    },
+    {
+      "value": "CHAVE_SELETORA",
+      "label": "Chave Seletora"
+    },
+    {
+      "value": "SINALIZADOR",
+      "label": "Sinaleiro"
+    },
+    {
+      "value": "RELE_INTERFACE",
+      "label": "Relé de Interface"
+    },
+    {
+      "value": "TEMPORIZADOR",
+      "label": "Relé Temporizador"
+    },
+    {
+      "value": "CONTROLADOR_TEMPERATURA",
+      "label": "Controlador de Temperatura"
+    },
+    {
+      "value": "PLC",
+      "label": "PLC"
+    },
+    {
+      "value": "EXPANSAO_PLC",
+      "label": "Expansão PLC"
+    },
+    {
+      "value": "IHM",
+      "label": "Interface Homem Máquina (IHM)"
+    },
+    {
+      "value": "MODULO_COMUNICACAO",
+      "label": "Módulo de Comunicação"
+    },
+    {
+      "value": "GATEWAY",
+      "label": "Gateway"
+    },
+    {
+      "value": "SWITCH_REDE",
+      "label": "Switch Industrial"
+    },
+    {
+      "value": "FONTE_CHAVEADA",
+      "label": "Fonte Chaveada"
+    },
+    {
+      "value": "BORNE",
+      "label": "Borne"
+    },
+    {
+      "value": "BARRAMENTO",
+      "label": "Barramento"
+    },
+    {
+      "value": "CABO",
+      "label": "Cabo"
+    },
+    {
+      "value": "CANALETA",
+      "label": "Canaleta"
+    },
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PAINEL",
+      "label": "Painel"
+    },
+    {
+      "value": "CLIMATIZACAO",
+      "label": "Climatização"
+    },
+    {
+      "value": "SEM_REGRA_SUGESTAO_AUTOMATICA",
+      "label": "Sem regra de sugestão automática"
+    }
+  ],
+  "ClasseUtilizacaoFusivelChoices": [
+    {
+      "value": "gG",
+      "label": "Proteção geral"
+    },
+    {
+      "value": "aM",
+      "label": "Proteção de motor"
+    },
+    {
+      "value": "aR",
+      "label": "Proteção de semicondutores"
+    }
+  ],
+  "ConfiguracaoDisparadorDisjuntorCMChoices": [
+    {
+      "value": "TERMOMAGNETICO_IR_II_FIXOS",
+      "label": "Com disparador termomagnético, sobrecarga e curto-circuito fixos"
+    },
+    {
+      "value": "TERMOMAGNETICO_LI_IR_II_FIXOS",
+      "label": "Com disparador termomagnético, proteção LI, sobrecarga e curto-circuito fixos"
+    },
+    {
+      "value": "TERMOMAGNETICO_LI_IR_AJUSTAVEL_II_FIXO",
+      "label": "Com disparador termomagnético, proteção LI, sobrecarga ajustável e curto-circuito fixo"
+    },
+    {
+      "value": "TERMOMAGNETICO_LI_II_AJUSTAVEL",
+      "label": "Com disparador termomagnético, proteção LI e curto-circuito ajustável"
+    }
+  ],
+  "CorBotaoChoices": [
+    {
+      "value": "VERDE",
+      "label": "Verde"
+    },
+    {
+      "value": "VERMELHO",
+      "label": "Vermelho"
+    },
+    {
+      "value": "AMARELO",
+      "label": "Amarelo"
+    },
+    {
+      "value": "AZUL",
+      "label": "Azul"
+    },
+    {
+      "value": "PRETO",
+      "label": "Preto"
+    },
+    {
+      "value": "BRANCO",
+      "label": "Branco"
+    }
+  ],
+  "CorCaboChoices": [
+    {
+      "value": "PRETO",
+      "label": "Preto"
+    },
+    {
+      "value": "AZUL",
+      "label": "Azul"
+    },
+    {
+      "value": "AZUL_ESCURO",
+      "label": "Azul Escuro"
+    },
+    {
+      "value": "VERMELHO",
+      "label": "Vermelho"
+    },
+    {
+      "value": "BRANCO",
+      "label": "Branco"
+    },
+    {
+      "value": "VERDE_AMARELO",
+      "label": "Verde/Amarelo"
+    },
+    {
+      "value": "VERDE",
+      "label": "Verde"
+    },
+    {
+      "value": "AMARELO",
+      "label": "Amarelo"
+    },
+    {
+      "value": "MARROM",
+      "label": "Marrom"
+    },
+    {
+      "value": "CINZA",
+      "label": "Cinza"
+    }
+  ],
+  "CorCanaletaChoices": [
+    {
+      "value": "CINZA",
+      "label": "Cinza"
+    },
+    {
+      "value": "BRANCA",
+      "label": "Branca"
+    },
+    {
+      "value": "AZUL_PETROLEO",
+      "label": "Azul Petróleo"
+    }
+  ],
+  "CorPainelChoices": [
+    {
+      "value": "RAL7035",
+      "label": "RAL 7035 (cinza claro)"
+    },
+    {
+      "value": "RAL7032",
+      "label": "RAL 7032 (bege)"
+    }
+  ],
+  "CorManoplaChaveSeletoraChoices": [
+    {
+      "value": "PRETO",
+      "label": "Preto"
+    },
+    {
+      "value": "VERMELHO",
+      "label": "Vermelho"
+    },
+    {
+      "value": "AZUL",
+      "label": "Azul"
+    },
+    {
+      "value": "VERDE",
+      "label": "Verde"
+    }
+  ],
+  "CorManoplaChoices": [
+    {
+      "value": "PUNHO_PRETO",
+      "label": "Punho Preto"
+    },
+    {
+      "value": "PUNHO_VERMELHO",
+      "label": "Punho Vermelho"
+    }
+  ],
+  "CorSinalizadorChoices": [
+    {
+      "value": "VERMELHO",
+      "label": "Vermelho"
+    },
+    {
+      "value": "VERDE",
+      "label": "Verde"
+    },
+    {
+      "value": "AMBAR",
+      "label": "Âmbar"
+    },
+    {
+      "value": "BRANCO",
+      "label": "Branco"
+    },
+    {
+      "value": "AZUL",
+      "label": "Azul"
+    }
+  ],
+  "CurvaDisparoMiniDisjuntorChoices": [
+    {
+      "value": "B",
+      "label": "Curva B"
+    },
+    {
+      "value": "C",
+      "label": "Curva C"
+    },
+    {
+      "value": "D",
+      "label": "Curva D"
+    }
+  ],
+  "FamiliaPLCChoices": [
+    {
+      "value": "SIEMENS_S7_1200",
+      "label": "Siemens S7-1200"
+    },
+    {
+      "value": "SIEMENS_S7_1500",
+      "label": "Siemens S7-1500"
+    },
+    {
+      "value": "WEG_CLIC02",
+      "label": "WEG CLIC02"
+    },
+    {
+      "value": "SCHNEIDER_MODICON",
+      "label": "Schneider Modicon"
+    },
+    {
+      "value": "ROCKWELL_COMPACTLOGIX",
+      "label": "Rockwell CompactLogix"
+    },
+    {
+      "value": "OUTRA",
+      "label": "Outra"
+    }
+  ],
+  "FormatoFusivelChoices": [
+    {
+      "value": "NH",
+      "label": "NH"
+    },
+    {
+      "value": "CARTUCHO",
+      "label": "Cartucho"
+    }
+  ],
+  "FormatoTrilhoDINChoices": [
+    {
+      "value": "OMEGA",
+      "label": "Ômega"
+    },
+    {
+      "value": "C",
+      "label": "Perfil C"
+    },
+    {
+      "value": "G",
+      "label": "Perfil G"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "FusivelCartuchoTamanhoChoices": [
+    {
+      "value": "5x20",
+      "label": "5 x 20 mm"
+    },
+    {
+      "value": "6x30",
+      "label": "6 x 30 mm"
+    },
+    {
+      "value": "10x38",
+      "label": "10 x 38 mm"
+    },
+    {
+      "value": "14x51",
+      "label": "14 x 51 mm"
+    },
+    {
+      "value": "22x58",
+      "label": "22 x 58 mm"
+    }
+  ],
+  "FusivelNHTamanhoChoices": [
+    {
+      "value": "NH000",
+      "label": "NH000"
+    },
+    {
+      "value": "NH00",
+      "label": "NH00"
+    },
+    {
+      "value": "NH1",
+      "label": "NH1"
+    },
+    {
+      "value": "NH2",
+      "label": "NH2"
+    },
+    {
+      "value": "NH3",
+      "label": "NH3"
+    }
+  ],
+  "InterfaceFisicaGatewayChoices": [
+    {
+      "value": "ETHERNET",
+      "label": "Ethernet"
+    },
+    {
+      "value": "RS485",
+      "label": "RS-485"
+    },
+    {
+      "value": "RS232",
+      "label": "RS-232"
+    },
+    {
+      "value": "USB",
+      "label": "USB"
+    },
+    {
+      "value": "WIFI",
+      "label": "Wi-Fi"
+    }
+  ],
+  "MaterialBarramentoChoices": [
+    {
+      "value": "COBRE",
+      "label": "Cobre"
+    },
+    {
+      "value": "ALUMINIO",
+      "label": "Alumínio"
+    }
+  ],
+  "MaterialCanaletaChoices": [
+    {
+      "value": "PVC",
+      "label": "PVC"
+    },
+    {
+      "value": "METALICA",
+      "label": "Metálica"
+    }
+  ],
+  "MaterialCondutorChoices": [
+    {
+      "value": "COBRE",
+      "label": "Cobre"
+    },
+    {
+      "value": "ALUMINIO",
+      "label": "Alumínio"
+    }
+  ],
+  "MaterialFiltroArChoices": [
+    {
+      "value": "FIBRA_SINTETICA",
+      "label": "Fibra sintética"
+    },
+    {
+      "value": "ESPUMA",
+      "label": "Espuma"
+    },
+    {
+      "value": "METALICO",
+      "label": "Metálico"
+    },
+    {
+      "value": "POLIESTER",
+      "label": "Poliéster"
+    }
+  ],
+  "MaterialTrilhoDINChoices": [
+    {
+      "value": "ACO_GALVANIZADO",
+      "label": "Aço galvanizado"
+    },
+    {
+      "value": "ACO_INOX",
+      "label": "Aço inox"
+    },
+    {
+      "value": "ALUMINIO",
+      "label": "Alumínio"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "ModoMontagemChoices": [
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PLACA",
+      "label": "Placa de montagem"
+    },
+    {
+      "value": "PORTA",
+      "label": "Porta"
+    },
+    {
+      "value": "LATERAL",
+      "label": "Lateral do painel"
+    },
+    {
+      "value": "FUNDO",
+      "label": "Fundo do painel"
+    },
+    {
+      "value": "ACOPLADO_CONTATOR",
+      "label": "Acoplado ao contator"
+    }
+  ],
+  "NumeroFaseControleSoftStarterChoices": [
+    {
+      "value": "2F",
+      "label": "2 fases"
+    },
+    {
+      "value": "3F",
+      "label": "3 fases"
+    }
+  ],
+  "NumeroFasesInversorFrequenciaChoices": [
+    {
+      "value": "1F",
+      "label": "Monofásico (1F)"
+    },
+    {
+      "value": "3F",
+      "label": "Trifásico (3F)"
+    }
+  ],
+  "NumeroFasesReleEstadoSolidoChoices": [
+    {
+      "value": "1F",
+      "label": "Monofásico (1F)"
+    },
+    {
+      "value": "3F",
+      "label": "Trifásico (3F)"
+    }
+  ],
+  "NumeroPolosChoices": [
+    {
+      "value": "1P",
+      "label": "Monopolar (1P)"
+    },
+    {
+      "value": "2P",
+      "label": "Bipolar (2P)"
+    },
+    {
+      "value": "3P",
+      "label": "Tripolar (3P)"
+    },
+    {
+      "value": "4P",
+      "label": "Tetrapolar (4P)"
+    }
+  ],
+  "PadraoNormativoMiniDisjuntorChoices": [
+    {
+      "value": "IEC",
+      "label": "IEC"
+    },
+    {
+      "value": "UL",
+      "label": "UL"
+    }
+  ],
+  "ProtocoloComunicacaoChoices": [
+    {
+      "value": "PROFINET",
+      "label": "Profinet"
+    },
+    {
+      "value": "PROFIBUS",
+      "label": "Profibus"
+    },
+    {
+      "value": "MODBUS_TCP",
+      "label": "Modbus TCP"
+    },
+    {
+      "value": "MODBUS_RTU",
+      "label": "Modbus RTU"
+    },
+    {
+      "value": "ETHERNET_IP",
+      "label": "Ethernet/IP"
+    },
+    {
+      "value": "OPC_UA",
+      "label": "OPC UA"
+    },
+    {
+      "value": "SERIAL",
+      "label": "Serial"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "ProtocoloIHMChoices": [
+    {
+      "value": "PROFINET",
+      "label": "Profinet"
+    },
+    {
+      "value": "MODBUS_TCP",
+      "label": "Modbus TCP"
+    },
+    {
+      "value": "MODBUS_RTU",
+      "label": "Modbus RTU"
+    },
+    {
+      "value": "ETHERNET_IP",
+      "label": "EtherNet/IP"
+    },
+    {
+      "value": "OPC_UA",
+      "label": "OPC UA"
+    },
+    {
+      "value": "SERIAL",
+      "label": "Serial"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "ProtocoloIndustrialChoices": [
+    {
+      "value": "MODBUS_TCP",
+      "label": "Modbus TCP"
+    },
+    {
+      "value": "MODBUS_RTU",
+      "label": "Modbus RTU"
+    },
+    {
+      "value": "PROFINET",
+      "label": "Profinet"
+    },
+    {
+      "value": "ETHERNET_IP",
+      "label": "EtherNet/IP"
+    },
+    {
+      "value": "PROFIBUS",
+      "label": "Profibus"
+    },
+    {
+      "value": "CANOPEN",
+      "label": "CANopen"
+    },
+    {
+      "value": "OPC_UA",
+      "label": "OPC UA"
+    },
+    {
+      "value": "MQTT",
+      "label": "MQTT"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoAcionamentoBotaoChoices": [
+    {
+      "value": "MOMENTANEO",
+      "label": "Momentâneo"
+    },
+    {
+      "value": "MANTIDO",
+      "label": "Mantido"
+    }
+  ],
+  "TipoAcionamentoBotaoModoChoices": [
+    {
+      "value": "MOMENTANEO",
+      "label": "Momentâneo"
+    },
+    {
+      "value": "RETENCAO",
+      "label": "Com retenção"
+    }
+  ],
+  "TipoAcionamentoChaveSeletoraChoices": [
+    {
+      "value": "RETENTIVO",
+      "label": "Retentivo"
+    },
+    {
+      "value": "MOMENTANEO",
+      "label": "Momentâneo"
+    }
+  ],
+  "TipoAplicacaoSoftStarterChoices": [
+    {
+      "value": "NORMAL",
+      "label": "Geral / normal"
+    },
+    {
+      "value": "BOMBA",
+      "label": "Bomba"
+    },
+    {
+      "value": "VENTILADOR",
+      "label": "Ventilador"
+    },
+    {
+      "value": "COMPRESSOR",
+      "label": "Compressor"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoBarramentoChoices": [
+    {
+      "value": "BARRA_CHATA",
+      "label": "Barra chata"
+    },
+    {
+      "value": "BARRAMENTO_PENTE",
+      "label": "Barramento pente"
+    },
+    {
+      "value": "BARRAMENTO_TRIFASICO",
+      "label": "Barramento trifásico"
+    },
+    {
+      "value": "BARRAMENTO_DISTRIBUICAO",
+      "label": "Barramento de distribuição"
+    }
+  ],
+  "TipoBorneChoices": [
+    {
+      "value": "PASSAGEM",
+      "label": "Passagem"
+    },
+    {
+      "value": "TERRA",
+      "label": "Terra"
+    },
+    {
+      "value": "FUSIVEL",
+      "label": "Fusível"
+    },
+    {
+      "value": "SECCIONAVEL",
+      "label": "Seccionável"
+    },
+    {
+      "value": "SENSOR",
+      "label": "Sensor"
+    },
+    {
+      "value": "AFERICAO",
+      "label": "Borne de aferição"
+    }
+  ],
+  "TipoBotaoChoices": [
+    {
+      "value": "PULSADOR",
+      "label": "Pulsador"
+    },
+    {
+      "value": "EMERGENCIA",
+      "label": "Emergência"
+    }
+  ],
+  "TipoBypassChoices": [
+    {
+      "value": "INTERNO",
+      "label": "Bypass interno"
+    },
+    {
+      "value": "EXTERNO",
+      "label": "Bypass externo"
+    },
+    {
+      "value": "SEM_BYPASS",
+      "label": "Sem bypass"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoCaboChoices": [
+    {
+      "value": "POTENCIA",
+      "label": "Potência"
+    },
+    {
+      "value": "COMANDO",
+      "label": "Comando"
+    },
+    {
+      "value": "SINAL",
+      "label": "Sinal"
+    },
+    {
+      "value": "REDE",
+      "label": "Rede / Comunicação"
+    },
+    {
+      "value": "ATERRAMENTO",
+      "label": "Aterramento"
+    }
+  ],
+  "TipoCanaletaChoices": [
+    {
+      "value": "FECHADA",
+      "label": "Fechada"
+    },
+    {
+      "value": "COM_RECORTE",
+      "label": "Com recorte"
+    }
+  ],
+  "TipoCargaReleEstadoSolidoChoices": [
+    {
+      "value": "RESISTIVA",
+      "label": "Resistiva"
+    },
+    {
+      "value": "INDUTIVA",
+      "label": "Indutiva"
+    }
+  ],
+  "TipoChaveSeletoraChoices": [
+    {
+      "value": "MANOPLA",
+      "label": "Manopla"
+    },
+    {
+      "value": "CHAVE",
+      "label": "Chave com chave"
+    }
+  ],
+  "TipoClimatizacaoChoices": [
+    {
+      "value": "VENTILACAO",
+      "label": "Ventilação"
+    },
+    {
+      "value": "EXAUSTOR",
+      "label": "Exaustor"
+    },
+    {
+      "value": "TROCADOR_CALOR",
+      "label": "Trocador de Calor"
+    },
+    {
+      "value": "AR_CONDICIONADO",
+      "label": "Ar-condicionado"
+    },
+    {
+      "value": "RESISTENCIA_AQUECIMENTO",
+      "label": "Resistência de Aquecimento"
+    }
+  ],
+  "TipoComutacaoReleEstadoSolidoChoices": [
+    {
+      "value": "ZERO_CROSS",
+      "label": "Zero-cross"
+    },
+    {
+      "value": "RANDOM",
+      "label": "Aleatória (random)"
+    }
+  ],
+  "TipoConexaoBorneChoices": [
+    {
+      "value": "PARAFUSO",
+      "label": "Parafuso"
+    },
+    {
+      "value": "MOLA",
+      "label": "Mola"
+    },
+    {
+      "value": "PUSH_IN",
+      "label": "Push-in"
+    }
+  ],
+  "TipoContatoChoices": [
+    {
+      "value": "NA",
+      "label": "Normalmente Aberto (NA)"
+    },
+    {
+      "value": "NF",
+      "label": "Normalmente Fechado (NF)"
+    },
+    {
+      "value": "REVERSIVEL",
+      "label": "Reversível (NA/NF)"
+    }
+  ],
+  "TipoControleSoftStarterChoices": [
+    {
+      "value": "CONTROLE_TENSAO",
+      "label": "Partida/controle por tensão"
+    },
+    {
+      "value": "CONTROLE_CORRENTE",
+      "label": "Partida/controle por corrente"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoControleTemperaturaChoices": [
+    {
+      "value": "ON_OFF",
+      "label": "On/Off"
+    },
+    {
+      "value": "PID",
+      "label": "PID"
+    }
+  ],
+  "TipoDisplayIHMChoices": [
+    {
+      "value": "TFT",
+      "label": "TFT"
+    },
+    {
+      "value": "LCD",
+      "label": "LCD"
+    },
+    {
+      "value": "OLED",
+      "label": "OLED"
+    }
+  ],
+  "TipoDissipadorReleEstadoSolidoChoices": [
+    {
+      "value": "INTEGRADO",
+      "label": "Integrado"
+    },
+    {
+      "value": "EXTERNO",
+      "label": "Externo"
+    }
+  ],
+  "TipoExpansaoPLCChoices": [
+    {
+      "value": "ENTRADA_DIGITAL",
+      "label": "Entrada Digital"
+    },
+    {
+      "value": "SAIDA_DIGITAL",
+      "label": "Saída Digital"
+    },
+    {
+      "value": "ENTRADA_ANALOGICA",
+      "label": "Entrada Analógica"
+    },
+    {
+      "value": "SAIDA_ANALOGICA",
+      "label": "Saída Analógica"
+    },
+    {
+      "value": "MISTA_DIGITAL",
+      "label": "Mista Digital"
+    },
+    {
+      "value": "MISTA_ANALOGICA",
+      "label": "Mista Analógica"
+    },
+    {
+      "value": "MISTA_GERAL",
+      "label": "Mista Geral"
+    }
+  ],
+  "TipoFiltroArChoices": [
+    {
+      "value": "ENTRADA_AR",
+      "label": "Entrada de ar"
+    },
+    {
+      "value": "SAIDA_AR",
+      "label": "Saída de ar"
+    },
+    {
+      "value": "EXAUSTAO",
+      "label": "Exaustão"
+    },
+    {
+      "value": "FILTRO_VENTILADOR",
+      "label": "Filtro ventilador"
+    }
+  ],
+  "TipoFixacaoSeccionadoraChoices": [
+    {
+      "value": "FURO_CENTRAL_M22_5",
+      "label": "Fixação por furo central M22,5"
+    },
+    {
+      "value": "QUATRO_FUROS",
+      "label": "Fixação por quatro furos"
+    }
+  ],
+  "TipoFuncaoTemporizadorChoices": [
+    {
+      "value": "ATRASO_ENERGIZACAO",
+      "label": "Atraso na energização"
+    },
+    {
+      "value": "ATRASO_DESENERGIZACAO",
+      "label": "Atraso na desenergização"
+    },
+    {
+      "value": "INTERMITENTE",
+      "label": "Intermitente"
+    },
+    {
+      "value": "MULTIFUNCAO",
+      "label": "Multifunção"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoFusivelChoices": [
+    {
+      "value": "ULTRARAPIDO",
+      "label": "Ultrarrápido"
+    },
+    {
+      "value": "RAPIDO",
+      "label": "Rápido"
+    },
+    {
+      "value": "RETARDADO",
+      "label": "Retardado"
+    }
+  ],
+  "TipoIsolacaoCaboChoices": [
+    {
+      "value": "PVC",
+      "label": "PVC"
+    },
+    {
+      "value": "HEPR",
+      "label": "HEPR"
+    },
+    {
+      "value": "EPR",
+      "label": "EPR"
+    },
+    {
+      "value": "XLPE",
+      "label": "XLPE"
+    }
+  ],
+  "TipoModuloComunicacaoChoices": [
+    {
+      "value": "INTERFACE_REDE",
+      "label": "Interface rede industrial"
+    },
+    {
+      "value": "INTERFACE_SERIAL",
+      "label": "Interface serial"
+    },
+    {
+      "value": "INTERFACE_FIELDBUS",
+      "label": "Interface fieldbus"
+    },
+    {
+      "value": "MULTIPROTOCOLO",
+      "label": "Multiprotocolo"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoModuloExpansaoPLCChoices": [
+    {
+      "value": "DI",
+      "label": "Entradas digitais"
+    },
+    {
+      "value": "DO",
+      "label": "Saídas digitais"
+    },
+    {
+      "value": "AI",
+      "label": "Entradas analógicas"
+    },
+    {
+      "value": "AO",
+      "label": "Saídas analógicas"
+    },
+    {
+      "value": "MIXTA",
+      "label": "Mista"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoMontagemReleChoices": [
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PLACA",
+      "label": "Placa"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoMontagemResistenciaChoices": [
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PARAFUSADA",
+      "label": "Parafusada"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoMontagemSwitchChoices": [
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PAINEL",
+      "label": "Painel"
+    },
+    {
+      "value": "RACK",
+      "label": "Rack"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoMontagemTemporizadorChoices": [
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "PORTA",
+      "label": "Porta"
+    },
+    {
+      "value": "PLACA",
+      "label": "Placa"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoMontagemVentiladorChoices": [
+    {
+      "value": "PAREDE",
+      "label": "Parede"
+    },
+    {
+      "value": "TETO",
+      "label": "Teto"
+    },
+    {
+      "value": "PORTA",
+      "label": "Porta"
+    },
+    {
+      "value": "CHASSI",
+      "label": "Chassi"
+    },
+    {
+      "value": "TRILHO_DIN",
+      "label": "Trilho DIN"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoPLCChoices": [
+    {
+      "value": "COMPACTO",
+      "label": "Compacto"
+    },
+    {
+      "value": "MODULAR",
+      "label": "Modular"
+    },
+    {
+      "value": "SAFETY",
+      "label": "Safety"
+    },
+    {
+      "value": "MOTION",
+      "label": "Motion"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoPortaRedeChoices": [
+    {
+      "value": "RJ45",
+      "label": "RJ45"
+    },
+    {
+      "value": "FIBRA",
+      "label": "Fibra"
+    },
+    {
+      "value": "MISTA",
+      "label": "Mista"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoProtecaoMiniDisjuntorChoices": [
+    {
+      "value": "TERMOMAGNETICO",
+      "label": "Termomagnético"
+    }
+  ],
+  "TipoReleInterfaceChoices": [
+    {
+      "value": "ELETROMECANICO",
+      "label": "Eletromecânico"
+    },
+    {
+      "value": "ESTADO_SOLIDO",
+      "label": "Estado sólido"
+    }
+  ],
+  "TipoResistenciaAquecimentoChoices": [
+    {
+      "value": "CONVENCIONAL",
+      "label": "Convencional"
+    },
+    {
+      "value": "PTC",
+      "label": "PTC autorregulável"
+    },
+    {
+      "value": "COM_VENTILACAO",
+      "label": "Com ventilação"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoSaidaControleChoices": [
+    {
+      "value": "RELE",
+      "label": "Relé"
+    },
+    {
+      "value": "SSR",
+      "label": "SSR"
+    },
+    {
+      "value": "ANALOGICA_4_20MA",
+      "label": "Analógica 4-20mA"
+    },
+    {
+      "value": "ANALOGICA_0_10V",
+      "label": "Analógica 0-10V"
+    }
+  ],
+  "TipoSensorTemperaturaChoices": [
+    {
+      "value": "PT100",
+      "label": "PT100"
+    },
+    {
+      "value": "TERMOPAR_J",
+      "label": "Termopar J"
+    },
+    {
+      "value": "TERMOPAR_K",
+      "label": "Termopar K"
+    },
+    {
+      "value": "NTC",
+      "label": "NTC"
+    },
+    {
+      "value": "UNIVERSAL",
+      "label": "Entrada universal"
+    }
+  ],
+  "TipoSinalAnalogicoChoices": [
+    {
+      "value": "4_20MA",
+      "label": "4-20 mA"
+    },
+    {
+      "value": "0_10V",
+      "label": "0-10 V"
+    },
+    {
+      "value": "UNIVERSAL",
+      "label": "Universal"
+    }
+  ],
+  "TipoSinalDigitalChoices": [
+    {
+      "value": "PNP",
+      "label": "PNP"
+    },
+    {
+      "value": "NPN",
+      "label": "NPN"
+    },
+    {
+      "value": "RELE",
+      "label": "Relé"
+    }
+  ],
+  "TipoSwitchRedeChoices": [
+    {
+      "value": "INDUSTRIAL",
+      "label": "Industrial"
+    },
+    {
+      "value": "GERENCIAVEL",
+      "label": "Gerenciável"
+    },
+    {
+      "value": "NAO_GERENCIAVEL",
+      "label": "Não gerenciável"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoTelaIHMChoices": [
+    {
+      "value": "TOUCH",
+      "label": "Touchscreen"
+    },
+    {
+      "value": "TECLADO",
+      "label": "Teclado"
+    },
+    {
+      "value": "TOUCH_TECLADO",
+      "label": "Touch + Teclado"
+    }
+  ],
+  "TipoTemporizadorChoices": [
+    {
+      "value": "RELE",
+      "label": "Relé temporizado"
+    },
+    {
+      "value": "ELETRONICO",
+      "label": "Eletrônico"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoTrilhoDINChoices": [
+    {
+      "value": "TS35",
+      "label": "TS 35"
+    },
+    {
+      "value": "TS32",
+      "label": "TS 32"
+    },
+    {
+      "value": "TS15",
+      "label": "TS 15"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoVentiladorChoices": [
+    {
+      "value": "AXIAL",
+      "label": "Axial"
+    },
+    {
+      "value": "CENTRIFUGO",
+      "label": "Centrífugo"
+    },
+    {
+      "value": "TANGENCIAL",
+      "label": "Tangencial"
+    },
+    {
+      "value": "HELICOIDEAL",
+      "label": "Helicoideal"
+    },
+    {
+      "value": "LINEAR",
+      "label": "Linear"
+    },
+    {
+      "value": "EXAUSTOR",
+      "label": "Exaustor"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "UnidadeMedidaChoices": [
+    {
+      "value": "UN",
+      "label": "Unidade"
+    },
+    {
+      "value": "MT",
+      "label": "Metro"
+    },
+    {
+      "value": "CJ",
+      "label": "Conjunto"
+    }
+  ],
+  "UnidadeTempoChoices": [
+    {
+      "value": "SEGUNDOS",
+      "label": "Segundos"
+    },
+    {
+      "value": "MINUTOS",
+      "label": "Minutos"
+    },
+    {
+      "value": "HORAS",
+      "label": "Horas"
+    }
+  ],
+  "VelocidadePortaRedeChoices": [
+    {
+      "value": "MBPS_10",
+      "label": "10 Mbps"
+    },
+    {
+      "value": "MBPS_100",
+      "label": "100 Mbps"
+    },
+    {
+      "value": "MBPS_1000",
+      "label": "1 Gbps"
+    },
+    {
+      "value": "MBPS_10000",
+      "label": "10 Gbps"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoCorrenteChoices": [
+    {
+      "value": "CA",
+      "label": "Corrente Alternada"
+    },
+    {
+      "value": "CC",
+      "label": "Corrente Contínua"
+    }
+  ],
+  "TipoSinaisAnalogicosChoices": [
+    {
+      "value": "TENSAO_0_10VCC",
+      "label": "Tensão 0-10 VCC"
+    },
+    {
+      "value": "TENSAO_M10_10VCC",
+      "label": "Tensão -10 a 10 VCC"
+    },
+    {
+      "value": "CORRENTE_0_20MA",
+      "label": "Corrente 0-20 mA"
+    },
+    {
+      "value": "CORRENTE_4_20MA",
+      "label": "Corrente 4-20 mA"
+    },
+    {
+      "value": "TEMPERATURA_PT100",
+      "label": "Temperatura PT100"
+    },
+    {
+      "value": "TEMPERATURA_RTD",
+      "label": "Temperatura RTD"
+    },
+    {
+      "value": "OUTROS",
+      "label": "Outros"
+    }
+  ],
+  "TipoSinalChoices": [
+    {
+      "value": "DIGITAL",
+      "label": "Digital"
+    },
+    {
+      "value": "ANALOGICO",
+      "label": "Analógico"
+    },
+    {
+      "value": "ANALOGICO_DIGITAL",
+      "label": "Analógico/Digital"
+    },
+    {
+      "value": "PULSO",
+      "label": "Pulso"
+    },
+    {
+      "value": "COMUNICACAO",
+      "label": "Comunicação"
+    }
+  ],
+  "UnidadePotenciaCorrenteChoices": [
+    {
+      "value": "CV",
+      "label": "CV"
+    },
+    {
+      "value": "KW",
+      "label": "kW"
+    },
+    {
+      "value": "A",
+      "label": "Ampere"
+    }
+  ],
+  "MaterialPainelChoices": [
+    {
+      "value": "ACO_CARBONO",
+      "label": "Aço carbono"
+    },
+    {
+      "value": "ACO_INOX",
+      "label": "Aço inox"
+    },
+    {
+      "value": "ALUMINIO",
+      "label": "Alumínio"
+    },
+    {
+      "value": "POLICARBONATO",
+      "label": "Policarbonato"
+    },
+    {
+      "value": "ABS",
+      "label": "ABS"
+    }
+  ],
+  "PartesPainelChoices": [
+    {
+      "value": "SECCIONAMENTO",
+      "label": "Seccionamento"
+    },
+    {
+      "value": "PROTECAO_GERAL",
+      "label": "Proteção geral"
+    },
+    {
+      "value": "PROTECAO_CARGA",
+      "label": "Proteção de carga"
+    },
+    {
+      "value": "ACIONAMENTO_CARGA",
+      "label": "Acionamento de carga"
+    },
+    {
+      "value": "ENTRADA_PRINCIPAL",
+      "label": "Entrada principal"
+    },
+    {
+      "value": "POTENCIA",
+      "label": "Potência"
+    },
+    {
+      "value": "COMANDO",
+      "label": "Comando"
+    },
+    {
+      "value": "BOTOEIRAS",
+      "label": "Botoeiras"
+    },
+    {
+      "value": "AUTOMACAO",
+      "label": "Automação"
+    },
+    {
+      "value": "BORNES",
+      "label": "Bornes"
+    },
+    {
+      "value": "CANALETAS",
+      "label": "Canaletas"
+    },
+    {
+      "value": "CLIMATIZACAO",
+      "label": "Climatização"
+    },
+    {
+      "value": "ILUMINACAO",
+      "label": "Iluminação"
+    },
+    {
+      "value": "TOMADA_SERVICO",
+      "label": "Tomada de serviço"
+    },
+    {
+      "value": "ESTRUTURA",
+      "label": "Estrutura"
+    },
+    {
+      "value": "IDENTIFICACAO",
+      "label": "Identificação"
+    },
+    {
+      "value": "ACESSORIOS",
+      "label": "Acessórios"
+    },
+    {
+      "value": "OUTROS",
+      "label": "Outros"
+    }
+  ],
+  "StatusProjetoChoices": [
+    {
+      "value": "EM_ANDAMENTO",
+      "label": "Em andamento"
+    },
+    {
+      "value": "FINALIZADO",
+      "label": "Finalizado"
+    }
+  ],
+  "TipoConexaoAlimetacaoChoices": [
+    {
+      "value": "BARRAMENTO",
+      "label": "Barramento"
+    },
+    {
+      "value": "BORNE",
+      "label": "Borne"
+    },
+    {
+      "value": "TOMADA",
+      "label": "Tomada"
+    },
+    {
+      "value": "DIRETO",
+      "label": "Direto"
+    },
+    {
+      "value": "OUTRO",
+      "label": "Outro"
+    }
+  ],
+  "TipoInstalacaoPainelChoices": [
+    {
+      "value": "SOBREPOR",
+      "label": "Sobrepor"
+    },
+    {
+      "value": "EMBUTIR",
+      "label": "Embutir"
+    },
+    {
+      "value": "PISO",
+      "label": "Piso"
+    },
+    {
+      "value": "AUTO_PORTANTE",
+      "label": "Autoportante"
+    }
+  ],
+  "TipoPainelCatalogoChoices": [
+    {
+      "value": "CAIXA_METALICA",
+      "label": "Caixa metálica"
+    },
+    {
+      "value": "CAIXA_PLASTICA",
+      "label": "Caixa plástica"
+    },
+    {
+      "value": "ARMARIO_METALICO",
+      "label": "Armário metálico"
+    },
+    {
+      "value": "PAINEL_MODULAR",
+      "label": "Painel modular"
+    }
+  ],
+  "TipoPainelChoices": [
+    {
+      "value": "AUTOMACAO",
+      "label": "Automação"
+    },
+    {
+      "value": "DISTRIBUICAO",
+      "label": "Distribuição"
+    }
+  ],
+  "TipoSeccionamentoChoices": [
+    {
+      "value": "NENHUM",
+      "label": "Sem seccionamento"
+    },
+    {
+      "value": "SECCIONADORA",
+      "label": "Seccionadora"
+    },
+    {
+      "value": "DISJUNTOR_CAIXA_MOLDADA",
+      "label": "Disjuntor Caixa Moldada"
+    }
+  ]
+}

@@ -42,12 +42,12 @@ def admin_client():
     return _auth_client(user.email, raw), user
 
 
-def _payload_carga_outro(projeto_id):
+def _payload_carga_transmissor(projeto_id):
     return {
         "projeto": str(projeto_id),
         "tag": "O99",
-        "descricao": "Carga outro",
-        "tipo": TipoCargaChoices.OUTRO,
+        "descricao": "Carga transmissor",
+        "tipo": TipoCargaChoices.TRANSMISSOR,
         "quantidade": 1,
         "local_instalacao": "",
         "observacoes": "",
@@ -73,7 +73,7 @@ class TestCargaViewSet:
             projeto=projeto,
             tag="O01",
             descricao="X",
-            tipo=TipoCargaChoices.OUTRO,
+            tipo=TipoCargaChoices.TRANSMISSOR,
             quantidade=1,
         )
         url = reverse("cargas-list")
@@ -86,10 +86,10 @@ class TestCargaViewSet:
         p1 = criar_projeto(nome="A", codigo="10002-26", tensao_nominal=TensaoChoices.V380)
         p2 = criar_projeto(nome="B", codigo="10003-26", tensao_nominal=TensaoChoices.V380)
         Carga.objects.create(
-            projeto=p1, tag="O02", descricao="A", tipo=TipoCargaChoices.OUTRO, quantidade=1
+            projeto=p1, tag="O02", descricao="A", tipo=TipoCargaChoices.TRANSMISSOR, quantidade=1
         )
         Carga.objects.create(
-            projeto=p2, tag="O03", descricao="B", tipo=TipoCargaChoices.OUTRO, quantidade=1
+            projeto=p2, tag="O03", descricao="B", tipo=TipoCargaChoices.TRANSMISSOR, quantidade=1
         )
         url = reverse("cargas-list")
         r = client.get(f"{url}?projeto={p1.id}")
@@ -102,7 +102,7 @@ class TestCargaViewSet:
         client, _ = admin_client
         projeto = criar_projeto(nome="C", codigo="10004-26", tensao_nominal=TensaoChoices.V380)
         url = reverse("cargas-list")
-        body = _payload_carga_outro(projeto.id)
+        body = _payload_carga_transmissor(projeto.id)
         r = client.post(url, body, format="json")
         assert r.status_code == 201
         cid = r.data["id"]
@@ -161,7 +161,7 @@ def test_create_sensor_analogico_sem_tipo_sinal_analogico_400(
     projeto = criar_projeto(nome="S", codigo="10006-26", tensao_nominal=TensaoChoices.V380)
     url = reverse("cargas-list")
     body = {
-        **_payload_carga_outro(projeto.id),
+        **_payload_carga_transmissor(projeto.id),
         "tag": "S01",
         "descricao": "Sensor",
         "tipo": TipoCargaChoices.SENSOR,
@@ -206,7 +206,7 @@ def test_carga_modelo_str(admin_client):
     _, user = admin_client
     modelo = CargaModelo.objects.create(
         nome="Modelo String",
-        tipo=TipoCargaChoices.OUTRO,
+        tipo=TipoCargaChoices.TRANSMISSOR,
         payload={},
         criado_por=user,
         atualizado_por=user,
@@ -225,7 +225,7 @@ def test_create_motor_soft_starter_com_tensao_diferente_retorna_mensagem_amigave
     )
     url = reverse("cargas-list")
     body = {
-        **_payload_carga_outro(projeto.id),
+        **_payload_carga_transmissor(projeto.id),
         "tag": "M02",
         "descricao": "Motor com tensão inválida",
         "tipo": TipoCargaChoices.MOTOR,
@@ -257,7 +257,7 @@ def test_create_resistencia_com_tensao_diferente_retorna_mensagem_amigavel(
     )
     url = reverse("cargas-list")
     body = {
-        **_payload_carga_outro(projeto.id),
+        **_payload_carga_transmissor(projeto.id),
         "tag": "R01",
         "descricao": "Resistência com tensão inválida",
         "tipo": TipoCargaChoices.RESISTENCIA,

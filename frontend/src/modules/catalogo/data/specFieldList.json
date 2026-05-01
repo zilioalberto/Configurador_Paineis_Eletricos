@@ -1,0 +1,1154 @@
+{
+  "CONTATORA": [
+    {
+      "name": "corrente_ac3_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "corrente_ac1_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tensao_bobina_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "tipo_corrente_bobina",
+      "django": "CharField"
+    },
+    {
+      "name": "contatos_aux_na",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "contatos_aux_nf",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "DISJUNTOR_MOTOR": [
+    {
+      "name": "faixa_ajuste_min_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "faixa_ajuste_max_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "contatos_aux_na",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "contatos_aux_nf",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "DISJUNTOR_CAIXA_MOLDADA": [
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "numero_polos",
+      "django": "CharField"
+    },
+    {
+      "name": "configuracao_disparador",
+      "django": "CharField"
+    },
+    {
+      "name": "capacidade_interrupcao_220v_ka",
+      "django": "DecimalField"
+    },
+    {
+      "name": "capacidade_interrupcao_380v_ka",
+      "django": "DecimalField"
+    },
+    {
+      "name": "capacidade_interrupcao_440v_ka",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_sobrecarga_ir_fixo_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_sobrecarga_ir_ajuste_min_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_sobrecarga_ir_ajuste_max_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_curto_ii_fixo_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_curto_ii_ajuste_min_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "disparador_curto_ii_ajuste_max_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "MINIDISJUNTOR": [
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "curva_disparo",
+      "django": "CharField"
+    },
+    {
+      "name": "numero_polos",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "RELE_SOBRECARGA": [
+    {
+      "name": "faixa_ajuste_min_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "faixa_ajuste_max_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "contatos_aux_na",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "contatos_aux_nf",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "SECCIONADORA": [
+    {
+      "name": "corrente_ac1_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "corrente_ac3_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tipo_montagem",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_fixacao",
+      "django": "CharField"
+    },
+    {
+      "name": "cor_manopla",
+      "django": "CharField"
+    }
+  ],
+  "FUSIVEL": [
+    {
+      "name": "tipo_fusivel",
+      "django": "CharField"
+    },
+    {
+      "name": "formato",
+      "django": "CharField"
+    },
+    {
+      "name": "tamanho",
+      "django": "CharField"
+    },
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "indicador_queima",
+      "django": "BooleanField"
+    }
+  ],
+  "RELE_ESTADO_SOLIDO": [
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "possui_dissipador",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tipo_dissipador",
+      "django": "CharField"
+    },
+    {
+      "name": "possui_ventilacao",
+      "django": "BooleanField"
+    },
+    {
+      "name": "potencia_dissipada_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tensao_ventilacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "numero_fases",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "INVERSOR_FREQUENCIA": [
+    {
+      "name": "potencia_nominal_kw",
+      "django": "DecimalField"
+    },
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tensao_entrada_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "numero_fases_entrada",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_saida_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "protocolo_comunicacao",
+      "django": "CharField"
+    }
+  ],
+  "SOFT_STARTER": [
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tensao_nominal_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "numero_fase_controle",
+      "django": "CharField"
+    },
+    {
+      "name": "protocolo_comunicacao",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "BOTAO": [
+    {
+      "name": "tipo_botao",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_acionamento",
+      "django": "CharField"
+    },
+    {
+      "name": "cor",
+      "django": "CharField"
+    },
+    {
+      "name": "diametro_furo_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "contatos_na",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "contatos_nf",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "iluminado",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tensao_iluminacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "grau_protecao_ip",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "CHAVE_SELETORA": [
+    {
+      "name": "tipo_seletor",
+      "django": "CharField"
+    },
+    {
+      "name": "numero_posicoes",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "tipo_acionamento",
+      "django": "CharField"
+    },
+    {
+      "name": "contatos_na",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "contatos_nf",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "diametro_furo_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "cor_manopla",
+      "django": "CharField"
+    },
+    {
+      "name": "iluminado",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tensao_iluminacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "grau_protecao_ip",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "SINALIZADOR": [
+    {
+      "name": "tensao_comando_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "cor",
+      "django": "CharField"
+    }
+  ],
+  "RELE_INTERFACE": [
+    {
+      "name": "tipo_rele",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_bobina_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "quantidade_contatos",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "tipo_contato",
+      "django": "CharField"
+    },
+    {
+      "name": "corrente_contato_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "possui_base",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_led_indicacao",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tipo_montagem",
+      "django": "CharField"
+    },
+    {
+      "name": "observacoes",
+      "django": "TextField"
+    }
+  ],
+  "TEMPORIZADOR": [
+    {
+      "name": "tipo_temporizador",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_funcao",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "corrente_contato_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "quantidade_contatos",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "tipo_montagem",
+      "django": "CharField"
+    },
+    {
+      "name": "observacoes",
+      "django": "TextField"
+    }
+  ],
+  "CONTROLADOR_TEMPERATURA": [
+    {
+      "name": "tipo_sensor",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_controle",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_saida_controle",
+      "django": "CharField"
+    },
+    {
+      "name": "quantidade_saidas",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "possui_saida_alarme",
+      "django": "BooleanField"
+    },
+    {
+      "name": "quantidade_saidas_alarme",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "dimensao_frontal_mm",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "PLC": [
+    {
+      "name": "familia",
+      "django": "CharField"
+    },
+    {
+      "name": "modelo_cpu",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "corrente_alimentacao_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "entradas_digitais",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "saidas_digitais",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "entradas_analogicas",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "tipo_entradas_analogicas",
+      "django": "CharField"
+    },
+    {
+      "name": "saidas_analogicas",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "tipo_saidas_analogicas",
+      "django": "CharField"
+    },
+    {
+      "name": "possui_ethernet",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_serial",
+      "django": "BooleanField"
+    },
+    {
+      "name": "protocolo_principal",
+      "django": "CharField"
+    },
+    {
+      "name": "suporta_expansao",
+      "django": "BooleanField"
+    },
+    {
+      "name": "quantidade_maxima_expansoes",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "possui_webserver",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_opc_ua",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_modbus_tcp",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_profinet",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_ethernet_ip",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_funcoes_safety",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_funcoes_motion",
+      "django": "BooleanField"
+    },
+    {
+      "name": "observacoes",
+      "django": "TextField"
+    }
+  ],
+  "EXPANSAO_PLC": [
+    {
+      "name": "tipo_expansao",
+      "django": "CharField"
+    },
+    {
+      "name": "familia_plc",
+      "django": "CharField"
+    },
+    {
+      "name": "entradas_digitais",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "saidas_digitais",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "entradas_analogicas",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "saidas_analogicas",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "tipo_sinal_digital",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_sinal_analogico",
+      "django": "CharField"
+    },
+    {
+      "name": "protocolo_comunicacao",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "IHM": [
+    {
+      "name": "tamanho_tela_pol",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tipo_tela",
+      "django": "CharField"
+    },
+    {
+      "name": "protocolo_comunicacao",
+      "django": "CharField"
+    },
+    {
+      "name": "possui_ethernet",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_serial",
+      "django": "BooleanField"
+    },
+    {
+      "name": "possui_usb",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "consumo_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "grau_protecao_ip_frontal",
+      "django": "CharField"
+    },
+    {
+      "name": "dimensao_recorte_mm",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "MODULO_COMUNICACAO": [
+    {
+      "name": "familia_plc",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_modulo",
+      "django": "CharField"
+    },
+    {
+      "name": "protocolo",
+      "django": "CharField"
+    },
+    {
+      "name": "interface_fisica",
+      "django": "CharField"
+    },
+    {
+      "name": "quantidade_portas",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "suporta_master",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_slave",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_client",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_server",
+      "django": "BooleanField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "GATEWAY": [
+    {
+      "name": "protocolo_entrada",
+      "django": "CharField"
+    },
+    {
+      "name": "protocolo_saida",
+      "django": "CharField"
+    },
+    {
+      "name": "interface_entrada",
+      "django": "CharField"
+    },
+    {
+      "name": "interface_saida",
+      "django": "CharField"
+    },
+    {
+      "name": "quantidade_portas_ethernet",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "quantidade_portas_serial",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "suporta_modbus_tcp",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_modbus_rtu",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_profinet",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_ethernet_ip",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_profibus",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_opc_ua",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_mqtt",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "tipo_corrente_alimentacao",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    },
+    {
+      "name": "observacao_protocolos",
+      "django": "TextField"
+    }
+  ],
+  "SWITCH_REDE": [
+    {
+      "name": "tipo_switch",
+      "django": "CharField"
+    },
+    {
+      "name": "quantidade_portas",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "quantidade_portas_rj45",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "quantidade_portas_fibra",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "tipo_porta",
+      "django": "CharField"
+    },
+    {
+      "name": "velocidade_porta",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "possui_poe",
+      "django": "BooleanField"
+    },
+    {
+      "name": "quantidade_portas_poe",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "gerenciavel",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_vlan",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_rstp",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_mrp",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_profinet",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_ethernet_ip",
+      "django": "BooleanField"
+    },
+    {
+      "name": "suporta_modbus_tcp",
+      "django": "BooleanField"
+    },
+    {
+      "name": "tipo_montagem",
+      "django": "CharField"
+    },
+    {
+      "name": "grau_protecao_ip",
+      "django": "CharField"
+    },
+    {
+      "name": "largura_mm",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "altura_mm",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "profundidade_mm",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "observacoes",
+      "django": "TextField"
+    }
+  ],
+  "FONTE_CHAVEADA": [
+    {
+      "name": "tensao_entrada_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "tipo_corrente_entrada",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_saida_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "tipo_corrente_saida",
+      "django": "CharField"
+    },
+    {
+      "name": "corrente_saida_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "potencia_saida_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "BORNE": [
+    {
+      "name": "tipo_borne",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_conexao",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_min_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "secao_max_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "numero_niveis",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "possui_fusivel",
+      "django": "BooleanField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "BARRAMENTO": [
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "material",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_barramento",
+      "django": "CharField"
+    },
+    {
+      "name": "numero_polos",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "largura_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "espessura_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "comprimento_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "capacidade_curto_circuito_ka",
+      "django": "DecimalField"
+    },
+    {
+      "name": "isolado",
+      "django": "BooleanField"
+    }
+  ],
+  "CABO": [
+    {
+      "name": "tipo_cabo",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "numero_condutores",
+      "django": "PositiveSmallIntegerField"
+    },
+    {
+      "name": "tensao_isolacao_v",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "corrente_admissivel_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "material_condutor",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_isolacao",
+      "django": "CharField"
+    },
+    {
+      "name": "cor",
+      "django": "CharField"
+    },
+    {
+      "name": "blindado",
+      "django": "BooleanField"
+    },
+    {
+      "name": "flexivel",
+      "django": "BooleanField"
+    }
+  ],
+  "CANALETA": [
+    {
+      "name": "tipo_canaleta",
+      "django": "CharField"
+    },
+    {
+      "name": "largura_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "altura_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "comprimento_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "area_util_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "material",
+      "django": "CharField"
+    },
+    {
+      "name": "cor",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ],
+  "TRILHO_DIN": [
+    {
+      "name": "tipo_trilho",
+      "django": "CharField"
+    },
+    {
+      "name": "comprimento_mm",
+      "django": "PositiveIntegerField"
+    },
+    {
+      "name": "material",
+      "django": "CharField"
+    },
+    {
+      "name": "perfurado",
+      "django": "BooleanField"
+    },
+    {
+      "name": "observacoes",
+      "django": "TextField"
+    }
+  ],
+  "PAINEL": [
+    {
+      "name": "tipo_painel",
+      "django": "CharField"
+    },
+    {
+      "name": "tipo_instalacao",
+      "django": "CharField"
+    },
+    {
+      "name": "material",
+      "django": "CharField"
+    },
+    {
+      "name": "grau_protecao_ip",
+      "django": "CharField"
+    },
+    {
+      "name": "profundidade_util_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "placa_largura_util_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "placa_altura_util_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "placa_acabamento",
+      "django": "CharField"
+    },
+    {
+      "name": "possui_flange",
+      "django": "BooleanField"
+    },
+    {
+      "name": "cor",
+      "django": "CharField"
+    }
+  ],
+  "CLIMATIZACAO": [
+    {
+      "name": "tipo_climatizacao",
+      "django": "CharField"
+    },
+    {
+      "name": "capacidade_refrigeracao_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "capacidade_aquecimento_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tensao_alimentacao_v",
+      "django": "IntegerField"
+    },
+    {
+      "name": "potencia_consumida_w",
+      "django": "DecimalField"
+    },
+    {
+      "name": "corrente_nominal_a",
+      "django": "DecimalField"
+    },
+    {
+      "name": "vazao_m3_h",
+      "django": "DecimalField"
+    },
+    {
+      "name": "grau_protecao_ip",
+      "django": "CharField"
+    },
+    {
+      "name": "modo_montagem",
+      "django": "CharField"
+    }
+  ]
+}
