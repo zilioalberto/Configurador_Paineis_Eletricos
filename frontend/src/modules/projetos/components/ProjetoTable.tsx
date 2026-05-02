@@ -100,7 +100,7 @@ export default function ProjetoTable({
                     to={`/projetos/${projeto.id}/fluxo/cargas`}
                     className="btn btn-sm btn-outline-info"
                   >
-                    Wizard
+                    Fluxo do painel
                   </Link>
 
                   {canEdit ? (

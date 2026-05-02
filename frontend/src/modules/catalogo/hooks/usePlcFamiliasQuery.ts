@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { catalogoQueryKeys } from '../catalogoQueryKeys'
-import { listarPlcFamilias } from '../services/plcFamiliaService'
+import {
+  listarPlcFamilias,
+  type ListarPlcFamiliasOptions,
+} from '../services/plcFamiliaService'
 
-export function usePlcFamiliasQuery() {
+export function usePlcFamiliasQuery(options?: ListarPlcFamiliasOptions) {
   return useQuery({
-    queryKey: catalogoQueryKeys.plcFamilias(),
-    queryFn: listarPlcFamilias,
+    queryKey: catalogoQueryKeys.plcFamilias(options?.apenasEspecificacaoPlc),
+    queryFn: () => listarPlcFamilias(options),
     staleTime: 60_000,
   })
 }

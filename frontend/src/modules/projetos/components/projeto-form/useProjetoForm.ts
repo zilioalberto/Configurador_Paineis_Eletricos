@@ -2,16 +2,29 @@ import { type SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import type { ProjetoFormData } from '../../types/projeto'
 import { projetoFormInitialState } from './formOptions'
 import type { ProjetoFormFieldChangeHandler } from './projetoFormSectionProps'
+import { mapearErrosValidacaoApi, validarProjetoFormulario } from './projetoFormValidation'
 
 type UseProjetoFormParams = {
   onSubmit: (data: ProjetoFormData) => Promise<void>
+  /** Chamado quando o envio falha e não há erros de campo mapeáveis (rede, permissão, etc.). */
+  onSubmitError?: (error: unknown) => void
   initialData?: ProjetoFormData
 }
 
-export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) {
+export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProjetoFormParams) {
   const [formData, setFormData] = useState<ProjetoFormData>(
     () => initialData ?? projetoFormInitialState
   )
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const clearFieldError = useCallback((fieldName: string) => {
+    setFieldErrors((prev) => {
+      if (!(fieldName in prev)) return prev
+      const next = { ...prev }
+      delete next[fieldName]
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     const c = initialData?.codigo
@@ -30,6 +43,7 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
 
   const handleFieldChange: ProjetoFormFieldChangeHandler = useCallback((event) => {
     const { name, value, type } = event.target
+    clearFieldError(name)
 
     if (type === 'checkbox' && event.target instanceof HTMLInputElement) {
       const checked = event.target.checked
@@ -52,6 +66,10 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
           updated.tipo_climatizacao = null
         }
 
+        if (name === 'possui_plc' && !checked) {
+          updated.familia_plc = null
+        }
+
         if (name === 'possui_seccionamento' && !checked) {
           updated.tipo_seccionamento = null
         }
@@ -69,7 +87,13 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
     }
 
     setFormData((prev) => {
-      const numericFields = ['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia']
+      const numericFields = [
+        'tensao_nominal',
+        'tensao_comando',
+        'numero_fases',
+        'frequencia',
+        'degraus_margem_bitola_condutores',
+      ]
       const updatedValue =
         name === 'responsavel'
           ? value === ''
@@ -83,7 +107,12 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
 
       const updated = {
         ...prev,
-        [name]: updatedValue,
+        [name]:
+          name === 'familia_plc'
+            ? value === ''
+              ? null
+              : value
+            : updatedValue,
       }
 
       if (name === 'tipo_corrente' && value === 'CC') {
@@ -100,7 +129,7 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
 
       return updated
     })
-  }, [])
+  }, [clearFieldError])
 
   const handleSubmit = useCallback(
     async (event: SyntheticEvent<HTMLFormElement>) => {
@@ -119,16 +148,34 @@ export function useProjetoForm({ onSubmit, initialData }: UseProjetoFormParams) 
         tipo_climatizacao: formData.possui_climatizacao
           ? formData.tipo_climatizacao
           : null,
+        familia_plc: formData.possui_plc ? formData.familia_plc : null,
         tipo_seccionamento: formData.possui_seccionamento
           ? formData.tipo_seccionamento
           : null,
         responsavel: formData.responsavel || null,
       }
 
-      await onSubmit(payload)
+      const clientErrors = validarProjetoFormulario(payload)
+      if (Object.keys(clientErrors).length > 0) {
+        setFieldErrors(clientErrors)
+        return
+      }
+
+      setFieldErrors({})
+
+      try {
+        await onSubmit(payload)
+      } catch (err) {
+        const serverErrors = mapearErrosValidacaoApi(err)
+        if (Object.keys(serverErrors).length > 0) {
+          setFieldErrors(serverErrors)
+          return
+        }
+        onSubmitError?.(err)
+      }
     },
-    [formData, onSubmit]
+    [formData, onSubmit, onSubmitError]
   )
 
-  return { formData, handleFieldChange, handleSubmit }
+  return { formData, fieldErrors, handleFieldChange, handleSubmit }
 }

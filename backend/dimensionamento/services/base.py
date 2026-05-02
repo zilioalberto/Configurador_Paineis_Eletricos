@@ -1,5 +1,6 @@
 from dimensionamento.models import ResumoDimensionamento
 
+from .circuitos import calcular_e_salvar_circuitos_cargas
 from .automacao import calcular_necessita_plc
 from .comando import calcular_necessita_fonte_24vcc
 from .corrente_total import calcular_corrente_total_painel
@@ -28,4 +29,9 @@ def calcular_e_salvar_dimensionamento_basico(projeto) -> ResumoDimensionamento:
     )
 
     resumo.save()
+
+    calcular_e_salvar_circuitos_cargas(projeto, resumo)
+
+    resumo.refresh_from_db(fields=["condutores_revisao_confirmada", "atualizado_em"])
+
     return resumo

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga, CargaMotor, CargaResistencia
 from catalogo.selectors.fusiveis import selecionar_fusiveis
 from composicao_painel.models import PendenciaItem, SugestaoItem
 from composicao_painel.services.sugestoes.executar_por_carga import (
@@ -13,7 +13,11 @@ from core.choices import (
     StatusPendenciaChoices,
     StatusSugestaoChoices,
 )
-from core.choices.cargas import TipoCargaChoices, TipoProtecaoMotorChoices
+from core.choices.cargas import (
+    TipoCargaChoices,
+    TipoProtecaoMotorChoices,
+    TipoProtecaoResistenciaChoices,
+)
 from core.choices.produtos import TipoFusivelChoices
 
 
@@ -32,13 +36,136 @@ def _limpar_escopo_fusivel_carga(projeto, carga) -> None:
     ).delete()
 
 
+def _processar_fusivel_resistencia_ultrarrapido(
+    projeto, carga
+) -> Optional[SugestaoItem]:
+    """
+    Resistência com ``tipo_protecao`` = fusível ultrarrápido: catálogo com
+    ``tipo_fusivel`` ultrarrápido e ``corrente_nominal_a`` ≥ corrente calculada da carga.
+    """
+    try:
+        espec = CargaResistencia.objects.get(carga=carga)
+    except CargaResistencia.DoesNotExist:
+        memoria_calculo = (
+            f"[FUSÍVEL — RESISTÊNCIA]\n"
+            f"Carga: {carga}\n"
+            f"Motivo: registro CargaResistencia não encontrado."
+        )
+        PendenciaItem.objects.update_or_create(
+            projeto=projeto,
+            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+            categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+            carga=carga,
+            defaults={
+                "descricao": "Carga RESISTENCIA sem registro em CargaResistencia.",
+                "corrente_referencia_a": None,
+                "memoria_calculo": memoria_calculo,
+                "status": StatusPendenciaChoices.ABERTA,
+                "ordem": 30,
+            },
+        )
+        return None
+
+    if espec.tipo_protecao != TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO:
+        _limpar_escopo_fusivel_carga(projeto, carga)
+        return None
+
+    corrente_referencia = espec.corrente_calculada_a
+    if corrente_referencia is None:
+        memoria_calculo = (
+            f"[FUSÍVEL — RESISTÊNCIA]\n"
+            f"Carga: {carga}\n"
+            f"Tipo de proteção: {espec.tipo_protecao}\n"
+            f"Motivo: corrente_calculada_a não encontrada."
+        )
+        PendenciaItem.objects.update_or_create(
+            projeto=projeto,
+            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+            categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+            carga=carga,
+            defaults={
+                "descricao": (
+                    "Corrente calculada não encontrada para seleção do fusível (resistência)."
+                ),
+                "corrente_referencia_a": None,
+                "memoria_calculo": memoria_calculo,
+                "status": StatusPendenciaChoices.ABERTA,
+                "ordem": 30,
+            },
+        )
+        return None
+
+    opcoes = selecionar_fusiveis(
+        corrente_nominal_min_a=corrente_referencia,
+        tipo_fusivel=TipoFusivelChoices.ULTRARAPIDO,
+    )
+    opcoes_lista = list(opcoes)
+
+    memoria_calculo = (
+        f"[FUSÍVEL — RESISTÊNCIA]\n"
+        f"Carga: {carga}\n"
+        f"Tipo de proteção: {espec.tipo_protecao}\n"
+        f"Corrente de referência (corrente_calculada_a): {corrente_referencia} A\n"
+        f"Tipo de fusível requerido: {TipoFusivelChoices.ULTRARAPIDO}\n"
+        f"Critério: corrente_nominal_a ≥ corrente_calculada_a\n"
+        f"Regra de ordenação: menor corrente nominal compatível\n"
+        f"Critério final: primeiro item compatível retornado pelo selector"
+    )
+
+    if not opcoes_lista:
+        PendenciaItem.objects.update_or_create(
+            projeto=projeto,
+            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+            categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+            carga=carga,
+            defaults={
+                "descricao": (
+                    f"Nenhum fusível ultrarrápido compatível encontrado para a carga {carga}."
+                ),
+                "corrente_referencia_a": corrente_referencia,
+                "memoria_calculo": memoria_calculo,
+                "observacoes": (
+                    f"Corrente requerida: ≥ {corrente_referencia} A | "
+                    f"Tipo: {TipoFusivelChoices.ULTRARAPIDO}"
+                ),
+                "status": StatusPendenciaChoices.ABERTA,
+                "ordem": 30,
+            },
+        )
+        return None
+
+    produto_selecionado = opcoes_lista[0]
+    sugestao, _ = SugestaoItem.objects.update_or_create(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
+        carga=carga,
+        defaults={
+            "produto": produto_selecionado,
+            "quantidade": 1,
+            "corrente_referencia_a": corrente_referencia,
+            "memoria_calculo": memoria_calculo,
+            "status": StatusSugestaoChoices.PENDENTE,
+            "ordem": 30,
+        },
+    )
+    return sugestao
+
+
 def processar_sugestao_fusivel_para_carga(projeto, carga) -> Optional[SugestaoItem]:
     """
-    Gera ou atualiza sugestão/pendência de fusível para uma carga MOTOR quando
-    CargaMotor.tipo_protecao for FUSIVEL.
+    Gera ou atualiza sugestão/pendência de fusível para:
+
+    - **Motor** com ``CargaMotor.tipo_protecao`` = FUSIVEL (fusível retardado,
+      ``corrente_nominal_a`` > corrente calculada);
+    - **Resistência** com ``CargaResistencia.tipo_protecao`` = FUSIVEL_ULTRARRAPIDO
+      (fusível ultrarrápido, ``corrente_nominal_a`` ≥ corrente calculada).
     """
     print("-" * 100)
     print(f"[FUSIVEL] Processando carga: id={carga.id} | carga={carga}")
+
+    if carga.tipo == TipoCargaChoices.RESISTENCIA:
+        return _processar_fusivel_resistencia_ultrarrapido(projeto, carga)
 
     if carga.tipo != TipoCargaChoices.MOTOR:
         print("[FUSIVEL] Tipo de carga não tratado para fusível. Pulando.")
@@ -195,35 +322,34 @@ def reprocessar_fusivel_para_carga(projeto, carga) -> Optional[SugestaoItem]:
 
 def gerar_sugestoes_fusiveis(projeto):
     """
-    Gera sugestões de fusíveis para cargas MOTOR.
-
-    Só gera sugestão quando CargaMotor.tipo_protecao for FUSIVEL.
-    Percorre todas as cargas MOTOR ativas para aplicar limpeza quando a proteção
-    deixa de ser fusível.
+    Gera sugestões de fusíveis para cargas MOTOR (fusível retardado) e RESISTENCIA
+    (fusível ultrarrápido quando aplicável).
     """
     print("\n" + "=" * 100)
     print("[FUSIVEL] Iniciando gerar_sugestoes_fusiveis")
     print(f"[FUSIVEL] Projeto: id={projeto.id} | projeto={projeto}")
 
+    tipos_fusivel = (TipoCargaChoices.MOTOR, TipoCargaChoices.RESISTENCIA)
+
     deletados_sugestoes, _ = SugestaoItem.objects.filter(
         projeto=projeto,
         parte_painel=PartesPainelChoices.PROTECAO_CARGA,
         categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
-    ).filter(carga__tipo=TipoCargaChoices.MOTOR).delete()
+    ).filter(carga__tipo__in=tipos_fusivel).delete()
     print(f"[FUSIVEL] Sugestões antigas removidas: {deletados_sugestoes}")
 
     deletados_pendencias, _ = PendenciaItem.objects.filter(
         projeto=projeto,
         parte_painel=PartesPainelChoices.PROTECAO_CARGA,
         categoria_produto=CategoriaProdutoNomeChoices.FUSIVEL,
-    ).filter(carga__tipo=TipoCargaChoices.MOTOR).delete()
+    ).filter(carga__tipo__in=tipos_fusivel).delete()
     print(f"[FUSIVEL] Pendências antigas removidas: {deletados_pendencias}")
 
     cargas = Carga.objects.filter(
         projeto=projeto,
         ativo=True,
-        tipo=TipoCargaChoices.MOTOR,
-    )
+        tipo__in=tipos_fusivel,
+    ).order_by("id")
 
     print(f"[FUSIVEL] Total de cargas elegíveis: {cargas.count()}")
 

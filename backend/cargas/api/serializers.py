@@ -72,6 +72,7 @@ def _default_spec_payload(tipo: str) -> dict:
             "tipo_protecao": "FUSIVEL_ULTRARRAPIDO",
             "tipo_acionamento": "RELE_ESTADO_SOLIDO",
             "tipo_rele_interface": None,
+            "tipo_conexao_painel": "CONEXAO_BORNES_COM_PE",
             "potencia_kw": Decimal("1.000"),
         }
     if tipo == TipoCargaChoices.SENSOR:

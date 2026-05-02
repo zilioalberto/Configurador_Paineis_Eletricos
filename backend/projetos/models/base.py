@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import IntegrityError, models
 from django.conf import settings
 
@@ -154,6 +155,13 @@ class Projeto(BaseModel, AtivacaoMixin):
         default=False,  
         help_text="Indica se o projeto possui PLC.",
     )
+
+    familia_plc = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Família do PLC (catálogo EspecificacaoPLC.familia), quando o projeto possui PLC.",
+    )
     
     possui_ihm = models.BooleanField(  
         default=False,
@@ -203,6 +211,16 @@ class Projeto(BaseModel, AtivacaoMixin):
         decimal_places=2,
         default="1.00",
         help_text="Ex.: 0.70 para 70%.",
+    )
+
+    degraus_margem_bitola_condutores = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(25)],
+        help_text=(
+            "Margem sobre o mínimo normativo (tabela Iz): 0 = bitola mínima que atende a corrente; "
+            "1 = uma bitola comercial acima (ex.: 28 A → 4 mm² passa a 6 mm²); e assim por diante. "
+            "Aplica-se ao dimensionamento sugerido de condutores de potência e da alimentação geral."
+        ),
     )
 
     possui_seccionamento = models.BooleanField(
@@ -307,7 +325,16 @@ class Projeto(BaseModel, AtivacaoMixin):
             if not self.tipo_climatizacao:
                 errors["tipo_climatizacao"] = (
                     "Informe o tipo de climatização, pois o painel possui climatização."
-                )   
+                )
+
+        # PLC
+        if not self.possui_plc:
+            self.familia_plc = None
+        else:
+            if not (self.familia_plc and str(self.familia_plc).strip()):
+                errors["familia_plc"] = (
+                    "Informe a família do PLC, pois o painel possui PLC."
+                )
 
         if errors:
             raise ValidationError(errors)
@@ -338,6 +365,12 @@ class Projeto(BaseModel, AtivacaoMixin):
             self.tipo_conexao_alimentacao_terra = None
         if not self.possui_climatizacao:
             self.tipo_climatizacao = None
+        if not self.possui_plc:
+            self.familia_plc = None
+        elif self.familia_plc:
+            self.familia_plc = self.familia_plc.strip()
+            if not self.familia_plc:
+                self.familia_plc = None
 
     def _guardar_com_retry_duplicidade_codigo(self, is_new: bool, *args, **kwargs) -> None:
         from projetos.services.codigo_projeto import (

@@ -9,28 +9,32 @@ function renderDimensionamentoRedirect(initialEntry: string, destinationText: st
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/dimensionamento" element={<DimensionamentoPage />} />
-        <Route path="/cargas" element={<div>{destinationText}</div>} />
+        <Route path="/projetos" element={<div>{destinationText}</div>} />
+        <Route
+          path="/projetos/:id/fluxo/dimensionamento"
+          element={<div>{destinationText}</div>}
+        />
       </Routes>
     </MemoryRouter>
   )
 }
 
 describe('DimensionamentoPage', () => {
-  it('redireciona para cargas sem projeto', () => {
-    renderDimensionamentoRedirect('/dimensionamento', 'Destino cargas')
+  it('redireciona para lista de projetos sem projeto na query', () => {
+    renderDimensionamentoRedirect('/dimensionamento', 'Lista projetos')
 
-    expect(screen.getByText('Destino cargas')).toBeInTheDocument()
+    expect(screen.getByText('Lista projetos')).toBeInTheDocument()
   })
 
-  it('redireciona para cargas com projeto e ancora do resumo', () => {
-    renderDimensionamentoRedirect('/dimensionamento?projeto=p1', 'Destino cargas projeto')
+  it('redireciona para fluxo de dimensionamento com projeto na query', () => {
+    renderDimensionamentoRedirect('/dimensionamento?projeto=p1', 'Wizard dimensionamento')
 
-    expect(screen.getByText('Destino cargas projeto')).toBeInTheDocument()
+    expect(screen.getByText('Wizard dimensionamento')).toBeInTheDocument()
   })
 
-  it('mantem compatibilidade da rota antiga', () => {
-    renderDimensionamentoRedirect('/dimensionamento?projeto=abc-123', 'Compatibilidade ok')
+  it('mantem compatibilidade da rota antiga com id codificado', () => {
+    renderDimensionamentoRedirect('/dimensionamento?projeto=abc-123', 'Wizard dimensionamento')
 
-    expect(screen.getByText('Compatibilidade ok')).toBeInTheDocument()
+    expect(screen.getByText('Wizard dimensionamento')).toBeInTheDocument()
   })
 })

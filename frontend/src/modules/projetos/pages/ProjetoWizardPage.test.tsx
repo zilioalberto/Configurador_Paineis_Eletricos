@@ -23,6 +23,16 @@ vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }))
 
+vi.mock('@/modules/auth/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      email: 'a@test.com',
+      tipo_usuario: 'ADMIN',
+      permissoes: [],
+    },
+  }),
+}))
+
 vi.mock('@/modules/projetos/hooks/useProjetoDetailQuery', () => ({
   useProjetoDetailQuery: () => useProjetoDetailQueryMock(),
 }))
@@ -46,6 +56,10 @@ vi.mock('@/modules/dimensionamento/hooks/useRecalcularDimensionamentoMutation', 
   }),
 }))
 
+vi.mock('@/modules/dimensionamento/components/WizardCondutoresPanel', () => ({
+  default: () => null,
+}))
+
 vi.mock('@/modules/composicao/hooks/useGerarSugestoesMutation', () => ({
   useGerarSugestoesMutation: () => ({
     mutateAsync: gerarMutateAsyncMock,
@@ -64,7 +78,10 @@ import ProjetoWizardPage from '@/modules/projetos/pages/ProjetoWizardPage'
 
 const projetoBase = { id: 'p1', codigo: 'PRJ-01', nome: 'Projeto 1' }
 const cargasComItem = [{ id: 'c1' }]
-const dimensionamentoBase = { corrente_total_painel_a: '33.1' }
+const dimensionamentoBase = {
+  corrente_total_painel_a: '33.1',
+  condutores_revisao_confirmada: true,
+}
 const composicaoTotaisBase = { totais: { sugestoes: 0, pendencias: 0, composicao_itens: 0 } }
 
 function mockWizardData({
@@ -93,6 +110,8 @@ function renderWizard(initialEntry: string, includeListRoute = false) {
       <Routes>
         <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
         <Route path="/projetos/fluxo/:etapa" element={<ProjetoWizardPage />} />
+        <Route path="/composicao" element={<div>Página de composição</div>} />
+        <Route path="/cargas" element={<div>Lista de cargas</div>} />
         {includeListRoute ? <Route path="/projetos" element={<div>Lista de projetos</div>} /> : null}
       </Routes>
     </MemoryRouter>
@@ -118,7 +137,8 @@ describe('ProjetoWizardPage', () => {
     })
     renderWizard('/projetos/p1/fluxo/cargas')
 
-    expect(screen.getByText(/Wizard do Projeto/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Resumo do fluxo/i })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /Etapas do fluxo do painel/i })).toBeInTheDocument()
     expect(screen.getByText(/Ações rápidas do fluxo/i)).toBeInTheDocument()
     expect(screen.getByText(/Checklist de conclusão/i)).toBeInTheDocument()
     expect(screen.getByText(/Audit trail/i)).toBeInTheDocument()
@@ -128,7 +148,7 @@ describe('ProjetoWizardPage', () => {
 
   it('exibe estados bloqueados sem cargas e sem dimensionamento', () => {
     mockWizardData({ composicao: { totais: { sugestoes: 0, pendencias: 0 } } })
-    renderWizard('/projetos/p1/fluxo/composicao')
+    renderWizard('/projetos/p1/fluxo/cargas')
 
     expect(screen.getByText(/Sem cálculo salvo para este projeto/i)).toBeInTheDocument()
     expect(screen.getAllByText('Bloqueado').length).toBeGreaterThan(0)
@@ -148,7 +168,7 @@ describe('ProjetoWizardPage', () => {
     gerarMutateAsyncMock.mockResolvedValue({ geracao: { erros_etapas: [] } })
     recalcMutateAsyncMock.mockResolvedValue({})
     reavaliarMutateAsyncMock.mockResolvedValue({})
-    renderWizard('/projetos/p1/fluxo/composicao')
+    renderWizard('/projetos/p1/fluxo/cargas')
 
     fireEvent.click(screen.getByRole('button', { name: /Recalcular agora/i }))
     fireEvent.click(screen.getByRole('button', { name: /Gerar sugestões/i }))
@@ -159,16 +179,58 @@ describe('ProjetoWizardPage', () => {
     expect(reavaliarMutateAsyncMock).toHaveBeenCalled()
   })
 
+  it('redireciona fluxo/composicao para a rota de composição', () => {
+    mockWizardData({})
+    renderWizard('/projetos/p1/fluxo/composicao')
+    expect(screen.getByText('Página de composição')).toBeInTheDocument()
+  })
+
+  it('redireciona fluxo/dimensionamento sem cargas para a lista de cargas', () => {
+    mockWizardData({ cargas: [] })
+    renderWizard('/projetos/p1/fluxo/dimensionamento')
+    expect(screen.getByText('Lista de cargas')).toBeInTheDocument()
+  })
+
+  it('na etapa dimensionamento suprime resumo em cartões, ações rápidas, checklist e rastreabilidade', () => {
+    mockWizardData({
+      cargas: cargasComItem,
+      dimensionamento: dimensionamentoBase,
+      composicao: composicaoTotaisBase,
+      historico: [
+        { id: 'e1', descricao: 'Teste', modulo: 'x', criado_em: new Date().toISOString() },
+      ],
+    })
+    renderWizard('/projetos/p1/fluxo/dimensionamento')
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: /Dimensionamento de condutores/i })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Checklist de conclusão/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Rastreabilidade do projeto/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Recalcular agora/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Abrir revisão de condutores/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Dados do projeto/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Ações rápidas do fluxo/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Gerenciar cargas/i })).not.toBeInTheDocument()
+  })
+
+  it('redireciona etapa inválida na URL para fluxo/cargas', () => {
+    mockWizardData({})
+    renderWizard('/projetos/p1/fluxo/etapa-inexistente')
+    expect(screen.getByRole('heading', { name: /Resumo do fluxo/i })).toBeInTheDocument()
+  })
+
   it('indica pronto para exportação quando fluxo técnico está concluído', () => {
     mockWizardData({
       cargas: [{ id: 'c1', atualizado_em: '2026-04-10T10:00:00.000Z' }],
       dimensionamento: {
         corrente_total_painel_a: '33.1',
         atualizado_em: '2026-04-10T11:00:00.000Z',
+        condutores_revisao_confirmada: true,
       },
       composicao: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 1 } },
     })
-    renderWizard('/projetos/p1/fluxo/composicao')
+    renderWizard('/projetos/p1/fluxo/cargas')
 
     expect(screen.getByText(/Pronto para exportação/i)).toBeInTheDocument()
     expect(

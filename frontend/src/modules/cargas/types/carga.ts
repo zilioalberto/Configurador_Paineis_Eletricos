@@ -44,6 +44,7 @@ export type CargaResistenciaPayload = {
   tipo_acionamento: string
   /** Preenchido quando `tipo_acionamento` é `RELE_INTERFACE`. */
   tipo_rele_interface: string
+  tipo_conexao_painel: string
   potencia_kw: string
 }
 

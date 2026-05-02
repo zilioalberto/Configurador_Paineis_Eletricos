@@ -39,6 +39,7 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
     tensao_comando: projeto.tensao_comando ?? '',
 
     possui_plc: projeto.possui_plc,
+    familia_plc: projeto.familia_plc ?? null,
     possui_ihm: projeto.possui_ihm,
     possui_switches: projeto.possui_switches,
     possui_plaqueta_identificacao: projeto.possui_plaqueta_identificacao,
@@ -50,6 +51,8 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
     tipo_climatizacao: projeto.tipo_climatizacao,
 
     fator_demanda: projeto.fator_demanda ?? '1.00',
+
+    degraus_margem_bitola_condutores: projeto.degraus_margem_bitola_condutores ?? 1,
 
     possui_seccionamento: projeto.possui_seccionamento,
     tipo_seccionamento:
@@ -104,22 +107,22 @@ export default function ProjetoEditPage() {
   async function handleSubmit(data: ProjetoFormData) {
     if (!id) return
 
-    try {
-      const projetoAtualizado = await updateMutation.mutateAsync({ id, data })
-      showToast({
-        variant: 'success',
-        message: 'Projeto atualizado com sucesso.',
-      })
-      navigate(`/projetos/${projetoAtualizado.id}`)
-    } catch (err) {
-      console.error('Erro ao atualizar projeto:', err)
-      const mensagemApi = extrairMensagemErroApi(err)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível atualizar o projeto',
-        message: mensagemApi || 'Verifique os dados e tente novamente.',
-      })
-    }
+    const projetoAtualizado = await updateMutation.mutateAsync({ id, data })
+    showToast({
+      variant: 'success',
+      message: 'Projeto atualizado com sucesso.',
+    })
+    navigate(`/projetos/${projetoAtualizado.id}`)
+  }
+
+  function handleSubmitError(err: unknown) {
+    console.error('Erro ao atualizar projeto:', err)
+    const mensagemApi = extrairMensagemErroApi(err)
+    showToast({
+      variant: 'danger',
+      title: 'Não foi possível atualizar o projeto',
+      message: mensagemApi || 'Verifique os dados e tente novamente.',
+    })
   }
 
   const initialData = projeto ? projetoParaFormData(projeto) : undefined
@@ -164,6 +167,7 @@ export default function ProjetoEditPage() {
             <ProjetoForm
               key={id}
               onSubmit={handleSubmit}
+              onSubmitError={handleSubmitError}
               loading={updateMutation.isPending}
               initialData={initialData}
               responsavelOptions={responsavelOptions}

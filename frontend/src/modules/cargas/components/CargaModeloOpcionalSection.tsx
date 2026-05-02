@@ -20,8 +20,6 @@ export default function CargaModeloOpcionalSection({
   modeloQueryScope,
   onAplicarModelo,
 }: CargaModeloOpcionalSectionProps) {
-  const [modeloSelecionadoId, setModeloSelecionadoId] = useState('')
-  const [modeloSelecionado, setModeloSelecionado] = useState<CargaModelo | null>(null)
   const [modeloBusca, setModeloBusca] = useState('')
   const [modeloBuscaDebounced, setModeloBuscaDebounced] = useState('')
   const [modeloDropdownAberto, setModeloDropdownAberto] = useState(false)
@@ -43,10 +41,12 @@ export default function CargaModeloOpcionalSection({
   const { data: modelos = [], isPending: loadingModelos } = useQuery({
     queryKey: ['cargas', 'modelos', modeloQueryScope, modeloBuscaDebounced],
     queryFn: () =>
-      listarModelosCarga({
-        q: modeloBuscaDebounced || undefined,
-      }),
-    enabled: modeloSelecionadoId === '' && modeloBuscaDebounced.length >= 2,
+      listarModelosCarga(
+        modeloBuscaDebounced.trim()
+          ? { q: modeloBuscaDebounced.trim() }
+          : undefined
+      ),
+    enabled: modeloDropdownAberto,
   })
 
   useEffect(() => {
@@ -59,132 +59,107 @@ export default function CargaModeloOpcionalSection({
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [])
 
-  const onSelecionarModelo = useCallback((modelo: CargaModelo) => {
-    setModeloSelecionadoId(modelo.id)
-    setModeloSelecionado(modelo)
-    setModeloDropdownAberto(false)
-    setModeloBusca('')
-    setModeloBuscaDebounced('')
-    setModeloResultadoAtivo(-1)
-  }, [])
-
-  const onLimparModeloSelecionado = useCallback(() => {
-    setModeloSelecionadoId('')
-    setModeloSelecionado(null)
-    setModeloBusca('')
-    setModeloBuscaDebounced('')
-    setModeloDropdownAberto(false)
-    setModeloResultadoAtivo(-1)
-  }, [])
-
-  const aplicarModeloSelecionado = useCallback(() => {
-    if (!modeloSelecionado) return
-    onAplicarModelo(modeloSelecionado)
-  }, [modeloSelecionado, onAplicarModelo])
+  const onSelecionarModelo = useCallback(
+    (modelo: CargaModelo) => {
+      onAplicarModelo(modelo)
+      setModeloDropdownAberto(false)
+      setModeloBusca('')
+      setModeloBuscaDebounced('')
+      setModeloResultadoAtivo(-1)
+    },
+    [onAplicarModelo]
+  )
 
   return (
     <div className="border rounded p-3 mb-3 bg-light-subtle">
       <h2 className="h6 mb-3">Modelo de carga (opcional)</h2>
       <div className="row g-2 align-items-end">
-        <div className="col-md-10">
+        <div className="col-12">
           <label className="form-label" htmlFor={modeloBuscaId}>
             Modelos pré-cadastrados
           </label>
           <div ref={modeloBuscaWrapRef} className="position-relative">
-            <input
-              id={modeloBuscaId}
-              type="search"
-              className="form-control"
-              value={
-                modeloSelecionado
-                  ? `${modeloSelecionado.nome} (${modeloSelecionado.tipo})`
-                  : modeloBusca
-              }
-              onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                if (modeloSelecionado) return
-                setModeloBusca(event.target.value)
-                setModeloDropdownAberto(true)
-              }}
-              onFocus={() => {
-                if (!modeloSelecionado) setModeloDropdownAberto(true)
-              }}
-              onKeyDown={(event) => {
-                if (modeloSelecionado && event.key === 'Enter') {
-                  event.preventDefault()
-                  aplicarModeloSelecionado()
-                  return
-                }
-                if (!modeloDropdownAberto && event.key === 'ArrowDown') {
+            <div className="input-group">
+              <input
+                id={modeloBuscaId}
+                type="search"
+                className="form-control"
+                role="combobox"
+                aria-expanded={modeloDropdownAberto}
+                aria-autocomplete="list"
+                aria-controls={`${modeloBuscaId}-listbox`}
+                value={modeloBusca}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  setModeloBusca(event.target.value)
                   setModeloDropdownAberto(true)
-                  return
-                }
-                if (!modeloDropdownAberto || modelos.length === 0) return
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault()
-                  setModeloResultadoAtivo((prev) =>
-                    prev < modelos.length - 1 ? prev + 1 : 0
-                  )
-                  return
-                }
-                if (event.key === 'ArrowUp') {
-                  event.preventDefault()
-                  setModeloResultadoAtivo((prev) =>
-                    prev > 0 ? prev - 1 : modelos.length - 1
-                  )
-                  return
-                }
-                if (event.key === 'Enter') {
-                  event.preventDefault()
-                  const idx = modeloResultadoAtivo >= 0 ? modeloResultadoAtivo : 0
-                  const escolhido = modelos[idx]
-                  if (!escolhido) return
-                  onSelecionarModelo(escolhido)
-                  onAplicarModelo(escolhido)
-                  return
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  setModeloDropdownAberto(false)
-                  setModeloResultadoAtivo(-1)
-                }
-              }}
-              placeholder="Digite ao menos 2 caracteres do modelo"
-              autoComplete="off"
-              disabled={Boolean(modeloSelecionado)}
-              readOnly={Boolean(modeloSelecionado)}
-            />
-            {modeloSelecionado ? (
+                }}
+                onFocus={() => {
+                  setModeloDropdownAberto(true)
+                }}
+                onKeyDown={(event) => {
+                  if (!modeloDropdownAberto && event.key === 'ArrowDown') {
+                    setModeloDropdownAberto(true)
+                    return
+                  }
+                  if (!modeloDropdownAberto || modelos.length === 0) return
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault()
+                    setModeloResultadoAtivo((prev) =>
+                      prev < modelos.length - 1 ? prev + 1 : 0
+                    )
+                    return
+                  }
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    setModeloResultadoAtivo((prev) =>
+                      prev > 0 ? prev - 1 : modelos.length - 1
+                    )
+                    return
+                  }
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    const idx = modeloResultadoAtivo >= 0 ? modeloResultadoAtivo : 0
+                    const escolhido = modelos[idx]
+                    if (!escolhido) return
+                    onSelecionarModelo(escolhido)
+                    return
+                  }
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    setModeloDropdownAberto(false)
+                    setModeloResultadoAtivo(-1)
+                  }
+                }}
+                placeholder="Filtrar ou abrir a lista para ver todos"
+                autoComplete="off"
+              />
               <button
                 type="button"
-                className="btn btn-sm btn-outline-secondary mt-2"
-                onClick={onLimparModeloSelecionado}
+                className="btn btn-outline-secondary"
+                title="Mostrar lista de modelos"
+                aria-label="Mostrar lista de modelos"
+                onClick={() => {
+                  setModeloDropdownAberto((aberto) => !aberto)
+                }}
               >
-                Trocar modelo
+                <span aria-hidden>▾</span>
               </button>
-            ) : null}
+            </div>
 
-            {modeloDropdownAberto &&
-            !modeloSelecionado &&
-            modeloBusca.trim().length >= 2 ? (
+            {modeloDropdownAberto ? (
               <ul
+                id={`${modeloBuscaId}-listbox`}
                 className="list-group position-absolute w-100 shadow-sm mt-1"
                 style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
                 role="listbox"
               >
                 {loadingModelos ? (
-                  <li className="list-group-item small text-muted">
-                    Buscando modelos...
-                  </li>
+                  <li className="list-group-item small text-muted">Carregando modelos...</li>
                 ) : modelos.length === 0 ? (
-                  <li className="list-group-item small text-muted">
-                    Nenhum modelo encontrado.
-                  </li>
+                  <li className="list-group-item small text-muted">Nenhum modelo encontrado.</li>
                 ) : (
                   modelos.map((modelo, index) => (
-                    <li
-                      key={modelo.id}
-                      className="list-group-item list-group-item-action p-0"
-                    >
+                    <li key={modelo.id} className="list-group-item list-group-item-action p-0">
                       <button
                         type="button"
                         className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
@@ -201,19 +176,10 @@ export default function CargaModeloOpcionalSection({
               </ul>
             ) : null}
           </div>
-          {modeloBusca.trim().length > 0 && modeloBusca.trim().length < 2 ? (
-            <div className="form-text">Digite ao menos 2 caracteres para buscar.</div>
-          ) : null}
-        </div>
-        <div className="col-md-2">
-          <button
-            type="button"
-            className="btn btn-outline-primary w-100"
-            disabled={!modeloSelecionado}
-            onClick={aplicarModeloSelecionado}
-          >
-            Aplicar modelo
-          </button>
+          <p className="form-text mb-0">
+            Digite para filtrar no servidor ou use ▾ para abrir a lista. Ao escolher um item, o modelo
+            é aplicado de imediato ao formulário; pode voltar a abrir a lista para selecionar outro.
+          </p>
         </div>
       </div>
     </div>

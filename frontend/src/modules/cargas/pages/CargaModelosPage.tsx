@@ -558,6 +558,18 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
+                  <label className="form-label">Conexão ao painel</label>
+                  <select
+                    className="form-select"
+                    value={base.resistencia.tipo_conexao_painel}
+                    onChange={(event) =>
+                      patchResistencia({ tipo_conexao_painel: event.target.value })
+                    }
+                  >
+                    {renderCargaSelectOptions(tipoConexaoCargaPainelOptions)}
+                  </select>
+                </div>
+                <div className="col-md-4">
                   <label className="form-label">Potência (kW)</label>
                   <input
                     type="text"

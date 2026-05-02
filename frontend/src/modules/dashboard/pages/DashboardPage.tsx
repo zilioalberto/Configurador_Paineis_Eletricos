@@ -202,15 +202,21 @@ export default function DashboardPage() {
               <p className="card-text text-muted mb-0">
                 Crie ou escolha um{' '}
                 {canViewProjetos ? <Link to="/projetos">projeto</Link> : 'projeto'}
-                , cadastre {canViewCargas ? <Link to="/cargas">cargas</Link> : 'cargas'},
+                , cadastre{' '}
+                {canViewCargas ? <Link to="/cargas">cargas do projeto</Link> : 'cargas do projeto'},
                 execute o{' '}
                 {canViewDimensionamento ? (
-                  <Link to="/dimensionamento">dimensionamento</Link>
+                  <Link to="/dimensionamento">dimensionamento de condutores</Link>
                 ) : (
-                  'dimensionamento'
+                  'dimensionamento de condutores'
                 )}{' '}
                 e, em seguida, use a{' '}
-                {canViewComposicao ? <Link to="/composicao">composição</Link> : 'composição'} para gerar sugestões, resolver
+                {canViewComposicao ? (
+                  <Link to="/composicao">composição do painel</Link>
+                ) : (
+                  'composição do painel'
+                )}{' '}
+                para gerar sugestões, resolver
                 pendências e aprovar itens.
               </p>
             </div>

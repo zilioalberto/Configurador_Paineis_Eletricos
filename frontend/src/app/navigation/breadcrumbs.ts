@@ -6,12 +6,12 @@ export type BreadcrumbItem = {
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
   '/catalogo': 'Catálogo',
-  '/dimensionamento': 'Dimensionamento',
+  '/dimensionamento': 'Dimensionamento de condutores',
   '/composicao': 'Composição do painel',
 }
 
 const PROJETO_BASE = { label: 'Projetos', to: '/projetos' } as const
-const CARGA_BASE = { label: 'Cargas', to: '/cargas' } as const
+const CARGA_BASE = { label: 'Cargas do projeto', to: '/cargas' } as const
 
 function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
   if (path === '/projetos') return [PROJETO_BASE]
@@ -20,7 +20,7 @@ function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
     return [PROJETO_BASE, { label: 'Editar projeto' }]
   }
   if (/^\/projetos\/[^/]+$/.test(path)) {
-    return [PROJETO_BASE, { label: 'Detalhes do projeto' }]
+    return [PROJETO_BASE, { label: 'Projeto' }]
   }
   return null
 }

@@ -13,6 +13,8 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
 import { useRecalcularDimensionamentoMutation } from '@/modules/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
+import { ProjetoIdentificacaoFluxo } from '@/modules/projetos/components/ProjetoIdentificacaoFluxo'
+import { ProjetoFluxoStepper } from '@/modules/projetos/components/ProjetoFluxoStepper'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
@@ -58,23 +60,17 @@ export default function CargaListPage() {
     isPending: loadingCargas,
     isError,
     error: loadError,
-    refetch,
   } = useCargaListQuery(projetoIdListagem)
   const {
     data: resumoDimensionamento,
     isPending: loadingResumoDimensionamento,
     isError: isResumoError,
     error: resumoError,
-    refetch: refetchResumoDimensionamento,
   } = useDimensionamentoQuery(projetoIdListagem)
   const recalcMutation = useRecalcularDimensionamentoMutation(projetoIdListagem)
 
   const deleteMutation = useDeleteCargaMutation(projetoIdListagem)
 
-  const projetoLabel = useMemo(() => {
-    const p = projetoSelecionado
-    return p ? `${p.codigo} — ${p.nome}` : ''
-  }, [projetoSelecionado])
   const podeRecalcularDimensionamento = canEditarProjeto && !projetoFinalizado
   const cargasSignature = useMemo(
     () => cargas.map((c) => `${c.id}:${c.atualizado_em ?? ''}`).join('|'),
@@ -218,39 +214,19 @@ export default function CargaListPage() {
         onConfirm={() => void confirmDelete()}
       />
 
+      {projetoIdListagem ? (
+        <ProjetoFluxoStepper projetoId={projetoIdListagem} etapaAtual="cargas" />
+      ) : null}
+
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h1 className="h3 mb-1">Cargas</h1>
+          <h1 className="h3 mb-1">Cargas do projeto</h1>
           <p className="text-muted mb-0">
-            Cadastre cargas vinculadas a um projeto (motores, válvulas, sensores,
+            Cadastre cargas vinculadas ao projeto (motores, válvulas, sensores,
             etc.).
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap">
-          {projetoId ? (
-            <Link
-              to={`/projetos/${projetoId}/fluxo/cargas`}
-              className="btn btn-outline-info"
-            >
-              Voltar ao wizard
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => {
-              void refetch()
-              void refetchResumoDimensionamento()
-            }}
-            disabled={!projetoIdListagem}
-          >
-            Atualizar
-          </button>
-          {canManageCargas ? (
-            <Link to="/cargas/modelos" className="btn btn-outline-secondary">
-              Modelos de carga
-            </Link>
-          ) : null}
           {canManageCargas ? (
             <Link
               to={
@@ -267,59 +243,53 @@ export default function CargaListPage() {
               Nova carga
             </Link>
           ) : null}
-          {projetoIdListagem ? (
-            <Link
-              to={`/composicao?projeto=${encodeURIComponent(projetoIdListagem)}`}
-              className="btn btn-outline-primary"
-            >
-              Próxima etapa: Composição
-            </Link>
-          ) : null}
         </div>
       </div>
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <label className="form-label fw-semibold" htmlFor="filtro-projeto-cargas">
-            Projeto
-          </label>
-          <select
-            id="filtro-projeto-cargas"
-            className="form-select"
-            style={{ maxWidth: '28rem' }}
-            value={projetoFinalizado ? '' : projetoId}
-            onChange={onProjetoFilterChange}
-            disabled={loadingProjetos}
-          >
-            <option value="">Selecione um projeto para listar as cargas</option>
-            {projetosNoFiltro.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.codigo} — {p.nome}
-              </option>
-            ))}
-          </select>
-          {!loadingProjetos && projetos.length === 0 && (
-            <p className="text-muted small mt-2 mb-0">
-              Não há projetos cadastrados.{' '}
-              {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
-            </p>
-          )}
-          {!loadingProjetos &&
-            projetos.length > 0 &&
-            projetosNoFiltro.length === 0 && (
+      {!projetoId ? (
+        <div className="card mb-3">
+          <div className="card-body">
+            <label className="form-label fw-semibold" htmlFor="filtro-projeto-cargas">
+              Projeto
+            </label>
+            <select
+              id="filtro-projeto-cargas"
+              className="form-select"
+              style={{ maxWidth: '28rem' }}
+              value={projetoFinalizado ? '' : projetoId}
+              onChange={onProjetoFilterChange}
+              disabled={loadingProjetos}
+            >
+              <option value="">Selecione um projeto para listar as cargas</option>
+              {projetosNoFiltro.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo} — {p.nome}
+                </option>
+              ))}
+            </select>
+            {!loadingProjetos && projetos.length === 0 && (
               <p className="text-muted small mt-2 mb-0">
-                Não há projetos em andamento. Projetos finalizados não aparecem
-                aqui para edição de cargas.
+                Não há projetos cadastrados.{' '}
+                {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
               </p>
             )}
+            {!loadingProjetos &&
+              projetos.length > 0 &&
+              projetosNoFiltro.length === 0 && (
+                <p className="text-muted small mt-2 mb-0">
+                  Não há projetos em andamento. Projetos finalizados não aparecem
+                  aqui para edição de cargas.
+                </p>
+              )}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="card">
         <div className="card-body">
           {!projetoIdListagem && !projetoFinalizado && (
             <p className="text-muted mb-0">
-              Escolha um projeto acima para visualizar e gerenciar as cargas.
+              Escolha um projeto na lista acima para visualizar e gerenciar as cargas.
             </p>
           )}
 
@@ -330,11 +300,21 @@ export default function CargaListPage() {
             </div>
           )}
 
-          {projetoIdListagem && (
-            <p className="small text-muted mb-3">
-              Projeto: <strong>{projetoLabel || projetoIdListagem}</strong>
-            </p>
-          )}
+          {projetoIdListagem && projetoSelecionado ? (
+            <ProjetoIdentificacaoFluxo
+              embedded
+              projetoCodigo={projetoSelecionado.codigo}
+              projetoNome={projetoSelecionado.nome}
+              fallbackId={projetoIdListagem}
+              htmlId="carga-lista-projeto"
+            />
+          ) : projetoIdListagem ? (
+            <ProjetoIdentificacaoFluxo
+              embedded
+              fallbackId={projetoIdListagem}
+              htmlId="carga-lista-projeto"
+            />
+          ) : null}
 
           {projetoIdListagem && loadingCargas && (
             <p className="mb-0 text-muted">Carregando cargas...</p>
@@ -439,16 +419,27 @@ export default function CargaListPage() {
                 </div>
 
                 <div className="col-12">
-                  <p className="small text-muted mb-0">
-                    Projeto: <strong>{projetoLabel || projetoIdListagem}</strong>
-                    {resumoDimensionamento.atualizado_em ? (
-                      <>
-                        {' '}
-                        · Atualizado em{' '}
-                        {new Date(resumoDimensionamento.atualizado_em).toLocaleString()}
-                      </>
-                    ) : null}
-                  </p>
+                  {projetoSelecionado ? (
+                    <ProjetoIdentificacaoFluxo
+                      embedded
+                      projetoCodigo={projetoSelecionado.codigo}
+                      projetoNome={projetoSelecionado.nome}
+                      fallbackId={projetoIdListagem}
+                      htmlId="carga-list-dim-resumo-projeto"
+                    />
+                  ) : (
+                    <ProjetoIdentificacaoFluxo
+                      embedded
+                      fallbackId={projetoIdListagem}
+                      htmlId="carga-list-dim-resumo-projeto"
+                    />
+                  )}
+                  {resumoDimensionamento.atualizado_em ? (
+                    <p className="small text-muted mb-0 mt-2">
+                      Atualizado em{' '}
+                      {new Date(resumoDimensionamento.atualizado_em).toLocaleString()}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ) : null}

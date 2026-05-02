@@ -1,12 +1,17 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/cargas/utils/projetoEdicaoCargas'
+import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
+import { ProjetoFluxoStepper } from '@/modules/projetos/components/ProjetoFluxoStepper'
+import { useProjetoFluxoGates } from '@/modules/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { ProjetoIdentificacaoFluxo } from '@/modules/projetos/components/ProjetoIdentificacaoFluxo'
+import type { Projeto } from '@/modules/projetos/types/projeto'
 import { InclusaoManualCatalogoSection } from '../components/InclusaoManualCatalogoSection'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
 import { useAprovarSugestaoMutation } from '../hooks/useAprovarSugestaoMutation'
@@ -22,6 +27,7 @@ import type {
   CargaDetalhe,
   ComposicaoItem,
   PendenciaItem,
+  ProjetoAlimentacaoSnapshot,
   SugestaoItem,
 } from '../types/composicao'
 
@@ -90,6 +96,46 @@ function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
   return '—'
 }
 
+/** Linhas sem carga (seccionamento / painel geral): colunas alinhadas ao projeto e ao dimensionamento. */
+const LEGENDA_TAG_PAINEL_GERAL = 'Painel geral'
+const LEGENDA_DESCR_PAINEL_GERAL = 'Seccionamento'
+const LEGENDA_PAPEL_PAINEL_GERAL = 'Seccionamento geral'
+
+function textoTensaoAlimentacaoProjeto(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const display = pa?.tensao_nominal_display?.trim()
+  if (display) return display
+  if (pa?.tensao_nominal != null) return `${pa.tensao_nominal} V`
+  if (projeto?.tensao_nominal != null) return `${projeto.tensao_nominal} V`
+  return '—'
+}
+
+function textoFasesAlimentacaoProjeto(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const display = pa?.numero_fases_display?.trim()
+  if (display) return display
+  if (pa?.numero_fases != null) return String(pa.numero_fases)
+  if (projeto?.numero_fases != null) return String(projeto.numero_fases)
+  return '—'
+}
+
+/** Ib painel (dimensionamento); fallback na corrente de referência do item. */
+function textoCorrenteEntradaPainel(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem?: string | null
+): string {
+  const ib = dimensionamento?.corrente_total_painel_a
+  if (ib != null && String(ib).trim() !== '') return `${String(ib).trim()} A`
+  if (correnteRefItem != null && String(correnteRefItem).trim() !== '') {
+    return `${String(correnteRefItem).trim()} A`
+  }
+  return '—'
+}
+
 function CelulaTensaoCarga({ carga }: { carga: CargaDetalhe | null | undefined }) {
   const label =
     carga?.tensao_carga_display?.trim() ||
@@ -137,6 +183,19 @@ function LinhaSeparadoraGrupoPorTag({
 /** Itens de painel geral (ex.: seccionamento) sem `carga` associada no snapshot. */
 const CHAVE_AGRUPAMENTO_SEM_TAG = '__sem_tag__'
 
+type AgruparPorTagCargaOpts = {
+  /** `ResumoDimensionamento.corrente_total_painel_a` — corrente de entrada / painel. */
+  correnteTotalPainelA?: string | null
+}
+
+function tituloGrupoPainelGeral(opts?: AgruparPorTagCargaOpts): string {
+  const raw = opts?.correnteTotalPainelA
+  if (raw != null && String(raw).trim() !== '') {
+    return `Painel geral — ${String(raw).trim()} A`
+  }
+  return 'Painel geral'
+}
+
 type GrupoItensPorTag<T> = {
   chave: string
   tituloTag: string
@@ -149,7 +208,8 @@ function ordenarPorOrdemLista<T extends { ordem: number }>(itens: T[]): T[] {
 }
 
 function agruparPorTagCarga<T extends { carga: CargaDetalhe | null; ordem: number }>(
-  itens: T[]
+  itens: T[],
+  opts?: AgruparPorTagCargaOpts
 ): GrupoItensPorTag<T>[] {
   const map = new Map<string, T[]>()
   for (const item of itens) {
@@ -178,7 +238,7 @@ function agruparPorTagCarga<T extends { carga: CargaDetalhe | null; ordem: numbe
   if (semTag?.length) {
     out.push({
       chave: CHAVE_AGRUPAMENTO_SEM_TAG,
-      tituloTag: 'Painel geral (sem carga)',
+      tituloTag: tituloGrupoPainelGeral(opts),
       carga: null,
       itens: semTag,
     })
@@ -241,6 +301,9 @@ export default function ComposicaoPage() {
     error: loadError,
   } = useComposicaoSnapshotQuery(projetoId || null)
 
+  const { data: dimensionamento } = useDimensionamentoQuery(projetoId || null)
+  const fluxoGates = useProjetoFluxoGates(projetoId || null)
+
   const projetoSelecionado = useMemo(
     () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
     [projetos, projetoId]
@@ -286,11 +349,6 @@ export default function ComposicaoPage() {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [alterarSugestao, aprovarMutation.isPending])
-
-  const projetoLabel = useMemo(() => {
-    const p = projetoSelecionado
-    return p ? `${p.codigo} — ${p.nome}` : ''
-  }, [projetoSelecionado])
 
   const onProjetoChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -388,23 +446,30 @@ export default function ComposicaoPage() {
 
   const composicaoItens = snapshot?.composicao_itens ?? []
 
+  const optsAgrupamento = useMemo(
+    () => ({
+      correnteTotalPainelA: dimensionamento?.corrente_total_painel_a ?? null,
+    }),
+    [dimensionamento?.corrente_total_painel_a]
+  )
+
   const gruposComposicaoAprovada = useMemo(
-    () => agruparPorTagCarga(composicaoItens),
-    [composicaoItens]
+    () => agruparPorTagCarga(composicaoItens, optsAgrupamento),
+    [composicaoItens, optsAgrupamento]
   )
   const gruposSugestoes = useMemo(
-    () => agruparPorTagCarga(snapshot?.sugestoes ?? []),
-    [snapshot?.sugestoes]
+    () => agruparPorTagCarga(snapshot?.sugestoes ?? [], optsAgrupamento),
+    [snapshot?.sugestoes, optsAgrupamento]
   )
   const gruposPendencias = useMemo(
-    () => agruparPorTagCarga(snapshot?.pendencias ?? []),
-    [snapshot?.pendencias]
+    () => agruparPorTagCarga(snapshot?.pendencias ?? [], optsAgrupamento),
+    [snapshot?.pendencias, optsAgrupamento]
   )
   const gruposMemorialCalculos = useMemo(() => {
     const comMemoria =
       snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
-    return agruparPorTagCarga(comMemoria)
-  }, [snapshot?.sugestoes])
+    return agruparPorTagCarga(comMemoria, optsAgrupamento)
+  }, [snapshot?.sugestoes, optsAgrupamento])
 
   const onReabrirItemAprovado = useCallback(async () => {
     if (!itemReabrir || !podeEditar) return
@@ -523,8 +588,22 @@ export default function ComposicaoPage() {
     reabrirComposicaoItemMutation.isPending,
   ])
 
+  if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
+    return (
+      <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+    )
+  }
+  if (projetoId && !fluxoGates.loading && fluxoGates.temCargas && !fluxoGates.condutoresRevisaoOk) {
+    return (
+      <Navigate to={`/projetos/${projetoId}/fluxo/dimensionamento`} replace />
+    )
+  }
+
   return (
     <div className="container-fluid">
+      {projetoId ? (
+        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual="composicao" compact />
+      ) : null}
       <ConfirmModal
         show={modalComposicao !== null}
         title={modalComposicao?.title ?? ''}
@@ -559,14 +638,6 @@ export default function ComposicaoPage() {
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap align-items-center">
-          {projetoId ? (
-            <Link
-              to={`/projetos/${projetoId}/fluxo/composicao`}
-              className="btn btn-outline-info"
-            >
-              Voltar ao wizard
-            </Link>
-          ) : null}
           <button
             type="button"
             className="btn btn-outline-success"
@@ -598,51 +669,45 @@ export default function ComposicaoPage() {
         </div>
       </div>
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <label className="form-label fw-semibold" htmlFor="comp-projeto">
-            Projeto
-          </label>
-          <select
-            id="comp-projeto"
-            className="form-select"
-            style={{ maxWidth: '28rem' }}
-            value={projetoId}
-            onChange={onProjetoChange}
-            disabled={loadingProjetos}
-          >
-            <option value="">Selecione um projeto</option>
-            {projetos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.codigo} — {p.nome}
-              </option>
-            ))}
-          </select>
-          <p className="small text-muted mt-2 mb-0">
-            Antes de gerar, confira as{' '}
-            {canViewCargas ? (
-              <Link to={projetoId ? `/cargas?projeto=${projetoId}` : '/cargas'}>cargas</Link>
-            ) : (
-              'cargas'
-            )}{' '}
-            e o{' '}
-            {canViewDimensionamento ? (
-              <Link
-                to={
-                  projetoId
-                    ? `/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`
-                    : '/cargas'
-                }
-              >
-                dimensionamento
-              </Link>
-            ) : (
-              'dimensionamento'
-            )}{' '}
-            (corrente total de entrada).
-          </p>
+      {!projetoId ? (
+        <div className="card mb-3">
+          <div className="card-body">
+            <label className="form-label fw-semibold" htmlFor="comp-projeto">
+              Projeto
+            </label>
+            <select
+              id="comp-projeto"
+              className="form-select"
+              style={{ maxWidth: '28rem' }}
+              value={projetoId}
+              onChange={onProjetoChange}
+              disabled={loadingProjetos}
+            >
+              <option value="">Selecione um projeto</option>
+              {projetos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo} — {p.nome}
+                </option>
+              ))}
+            </select>
+            <p className="small text-muted mt-2 mb-0">
+              Antes de gerar, confira as{' '}
+              {canViewCargas ? (
+                <Link to="/cargas">cargas</Link>
+              ) : (
+                'cargas'
+              )}{' '}
+              e o{' '}
+              {canViewDimensionamento ? (
+                <Link to="/cargas">dimensionamento</Link>
+              ) : (
+                'dimensionamento'
+              )}{' '}
+              (corrente total de entrada).
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {!projetoId && (
         <p className="text-muted">Selecione um projeto para ver a composição sugerida.</p>
@@ -671,13 +736,17 @@ export default function ComposicaoPage() {
       {projetoId && !loadingSnap && !isError && snapshot && (
         <div className="row g-4">
           <div className="col-12">
-            <p className="small text-muted mb-0">
-              <strong>{projetoLabel || snapshot.projeto}</strong>
+            <ProjetoIdentificacaoFluxo
+              projetoCodigo={projetoSelecionado?.codigo ?? snapshot.projeto_codigo}
+              projetoNome={projetoSelecionado?.nome ?? snapshot.projeto_nome}
+              fallbackId={snapshot.projeto ?? projetoId}
+              htmlId="composicao-projeto-identificacao"
+            />
+            <p className="small text-muted mb-0 mt-2">
               {snapshot.totais ? (
                 <>
-                  {' '}
-                  · {snapshot.totais.sugestoes} sugestão(ões) ·{' '}
-                  {snapshot.totais.pendencias} pendência(s)
+                  {snapshot.totais.sugestoes} sugestão(ões) · {snapshot.totais.pendencias}{' '}
+                  pendência(s)
                   {snapshot.totais.composicao_itens != null ? (
                     <> · {snapshot.totais.composicao_itens} item(ns) na composição</>
                   ) : null}
@@ -685,7 +754,9 @@ export default function ComposicaoPage() {
                     <> · {snapshot.totais.inclusoes_manuais} inclusão(ões) manual(is)</>
                   ) : null}
                 </>
-              ) : null}
+              ) : (
+                'Sem totais de composição.'
+              )}
             </p>
             {snapshot.geracao?.erros_etapas &&
               snapshot.geracao.erros_etapas.length > 0 && (
@@ -738,18 +809,57 @@ export default function ComposicaoPage() {
                       />
                       {grupo.itens.map((c) => (
                         <tr key={c.id}>
-                          <td>{c.carga ? c.carga.tag : '—'}</td>
-                          <td>{textoDescricaoCarga(c.carga)}</td>
                           <td>
-                            <span className="badge text-bg-secondary">
-                              {em(c.carga?.tipo_display)}
-                            </span>
+                            {c.carga ? c.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
                           </td>
-                          <td>{formatPotenciaCarga(c.carga)}</td>
-                          <td>{formatCorrenteCarga(c.carga)}</td>
-                          <CelulaTensaoCarga carga={c.carga} />
-                          <td>{formatNumeroFasesCarga(c.carga)}</td>
-                          <td className="small">{em(textoPapelItem(c.observacoes))}</td>
+                          <td>
+                            {c.carga
+                              ? textoDescricaoCarga(c.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {c.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(c.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {c.carga ? formatPotenciaCarga(c.carga) : '—'}
+                          </td>
+                          <td>
+                            {c.carga
+                              ? formatCorrenteCarga(c.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  c.corrente_referencia_a
+                                )}
+                          </td>
+                          {c.carga ? (
+                            <CelulaTensaoCarga carga={c.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                c.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {c.carga
+                              ? formatNumeroFasesCarga(c.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  c.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td className="small">
+                            {c.carga
+                              ? em(textoPapelItem(c.observacoes))
+                              : LEGENDA_PAPEL_PAINEL_GERAL}
+                          </td>
                           <td>{c.quantidade}</td>
                           <td>
                             <span className="badge text-bg-secondary">
@@ -833,18 +943,57 @@ export default function ComposicaoPage() {
                       />
                       {grupo.itens.map((s) => (
                         <tr key={s.id}>
-                          <td>{s.carga ? s.carga.tag : '—'}</td>
-                          <td>{textoDescricaoCarga(s.carga)}</td>
                           <td>
-                            <span className="badge text-bg-secondary">
-                              {em(s.carga?.tipo_display)}
-                            </span>
+                            {s.carga ? s.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
                           </td>
-                          <td>{formatPotenciaCarga(s.carga)}</td>
-                          <td>{formatCorrenteCarga(s.carga)}</td>
-                          <CelulaTensaoCarga carga={s.carga} />
-                          <td>{formatNumeroFasesCarga(s.carga)}</td>
-                          <td className="small">{em(textoPapelItem(s.observacoes))}</td>
+                          <td>
+                            {s.carga
+                              ? textoDescricaoCarga(s.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {s.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(s.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {s.carga ? formatPotenciaCarga(s.carga) : '—'}
+                          </td>
+                          <td>
+                            {s.carga
+                              ? formatCorrenteCarga(s.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  s.corrente_referencia_a
+                                )}
+                          </td>
+                          {s.carga ? (
+                            <CelulaTensaoCarga carga={s.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                s.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {s.carga
+                              ? formatNumeroFasesCarga(s.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  s.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td className="small">
+                            {s.carga
+                              ? em(textoPapelItem(s.observacoes))
+                              : LEGENDA_PAPEL_PAINEL_GERAL}
+                          </td>
                           <td>{s.quantidade}</td>
                           <td>
                             <span className="badge text-bg-secondary">
@@ -925,17 +1074,52 @@ export default function ComposicaoPage() {
                       />
                       {grupo.itens.map((p: PendenciaItem) => (
                         <tr key={p.id}>
-                          <td>{p.carga ? p.carga.tag : '—'}</td>
-                          <td>{textoDescricaoCarga(p.carga)}</td>
                           <td>
-                            <span className="badge text-bg-secondary">
-                              {em(p.carga?.tipo_display)}
-                            </span>
+                            {p.carga ? p.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
                           </td>
-                          <td>{formatPotenciaCarga(p.carga)}</td>
-                          <td>{formatCorrenteCarga(p.carga)}</td>
-                          <CelulaTensaoCarga carga={p.carga} />
-                          <td>{formatNumeroFasesCarga(p.carga)}</td>
+                          <td>
+                            {p.carga
+                              ? textoDescricaoCarga(p.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {p.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(p.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
+                          <td>
+                            {p.carga ? formatPotenciaCarga(p.carga) : '—'}
+                          </td>
+                          <td>
+                            {p.carga
+                              ? formatCorrenteCarga(p.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  p.corrente_referencia_a
+                                )}
+                          </td>
+                          {p.carga ? (
+                            <CelulaTensaoCarga carga={p.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                p.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {p.carga
+                              ? formatNumeroFasesCarga(p.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  p.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
                           <td className="small">
                             {p.parte_painel_display ?? p.parte_painel}
                           </td>

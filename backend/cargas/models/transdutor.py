@@ -42,6 +42,13 @@ class CargaTransdutor(models.Model):
         blank=True,
     )
 
+    precisao = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Ex.: precisão declarada pelo fabricante.",
+    )
+
     tensao_alimentacao = models.IntegerField(
         choices=TensaoChoices.choices,
         default=TensaoChoices.V24,

@@ -8,7 +8,7 @@ const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 export const composicaoMenuItems: AppMenuItem[] = [
   {
     to: '/composicao',
-    label: 'Composição',
+    label: 'Composição do painel',
     order: 50,
     requiresPermission: PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS,
   },

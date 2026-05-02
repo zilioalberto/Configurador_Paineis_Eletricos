@@ -183,6 +183,7 @@ describe('CargaDetailPage', () => {
           potencia_kw: '10.50',
           tipo_protecao: 'DISJUNTOR_MOTOR',
           tipo_acionamento: 'CONTATOR',
+          tipo_conexao_painel: 'CONEXAO_BORNES_COM_PE',
         },
       },
       isPending: false,
@@ -192,6 +193,7 @@ describe('CargaDetailPage', () => {
     renderPage()
     expect(screen.getByRole('heading', { name: 'Resistência' })).toBeInTheDocument()
     expect(screen.getByText(/10\.50 kW/)).toBeInTheDocument()
+    expect(screen.getByText('Conexão a bornes com PE')).toBeInTheDocument()
   })
 
   it('renderiza válvula', () => {

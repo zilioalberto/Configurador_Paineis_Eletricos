@@ -28,6 +28,29 @@ vi.mock('@/modules/composicao/hooks/useComposicaoSnapshotQuery', () => ({
   useComposicaoSnapshotQuery: () => useComposicaoSnapshotQueryMock(),
 }))
 
+vi.mock('@/modules/dimensionamento/hooks/useDimensionamentoQuery', () => ({
+  useDimensionamentoQuery: () => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
+}))
+
+vi.mock('@/modules/projetos/hooks/useProjetoFluxoGates', () => ({
+  useProjetoFluxoGates: () => ({
+    loading: false,
+    temCargas: true,
+    condutoresRevisaoOk: true,
+    podeAcessarDimensionamento: true,
+    podeAcessarComposicao: true,
+  }),
+}))
+
+vi.mock('@/modules/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => null,
+}))
+
 vi.mock('@/modules/composicao/hooks/useGerarSugestoesMutation', () => ({
   useGerarSugestoesMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
@@ -143,6 +166,19 @@ describe('ComposicaoPage', () => {
       refetch: vi.fn(),
     })
   }
+
+  it('não exibe seletor de projeto quando a URL já define ?projeto=', () => {
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    render(
+      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
+        <ComposicaoPage />
+      </MemoryRouter>
+    )
+
+    expect(document.querySelector('#comp-projeto')).toBeNull()
+    expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
+  })
 
   it('oculta acao de gerar sugestoes sem permissao de separacao', () => {
     setupComposicaoPage({ user: undefined, projetos: [], snapshot: null })

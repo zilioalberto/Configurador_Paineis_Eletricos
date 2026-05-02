@@ -60,6 +60,7 @@ export interface Projeto {
   tensao_comando: number
 
   possui_plc: boolean
+  familia_plc: string | null
   possui_ihm: boolean
   possui_switches: boolean
   possui_plaqueta_identificacao: boolean
@@ -72,6 +73,9 @@ export interface Projeto {
   tipo_climatizacao_display?: string | null
 
   fator_demanda: string
+
+  /** 0 = mínimo normativo (tabela Iz); 1 = uma bitola comercial acima; etc. */
+  degraus_margem_bitola_condutores: number
 
   possui_seccionamento: boolean
   tipo_seccionamento: TipoSeccionamento | null
@@ -125,6 +129,7 @@ export interface ProjetoFormData {
   tensao_comando: number | ''
 
   possui_plc: boolean
+  familia_plc: string | null
   possui_ihm: boolean
   possui_switches: boolean
   possui_plaqueta_identificacao: boolean
@@ -136,6 +141,8 @@ export interface ProjetoFormData {
   tipo_climatizacao: TipoClimatizacaoPainel | null
 
   fator_demanda: string
+
+  degraus_margem_bitola_condutores: number
 
   possui_seccionamento: boolean
   tipo_seccionamento: TipoSeccionamento | null

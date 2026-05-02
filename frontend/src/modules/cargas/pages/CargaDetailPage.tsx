@@ -4,6 +4,7 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
+import { tipoConexaoCargaPainelOptions } from '../constants/cargaChoiceOptions'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
@@ -22,6 +23,12 @@ function formatDecimal(v: string | number | undefined | null, digits: number): s
   const n = Number(v)
   if (!Number.isFinite(n)) return String(v)
   return n.toFixed(digits)
+}
+
+function labelTipoConexaoPainel(codigo: string | undefined): string {
+  if (!codigo) return '—'
+  const opt = tipoConexaoCargaPainelOptions.find((o) => o.value === codigo)
+  return opt?.label ?? codigo
 }
 
 type LocationState = { from?: string }
@@ -274,6 +281,12 @@ export default function CargaDetailPage() {
                   <div className="col-md-4">
                     <strong>Tensão</strong>
                     <div>{c.resistencia.tensao_resistencia ?? '—'}</div>
+                  </div>
+                  <div className="col-md-4">
+                    <strong>Conexão ao painel</strong>
+                    <div>
+                      {labelTipoConexaoPainel(c.resistencia.tipo_conexao_painel)}
+                    </div>
                   </div>
                   <div className="col-md-4">
                     <strong>Potência (kW)</strong>

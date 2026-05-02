@@ -13,6 +13,7 @@ def selecionar_bornes(
     corrente_nominal_min_a: Decimal | float | None = None,
     modo_montagem: str | None = None,
     numero_niveis: int | None = None,
+    secao_max_mm2_min: Decimal | float | None = None,
 ) -> QuerySet[Produto]:
     kw: dict = {}
     if tipo_borne:
@@ -23,8 +24,11 @@ def selecionar_bornes(
         kw["modo_montagem"] = modo_montagem
     if numero_niveis is not None:
         kw["numero_niveis"] = numero_niveis
+    if secao_max_mm2_min is not None:
+        kw["secao_max_mm2__gte"] = secao_max_mm2_min
     qs = filtrar_produtos_especificacao(Cat.BORNE, **kw)
     return qs.order_by(
+        "especificacao_borne__secao_max_mm2",
         "especificacao_borne__corrente_nominal_a",
         "codigo",
         "descricao",

@@ -20,6 +20,14 @@ describe('plcFamiliaService', () => {
     await expect(listarPlcFamilias()).resolves.toEqual({
       familias: ['S7-1200', 'S7-1500'],
     })
-    expect(getMock).toHaveBeenCalledWith('/catalogo/plc-familias/')
+    expect(getMock).toHaveBeenCalledWith('/catalogo/plc-familias/', undefined)
+  })
+
+  it('listarPlcFamilias com apenasEspecificacaoPlc envia query param', async () => {
+    getMock.mockResolvedValueOnce({ data: { familias: ['X'] } })
+    await listarPlcFamilias({ apenasEspecificacaoPlc: true })
+    expect(getMock).toHaveBeenCalledWith('/catalogo/plc-familias/', {
+      params: { apenas_especificacao_plc: '1' },
+    })
   })
 })

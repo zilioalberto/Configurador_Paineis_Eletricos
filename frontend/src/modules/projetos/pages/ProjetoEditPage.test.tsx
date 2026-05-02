@@ -45,6 +45,13 @@ vi.mock('@/modules/projetos/hooks/useProjetoMutations', () => ({
   }),
 }))
 
+vi.mock('@/modules/catalogo/hooks/usePlcFamiliasQuery', () => ({
+  usePlcFamiliasQuery: () => ({
+    data: { familias: ['S7-1200'] },
+    isPending: false,
+  }),
+}))
+
 import ProjetoEditPage from '@/modules/projetos/pages/ProjetoEditPage'
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -73,6 +80,7 @@ const projetoMinimo = {
   tipo_corrente_comando: 'CA',
   tensao_comando: 24,
   possui_plc: false,
+  familia_plc: null,
   possui_ihm: false,
   possui_switches: false,
   possui_plaqueta_identificacao: false,
@@ -82,6 +90,7 @@ const projetoMinimo = {
   possui_climatizacao: false,
   tipo_climatizacao: 'VENTILADOR',
   fator_demanda: '1.00',
+  degraus_margem_bitola_condutores: 0,
   possui_seccionamento: false,
   tipo_seccionamento: 'NENHUM',
   responsavel: null,

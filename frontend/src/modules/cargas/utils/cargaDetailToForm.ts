@@ -88,6 +88,10 @@ export function cargaDetailToForm(d: CargaDetail): CargaFormData {
       tipo_protecao: str(d.resistencia.tipo_protecao, 'MINIDISJUNTOR'),
       tipo_acionamento: ta,
       tipo_rele_interface: str(d.resistencia.tipo_rele_interface, ''),
+      tipo_conexao_painel: str(
+        d.resistencia.tipo_conexao_painel,
+        'CONEXAO_BORNES_COM_PE'
+      ),
       potencia_kw: str(d.resistencia.potencia_kw, '1.000'),
     }
     if (nested.resistencia.tipo_acionamento !== 'RELE_INTERFACE') {

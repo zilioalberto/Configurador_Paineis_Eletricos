@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import type { Projeto } from '../types/projeto'
 
@@ -95,6 +96,11 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
         <div>{projeto.fator_demanda}</div>
       </div>
 
+      <div className="col-md-3">
+        <strong>Margem de bitola (condutores)</strong>
+        <div>{projeto.degraus_margem_bitola_condutores ?? 0} degrau(is) acima do mínimo Iz</div>
+      </div>
+
       <div className="col-12">
         <strong>Descrição</strong>
         <div>{projeto.descricao || '-'}</div>
@@ -149,6 +155,13 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
       <div className="col-md-3">
         <strong>Possui PLC</strong>
         <div>{booleanLabel(projeto.possui_plc)}</div>
+      </div>
+
+      <div className="col-md-3">
+        <strong>Família do PLC</strong>
+        <div>
+          {projeto.possui_plc ? projeto.familia_plc ?? '-' : '-'}
+        </div>
       </div>
 
       <div className="col-md-3">
@@ -236,60 +249,25 @@ export default function ProjetoDetailPage() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
   const canEditProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
-  const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
-  const canViewComposicao = hasPermission(user, PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS)
-  const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
   const { data: projeto, isPending, isError, error: loadError } =
     useProjetoDetailQuery(id)
 
   return (
     <div className="container-fluid">
+      {id ? <ProjetoFluxoStepper projetoId={id} etapaAtual="projeto" /> : null}
+
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h1 className="h3 mb-1">Detalhes do Projeto</h1>
-          <p className="text-muted mb-0">
-            Visualização dos dados principais do projeto.
-          </p>
+          <h1 className="h3 mb-1">Projeto</h1>
+          <p className="text-muted mb-0">Dados principais do projeto.</p>
         </div>
-        {id && (
+        {id && canEditProjeto ? (
           <div className="d-flex flex-wrap gap-2">
-            {canViewCargas ? (
-              <Link
-                to={`/cargas?projeto=${encodeURIComponent(id)}`}
-                className="btn btn-outline-primary"
-              >
-                Cargas do projeto
-              </Link>
-            ) : null}
-            {canViewDimensionamento ? (
-              <Link
-                to={`/dimensionamento?projeto=${encodeURIComponent(id)}`}
-                className="btn btn-outline-secondary"
-              >
-                Dimensionamento
-              </Link>
-            ) : null}
-            {canViewComposicao ? (
-              <Link
-                to={`/composicao?projeto=${encodeURIComponent(id)}`}
-                className="btn btn-outline-secondary"
-              >
-                Composição
-              </Link>
-            ) : null}
-            <Link
-              to={`/projetos/${id}/fluxo/cargas`}
-              className="btn btn-outline-info"
-            >
-              Wizard do projeto
+            <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
+              Editar projeto
             </Link>
-            {canEditProjeto ? (
-              <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
-                Editar projeto
-              </Link>
-            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="card">

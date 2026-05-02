@@ -5,7 +5,14 @@ import RequirePermission from '@/modules/auth/RequirePermission'
 
 const DimensionamentoPage = lazy(() => import('./pages/DimensionamentoPage'))
 
-export const dimensionamentoMenuItems: AppMenuItem[] = []
+export const dimensionamentoMenuItems: AppMenuItem[] = [
+  {
+    to: '/dimensionamento',
+    label: 'Dimensionamento de condutores',
+    order: 25,
+    requiresPermission: PERMISSION_KEYS.PROJETO_VISUALIZAR,
+  },
+]
 
 export const dimensionamentoRoutes: ModuleRouteConfig[] = [
   {

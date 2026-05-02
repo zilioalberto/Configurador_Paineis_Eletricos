@@ -45,6 +45,11 @@ class ResumoDimensionamento(BaseModel):
 
     observacoes = models.TextField(blank=True)
 
+    condutores_revisao_confirmada = models.BooleanField(
+        default=False,
+        help_text="Utilizador confirmou revisão/aprovação das bitolas de condutores no wizard.",
+    )
+
     class Meta:
         verbose_name = "Resumo de Dimensionamento"
         verbose_name_plural = "Resumos de Dimensionamento"

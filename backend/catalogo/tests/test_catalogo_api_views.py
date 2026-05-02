@@ -65,6 +65,15 @@ class TestCatalogoPlcFamilias:
         assert isinstance(body["familias"], list)
         assert len(body["familias"]) >= 1
 
+    def test_get_apenas_especificacao_plc_retorna_lista(self, admin_client):
+        client, _ = admin_client
+        url = reverse("catalogo-plc-familias")
+        r = client.get(url, {"apenas_especificacao_plc": "1"})
+        assert r.status_code == 200
+        body = r.json()
+        assert "familias" in body
+        assert isinstance(body["familias"], list)
+
     def test_get_sem_auth_401(self):
         url = reverse("catalogo-plc-familias")
         r = APIClient().get(url)

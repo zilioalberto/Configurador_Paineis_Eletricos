@@ -25,6 +25,9 @@ from core.permissions import PermissionKeys
 class PlcFamiliasListView(APIView):
     """
     Famílias já usadas em PLC, expansões, módulos de comunicação + rótulos padrão (sugestões).
+
+    Query: ``apenas_especificacao_plc=1`` restringe a valores distintos de
+    ``catalogo_especificacaoplc.familia`` (útil p.ex. no cadastro de projeto).
     """
 
     permission_classes = [HasEffectivePermission]
@@ -37,6 +40,11 @@ class PlcFamiliasListView(APIView):
             .values_list("familia", flat=True)
             .distinct()
         )
+        apenas_spec_plc = request.query_params.get("apenas_especificacao_plc")
+        if apenas_spec_plc in ("1", "true", "yes", "on"):
+            merged = sorted({*plc_vals}, key=str.casefold)
+            return Response({"familias": merged})
+
         exp_vals = (
             EspecificacaoExpansaoPLC.objects.exclude(familia_plc__isnull=True)
             .exclude(familia_plc="")

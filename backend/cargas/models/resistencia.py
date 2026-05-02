@@ -16,6 +16,7 @@ from core.choices import (
     TipoProtecaoResistenciaChoices,
     TipoAcionamentoResistenciaChoices,
     TipoReleInterfaceValvulaChoices,
+    TipoConexaoCargaPainelChoices,
 )
 
 from .base import Carga
@@ -63,6 +64,13 @@ class CargaResistencia(models.Model):
         help_text=(
             "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
         ),
+    )
+
+    tipo_conexao_painel = models.CharField(
+        max_length=50,
+        choices=TipoConexaoCargaPainelChoices.choices,
+        default=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+        help_text="Tipo de conexão da carga no painel.",
     )
 
     potencia_kw = models.DecimalField(

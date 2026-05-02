@@ -39,6 +39,12 @@ export const frequenciaOptions: FormOption<number>[] = [
   { value: 60, label: '60 Hz' },
 ]
 
+/** Margem sobre o mínimo Iz (interface limitada a 0 ou 1; valores superiores são legado). */
+export const margemBitolaCondutoresOptions: FormOption<number>[] = [
+  { value: 0, label: '0 — mínimo da tabela Iz' },
+  { value: 1, label: '1 — uma bitola comercial acima' },
+]
+
 export const tipoConexaoOptions: FormOption<TipoConexaoAlimentacao>[] = [
   { value: 'BARRAMENTO', label: 'Barramento' },
   { value: 'BORNE', label: 'Borne' },
@@ -85,6 +91,7 @@ export const projetoFormInitialState: ProjetoFormData = {
   tensao_comando: 24,
 
   possui_plc: false,
+  familia_plc: null,
   possui_ihm: false,
   possui_switches: false,
   possui_plaqueta_identificacao: false,
@@ -96,6 +103,8 @@ export const projetoFormInitialState: ProjetoFormData = {
   tipo_climatizacao: null,
 
   fator_demanda: '1.00',
+
+  degraus_margem_bitola_condutores: 1,
 
   possui_seccionamento: false,
   tipo_seccionamento: null,
