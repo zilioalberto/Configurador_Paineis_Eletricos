@@ -5,6 +5,7 @@ import pytest
 from cargas.models import CargaMotor
 from core.choices import (
     FrequenciaChoices,
+    FamiliaPLCChoices,
     NumeroFasesChoices,
     TensaoChoices,
     TipoConexaoAlimetacaoChoices,
@@ -27,6 +28,8 @@ def projeto_ca_minimo_kwargs():
 @pytest.fixture
 def criar_projeto(projeto_ca_minimo_kwargs):
     def _criar(*, nome: str, codigo: str, **extra):
+        if extra.get("possui_plc") is True and "familia_plc" not in extra:
+            extra["familia_plc"] = FamiliaPLCChoices.SIEMENS_S7_1200
         return Projeto.objects.create(
             nome=nome,
             codigo=codigo,

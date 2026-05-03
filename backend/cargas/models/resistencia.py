@@ -151,12 +151,15 @@ class CargaResistencia(models.Model):
                     )
                 )
 
-        if self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
-            if not self.tipo_rele_interface:
+        tipo_acionamento = getattr(self, "tipo_acionamento", None)
+        tipo_rele_interface = getattr(self, "tipo_rele_interface", None)
+
+        if tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
+            if not tipo_rele_interface:
                 erros["tipo_rele_interface"] = (
                     "Informe o tipo de relé de interface (eletromecânica ou estado sólido)."
                 )
-        elif self.tipo_rele_interface:
+        elif tipo_rele_interface:
             erros["tipo_rele_interface"] = (
                 "O tipo de relé de interface só se aplica ao acionamento "
                 "\"Relé de interface\"."
