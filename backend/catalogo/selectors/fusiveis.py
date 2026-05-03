@@ -8,7 +8,6 @@ from catalogo.models import Produto
 from catalogo.selectors._base import filtrar_produtos_especificacao
 from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
-
 def selecionar_fusiveis(
     corrente_nominal_min_a: Decimal | float | None = None,
     corrente_nominal_maior_que_a: Decimal | float | None = None,

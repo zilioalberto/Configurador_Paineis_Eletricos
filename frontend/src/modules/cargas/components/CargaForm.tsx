@@ -52,13 +52,6 @@ export default function CargaForm({
 }: CargaFormProps) {
   const [formData, setFormData] = useState<CargaFormData>(initialData)
   const [lastAutoTag, setLastAutoTag] = useState('')
-  const projetoId = formData.projeto
-  const tipoCarga = formData.tipo
-  const exigeComando = formData.exige_comando
-  const motorData = formData.motor
-  const valvulaData = formData.valvula
-  const resistenciaData = formData.resistencia
-  const sensorData = formData.sensor
 
   useEffect(() => {
     setFormData(initialData)
@@ -78,16 +71,16 @@ export default function CargaForm({
   }, [formData.tag, lastAutoTag, suggestedTag])
 
   const projetoSelecionado = useMemo(
-    () => projetos.find((p) => p.id === projetoId),
-    [projetos, projetoId]
+    () => projetos.find((p) => p.id === formData.projeto),
+    [projetos, formData.projeto]
   )
   const mostrarOcupacaoIo = projetoSelecionado?.possui_plc === true
   const esconderCamposAnalogicosIo =
     mostrarOcupacaoIo &&
-    tipoCarga === 'MOTOR' &&
-    (motorData?.tipo_partida === 'DIRETA' ||
-      motorData?.tipo_partida === 'ESTRELA_TRIANGULO')
-  const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !exigeComando
+    formData.tipo === 'MOTOR' &&
+    (formData.motor?.tipo_partida === 'DIRETA' ||
+      formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
+  const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !formData.exige_comando
 
   const calcularSaidasDigitaisMotor = useCallback(
     (partida: string, reversivel: boolean, freioMotor: boolean): number => {
@@ -112,8 +105,8 @@ export default function CargaForm({
   )
 
   useEffect(() => {
-    if (!projetoId) return
-    const p = projetos.find((x) => x.id === projetoId)
+    if (!formData.projeto) return
+    const p = projetos.find((x) => x.id === formData.projeto)
     if (p && !p.possui_plc) {
       setFormData((prev) => ({
         ...prev,
@@ -124,10 +117,10 @@ export default function CargaForm({
         quantidade_entradas_rapidas: 0,
       }))
     }
-  }, [projetoId, projetos])
+  }, [formData.projeto, projetos])
 
   useEffect(() => {
-    if (!mostrarOcupacaoIo || !exigeComando) {
+    if (!mostrarOcupacaoIo || !formData.exige_comando) {
       setFormData((prev) => ({
         ...prev,
         quantidade_entradas_digitais: 0,
@@ -145,8 +138,8 @@ export default function CargaForm({
     let saidasAnalogicas = 0
     let entradasRapidas = 0
 
-    if (tipoCarga === 'MOTOR' && motorData) {
-      const partida = motorData.tipo_partida
+    if (formData.tipo === 'MOTOR' && formData.motor) {
+      const partida = formData.motor.tipo_partida
       if (
         partida === 'DIRETA' ||
         partida === 'ESTRELA_TRIANGULO' ||
@@ -157,29 +150,29 @@ export default function CargaForm({
         entradasDigitais = 1
         saidasDigitais = calcularSaidasDigitaisMotor(
           partida,
-          Boolean(motorData.reversivel),
-          Boolean(motorData.freio_motor)
+          Boolean(formData.motor.reversivel),
+          Boolean(formData.motor.freio_motor)
         )
       }
       if (partida === 'ESTRELA_TRIANGULO') {
         entradasAnalogicas = 0
         saidasAnalogicas = 0
       }
-    } else if (tipoCarga === 'VALVULA' && valvulaData) {
-      entradasDigitais = valvulaData.possui_feedback ? 1 : 0
-      saidasDigitais = Math.max(1, Number(valvulaData.quantidade_solenoides) || 1)
-    } else if (tipoCarga === 'RESISTENCIA' && resistenciaData) {
+    } else if (formData.tipo === 'VALVULA' && formData.valvula) {
+      entradasDigitais = formData.valvula.possui_feedback ? 1 : 0
+      saidasDigitais = Math.max(1, Number(formData.valvula.quantidade_solenoides) || 1)
+    } else if (formData.tipo === 'RESISTENCIA' && formData.resistencia) {
       saidasDigitais = 1
-    } else if (tipoCarga === 'SENSOR' && sensorData) {
-      const sinal = sensorData.tipo_sinal
+    } else if (formData.tipo === 'SENSOR' && formData.sensor) {
+      const sinal = formData.sensor.tipo_sinal
       if (sinal === 'DIGITAL') entradasDigitais = 1
       if (sinal === 'ANALOGICO') entradasAnalogicas = 1
       if (sinal === 'ANALOGICO_DIGITAL') {
         entradasDigitais = 1
         entradasAnalogicas = 1
       }
-      if (sensorData.tipo_sensor === 'ENCODER') entradasRapidas = 1
-    } else if (tipoCarga === 'TRANSDUTOR') {
+      if (formData.sensor.tipo_sensor === 'ENCODER') entradasRapidas = 1
+    } else if (formData.tipo === 'TRANSDUTOR') {
       entradasAnalogicas = 1
     }
 
@@ -193,12 +186,16 @@ export default function CargaForm({
     }))
   }, [
     mostrarOcupacaoIo,
-    exigeComando,
-    tipoCarga,
-    motorData,
-    valvulaData,
-    resistenciaData,
-    sensorData,
+    formData.exige_comando,
+    formData.tipo,
+    formData.motor?.tipo_partida,
+    formData.motor?.reversivel,
+    formData.motor?.freio_motor,
+    formData.valvula?.quantidade_solenoides,
+    formData.valvula?.possui_feedback,
+    formData.resistencia?.tipo_acionamento,
+    formData.sensor?.tipo_sinal,
+    formData.sensor?.tipo_sensor,
     calcularSaidasDigitaisMotor,
   ])
 
@@ -295,7 +292,7 @@ export default function CargaForm({
     [formData, onSubmit]
   )
 
-  const m = motorData
+  const m = formData.motor
   const tipoPartidaMotorSelectOptions = useMemo(
     () => getTipoPartidaMotorSelectOptions(m?.tipo_partida ?? ''),
     [m?.tipo_partida]
@@ -308,9 +305,9 @@ export default function CargaForm({
         m.tipo_partida === 'INVERSOR' ||
         m.tipo_partida === 'SERVO_DRIVE')
   )
-  const v = valvulaData
-  const r = resistenciaData
-  const s = sensorData
+  const v = formData.valvula
+  const r = formData.resistencia
+  const s = formData.sensor
   const t = formData.transdutor
 
   const renderRequisitosSection = () => (

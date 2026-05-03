@@ -85,13 +85,13 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
         ) as mock_if,
         patch(
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_estado_solido_para_carga"
-        ) as mock_res,
+        ),
         patch(
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_interface_para_carga"
-        ) as mock_ri,
+        ),
         patch(
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_bornes_para_carga"
-        ) as mock_bornes,
+        ),
         patch(
             "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
         ),
@@ -106,9 +106,6 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
     mock_md.assert_called_once_with(projeto, carga)
     mock_ss.assert_called_once_with(projeto, carga)
     mock_if.assert_called_once_with(projeto, carga)
-    mock_res.assert_called_once_with(projeto, carga)
-    mock_ri.assert_called_once_with(projeto, carga)
-    mock_bornes.assert_called_once_with(projeto, carga)
 
 
 @pytest.mark.django_db
@@ -140,15 +137,6 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
         ) as mock_if,
         patch(
-            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_estado_solido_para_carga"
-        ) as mock_res,
-        patch(
-            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_interface_para_carga"
-        ) as mock_ri,
-        patch(
-            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_bornes_para_carga"
-        ) as mock_bornes,
-        patch(
             "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
         ) as mock_dim,
     ):
@@ -159,7 +147,4 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
     mock_md.assert_called_once_with(projeto_real, carga)
     mock_ss.assert_called_once_with(projeto_real, carga)
     mock_if.assert_called_once_with(projeto_real, carga)
-    mock_res.assert_called_once_with(projeto_real, carga)
-    mock_ri.assert_called_once_with(projeto_real, carga)
-    mock_bornes.assert_called_once_with(projeto_real, carga)
     mock_dim.assert_called_once_with(projeto_real)

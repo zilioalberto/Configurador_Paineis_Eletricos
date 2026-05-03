@@ -1,18 +1,33 @@
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
-from cargas.models import Carga, CargaResistencia, CargaSensor
+from cargas.models import (
+    Carga,
+    CargaResistencia,
+    CargaSensor,
+    CargaValvula,
+)
 from composicao_painel.models import PendenciaItem
 from composicao_painel.services.sugestoes.pendencias_sem_regra import (
     sincronizar_pendencias_cargas_sem_regra_catalogo,
 )
-from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
+from core.choices import (
+    CategoriaProdutoNomeChoices,
+    NumeroFasesChoices,
+    PartesPainelChoices,
+    TensaoChoices,
+    TipoCorrenteChoices,
+    TipoValvulaChoices,
+)
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
+    TipoAcionamentoValvulaChoices,
     TipoCargaChoices,
     TipoProtecaoResistenciaChoices,
+    TipoProtecaoValvulaChoices,
     TipoSensorChoices,
 )
 from core.choices.eletrica import TipoSinalChoices
@@ -193,3 +208,64 @@ def test_resistencia_memoria_quando_cargaresistencia_some_antes_da_memoria(
         criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
     assert len(criadas) == 1
     assert "CargaResistência" in criadas[0].memoria_calculo or "CargaResist" in criadas[0].memoria_calculo
+
+
+@pytest.mark.django_db
+def test_resistencia_disjuntor_motor_nao_gera_pendencia_sem_regra(criar_projeto):
+    """Proteção DISJUNTOR_MOTOR activa o fluxo de sugestão de disjuntor (há regra de catálogo)."""
+    projeto = criar_projeto(nome="PSDJ", codigo="13008-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="RDJ",
+        descricao="Res",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    CargaResistencia.objects.create(
+        carga=carga,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_protecao=TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR,
+        potencia_kw=Decimal("2.000"),
+    )
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 0
+
+
+@pytest.mark.django_db
+def test_valvula_com_contator_nao_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PSVC", codigo="13009-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="VCT",
+        descricao="Válvula",
+        tipo=TipoCargaChoices.VALVULA,
+        quantidade=1,
+    )
+    CargaValvula.objects.create(
+        carga=carga,
+        tipo_valvula=TipoValvulaChoices.SOLENOIDE,
+        quantidade_solenoides=1,
+        tensao_alimentacao=TensaoChoices.V24,
+        tipo_corrente=TipoCorrenteChoices.CC,
+        corrente_consumida_ma=Decimal("200.00"),
+        tipo_protecao=TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
+        tipo_acionamento=TipoAcionamentoValvulaChoices.CONTATOR,
+    )
+    assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 0
+
+
+@pytest.mark.django_db
+def test_transdutor_gera_pendencia_sem_regra(criar_projeto):
+    projeto = criar_projeto(nome="PST", codigo="13010-26", tensao_nominal=TensaoChoices.V380)
+    Carga.objects.create(
+        projeto=projeto,
+        tag="T01",
+        descricao="Transdutor",
+        tipo=TipoCargaChoices.TRANSDUTOR,
+        quantidade=1,
+    )
+    criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
+    assert len(criadas) == 1
+    assert "Não há gerador" in (criadas[0].memoria_calculo or "")

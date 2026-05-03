@@ -6,13 +6,10 @@ import type { CargaModelo } from '@/modules/cargas/types/carga'
 import CargaModeloOpcionalSection from './CargaModeloOpcionalSection'
 
 const useQueryMock = vi.hoisted(() =>
-  vi.fn((options: unknown) => {
-    void options
-    return {
-      data: [] as CargaModelo[],
-      isPending: false,
-    }
-  })
+  vi.fn((_options: unknown) => ({
+    data: [] as CargaModelo[],
+    isPending: false,
+  }))
 )
 
 vi.mock('@tanstack/react-query', () => ({
@@ -34,13 +31,10 @@ describe('CargaModeloOpcionalSection', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     useQueryMock.mockClear()
-    useQueryMock.mockImplementation((options: unknown) => {
-      void options
-      return {
-        data: [],
-        isPending: false,
-      }
-    })
+    useQueryMock.mockImplementation((_options: unknown) => ({
+      data: [],
+      isPending: false,
+    }))
   })
 
   afterEach(() => {
@@ -64,13 +58,10 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('após buscar e clicar no modelo, onAplicarModelo é chamado de imediato', async () => {
     const modelo = makeModelo()
-    useQueryMock.mockImplementation((options: unknown) => {
-      void options
-      return {
-        data: [modelo],
-        isPending: false,
-      }
-    })
+    useQueryMock.mockImplementation((_options: unknown) => ({
+      data: [modelo],
+      isPending: false,
+    }))
 
     const onAplicar = vi.fn()
     render(
@@ -101,13 +92,10 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('Enter na lista aplica modelo diretamente', async () => {
     const modelo = makeModelo({ id: 'm2', nome: 'Valvula X', tipo: 'VALVULA' })
-    useQueryMock.mockImplementation((options: unknown) => {
-      void options
-      return {
-        data: [modelo],
-        isPending: false,
-      }
-    })
+    useQueryMock.mockImplementation((_options: unknown) => ({
+      data: [modelo],
+      isPending: false,
+    }))
 
     const onAplicar = vi.fn()
     render(
