@@ -122,14 +122,10 @@ export default function CargaCreatePage() {
       <div className="mb-4">
         <h1 className="h3 mb-1">Nova carga</h1>
         <p className="text-muted mb-0">
-          Informe o projeto e o tipo de carga. Os parâmetros específicos são preenchidos
-          com valores padrão ao mudar o tipo (você pode ajustar antes de salvar).
+          O projeto não pode ser alterado nesta tela (é o definido ao abrir o cadastro). Escolha o
+          tipo de carga e complete os dados; os parâmetros específicos são preenchidos com valores
+          padrão ao mudar o tipo (pode ajustar antes de salvar).
         </p>
-        <div className="mt-2">
-          <Link to="/cargas/modelos" className="btn btn-sm btn-outline-secondary">
-            Gerenciar modelos de carga
-          </Link>
-        </div>
       </div>
 
       <div className="card">
@@ -169,7 +165,7 @@ export default function CargaCreatePage() {
                 onChange={setFormDraft}
                 onSubmit={handleSubmit}
                 loading={createMutation.isPending}
-                lockProjeto={false}
+                lockProjeto
               />
             </>
           )}

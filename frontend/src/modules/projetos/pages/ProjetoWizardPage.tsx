@@ -6,9 +6,12 @@ import { useCargaListQuery } from '@/modules/cargas/hooks/useCargaListQuery'
 import { useComposicaoSnapshotQuery } from '@/modules/composicao/hooks/useComposicaoSnapshotQuery'
 import { useGerarSugestoesMutation } from '@/modules/composicao/hooks/useGerarSugestoesMutation'
 import { useReavaliarPendenciasMutation } from '@/modules/composicao/hooks/useReavaliarPendenciasMutation'
+import { DimensionamentoWizardShell } from '@/modules/dimensionamento/components/DimensionamentoWizardShell'
+import WizardCondutoresPanel from '@/modules/dimensionamento/components/WizardCondutoresPanel'
 import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
 import { useRecalcularDimensionamentoMutation } from '@/modules/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarHistoricoProjeto } from '../services/projetoService'
@@ -48,13 +51,15 @@ function checklistBadgeClass(status: ChecklistStatus): string {
 export default function ProjetoWizardPage() {
   const { id, etapa } = useParams<{ id: string; etapa: string }>()
   const projetoId = id ?? ''
-  const etapaAtual = ETAPAS_VALIDAS.includes((etapa as WizardStepId) ?? 'projeto')
-    ? (etapa as WizardStepId)
-    : 'projeto'
+  const etapaParam = etapa ?? ''
+  const etapaInvalidaNaUrl = Boolean(etapaParam) && !ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
+  const etapaAtual: WizardStepId = ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
+    ? (etapaParam as WizardStepId)
+    : 'cargas'
 
   const { showToast } = useToast()
   const { data: projeto, isPending: loadingProjeto } = useProjetoDetailQuery(projetoId || undefined)
-  const { data: cargas = [] } = useCargaListQuery(projetoId || null)
+  const { data: cargas = [], isPending: loadingCargas } = useCargaListQuery(projetoId || null)
   const { data: dimensionamento } = useDimensionamentoQuery(projetoId || null)
   const { data: composicao } = useComposicaoSnapshotQuery(projetoId || null)
   const recalcMutation = useRecalcularDimensionamentoMutation(projetoId || null)
@@ -68,6 +73,8 @@ export default function ProjetoWizardPage() {
 
   const temCargas = cargas.length > 0
   const dimensionado = Boolean(dimensionamento)
+  const condutoresRevisaoOk = Boolean(dimensionamento?.condutores_revisao_confirmada)
+  const dimensionamentoEtapaConcluida = dimensionado && condutoresRevisaoOk
   const composicaoGerada = Boolean(
     composicao &&
       ((composicao.totais?.sugestoes ?? 0) > 0 ||
@@ -86,7 +93,7 @@ export default function ProjetoWizardPage() {
     : 0
   const dimensionamentoAposUltimaCarga =
     temCargas && dimensionado && dimensionamentoAtualizacaoMs >= maxCargaAtualizacaoMs
-  const prontoParaExportar = temCargas && dimensionado && composicaoGerada
+  const prontoParaExportar = temCargas && dimensionamentoEtapaConcluida && composicaoGerada
   const ultimoEvento = historico[0]
   const ultimaAcaoComUsuarioIdentificado = Boolean(
     ultimoEvento && (ultimoEvento.usuario_nome || ultimoEvento.usuario)
@@ -110,6 +117,15 @@ export default function ProjetoWizardPage() {
         status: temCargas ? (dimensionado ? ('done' as const) : ('pending' as const)) : ('blocked' as const),
       },
       {
+        key: 'condutores-confirmados',
+        label: 'Bitolas de condutores confirmadas no wizard',
+        status: !temCargas
+          ? ('blocked' as const)
+          : condutoresRevisaoOk
+            ? ('done' as const)
+            : ('pending' as const),
+      },
+      {
         key: 'dimensionamento-recente',
         label: 'Dimensionamento atualizado após última alteração de cargas',
         status: !temCargas
@@ -121,7 +137,11 @@ export default function ProjetoWizardPage() {
       {
         key: 'composicao',
         label: 'Composição gerada',
-        status: !dimensionado ? ('blocked' as const) : composicaoGerada ? ('done' as const) : ('pending' as const),
+        status: !dimensionamentoEtapaConcluida
+          ? ('blocked' as const)
+          : composicaoGerada
+            ? ('done' as const)
+            : ('pending' as const),
       },
       {
         key: 'rastreabilidade-usuario',
@@ -137,6 +157,8 @@ export default function ProjetoWizardPage() {
       projeto,
       temCargas,
       dimensionado,
+      condutoresRevisaoOk,
+      dimensionamentoEtapaConcluida,
       dimensionamentoAposUltimaCarga,
       composicaoGerada,
       historico.length,
@@ -148,7 +170,7 @@ export default function ProjetoWizardPage() {
     () => [
       {
         id: 'projeto',
-        title: 'Projeto',
+        title: 'Dados do projeto',
         description: 'Revise ou ajuste os dados de entrada do projeto.',
         href: `/projetos/${projetoId}/editar`,
         canEnter: true,
@@ -156,30 +178,31 @@ export default function ProjetoWizardPage() {
       },
       {
         id: 'cargas',
-        title: 'Cargas',
-        description: 'Cadastre as cargas do projeto para liberar dimensionamento.',
+        title: 'Cargas do projeto',
+        description: 'Cadastre as cargas do projeto para liberar o dimensionamento de condutores.',
         href: `/cargas?projeto=${encodeURIComponent(projetoId)}`,
         canEnter: Boolean(projeto),
         done: temCargas,
       },
       {
         id: 'dimensionamento',
-        title: 'Dimensionamento',
-        description: 'Recalcule o dimensionamento com base nas cargas atuais.',
-        href: `/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`,
+        title: 'Dimensionamento de condutores',
+        description:
+          'Revise bitolas sugeridas, ajuste se necessário (Iz mínimo) e confirme a revisão.',
+        href: `/projetos/${projetoId}/fluxo/dimensionamento`,
         canEnter: temCargas,
-        done: dimensionado,
+        done: dimensionamentoEtapaConcluida,
       },
       {
         id: 'composicao',
-        title: 'Composição',
+        title: 'Composição do painel',
         description: 'Gere e aprove a composição para exportação final.',
         href: `/composicao?projeto=${encodeURIComponent(projetoId)}`,
-        canEnter: dimensionado,
+        canEnter: dimensionamentoEtapaConcluida,
         done: composicaoGerada,
       },
     ],
-    [projetoId, projeto, temCargas, dimensionado, composicaoGerada]
+    [projetoId, projeto, temCargas, dimensionamentoEtapaConcluida, composicaoGerada]
   )
 
   const etapaIndex = steps.findIndex((s) => s.id === etapaAtual)
@@ -235,59 +258,103 @@ export default function ProjetoWizardPage() {
     return <Navigate to="/projetos" replace />
   }
 
+  if (etapaInvalidaNaUrl) {
+    return <Navigate to={`/projetos/${projetoId}/fluxo/cargas`} replace />
+  }
+
+  if (etapaAtual === 'composicao') {
+    return <Navigate to={`/composicao?projeto=${encodeURIComponent(projetoId)}`} replace />
+  }
+
+  if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {
+    return <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+  }
+
   return (
     <div className="container-fluid">
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-          <h1 className="h3 mb-1">Wizard do Projeto</h1>
-          <div className="mb-2">
-            <span
-              className={`badge ${
-                ultimaAcaoComUsuarioIdentificado ? 'bg-success' : 'bg-warning text-dark'
-              }`}
-            >
-              {ultimaAcaoComUsuarioIdentificado ? 'Audit trail ativo' : 'Audit trail pendente'}
-            </span>
+      {etapaAtual !== 'dimensionamento' ? (
+        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual={etapaAtual} />
+      ) : null}
+
+      {etapaAtual !== 'dimensionamento' ? (
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+          <div>
+            <h1 className="h3 mb-1">Resumo do fluxo</h1>
+            <div className="mb-2">
+              <span
+                className={`badge ${
+                  ultimaAcaoComUsuarioIdentificado ? 'bg-success' : 'bg-warning text-dark'
+                }`}
+              >
+                {ultimaAcaoComUsuarioIdentificado ? 'Audit trail ativo' : 'Audit trail pendente'}
+              </span>
+            </div>
+            <p className="text-muted mb-0">
+              Acompanhe o projeto: cargas, dimensionamento de condutores e composição do painel.
+            </p>
+            {projeto ? (
+              <p className="small text-muted mb-0 mt-1">
+                <strong>{projeto.codigo}</strong> - {projeto.nome}
+              </p>
+            ) : null}
+            {projeto?.responsavel_nome ? (
+              <p className="small text-muted mb-0 mt-1">
+                Responsável atual: <strong>{projeto.responsavel_nome}</strong>
+              </p>
+            ) : null}
+            {ultimoEvento ? (
+              <p className="small text-muted mb-0 mt-1">
+                Última ação: <strong>{ultimoEvento.descricao}</strong> por{' '}
+                <strong>{ultimoEvento.usuario_nome || 'Utilizador não identificado'}</strong> em{' '}
+                {new Date(ultimoEvento.criado_em).toLocaleString()}.
+              </p>
+            ) : (
+              <p className="small text-muted mb-0 mt-1">
+                Última ação: ainda não há eventos registrados para este projeto.
+              </p>
+            )}
           </div>
-          <p className="text-muted mb-0">
-            Fluxo guiado para concluir painel: cargas, dimensionamento e composição.
-          </p>
-          {projeto ? (
-            <p className="small text-muted mb-0 mt-1">
-              <strong>{projeto.codigo}</strong> - {projeto.nome}
-            </p>
-          ) : null}
-          {projeto?.responsavel_nome ? (
-            <p className="small text-muted mb-0 mt-1">
-              Responsável atual: <strong>{projeto.responsavel_nome}</strong>
-            </p>
-          ) : null}
-          {ultimoEvento ? (
-            <p className="small text-muted mb-0 mt-1">
-              Última ação: <strong>{ultimoEvento.descricao}</strong> por{' '}
-              <strong>{ultimoEvento.usuario_nome || 'Utilizador não identificado'}</strong> em{' '}
-              {new Date(ultimoEvento.criado_em).toLocaleString()}.
-            </p>
-          ) : (
-            <p className="small text-muted mb-0 mt-1">
-              Última ação: ainda não há eventos registrados para este projeto.
-            </p>
-          )}
-        </div>
-        <div className="d-flex gap-2">
-          <Link className="btn btn-outline-secondary" to={`/projetos/${id}`}>
-            Ver detalhes
-          </Link>
-          {proxima ? (
-            <Link className="btn btn-primary" to={proxima.href}>
-              Continuar em {proxima.title}
+          <div className="d-flex gap-2">
+            <Link className="btn btn-outline-secondary" to={`/projetos/${id}`}>
+              Ver detalhes
             </Link>
-          ) : null}
+            {proxima ? (
+              <Link className="btn btn-primary" to={proxima.href}>
+                Continuar em {proxima.title}
+              </Link>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {loadingProjeto ? <p className="text-muted">Carregando projeto...</p> : null}
 
+      {etapaAtual === 'dimensionamento' ? (
+        <DimensionamentoWizardShell
+          projetoId={projetoId}
+          projetoCodigo={projeto?.codigo}
+          projetoNome={projeto?.nome}
+          temCargas={temCargas}
+        >
+          {temCargas ? (
+            <WizardCondutoresPanel projetoId={projetoId} embedded />
+          ) : (
+            <div className="alert alert-info mb-0" role="status">
+              <p className="mb-2">
+                Cadastre ao menos uma carga ativa para calcular e revisar as bitolas dos circuitos.
+              </p>
+              <Link
+                className="btn btn-sm btn-outline-primary"
+                to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}
+              >
+                Gerenciar cargas
+              </Link>
+            </div>
+          )}
+        </DimensionamentoWizardShell>
+      ) : null}
+
+      {etapaAtual !== 'dimensionamento' ? (
       <div className="row g-3 mb-4">
         {steps.map((step) => {
           const active = step.id === etapaAtual
@@ -320,7 +387,9 @@ export default function ProjetoWizardPage() {
           )
         })}
       </div>
+      ) : null}
 
+      {etapaAtual !== 'dimensionamento' ? (
       <div className="card mb-4">
         <div className="card-body">
           <h2 className="h5 mb-3">Ações rápidas do fluxo</h2>
@@ -338,7 +407,7 @@ export default function ProjetoWizardPage() {
             </div>
             <div className="col-12 col-lg-4">
               <div className="border rounded p-3 h-100">
-                <h3 className="h6">Dimensionamento</h3>
+                <h3 className="h6">Dimensionamento de condutores</h3>
                 <p className="small text-muted mb-2">
                   {dimensionamento
                     ? `Corrente total: ${dimensionamento.corrente_total_painel_a} A`
@@ -355,16 +424,16 @@ export default function ProjetoWizardPage() {
                   </button>
                   <Link
                     className="btn btn-sm btn-outline-secondary"
-                    to={`/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`}
+                    to={`/projetos/${projetoId}/fluxo/dimensionamento`}
                   >
-                    Ver em cargas
+                    Abrir revisão de condutores
                   </Link>
                 </div>
               </div>
             </div>
             <div className="col-12 col-lg-4">
               <div className="border rounded p-3 h-100">
-                <h3 className="h6">Composição</h3>
+                <h3 className="h6">Composição do painel</h3>
                 <p className="small text-muted mb-2">
                   Sugestões: {composicao?.totais?.sugestoes ?? 0} | Pendências: {composicao?.totais?.pendencias ?? 0}
                 </p>
@@ -372,7 +441,7 @@ export default function ProjetoWizardPage() {
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-primary"
-                    disabled={!dimensionado || gerarMutation.isPending}
+                    disabled={!dimensionamentoEtapaConcluida || gerarMutation.isPending}
                     onClick={() => void onGerarSugestoes()}
                   >
                     {gerarMutation.isPending ? 'Gerando...' : 'Gerar sugestões'}
@@ -380,7 +449,7 @@ export default function ProjetoWizardPage() {
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-secondary"
-                    disabled={!dimensionado || reavaliarMutation.isPending}
+                    disabled={!dimensionamentoEtapaConcluida || reavaliarMutation.isPending}
                     onClick={() => void onReavaliarPendencias()}
                   >
                     {reavaliarMutation.isPending ? 'Reavaliando...' : 'Reavaliar'}
@@ -391,7 +460,9 @@ export default function ProjetoWizardPage() {
           </div>
         </div>
       </div>
+      ) : null}
 
+      {etapaAtual !== 'dimensionamento' ? (
       <div className="card mb-4">
         <div className="card-body">
           <h2 className="h5 mb-3">Checklist de conclusão</h2>
@@ -430,7 +501,9 @@ export default function ProjetoWizardPage() {
           </div>
         </div>
       </div>
+      ) : null}
 
+      {etapaAtual !== 'dimensionamento' ? (
       <div className="card">
         <div className="card-body">
           <h2 className="h5 mb-3">Rastreabilidade do projeto</h2>
@@ -460,6 +533,7 @@ export default function ProjetoWizardPage() {
           )}
         </div>
       </div>
+      ) : null}
     </div>
   )
 }

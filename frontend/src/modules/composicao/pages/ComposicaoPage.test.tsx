@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const gerarMutateAsyncMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    geracao: { erros_etapas: [], sugestoes_descartadas_aprovadas: 0 },
+  })
+)
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useProjetoListQueryMock = vi.hoisted(() => vi.fn())
 const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
@@ -28,8 +33,34 @@ vi.mock('@/modules/composicao/hooks/useComposicaoSnapshotQuery', () => ({
   useComposicaoSnapshotQuery: () => useComposicaoSnapshotQueryMock(),
 }))
 
+vi.mock('@/modules/dimensionamento/hooks/useDimensionamentoQuery', () => ({
+  useDimensionamentoQuery: () => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    error: null,
+  }),
+}))
+
+vi.mock('@/modules/projetos/hooks/useProjetoFluxoGates', () => ({
+  useProjetoFluxoGates: () => ({
+    loading: false,
+    temCargas: true,
+    condutoresRevisaoOk: true,
+    podeAcessarDimensionamento: true,
+    podeAcessarComposicao: true,
+  }),
+}))
+
+vi.mock('@/modules/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => null,
+}))
+
 vi.mock('@/modules/composicao/hooks/useGerarSugestoesMutation', () => ({
-  useGerarSugestoesMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGerarSugestoesMutation: () => ({
+    mutateAsync: gerarMutateAsyncMock,
+    isPending: false,
+  }),
 }))
 
 vi.mock('@/modules/composicao/hooks/useReavaliarPendenciasMutation', () => ({
@@ -77,6 +108,10 @@ describe('ComposicaoPage', () => {
     exportarComposicaoListaPdfMock.mockClear()
     exportarComposicaoListaXlsxMock.mockClear()
     showToastMock.mockClear()
+    gerarMutateAsyncMock.mockClear()
+    gerarMutateAsyncMock.mockResolvedValue({
+      geracao: { erros_etapas: [], sugestoes_descartadas_aprovadas: 0 },
+    })
     lastConfirmModalProps.current = null
   })
 
@@ -143,6 +178,22 @@ describe('ComposicaoPage', () => {
       refetch: vi.fn(),
     })
   }
+
+  it('não exibe seletor de projeto quando a URL já define ?projeto=', async () => {
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    render(
+      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
+        <ComposicaoPage />
+      </MemoryRouter>
+    )
+
+    expect(document.querySelector('#comp-projeto')).toBeNull()
+    expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
+    })
+  })
 
   it('oculta acao de gerar sugestoes sem permissao de separacao', () => {
     setupComposicaoPage({ user: undefined, projetos: [], snapshot: null })

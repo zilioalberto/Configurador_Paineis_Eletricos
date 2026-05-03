@@ -122,12 +122,12 @@ describe('CargaModelosPage', () => {
           motor: {
             potencia_corrente_valor: '2',
             potencia_corrente_unidade: 'CV',
+            numero_fases: 3,
+            tensao_motor: 380,
             rendimento_percentual: '85',
             fator_potencia: '0.85',
             tipo_partida: 'DIRETA',
             tipo_protecao: 'DISJUNTOR_MOTOR',
-            tipo_conexao_painel: 'CONEXAO_BORNES_COM_PE',
-            tempo_partida_s: '',
             reversivel: false,
             freio_motor: false,
           },
@@ -192,5 +192,38 @@ describe('CargaModelosPage', () => {
 
     fireEvent.change(tipoSelectEl, { target: { value: 'TRANSDUTOR' } })
     expect(await screen.findByText('Parâmetros do transdutor')).toBeInTheDocument()
+  })
+
+  it('aplica validações de sensor para PNP/NPN e tipo de sinal', async () => {
+    mockModelosLista()
+    renderCargaModelosPage()
+
+    const tipoSelect = screen
+      .getAllByRole('combobox')
+      .find((el) => (el as HTMLSelectElement).querySelector('option[value="SENSOR"]'))
+    expect(tipoSelect).toBeTruthy()
+    const tipoSelectEl = tipoSelect as HTMLElement
+    fireEvent.change(tipoSelectEl, { target: { value: 'SENSOR' } })
+
+    const tipoSinalSelect = screen
+      .getAllByRole('combobox')
+      .find((el) => (el as HTMLSelectElement).value === 'DIGITAL') as HTMLSelectElement
+    expect(tipoSinalSelect).toBeTruthy()
+    const pnpCheckbox = screen.getByLabelText('PNP') as HTMLInputElement
+    const npnCheckbox = screen.getByLabelText('NPN') as HTMLInputElement
+
+    fireEvent.click(pnpCheckbox)
+    expect(pnpCheckbox.checked).toBe(true)
+    expect(npnCheckbox.checked).toBe(false)
+
+    fireEvent.click(npnCheckbox)
+    expect(npnCheckbox.checked).toBe(true)
+    expect(pnpCheckbox.checked).toBe(false)
+
+    fireEvent.change(tipoSinalSelect, { target: { value: 'ANALOGICO' } })
+    expect(pnpCheckbox).toBeDisabled()
+    expect(npnCheckbox).toBeDisabled()
+    expect(pnpCheckbox.checked).toBe(false)
+    expect(npnCheckbox.checked).toBe(false)
   })
 })

@@ -117,6 +117,27 @@ describe('CargaCreatePage', () => {
     ).toBeInTheDocument()
   })
 
+  it.each([
+    ['com ?projeto= na URL', '?projeto=p-editavel'],
+    ['sem ?projeto= na URL', ''],
+  ])('sempre desabilita alteração do projeto (%s)', async (_label, search) => {
+    mockCreatePageQueries({ projetos: [projetoEditavel] })
+    renderCargaCreatePage(search)
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /Nova carga/i })).toBeInTheDocument()
+    )
+
+    const projetoSelect = document.querySelector(
+      'select[name="projeto"]'
+    ) as HTMLSelectElement
+    expect(projetoSelect).toBeTruthy()
+    expect(projetoSelect.disabled).toBe(true)
+    expect(
+      screen.getByText(/O projeto não pode ser alterado nesta tela/i)
+    ).toBeInTheDocument()
+  })
+
   it('exibe formulário e submete criação', async () => {
     navigate.mockClear()
     mutateAsync.mockClear()

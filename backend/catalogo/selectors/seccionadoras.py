@@ -27,8 +27,6 @@ def selecionar_seccionadoras(
     niveis=2 -> retorna produtos de 15 A e 20 A
     niveis=3 -> retorna produtos de 15 A, 20 A e 25 A
     """
-    
-    print("Entrou em selecionar_seccionadoras com corrente_nominal_a =", corrente_nominal)
 
     if corrente_nominal is None:
         return Produto.objects.none()

@@ -22,14 +22,7 @@ from projetos.services.rastreabilidade import registrar_evento_projeto
 
 
 class CargaViewSet(ModelViewSet):
-    queryset = Carga.objects.select_related(
-        "projeto",
-        "motor",
-        "valvula",
-        "resistencia",
-        "sensor",
-        "transdutor",
-    ).order_by("projeto", "tag")
+    queryset = Carga.objects.select_related("projeto").order_by("projeto", "tag")
     permission_classes = [HasEffectivePermission]
 
     def get_queryset(self):
@@ -92,6 +85,24 @@ class CargaViewSet(ModelViewSet):
             descricao=f"Carga {tag} excluída.",
             detalhes={"carga_id": carga_id, "tag": tag},
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        carga = serializer.instance
+        out = CargaDetailSerializer(carga, context=self.get_serializer_context()).data
+        return Response(out, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        carga = serializer.instance
+        out = CargaDetailSerializer(carga, context=self.get_serializer_context()).data
+        return Response(out, status=status.HTTP_200_OK)
 
 
 class CargaModeloListCreateView(APIView):

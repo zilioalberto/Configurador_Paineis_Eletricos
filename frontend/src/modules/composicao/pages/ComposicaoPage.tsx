@@ -1,12 +1,24 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/cargas/utils/projetoEdicaoCargas'
+import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
+import { ProjetoFluxoStepper } from '@/modules/projetos/components/ProjetoFluxoStepper'
+import { useProjetoFluxoGates } from '@/modules/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { ProjetoIdentificacaoFluxo } from '@/modules/projetos/components/ProjetoIdentificacaoFluxo'
+import type { Projeto } from '@/modules/projetos/types/projeto'
 import { InclusaoManualCatalogoSection } from '../components/InclusaoManualCatalogoSection'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
 import { useAprovarSugestaoMutation } from '../hooks/useAprovarSugestaoMutation'
@@ -21,9 +33,17 @@ import {
 import type {
   CargaDetalhe,
   ComposicaoItem,
+  ComposicaoSnapshot,
+  PendenciaItem,
   ProjetoAlimentacaoSnapshot,
   SugestaoItem,
 } from '../types/composicao'
+
+const STATUS_APROVACAO_MARKER = '[STATUS_APROVACAO]'
+
+/** Evita POST duplicado no Strict Mode (dev) ao montar a página de composição. */
+const COMPOSICAO_AUTO_GERAR_DEDUP_MS = 800
+let composicaoAutoGerarDedup: { projetoId: string; at: number } | null = null
 
 function em(v: string | null | undefined) {
   if (v == null || v === '') return '—'
@@ -43,13 +63,31 @@ function montarNomeArquivoProjeto(
 
 function formatPotenciaCarga(c: CargaDetalhe | null | undefined) {
   const raw = c?.potencia_corrente_valor
-  if (raw != null && raw !== '') {
-    const valor = String(raw)
-    const u =
-      c?.potencia_corrente_unidade_display ?? c?.potencia_corrente_unidade ?? ''
-    return u ? `${valor} ${u}` : valor
+  if (raw == null || raw === '') return '—'
+  const valorStr = String(raw)
+  const u =
+    (c?.potencia_corrente_unidade_display ?? c?.potencia_corrente_unidade ?? '').trim()
+  const uUp = u.toUpperCase()
+
+  const n = Number.parseFloat(valorStr.replace(',', '.'))
+  if (!Number.isFinite(n)) {
+    return u ? `${valorStr} ${u}` : valorStr
   }
-  return '—'
+  // Resistência (kW) e cargas em W: exibir potência indicativa em kW na composição.
+  if (uUp === 'W') {
+    const kw = n / 1000
+    return `${kw.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    })} kW`
+  }
+  if (uUp === 'KW') {
+    return `${n.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
+    })} kW`
+  }
+  return u ? `${valorStr} ${u}` : valorStr
 }
 
 /** Descrição da carga (`cargas_carga.descricao`). */
@@ -61,14 +99,24 @@ function textoDescricaoCarga(c: CargaDetalhe | null | undefined) {
   return s.trim() === '' ? '—' : s
 }
 
-function formatNumeroFasesProjeto(pa: ProjetoAlimentacaoSnapshot | undefined) {
-  if (pa?.numero_fases != null) {
-    return String(pa.numero_fases)
+function formatNumeroFasesCarga(c: CargaDetalhe | null | undefined) {
+  if (c?.numero_fases_carga_display?.trim()) {
+    return c.numero_fases_carga_display
   }
-  if (pa?.numero_fases_display && pa.numero_fases_display.trim() !== '') {
-    return pa.numero_fases_display
+  if (c?.numero_fases_carga != null) {
+    return String(c.numero_fases_carga)
   }
   return '—'
+}
+
+/** Texto de função do item (ex.: contatora K1, freio); remove linhas de status de aprovação. */
+function textoPapelItem(observacoes: string | null | undefined) {
+  if (!observacoes?.trim()) return ''
+  return observacoes
+    .split(/\r?\n/)
+    .filter((linha) => !linha.includes(STATUS_APROVACAO_MARKER))
+    .join('\n')
+    .trim()
 }
 
 function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
@@ -78,15 +126,264 @@ function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
   return '—'
 }
 
-function CelulaTensaoProjeto({ pa }: { pa: ProjetoAlimentacaoSnapshot | undefined }) {
-  if (!pa) return <td>—</td>
+/** Linhas sem carga (seccionamento / painel geral): colunas alinhadas ao projeto e ao dimensionamento. */
+const LEGENDA_TAG_PAINEL_GERAL = 'GDBT'
+const LEGENDA_DESCR_PAINEL_GERAL = 'SECCIONAMENTO'
+const LEGENDA_TIPO_PAINEL_GERAL = 'GERAL'
+/** Papel/função: vazio visual (tipo e descrição cobrem a entrada geral). */
+const LEGENDA_PAPEL_PAINEL_GERAL = '—'
+
+const SQRT3 = Math.sqrt(3)
+
+function parseNumeroFasesPainel(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): number | null {
+  const raw = pa?.numero_fases ?? projeto?.numero_fases
+  if (raw == null) return null
+  const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10)
+  return Number.isFinite(n) ? n : null
+}
+
+function parseCorrentePainelA(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem?: string | null
+): number | null {
+  const ib = dimensionamento?.corrente_total_painel_a
+  const s =
+    ib != null && String(ib).trim() !== ''
+      ? String(ib).trim()
+      : correnteRefItem != null && String(correnteRefItem).trim() !== ''
+        ? String(correnteRefItem).trim()
+        : ''
+  if (!s) return null
+  const n = Number.parseFloat(s.replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function tensaoNominalPainelV(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): number | null {
+  if (pa?.tensao_nominal != null) {
+    const v = Number(pa.tensao_nominal)
+    return Number.isFinite(v) && v > 0 ? v : null
+  }
+  if (projeto?.tensao_nominal != null) {
+    const v = Number(projeto.tensao_nominal)
+    return Number.isFinite(v) && v > 0 ? v : null
+  }
+  return null
+}
+
+/**
+ * Potência indicativa em kW a partir de Ib, tensão nominal e fases (cos φ = 1).
+ * CC: P = U·I; CA monofásico: P = U·I; CA trifásico (ou fases não informadas em CA): P = √3·U·I.
+ */
+function formatPotenciaPainelEntradaKw(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem: string | null | undefined,
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const i = parseCorrentePainelA(dimensionamento, correnteRefItem)
+  const u = tensaoNominalPainelV(pa, projeto)
+  if (i == null || u == null) return '—'
+
+  const tipo = (pa?.tipo_corrente ?? projeto?.tipo_corrente ?? 'CA').toUpperCase()
+  const nf = parseNumeroFasesPainel(pa, projeto)
+
+  let pW: number
+  if (tipo === 'CC') {
+    pW = u * i
+  } else if (nf === 1) {
+    pW = u * i
+  } else {
+    pW = SQRT3 * u * i
+  }
+
+  const pKw = pW / 1000
+  const rounded = Math.round(pKw * 100) / 100
+  return `${rounded.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} kW`
+}
+
+function textoTensaoAlimentacaoProjeto(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const display = pa?.tensao_nominal_display?.trim()
+  if (display) return display
+  if (pa?.tensao_nominal != null) return `${pa.tensao_nominal} V`
+  if (projeto?.tensao_nominal != null) return `${projeto.tensao_nominal} V`
+  return '—'
+}
+
+function textoFasesAlimentacaoProjeto(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const display = pa?.numero_fases_display?.trim()
+  if (display) return display
+  if (pa?.numero_fases != null) return String(pa.numero_fases)
+  if (projeto?.numero_fases != null) return String(projeto.numero_fases)
+  return '—'
+}
+
+/** Ib painel (dimensionamento); fallback na corrente de referência do item. */
+function textoCorrenteEntradaPainel(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem?: string | null
+): string {
+  const ib = dimensionamento?.corrente_total_painel_a
+  if (ib != null && String(ib).trim() !== '') return `${String(ib).trim()} A`
+  if (correnteRefItem != null && String(correnteRefItem).trim() !== '') {
+    return `${String(correnteRefItem).trim()} A`
+  }
+  return '—'
+}
+
+function CelulaTensaoCarga({ carga }: { carga: CargaDetalhe | null | undefined }) {
+  const label =
+    carga?.tensao_carga_display?.trim() ||
+    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '')
+  if (!label) return <td>—</td>
+  return <td className="small">{label}</td>
+}
+
+/** Linha de agrupamento no topo de cada bloco de tag (tabela única). */
+function LinhaSeparadoraGrupoPorTag({
+  colSpan,
+  tituloTag,
+  carga,
+}: {
+  colSpan: number
+  tituloTag: string
+  carga: CargaDetalhe | null
+}) {
+  const tensao =
+    carga?.tensao_carga_display?.trim() ||
+    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
   return (
-    <td className="small">
-      <div>{em(pa.tensao_nominal_display)}</div>
-      {pa.tipo_corrente_display ? (
-        <div className="small text-muted">{pa.tipo_corrente_display}</div>
-      ) : null}
-    </td>
+    <tr className="table-secondary">
+      <td colSpan={colSpan} className="py-2">
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <span className="badge text-bg-primary rounded-pill">{tituloTag}</span>
+          {carga ? (
+            <>
+              <span className="badge text-bg-secondary">{em(carga.tipo_display)}</span>
+              <span className="fw-semibold">{textoDescricaoCarga(carga)}</span>
+              <span className="small text-muted ms-lg-auto d-flex flex-wrap gap-3">
+                <span>Pot.: {formatPotenciaCarga(carga)}</span>
+                <span>Corr.: {formatCorrenteCarga(carga)}</span>
+                <span>Tensão (carga): {tensao}</span>
+                <span>Fases: {formatNumeroFasesCarga(carga)}</span>
+              </span>
+            </>
+          ) : null}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+/** Itens de painel geral (ex.: seccionamento) sem `carga` associada no snapshot. */
+const CHAVE_AGRUPAMENTO_SEM_TAG = '__sem_tag__'
+
+type AgruparPorTagCargaOpts = {
+  /** `ResumoDimensionamento.corrente_total_painel_a` — corrente de entrada / painel. */
+  correnteTotalPainelA?: string | null
+}
+
+function tituloGrupoPainelGeral(opts?: AgruparPorTagCargaOpts): string {
+  const raw = opts?.correnteTotalPainelA
+  if (raw != null && String(raw).trim() !== '') {
+    return `GDBT — ${String(raw).trim()} A`
+  }
+  return 'GDBT'
+}
+
+type GrupoItensPorTag<T> = {
+  chave: string
+  tituloTag: string
+  carga: CargaDetalhe | null
+  itens: T[]
+}
+
+function ordenarPorOrdemLista<T extends { ordem: number }>(itens: T[]): T[] {
+  return [...itens].sort((a, b) => a.ordem - b.ordem)
+}
+
+function agruparPorTagCarga<T extends { carga: CargaDetalhe | null; ordem: number }>(
+  itens: T[],
+  opts?: AgruparPorTagCargaOpts
+): GrupoItensPorTag<T>[] {
+  const map = new Map<string, T[]>()
+  for (const item of itens) {
+    const raw = item.carga?.tag?.trim()
+    const chave = raw && raw !== '' ? raw : CHAVE_AGRUPAMENTO_SEM_TAG
+    const arr = map.get(chave) ?? []
+    arr.push(item)
+    map.set(chave, arr)
+  }
+  const comTag: [string, T[]][] = []
+  let semTag: T[] | undefined
+  for (const [chave, grupo] of map) {
+    if (chave === CHAVE_AGRUPAMENTO_SEM_TAG) {
+      semTag = ordenarPorOrdemLista(grupo)
+    } else {
+      comTag.push([chave, ordenarPorOrdemLista(grupo)])
+    }
+  }
+  comTag.sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+  const out: GrupoItensPorTag<T>[] = comTag.map(([tag, grupo]) => ({
+    chave: tag,
+    tituloTag: tag,
+    carga: grupo[0]?.carga ?? null,
+    itens: grupo,
+  }))
+  if (semTag?.length) {
+    out.push({
+      chave: CHAVE_AGRUPAMENTO_SEM_TAG,
+      tituloTag: tituloGrupoPainelGeral(opts),
+      carga: null,
+      itens: semTag,
+    })
+  }
+  return out
+}
+
+function CabecalhoGrupoCarga({
+  tituloTag,
+  carga,
+}: {
+  tituloTag: string
+  carga: CargaDetalhe | null
+}) {
+  if (!carga) {
+    return (
+      <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
+        <span className="badge text-bg-secondary rounded-pill">{tituloTag}</span>
+      </div>
+    )
+  }
+  const tensao =
+    carga.tensao_carga_display?.trim() ||
+    (carga.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
+  return (
+    <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
+      <span className="badge text-bg-primary rounded-pill">{tituloTag}</span>
+      <span className="badge text-bg-secondary">{em(carga.tipo_display)}</span>
+      <span className="fw-medium">{textoDescricaoCarga(carga)}</span>
+      <div className="small text-muted ms-lg-auto d-flex flex-wrap gap-x-3 gap-y-1">
+        <span>Pot.: {formatPotenciaCarga(carga)}</span>
+        <span>Corr.: {formatCorrenteCarga(carga)}</span>
+        <span>Tensão (carga): {tensao}</span>
+        <span>Fases: {formatNumeroFasesCarga(carga)}</span>
+      </div>
+    </div>
   )
 }
 
@@ -112,6 +409,9 @@ export default function ComposicaoPage() {
     isError,
     error: loadError,
   } = useComposicaoSnapshotQuery(projetoId || null)
+
+  const { data: dimensionamento } = useDimensionamentoQuery(projetoId || null)
+  const fluxoGates = useProjetoFluxoGates(projetoId || null)
 
   const projetoSelecionado = useMemo(
     () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
@@ -159,11 +459,6 @@ export default function ComposicaoPage() {
     }
   }, [alterarSugestao, aprovarMutation.isPending])
 
-  const projetoLabel = useMemo(() => {
-    const p = projetoSelecionado
-    return p ? `${p.codigo} — ${p.nome}` : ''
-  }, [projetoSelecionado])
-
   const onProjetoChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       const v = e.target.value
@@ -173,10 +468,8 @@ export default function ComposicaoPage() {
     [setSearchParams]
   )
 
-  const onGerar = useCallback(async () => {
-    if (!projetoId || !podeEditar) return
-    try {
-      const data = await gerarMutation.mutateAsync(true)
+  const notificarResultadoGeracao = useCallback(
+    (data: ComposicaoSnapshot) => {
       const erros = data.geracao?.erros_etapas ?? []
       const descartadas = data.geracao?.sugestoes_descartadas_aprovadas ?? 0
       if (erros.length > 0) {
@@ -194,6 +487,15 @@ export default function ComposicaoPage() {
               : 'Sugestões de composição atualizadas.',
         })
       }
+    },
+    [showToast]
+  )
+
+  const onGerar = useCallback(async () => {
+    if (!projetoId || !podeEditar) return
+    try {
+      const data = await gerarMutation.mutateAsync(true)
+      notificarResultadoGeracao(data)
     } catch (err) {
       console.error(err)
       showToast({
@@ -202,7 +504,59 @@ export default function ComposicaoPage() {
         message: extrairMensagemErroApi(err) || 'Tente novamente.',
       })
     }
-  }, [projetoId, podeEditar, gerarMutation, showToast])
+  }, [projetoId, podeEditar, gerarMutation, notificarResultadoGeracao, showToast])
+
+  const jaDisparouAutoGerarRef = useRef(false)
+  useEffect(() => {
+    jaDisparouAutoGerarRef.current = false
+  }, [projetoId])
+
+  useEffect(() => {
+    if (!projetoId || !podeEditar || loadingSnap || isError || !snapshot) return
+    if (jaDisparouAutoGerarRef.current) return
+
+    const now = Date.now()
+    if (
+      composicaoAutoGerarDedup?.projetoId === projetoId &&
+      now - composicaoAutoGerarDedup.at < COMPOSICAO_AUTO_GERAR_DEDUP_MS
+    ) {
+      return
+    }
+    composicaoAutoGerarDedup = { projetoId, at: now }
+    jaDisparouAutoGerarRef.current = true
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await gerarMutation.mutateAsync(true)
+        if (cancelled) return
+        notificarResultadoGeracao(data)
+      } catch (err) {
+        if (cancelled) return
+        jaDisparouAutoGerarRef.current = false
+        composicaoAutoGerarDedup = null
+        console.error(err)
+        showToast({
+          variant: 'danger',
+          title: 'Não foi possível gerar sugestões',
+          message: extrairMensagemErroApi(err) || 'Tente novamente.',
+        })
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    projetoId,
+    podeEditar,
+    loadingSnap,
+    isError,
+    snapshot,
+    gerarMutation,
+    notificarResultadoGeracao,
+    showToast,
+  ])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return
@@ -259,6 +613,31 @@ export default function ComposicaoPage() {
   )
 
   const composicaoItens = snapshot?.composicao_itens ?? []
+
+  const optsAgrupamento = useMemo(
+    () => ({
+      correnteTotalPainelA: dimensionamento?.corrente_total_painel_a ?? null,
+    }),
+    [dimensionamento?.corrente_total_painel_a]
+  )
+
+  const gruposComposicaoAprovada = useMemo(
+    () => agruparPorTagCarga(composicaoItens, optsAgrupamento),
+    [composicaoItens, optsAgrupamento]
+  )
+  const gruposSugestoes = useMemo(
+    () => agruparPorTagCarga(snapshot?.sugestoes ?? [], optsAgrupamento),
+    [snapshot?.sugestoes, optsAgrupamento]
+  )
+  const gruposPendencias = useMemo(
+    () => agruparPorTagCarga(snapshot?.pendencias ?? [], optsAgrupamento),
+    [snapshot?.pendencias, optsAgrupamento]
+  )
+  const gruposMemorialCalculos = useMemo(() => {
+    const comMemoria =
+      snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
+    return agruparPorTagCarga(comMemoria, optsAgrupamento)
+  }, [snapshot?.sugestoes, optsAgrupamento])
 
   const onReabrirItemAprovado = useCallback(async () => {
     if (!itemReabrir || !podeEditar) return
@@ -377,8 +756,22 @@ export default function ComposicaoPage() {
     reabrirComposicaoItemMutation.isPending,
   ])
 
+  if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
+    return (
+      <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+    )
+  }
+  if (projetoId && !fluxoGates.loading && fluxoGates.temCargas && !fluxoGates.condutoresRevisaoOk) {
+    return (
+      <Navigate to={`/projetos/${projetoId}/fluxo/dimensionamento`} replace />
+    )
+  }
+
   return (
     <div className="container-fluid">
+      {projetoId ? (
+        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual="composicao" compact />
+      ) : null}
       <ConfirmModal
         show={modalComposicao !== null}
         title={modalComposicao?.title ?? ''}
@@ -408,18 +801,11 @@ export default function ComposicaoPage() {
           <h1 className="h3 mb-1">Composição do painel</h1>
           <p className="text-muted mb-0">
             Sugestões automáticas de seccionamento, contatoras e disjuntores motor (quando
-            aplicável), com base nas cargas e no dimensionamento de corrente do projeto.
+            aplicável), com base nas cargas e no dimensionamento. Demais materiais cadastrados
+            no catálogo podem ser acrescentados manualmente na secção de inclusões.
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap align-items-center">
-          {projetoId ? (
-            <Link
-              to={`/projetos/${projetoId}/fluxo/composicao`}
-              className="btn btn-outline-info"
-            >
-              Voltar ao wizard
-            </Link>
-          ) : null}
           <button
             type="button"
             className="btn btn-outline-success"
@@ -451,51 +837,45 @@ export default function ComposicaoPage() {
         </div>
       </div>
 
-      <div className="card mb-3">
-        <div className="card-body">
-          <label className="form-label fw-semibold" htmlFor="comp-projeto">
-            Projeto
-          </label>
-          <select
-            id="comp-projeto"
-            className="form-select"
-            style={{ maxWidth: '28rem' }}
-            value={projetoId}
-            onChange={onProjetoChange}
-            disabled={loadingProjetos}
-          >
-            <option value="">Selecione um projeto</option>
-            {projetos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.codigo} — {p.nome}
-              </option>
-            ))}
-          </select>
-          <p className="small text-muted mt-2 mb-0">
-            Antes de gerar, confira as{' '}
-            {canViewCargas ? (
-              <Link to={projetoId ? `/cargas?projeto=${projetoId}` : '/cargas'}>cargas</Link>
-            ) : (
-              'cargas'
-            )}{' '}
-            e o{' '}
-            {canViewDimensionamento ? (
-              <Link
-                to={
-                  projetoId
-                    ? `/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`
-                    : '/cargas'
-                }
-              >
-                dimensionamento
-              </Link>
-            ) : (
-              'dimensionamento'
-            )}{' '}
-            (corrente total de entrada).
-          </p>
+      {!projetoId ? (
+        <div className="card mb-3">
+          <div className="card-body">
+            <label className="form-label fw-semibold" htmlFor="comp-projeto">
+              Projeto
+            </label>
+            <select
+              id="comp-projeto"
+              className="form-select"
+              style={{ maxWidth: '28rem' }}
+              value={projetoId}
+              onChange={onProjetoChange}
+              disabled={loadingProjetos}
+            >
+              <option value="">Selecione um projeto</option>
+              {projetos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo} — {p.nome}
+                </option>
+              ))}
+            </select>
+            <p className="small text-muted mt-2 mb-0">
+              Antes de gerar, confira as{' '}
+              {canViewCargas ? (
+                <Link to="/cargas">cargas</Link>
+              ) : (
+                'cargas'
+              )}{' '}
+              e o{' '}
+              {canViewDimensionamento ? (
+                <Link to="/cargas">dimensionamento</Link>
+              ) : (
+                'dimensionamento'
+              )}{' '}
+              (corrente total de entrada).
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {!projetoId && (
         <p className="text-muted">Selecione um projeto para ver a composição sugerida.</p>
@@ -524,13 +904,17 @@ export default function ComposicaoPage() {
       {projetoId && !loadingSnap && !isError && snapshot && (
         <div className="row g-4">
           <div className="col-12">
-            <p className="small text-muted mb-0">
-              <strong>{projetoLabel || snapshot.projeto}</strong>
+            <ProjetoIdentificacaoFluxo
+              projetoCodigo={projetoSelecionado?.codigo ?? snapshot.projeto_codigo}
+              projetoNome={projetoSelecionado?.nome ?? snapshot.projeto_nome}
+              fallbackId={snapshot.projeto ?? projetoId}
+              htmlId="composicao-projeto-identificacao"
+            />
+            <p className="small text-muted mb-0 mt-2">
               {snapshot.totais ? (
                 <>
-                  {' '}
-                  · {snapshot.totais.sugestoes} sugestão(ões) ·{' '}
-                  {snapshot.totais.pendencias} pendência(s)
+                  {snapshot.totais.sugestoes} sugestão(ões) · {snapshot.totais.pendencias}{' '}
+                  pendência(s)
                   {snapshot.totais.composicao_itens != null ? (
                     <> · {snapshot.totais.composicao_itens} item(ns) na composição</>
                   ) : null}
@@ -538,7 +922,9 @@ export default function ComposicaoPage() {
                     <> · {snapshot.totais.inclusoes_manuais} inclusão(ões) manual(is)</>
                   ) : null}
                 </>
-              ) : null}
+              ) : (
+                'Sem totais de composição.'
+              )}
             </p>
             {snapshot.geracao?.erros_etapas &&
               snapshot.geracao.erros_etapas.length > 0 && (
@@ -571,8 +957,9 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Papel / função</th>
                       <th>Qtd.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
@@ -581,48 +968,104 @@ export default function ComposicaoPage() {
                       {podeEditar ? <th className="text-end">Ações</th> : null}
                     </tr>
                   </thead>
-                  <tbody>
-                    {composicaoItens.map((c) => (
-                      <tr key={c.id}>
-                        <td>{c.carga ? c.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(c.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(c.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(c.carga)}</td>
-                        <td>{formatCorrenteCarga(c.carga)}</td>
-                        <CelulaTensaoProjeto pa={c.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(c.projeto_alimentacao)}</td>
-                        <td>{c.quantidade}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {c.categoria_produto_display ?? c.categoria_produto}
-                          </span>
-                        </td>
-                        <td className="small">{c.produto?.descricao ?? '—'}</td>
-                        <td>
-                          <span className="fw-semibold font-monospace">
-                            {c.produto_codigo ?? c.produto?.codigo ?? '—'}
-                          </span>
-                        </td>
-                        <td>{c.status_display ?? 'Aprovado'}</td>
-                        {podeEditar ? (
-                          <td className="text-end text-nowrap">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-warning"
-                              disabled={reabrirComposicaoItemMutation.isPending}
-                              onClick={() => setItemReabrir(c)}
-                            >
-                              Reabrir
-                            </button>
+                  {gruposComposicaoAprovada.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={podeEditar ? 14 : 13}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((c) => (
+                        <tr key={c.id}>
+                          <td>
+                            {c.carga ? c.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
                           </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
+                          <td>
+                            {c.carga
+                              ? textoDescricaoCarga(c.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {c.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(c.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {c.carga
+                              ? formatPotenciaCarga(c.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  c.corrente_referencia_a,
+                                  c.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td>
+                            {c.carga
+                              ? formatCorrenteCarga(c.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  c.corrente_referencia_a
+                                )}
+                          </td>
+                          {c.carga ? (
+                            <CelulaTensaoCarga carga={c.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                c.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {c.carga
+                              ? formatNumeroFasesCarga(c.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  c.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td className="small">
+                            {c.carga
+                              ? em(textoPapelItem(c.observacoes))
+                              : LEGENDA_PAPEL_PAINEL_GERAL}
+                          </td>
+                          <td>{c.quantidade}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {c.categoria_produto_display ?? c.categoria_produto}
+                            </span>
+                          </td>
+                          <td className="small">{c.produto?.descricao ?? '—'}</td>
+                          <td>
+                            <span className="fw-semibold font-monospace">
+                              {c.produto_codigo ?? c.produto?.codigo ?? '—'}
+                            </span>
+                          </td>
+                          <td>{c.status_display ?? 'Aprovado'}</td>
+                          {podeEditar ? (
+                            <td className="text-end text-nowrap">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-warning"
+                                disabled={reabrirComposicaoItemMutation.isPending}
+                                onClick={() => setItemReabrir(c)}
+                              >
+                                Reabrir
+                              </button>
+                            </td>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -657,8 +1100,9 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Papel / função</th>
                       <th>Qtd.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
@@ -667,56 +1111,112 @@ export default function ComposicaoPage() {
                       {podeEditar ? <th className="text-end">Ações</th> : null}
                     </tr>
                   </thead>
-                  <tbody>
-                    {snapshot.sugestoes.map((s) => (
-                      <tr key={s.id}>
-                        <td>{s.carga ? s.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(s.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(s.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(s.carga)}</td>
-                        <td>{formatCorrenteCarga(s.carga)}</td>
-                        <CelulaTensaoProjeto pa={s.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(s.projeto_alimentacao)}</td>
-                        <td>{s.quantidade}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {s.categoria_produto_display ?? s.categoria_produto}
-                          </span>
-                        </td>
-                        <td className="small">{s.produto?.descricao ?? '—'}</td>
-                        <td>
-                          <span className="fw-semibold font-monospace">
-                            {s.produto_codigo ?? s.produto?.codigo ?? '—'}
-                          </span>
-                        </td>
-                        <td>{s.status_display ?? s.status}</td>
-                        {podeEditar ? (
-                          <td className="text-end text-nowrap">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-success me-1"
-                              disabled={aprovarMutation.isPending || aprovandoTodas}
-                              onClick={() => void onAprovar(s.id, null)}
-                            >
-                              Aprovar
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              disabled={aprovarMutation.isPending || aprovandoTodas}
-                              onClick={() => abrirAlterarSugestao(s)}
-                            >
-                              Alterar
-                            </button>
+                  {gruposSugestoes.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={podeEditar ? 14 : 13}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((s) => (
+                        <tr key={s.id}>
+                          <td>
+                            {s.carga ? s.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
                           </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
+                          <td>
+                            {s.carga
+                              ? textoDescricaoCarga(s.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {s.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(s.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {s.carga
+                              ? formatPotenciaCarga(s.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  s.corrente_referencia_a,
+                                  s.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td>
+                            {s.carga
+                              ? formatCorrenteCarga(s.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  s.corrente_referencia_a
+                                )}
+                          </td>
+                          {s.carga ? (
+                            <CelulaTensaoCarga carga={s.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                s.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {s.carga
+                              ? formatNumeroFasesCarga(s.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  s.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td className="small">
+                            {s.carga
+                              ? em(textoPapelItem(s.observacoes))
+                              : LEGENDA_PAPEL_PAINEL_GERAL}
+                          </td>
+                          <td>{s.quantidade}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {s.categoria_produto_display ?? s.categoria_produto}
+                            </span>
+                          </td>
+                          <td className="small">{s.produto?.descricao ?? '—'}</td>
+                          <td>
+                            <span className="fw-semibold font-monospace">
+                              {s.produto_codigo ?? s.produto?.codigo ?? '—'}
+                            </span>
+                          </td>
+                          <td>{s.status_display ?? s.status}</td>
+                          {podeEditar ? (
+                            <td className="text-end text-nowrap">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-success me-1"
+                                disabled={aprovarMutation.isPending || aprovandoTodas}
+                                onClick={() => void onAprovar(s.id, null)}
+                              >
+                                Aprovar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary"
+                                disabled={aprovarMutation.isPending || aprovandoTodas}
+                                onClick={() => abrirAlterarSugestao(s)}
+                              >
+                                Alterar
+                              </button>
+                            </td>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -740,9 +1240,10 @@ export default function ComposicaoPage() {
                       <th>Tipo</th>
                       <th>Potência</th>
                       <th>Corrente</th>
-                      <th>Tensão</th>
-                      <th>Fases</th>
-                      <th>Qtd.</th>
+                      <th>Tensão (carga)</th>
+                      <th>Fases (carga)</th>
+                      <th>Parte do painel</th>
+                      <th>Obs.</th>
                       <th>Categoria</th>
                       <th>Produto</th>
                       <th>Código</th>
@@ -750,33 +1251,87 @@ export default function ComposicaoPage() {
                       <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {snapshot.pendencias.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.carga ? p.carga.tag : '—'}</td>
-                        <td>{textoDescricaoCarga(p.carga)}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {em(p.carga?.tipo_display)}
-                          </span>
-                        </td>
-                        <td>{formatPotenciaCarga(p.carga)}</td>
-                        <td>{formatCorrenteCarga(p.carga)}</td>
-                        <CelulaTensaoProjeto pa={p.projeto_alimentacao} />
-                        <td>{formatNumeroFasesProjeto(p.projeto_alimentacao)}</td>
-                        <td>—</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {p.categoria_produto_display ?? p.categoria_produto}
-                          </span>
-                        </td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td className="small">{p.descricao}</td>
-                        <td>{p.status_display ?? p.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  {gruposPendencias.map((grupo) => (
+                    <tbody key={grupo.chave}>
+                      <LinhaSeparadoraGrupoPorTag
+                        colSpan={14}
+                        tituloTag={grupo.tituloTag}
+                        carga={grupo.carga}
+                      />
+                      {grupo.itens.map((p: PendenciaItem) => (
+                        <tr key={p.id}>
+                          <td>
+                            {p.carga ? p.carga.tag : LEGENDA_TAG_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {p.carga
+                              ? textoDescricaoCarga(p.carga)
+                              : LEGENDA_DESCR_PAINEL_GERAL}
+                          </td>
+                          <td>
+                            {p.carga ? (
+                              <span className="badge text-bg-secondary">
+                                {em(p.carga.tipo_display)}
+                              </span>
+                            ) : (
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {p.carga
+                              ? formatPotenciaCarga(p.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  p.corrente_referencia_a,
+                                  p.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td>
+                            {p.carga
+                              ? formatCorrenteCarga(p.carga)
+                              : textoCorrenteEntradaPainel(
+                                  dimensionamento,
+                                  p.corrente_referencia_a
+                                )}
+                          </td>
+                          {p.carga ? (
+                            <CelulaTensaoCarga carga={p.carga} />
+                          ) : (
+                            <td className="small">
+                              {textoTensaoAlimentacaoProjeto(
+                                p.projeto_alimentacao,
+                                projetoSelecionado
+                              )}
+                            </td>
+                          )}
+                          <td>
+                            {p.carga
+                              ? formatNumeroFasesCarga(p.carga)
+                              : textoFasesAlimentacaoProjeto(
+                                  p.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
+                          </td>
+                          <td className="small">
+                            {p.parte_painel_display ?? p.parte_painel}
+                          </td>
+                          <td className="small">{em(textoPapelItem(p.observacoes))}</td>
+                          <td>
+                            <span className="badge text-bg-secondary">
+                              {p.categoria_produto_display ?? p.categoria_produto}
+                            </span>
+                          </td>
+                          <td>—</td>
+                          <td>—</td>
+                          <td className="small">{p.descricao}</td>
+                          <td>{p.status_display ?? p.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
                 </table>
               </div>
             )}
@@ -844,21 +1399,26 @@ export default function ComposicaoPage() {
                 <p className="small text-muted mb-2">
                   Detalhes técnicos registrados pelo motor de sugestões (backend).
                 </p>
-                {snapshot.sugestoes.filter((s) => s.memoria_calculo).length === 0 ? (
+                {gruposMemorialCalculos.length === 0 ? (
                   <p className="small mb-0 text-muted">Sem memorial de cálculo preenchido.</p>
                 ) : (
-                  <ul className="list-unstyled small mb-0">
-                    {snapshot.sugestoes
-                      .filter((s) => s.memoria_calculo)
-                      .map((s) => (
-                        <li key={s.id} className="mb-2">
-                          <strong>{s.produto_codigo ?? s.produto?.codigo}</strong>
-                          <pre className="mt-1 mb-0 p-2 bg-white border rounded small overflow-auto">
-                            {s.memoria_calculo}
-                          </pre>
-                        </li>
-                      ))}
-                  </ul>
+                  <div className="vstack gap-3 small">
+                    {gruposMemorialCalculos.map((grupo) => (
+                      <div key={grupo.chave} className="border rounded overflow-hidden">
+                        <CabecalhoGrupoCarga tituloTag={grupo.tituloTag} carga={grupo.carga} />
+                        <ul className="list-unstyled mb-0 p-2 bg-white">
+                          {grupo.itens.map((s) => (
+                            <li key={s.id} className="mb-2">
+                              <strong>{s.produto_codigo ?? s.produto?.codigo ?? '—'}</strong>
+                              <pre className="mt-1 mb-0 p-2 bg-body-tertiary border rounded small overflow-auto">
+                                {s.memoria_calculo}
+                              </pre>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </details>
@@ -892,9 +1452,9 @@ export default function ComposicaoPage() {
                 </div>
                 <div className="modal-body">
                   <p className="small text-muted">
-                    Mesmas regras da sugestão automática (corrente compatível; contatora com
-                    mesma bobina; montagem alinhada ao produto sugerido, quando aplicável).
-                    Selecione um produto e confirme para aprovar com substituição.
+                    Mesmas regras da sugestão automática para a categoria deste item (ex.:
+                    corrente compatível; contatora com mesma bobina; montagem alinhada quando
+                    aplicável). Selecione um produto e confirme para aprovar com substituição.
                   </p>
                   {loadingAlternativas ? (
                     <p className="small text-muted mb-0">Carregando alternativas…</p>

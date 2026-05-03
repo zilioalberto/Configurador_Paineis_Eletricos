@@ -14,6 +14,10 @@ vi.mock('@/modules/projetos/hooks/useProjetoDetailQuery', () => ({
   useProjetoDetailQuery: () => useProjetoDetailQueryMock(),
 }))
 
+vi.mock('@/modules/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => null,
+}))
+
 import ProjetoDetailPage from '@/modules/projetos/pages/ProjetoDetailPage'
 
 const projeto = {
@@ -36,6 +40,7 @@ const projeto = {
   tipo_corrente_comando: 'CA',
   tensao_comando: 220,
   possui_plc: false,
+  familia_plc: null,
   possui_ihm: false,
   possui_switches: false,
   possui_plaqueta_identificacao: false,
@@ -45,6 +50,7 @@ const projeto = {
   possui_climatizacao: false,
   tipo_climatizacao: null,
   fator_demanda: '1.0',
+  degraus_margem_bitola_condutores: 0,
   possui_seccionamento: false,
   tipo_seccionamento: null,
 }
@@ -67,22 +73,15 @@ function setupProjetoDetailPage(permissoes: string[] = []) {
 }
 
 describe('ProjetoDetailPage', () => {
-  it('esconde acoes sem permissao', () => {
+  it('esconde editar sem permissao', () => {
     setupProjetoDetailPage()
 
     expect(screen.queryByRole('link', { name: /Editar projeto/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Composição/i })).not.toBeInTheDocument()
   })
 
-  it('exibe acoes com permissoes necessarias', () => {
-    setupProjetoDetailPage([
-      'projeto.visualizar',
-      'projeto.editar',
-      'almoxarifado.visualizar_tarefas',
-      'material.visualizar_lista',
-    ])
+  it('exibe apenas editar com permissao de edicao', () => {
+    setupProjetoDetailPage(['projeto.visualizar', 'projeto.editar'])
 
     expect(screen.getByRole('link', { name: /Editar projeto/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Composição/i })).toBeInTheDocument()
   })
 })

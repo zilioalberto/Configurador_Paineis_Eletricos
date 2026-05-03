@@ -3,10 +3,13 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
+import { useListboxKeyboardNavigation } from '@/hooks/useListboxKeyboardNavigation'
+import { useCategoriaListQuery } from '@/modules/catalogo/hooks/useCategoriaListQuery'
 import { buscarProdutosAutocomplete } from '@/modules/catalogo/services/produtoService'
 import type { ProdutoListItem } from '@/modules/catalogo/types/produto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
@@ -30,6 +33,8 @@ function em(v: string | null | undefined) {
 const BUSCA_DEBOUNCE_MS = 320
 const BUSCA_MIN_CHARS = 2
 
+const EMPTY_PRODUTOS: ProdutoListItem[] = []
+
 export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
   const { showToast } = useToast()
   const baseId = useId()
@@ -38,6 +43,10 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
   const obsId = `${baseId}-obs`
 
   const wrapRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const [filtroCategoria, setFiltroCategoria] = useState('')
+  const { data: categoriasCatalogo = [], isPending: loadingCategoriasCatalogo } =
+    useCategoriaListQuery()
   const [termoBusca, setTermoBusca] = useState('')
   const [debounced, setDebounced] = useState('')
   const [aberto, setAberto] = useState(false)
@@ -63,7 +72,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     void (async () => {
       setCarregandoBusca(true)
       try {
-        const lista = await buscarProdutosAutocomplete(debounced)
+        const lista = await buscarProdutosAutocomplete(debounced, filtroCategoria || null)
         if (!cancel) setResultados(lista)
       } catch {
         if (!cancel) setResultados([])
@@ -74,10 +83,30 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     return () => {
       cancel = true
     }
-  }, [debounced, selecionado])
+  }, [debounced, selecionado, filtroCategoria])
 
-  const itensLista =
-    selecionado || debounced.length < BUSCA_MIN_CHARS ? [] : resultados
+  const itensLista = useMemo(() => {
+    if (selecionado || debounced.length < BUSCA_MIN_CHARS) return EMPTY_PRODUTOS
+    return resultados
+  }, [selecionado, debounced, resultados])
+
+  const navigableItems = carregandoBusca ? EMPTY_PRODUTOS : itensLista
+  const listaTecladoAtiva =
+    Boolean(aberto && !selecionado && debounced.length >= BUSCA_MIN_CHARS) &&
+    navigableItems.length > 0
+
+  const keyboardResetKey = `${debounced}|${filtroCategoria}|${resultados.map((p) => p.id).join(',')}`
+  const { activeIndex: highlightIndex, handleKeyDown: handleListboxKeyDown } =
+    useListboxKeyboardNavigation(navigableItems, {
+      isActive: listaTecladoAtiva,
+      resetKey: keyboardResetKey,
+    })
+
+  useEffect(() => {
+    if (highlightIndex < 0 || !listRef.current) return
+    const el = listRef.current.querySelector(`#${buscaId}-opt-${highlightIndex}`)
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [highlightIndex, buscaId])
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -159,12 +188,31 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
           <h2 className="h5 mb-2">Inclusões manuais (catálogo)</h2>
           <p className="small text-muted mb-3">
             Acrescente materiais do catálogo que não entram pelas sugestões automáticas.
-            Busque por código, descrição ou fabricante (ex.: contatora AC3, minidisjuntor
-            monofásico).
+            Busque por código, descrição ou fabricante. Opcionalmente restrinja a busca a uma
+            categoria (PLCs, ventiladores, cabos, etc.).
           </p>
 
           {podeEditar ? (
             <div className="row g-3 mb-4">
+              <div className="col-12 col-md-6 col-xl-4">
+                <label className="form-label fw-semibold" htmlFor={`${baseId}-filtro-cat`}>
+                  Categoria (opcional)
+                </label>
+                <select
+                  id={`${baseId}-filtro-cat`}
+                  className="form-select"
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  disabled={busy || loadingCategoriasCatalogo}
+                >
+                  <option value="">Todas</option>
+                  {categoriasCatalogo.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome_display ?? c.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="col-12 col-lg-6">
                 <label className="form-label fw-semibold" htmlFor={buscaId}>
                   Buscar produto
@@ -175,6 +223,10 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                     type="search"
                     className="form-control"
                     autoComplete="off"
+                    role="combobox"
+                    aria-expanded={Boolean(aberto && !selecionado && termoBusca.trim().length >= BUSCA_MIN_CHARS)}
+                    aria-autocomplete="list"
+                    aria-controls={`${buscaId}-listbox`}
                     placeholder="Digite ao menos 2 caracteres…"
                     value={selecionado ? `${selecionado.codigo} — ${selecionado.descricao}` : termoBusca}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -184,6 +236,12 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                     }}
                     onFocus={() => {
                       if (!selecionado) setAberto(true)
+                    }}
+                    onKeyDown={(e) => {
+                      if (selecionado || busy) return
+                      handleListboxKeyDown(e, onEscolherProduto, {
+                        onEscape: () => setAberto(false),
+                      })
                     }}
                     disabled={Boolean(selecionado) || busy}
                     readOnly={Boolean(selecionado)}
@@ -200,6 +258,8 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                   ) : null}
                   {aberto && !selecionado && termoBusca.trim().length >= BUSCA_MIN_CHARS ? (
                     <ul
+                      ref={listRef}
+                      id={`${buscaId}-listbox`}
                       className="list-group position-absolute w-100 shadow-sm mt-1"
                       style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
                       role="listbox"
@@ -211,11 +271,16 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                           Nenhum produto ativo encontrado.
                         </li>
                       ) : (
-                        itensLista.map((p) => (
+                        itensLista.map((p, index) => (
                           <li key={p.id} className="list-group-item list-group-item-action p-0">
                             <button
+                              id={`${buscaId}-opt-${index}`}
                               type="button"
-                              className="btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0"
+                              role="option"
+                              aria-selected={index === highlightIndex}
+                              className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
+                                index === highlightIndex ? 'bg-light' : ''
+                              }`}
                               onClick={() => onEscolherProduto(p)}
                             >
                               <span className="font-monospace fw-semibold me-2">{p.codigo}</span>

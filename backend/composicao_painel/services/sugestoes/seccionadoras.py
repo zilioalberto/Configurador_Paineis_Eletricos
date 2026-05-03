@@ -178,7 +178,7 @@ def _nucleo_gerar_seccionamento(projeto):
         print(f"[SECCIONAMENTO] Corrente total para seleção: {corrente_total} A")
 
         opcoes = selecionar_disjuntores_caixa_moldada(
-            corrente_nominal_a=corrente_total
+            corrente_nominal=corrente_total,
         )
         opcoes_lista = list(opcoes)
 

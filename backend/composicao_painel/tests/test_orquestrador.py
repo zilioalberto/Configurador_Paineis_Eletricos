@@ -4,39 +4,136 @@ from unittest.mock import Mock, patch
 import pytest
 from django.core.exceptions import ValidationError
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga
 from catalogo.models import Produto
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from composicao_painel.services.sugestoes.orquestrador import (
     gerar_sugestoes_painel,
+    montar_etapas_geracao,
+    projeto_precisa_contatoras,
+    projeto_tem_carga_com_minidisjuntor,
     projeto_tem_motor_com_disjuntor_motor,
+    projeto_tem_motor_com_fusivel,
+    projeto_tem_motor_com_rele_sobrecarga,
     remover_sugestoes_ja_aprovadas,
 )
 from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
-from core.choices.cargas import TipoCargaChoices, TipoProtecaoMotorChoices
+from core.choices.cargas import (
+    TipoCargaChoices,
+    TipoConexaoCargaPainelChoices,
+    TipoPartidaMotorChoices,
+    TipoProtecaoMotorChoices,
+)
+from core.choices.eletrica import NumeroFasesChoices
 from core.choices.produtos import UnidadeMedidaChoices
+
+
+@pytest.mark.django_db
+def test_projeto_precisa_contatoras_motor_ou_resistencia_contator(criar_projeto):
+    projeto = criar_projeto(nome="OrqC", codigo="12005-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaValvula.objects.filter"
+    ) as mock_cv:
+        mock_cm.return_value.exists.return_value = True
+        mock_cr.return_value.exists.return_value = False
+        mock_cv.return_value.exists.return_value = False
+        assert projeto_precisa_contatoras(projeto) is True
+
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = True
+        assert projeto_precisa_contatoras(projeto) is True
+
+        mock_cr.return_value.exists.return_value = False
+        mock_cv.return_value.exists.return_value = True
+        assert projeto_precisa_contatoras(projeto) is True
+
+        mock_cv.return_value.exists.return_value = False
+        assert projeto_precisa_contatoras(projeto) is False
 
 
 @pytest.mark.django_db
 def test_projeto_tem_motor_com_disjuntor_motor_true_e_false(criar_projeto):
     projeto = criar_projeto(nome="Orq", codigo="12001-26", tensao_nominal=TensaoChoices.V380)
-    carga = Carga.objects.create(
-        projeto=projeto,
-        tag="M01",
-        descricao="Motor",
-        tipo=TipoCargaChoices.MOTOR,
-    )
-    CargaMotor.objects.create(
-        carga=carga,
-        potencia_corrente_valor=Decimal("5.00"),
-        tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
-    )
-    assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_cm.return_value.exists.return_value = True
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
 
-    CargaMotor.objects.filter(carga=carga).update(
-        tipo_protecao=TipoProtecaoMotorChoices.RELE_SOBRECARGA
-    )
-    assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
+
+
+@pytest.mark.django_db
+def test_projeto_tem_disjuntor_motor_considera_resistencia_com_protecao_disjuntor(
+    criar_projeto,
+):
+    projeto = criar_projeto(nome="OrqR", codigo="12004-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = True
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is True
+
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_disjuntor_motor(projeto) is False
+
+
+@pytest.mark.django_db
+def test_projeto_tem_motor_com_rele_sobrecarga_true_e_false(criar_projeto):
+    projeto = criar_projeto(nome="OrqRS", codigo="12006-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm:
+        mock_cm.return_value.exists.return_value = True
+        assert projeto_tem_motor_com_rele_sobrecarga(projeto) is True
+
+        mock_cm.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_rele_sobrecarga(projeto) is False
+
+
+@pytest.mark.django_db
+def test_projeto_tem_carga_com_minidisjuntor_true_e_false(criar_projeto):
+    projeto = criar_projeto(nome="OrqMD", codigo="12008-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm, patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaResistencia.objects.filter"
+    ) as mock_cr:
+        mock_cm.return_value.exists.return_value = True
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_carga_com_minidisjuntor(projeto) is True
+
+        mock_cm.return_value.exists.return_value = False
+        mock_cr.return_value.exists.return_value = True
+        assert projeto_tem_carga_com_minidisjuntor(projeto) is True
+
+        mock_cr.return_value.exists.return_value = False
+        assert projeto_tem_carga_com_minidisjuntor(projeto) is False
+
+
+@pytest.mark.django_db
+def test_projeto_tem_motor_com_fusivel_true_e_false(criar_projeto):
+    projeto = criar_projeto(nome="OrqFU", codigo="12007-26", tensao_nominal=TensaoChoices.V380)
+    with patch(
+        "composicao_painel.services.sugestoes.orquestrador.CargaMotor.objects.filter"
+    ) as mock_cm:
+        mock_cm.return_value.exists.return_value = True
+        assert projeto_tem_motor_com_fusivel(projeto) is True
+
+        mock_cm.return_value.exists.return_value = False
+        assert projeto_tem_motor_com_fusivel(projeto) is False
 
 
 @pytest.mark.django_db
@@ -124,3 +221,55 @@ def test_gerar_sugestoes_painel_cobre_none_lista_item_e_erro(
     assert resultado["sugestoes_descartadas_aprovadas"] == 2
     assert resultado["erros"] == [{"etapa": "ETAPA_ERRO", "erro": "boom"}]
     mock_limpar.assert_called_once_with(projeto)
+
+
+@pytest.mark.django_db
+@patch("composicao_painel.services.sugestoes.orquestrador.montar_etapas_geracao")
+@patch("composicao_painel.services.sugestoes.orquestrador.sincronizar_pendencias_cargas_sem_regra_catalogo")
+def test_gerar_sugestoes_painel_erro_bd_na_etapa_permite_passos_finais(
+    mock_pendencias,
+    mock_montar,
+    criar_projeto,
+):
+    """Erro de SQL na etapa não deve envenenar a transação (savepoint por etapa)."""
+    from django.db import connection
+
+    projeto = criar_projeto(nome="Orq4", codigo="12004-26", tensao_nominal=TensaoChoices.V380)
+
+    def etapa_com_sql_invalido(_p):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM tabela_inexistente_orquestrador_xyz")
+
+    mock_montar.return_value = [("ETAPA_BD", etapa_com_sql_invalido)]
+    mock_pendencias.return_value = []
+
+    resultado = gerar_sugestoes_painel(projeto, limpar_antes=False)
+    assert resultado["erros"]
+    assert resultado["erros"][0]["etapa"] == "ETAPA_BD"
+    mock_pendencias.assert_called_once_with(projeto)
+
+
+@pytest.mark.django_db
+def test_montar_etapas_sempre_inclui_bornes_com_motor_disjuntor(
+    criar_projeto,
+    criar_carga_motor,
+):
+    """Motores com bornes não devem depender de haver válvula no projeto."""
+    projeto = criar_projeto(nome="OrqB", codigo="12007-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M05",
+        descricao="MOTOR",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(
+        carga=carga,
+        tensao_motor=TensaoChoices.V380,
+        tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
+        tipo_partida=TipoPartidaMotorChoices.DIRETA,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tipo_conexao_painel=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+    )
+    nomes = [n for n, _ in montar_etapas_geracao(projeto)]
+    assert "DISJUNTORES_MOTOR" in nomes
+    assert "BORNES" in nomes

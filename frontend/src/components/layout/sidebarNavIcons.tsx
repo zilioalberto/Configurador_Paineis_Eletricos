@@ -135,10 +135,29 @@ function NavIconLayers({ className, ...rest }: IconProps) {
   )
 }
 
+function NavIconClipboard({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <rect x="9" y="2" width="6" height="4" rx="1" ry="1" />
+      <path d="M9 4H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+      <line x1="9" y1="12" x2="15" y2="12" />
+      <line x1="9" y1="16" x2="15" y2="16" />
+    </svg>
+  )
+}
+
 const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/': NavIconHome,
   '/projetos': NavIconFolder,
   '/cargas': NavIconZap,
+  '/cargas/modelos': NavIconClipboard,
   '/catalogo': NavIconGrid,
   '/dimensionamento': NavIconSliders,
   '/composicao': NavIconLayers,

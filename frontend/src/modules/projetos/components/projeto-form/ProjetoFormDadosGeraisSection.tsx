@@ -1,9 +1,11 @@
 import {
   frequenciaOptions,
+  margemBitolaCondutoresOptions,
   numeroFasesOptions,
   statusOptions,
   tipoCorrenteOptions,
   tipoPainelOptions,
+  type FormOption,
 } from './formOptions'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
@@ -17,6 +19,15 @@ export function ProjetoFormDadosGeraisSection({
   readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
   const ro = readOnlyExceptStatus
+
+  const mb = formData.degraus_margem_bitola_condutores
+  const margemBitolaSelectOptions: FormOption<number>[] =
+    mb === 0 || mb === 1
+      ? margemBitolaCondutoresOptions
+      : [
+          ...margemBitolaCondutoresOptions,
+          { value: mb, label: `${mb} — valor gravado (legado)` },
+        ]
 
   return (
     <>
@@ -224,6 +235,25 @@ export function ProjetoFormDadosGeraisSection({
           onChange={onFieldChange}
           disabled={ro}
         />
+      </div>
+
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="projeto-form-margem-bitola">
+          Margem de bitola (condutores)
+        </label>
+        <select
+          id="projeto-form-margem-bitola"
+          name="degraus_margem_bitola_condutores"
+          className="form-select"
+          value={formData.degraus_margem_bitola_condutores}
+          onChange={onFieldChange}
+          disabled={ro}
+        >
+          {renderSelectOptions(margemBitolaSelectOptions)}
+        </select>
+        <span className="form-text">
+          0 = mínimo da tabela Iz; 1 = uma bitola comercial acima (ex.: 4 → 6 mm²).
+        </span>
       </div>
 
       <div className="col-12">

@@ -34,7 +34,14 @@ function setupProdutoListPage() {
   useAuthMock.mockReturnValue({ user: authUser() })
   useCategoriaListQueryMock.mockReturnValue({ data: [], isPending: false })
   useProdutoListQueryMock.mockReturnValue({
-    data: [],
+    data: {
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 50,
+      hasNext: false,
+      hasPrevious: false,
+    },
     isPending: false,
     isError: false,
     error: null,

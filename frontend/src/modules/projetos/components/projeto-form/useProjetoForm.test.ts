@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { projetoFormInitialState } from '@/modules/projetos/components/projeto-form/formOptions'
 import { useProjetoForm } from '@/modules/projetos/components/projeto-form/useProjetoForm'
+import { ApiError } from '@/services/http/ApiError'
 
 describe('useProjetoForm', () => {
   it('submete payload normalizado', async () => {
@@ -20,6 +21,87 @@ describe('useProjetoForm', () => {
     const payload = onSubmit.mock.calls[0][0]
     expect(payload.nome).toBe('')
     expect(payload.tipo_seccionamento).toBeNull()
+  })
+
+  it('não submete com PLC marcado sem família e preenche fieldErrors', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const onSubmitError = vi.fn()
+    const { result } = renderHook(() =>
+      useProjetoForm({
+        onSubmit,
+        onSubmitError,
+        initialData: {
+          ...projetoFormInitialState,
+          possui_plc: true,
+          familia_plc: null,
+        },
+      })
+    )
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as SyntheticEvent<HTMLFormElement>)
+    })
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(onSubmitError).not.toHaveBeenCalled()
+    expect(result.current.fieldErrors.familia_plc).toMatch(/família/i)
+  })
+
+  it('em erro de API com campos, preenche fieldErrors e não chama onSubmitError', async () => {
+    const apiErr = new ApiError('validação', {
+      status: 400,
+      details: { familia_plc: ['Escolha uma família.'] },
+    })
+    const onSubmit = vi.fn().mockRejectedValue(apiErr)
+    const onSubmitError = vi.fn()
+    const { result } = renderHook(() =>
+      useProjetoForm({
+        onSubmit,
+        onSubmitError,
+        initialData: {
+          ...projetoFormInitialState,
+          possui_plc: true,
+          familia_plc: 'S7-1200',
+        },
+      })
+    )
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as SyntheticEvent<HTMLFormElement>)
+    })
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmitError).not.toHaveBeenCalled()
+    expect(result.current.fieldErrors.familia_plc).toBe('Escolha uma família.')
+  })
+
+  it('em erro de API sem campos, chama onSubmitError', async () => {
+    const apiErr = new ApiError('Servidor', {
+      status: 500,
+      details: {},
+    })
+    const onSubmit = vi.fn().mockRejectedValue(apiErr)
+    const onSubmitError = vi.fn()
+    const { result } = renderHook(() =>
+      useProjetoForm({
+        onSubmit,
+        onSubmitError,
+        initialData: projetoFormInitialState,
+      })
+    )
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as unknown as SyntheticEvent<HTMLFormElement>)
+    })
+
+    expect(onSubmitError).toHaveBeenCalledWith(apiErr)
+    expect(Object.keys(result.current.fieldErrors)).toHaveLength(0)
   })
 
   it('ao mudar tipo_corrente para CA preenche fases e frequência quando null', () => {

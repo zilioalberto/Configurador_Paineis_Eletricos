@@ -18,6 +18,7 @@ function makeCarga(): CargaListItem {
     projeto_tensao_display: '380 V',
     projeto_fases_display: 'Trifásico',
     projeto_tipo_corrente_display: 'CA',
+    fases_carga_display: 'Monofásico',
     corrente_calculada_a: '10.0',
     potencia_corrente_valor: '5.0',
     potencia_corrente_unidade: 'CV',

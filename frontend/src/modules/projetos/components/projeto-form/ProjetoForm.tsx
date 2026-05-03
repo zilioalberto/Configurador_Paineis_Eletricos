@@ -4,10 +4,12 @@ import { ProjetoFormDadosGeraisSection } from './ProjetoFormDadosGeraisSection'
 import { ProjetoFormIdentificacaoSegurancaSection } from './ProjetoFormIdentificacaoSegurancaSection'
 import { ProjetoFormRecursosSection } from './ProjetoFormRecursosSection'
 import { ProjetoFormSeccionamentoSection } from './ProjetoFormSeccionamentoSection'
+import { ROTULOS_CAMPOS_PROJETO } from './projetoFormValidation'
 import { useProjetoForm } from './useProjetoForm'
 
 type ProjetoFormProps = {
   onSubmit: (data: ProjetoFormData) => Promise<void>
+  onSubmitError?: (error: unknown) => void
   loading?: boolean
   initialData?: ProjetoFormData
   responsavelOptions?: ProjetoResponsavelOption[]
@@ -17,14 +19,16 @@ type ProjetoFormProps = {
 
 export default function ProjetoForm({
   onSubmit,
+  onSubmitError,
   loading = false,
   initialData,
   responsavelOptions = [],
   canEditResponsavel = false,
   showStatus = true,
 }: ProjetoFormProps) {
-  const { formData, handleFieldChange, handleSubmit } = useProjetoForm({
+  const { formData, fieldErrors, handleFieldChange, handleSubmit } = useProjetoForm({
     onSubmit,
+    onSubmitError,
     initialData,
   })
 
@@ -32,14 +36,29 @@ export default function ProjetoForm({
   const sectionProps = {
     formData,
     onFieldChange: handleFieldChange,
+    fieldErrors,
     readOnlyExceptStatus,
     responsavelOptions,
     canEditResponsavel,
     showStatus,
   }
 
+  const fieldErrorEntries = Object.entries(fieldErrors)
+
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} noValidate>
+      {fieldErrorEntries.length > 0 ? (
+        <div className="alert alert-danger" role="alert">
+          <p className="mb-2 fw-semibold">Corrija os seguintes pontos antes de salvar:</p>
+          <ul className="mb-0 ps-3">
+            {fieldErrorEntries.map(([campo, mensagem]) => (
+              <li key={campo}>
+                <strong>{ROTULOS_CAMPOS_PROJETO[campo] ?? campo}:</strong> {mensagem}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="row g-3">
         <ProjetoFormDadosGeraisSection {...sectionProps} />
         <ProjetoFormAlimentacaoSection {...sectionProps} />

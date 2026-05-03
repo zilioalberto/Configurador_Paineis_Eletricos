@@ -39,8 +39,8 @@ export default function ProdutoCreatePage() {
       <div className="mb-4">
         <h1 className="h3 mb-1">Novo produto</h1>
         <p className="text-muted mb-0">
-          Escolha a categoria: para Contatora, Disjuntor motor e Seccionadora aparecem os
-          parâmetros elétricos correspondentes ao modelo no backend.
+          Escolha a categoria: os campos da especificação técnica seguem os modelos do catálogo
+          no servidor (uma especificação por categoria).
         </p>
       </div>
 

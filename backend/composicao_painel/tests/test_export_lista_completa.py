@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga
 from catalogo.models import Produto
 from composicao_painel.models import (
     ComposicaoInclusaoManual,
@@ -160,7 +160,7 @@ def test_render_xlsx_e_pdf_bytes(criar_projeto):
 
 
 @pytest.mark.django_db
-def test_helpers_export_cobrem_branches_de_texto_e_status(criar_projeto):
+def test_helpers_export_cobrem_branches_de_texto_e_status(criar_projeto, criar_carga_motor):
     projeto = criar_projeto(nome="H", codigo="09912-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(
         projeto=projeto,
@@ -168,10 +168,11 @@ def test_helpers_export_cobrem_branches_de_texto_e_status(criar_projeto):
         descricao="Motor",
         tipo=TipoCargaChoices.MOTOR,
     )
-    CargaMotor.objects.create(
+    criar_carga_motor(
         carga=carga,
         potencia_corrente_valor=Decimal("7.50"),
         potencia_corrente_unidade=UnidadePotenciaCorrenteChoices.CV,
+        tensao_motor=TensaoChoices.V380,
     )
     assert _txt(None) == ""
     assert _txt(Decimal("10.00")) == "10"

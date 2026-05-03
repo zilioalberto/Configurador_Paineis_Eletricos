@@ -1,5 +1,5 @@
 import type { CargaFormData, TipoCarga } from '../types/carga'
-import { applyTipoChange, cargaFormInitial } from './cargaFormDefaults'
+import { applyTipoChange, cargaFormInitial, emptyNestedForTipo } from './cargaFormDefaults'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -31,17 +31,59 @@ export function aplicarModeloNoFormulario(
   tipo: TipoCarga,
   payload: unknown
 ): CargaFormData {
-  const base = cargaFormInitial(projetoId)
-  const withTipo = applyTipoChange(base, tipo)
+  const withTipo = applyTipoChange(cargaFormInitial(projetoId), tipo)
   if (!isObject(payload)) {
     return withTipo
   }
+
+  const nestedDefaults = emptyNestedForTipo(tipo)
+  const nestedMerged = { ...nestedDefaults }
+
+  if (nestedMerged.motor && isObject(payload.motor)) {
+    nestedMerged.motor = { ...nestedMerged.motor, ...payload.motor }
+  }
+  if (nestedMerged.valvula && isObject(payload.valvula)) {
+    nestedMerged.valvula = { ...nestedMerged.valvula, ...payload.valvula }
+  }
+  if (nestedMerged.resistencia && isObject(payload.resistencia)) {
+    nestedMerged.resistencia = {
+      ...nestedMerged.resistencia,
+      ...payload.resistencia,
+    }
+  }
+  if (nestedMerged.sensor && isObject(payload.sensor)) {
+    nestedMerged.sensor = { ...nestedMerged.sensor, ...payload.sensor }
+  }
+  if (nestedMerged.transdutor && isObject(payload.transdutor)) {
+    nestedMerged.transdutor = {
+      ...nestedMerged.transdutor,
+      ...payload.transdutor,
+    }
+  }
+
+  const {
+    motor: _motor,
+    valvula: _valvula,
+    resistencia: _resistencia,
+    sensor: _sensor,
+    transdutor: _transdutor,
+    ...restPayload
+  } = payload
+
+  const quantidade =
+    typeof payload.quantidade === 'number' &&
+    Number.isFinite(payload.quantidade) &&
+    payload.quantidade > 0
+      ? payload.quantidade
+      : withTipo.quantidade
+
   return {
     ...withTipo,
-    ...payload,
+    ...restPayload,
+    ...nestedMerged,
     projeto: projetoId,
     tipo,
     tag: '',
-    quantidade: 1,
+    quantidade,
   } as CargaFormData
 }

@@ -72,7 +72,10 @@ export default function ProdutoEditPage() {
     <div className="container-fluid">
       <div className="mb-4">
         <h1 className="h3 mb-1">Editar produto</h1>
-        <p className="text-muted mb-0">A categoria não pode ser alterada após o cadastro.</p>
+        <p className="text-muted mb-0">
+          A categoria não pode ser alterada após o cadastro. A especificação técnica é editável e
+          corresponde ao modelo da categoria na API.
+        </p>
       </div>
 
       <div className="card">

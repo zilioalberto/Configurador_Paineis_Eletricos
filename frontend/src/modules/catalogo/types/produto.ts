@@ -2,31 +2,8 @@ import type { CategoriaProdutoNome } from './categoria'
 
 export type UnidadeMedidaProduto = 'UN' | 'MT' | 'CJ'
 
-export type EspecificacaoContatoraForm = {
-  corrente_ac3_a: string
-  corrente_ac1_a: string
-  tensao_bobina_v: number
-  tipo_corrente_bobina: 'CA' | 'CC'
-  contatos_aux_na: number
-  contatos_aux_nf: number
-  modo_montagem: string
-}
-
-export type EspecificacaoDisjuntorMotorForm = {
-  faixa_ajuste_min_a: string
-  faixa_ajuste_max_a: string
-  contatos_aux_na: number
-  contatos_aux_nf: number
-  modo_montagem: string
-}
-
-export type EspecificacaoSeccionadoraForm = {
-  corrente_ac1_a: string
-  corrente_ac3_a: string
-  tipo_montagem: string
-  tipo_fixacao: string
-  cor_manopla: string
-}
+/** Estado editável da especificação da categoria atual (uma entrada por campo do modelo). */
+export type EspecificacaoFormState = Record<string, string | number | boolean>
 
 export type ProdutoFormData = {
   codigo: string
@@ -41,9 +18,8 @@ export type ProdutoFormData = {
   profundidade_mm: string
   observacoes_tecnicas: string
   ativo: boolean
-  especificacao_contatora: EspecificacaoContatoraForm | null
-  especificacao_disjuntor_motor: EspecificacaoDisjuntorMotorForm | null
-  especificacao_seccionadora: EspecificacaoSeccionadoraForm | null
+  /** Campos da especificação OneToOne correspondentes à categoria selecionada. */
+  especificacao: EspecificacaoFormState | null
 }
 
 export type ProdutoListItem = {
@@ -68,7 +44,4 @@ export type ProdutoDetail = ProdutoListItem & {
   altura_mm?: string | null
   profundidade_mm?: string | null
   observacoes_tecnicas?: string
-  especificacao_contatora?: Record<string, unknown> | null
-  especificacao_disjuntor_motor?: Record<string, unknown> | null
-  especificacao_seccionadora?: Record<string, unknown> | null
 }
