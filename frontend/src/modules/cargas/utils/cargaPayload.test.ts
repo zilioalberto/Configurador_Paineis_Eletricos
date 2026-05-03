@@ -52,7 +52,7 @@ describe('cargaFormToApiPayload', () => {
   })
 
   it('envia valvula com números quando preenchidos', () => {
-    let form = applyTipoChange(cargaFormInitial('p'), 'VALVULA')
+    const form = applyTipoChange(cargaFormInitial('p'), 'VALVULA')
     form.valvula = {
       ...defaultValvula(),
       quantidade_vias: '2',
@@ -70,14 +70,14 @@ describe('cargaFormToApiPayload', () => {
   })
 
   it('envia resistência quando tipo RESISTENCIA', () => {
-    let form = applyTipoChange(cargaFormInitial('p'), 'RESISTENCIA')
+    const form = applyTipoChange(cargaFormInitial('p'), 'RESISTENCIA')
     form.resistencia = defaultResistencia()
     const body = cargaFormToApiPayload(form)
     expect(body.resistencia).toEqual(expect.objectContaining({ potencia_kw: 1 }))
   })
 
   it('envia sensor com tipo_sinal_analogico null quando vazio', () => {
-    let form = applyTipoChange(cargaFormInitial('p'), 'SENSOR')
+    const form = applyTipoChange(cargaFormInitial('p'), 'SENSOR')
     form.sensor = {
       ...defaultSensor(),
       tipo_sinal_analogico: '',
@@ -87,7 +87,7 @@ describe('cargaFormToApiPayload', () => {
   })
 
   it('envia transdutor', () => {
-    let form = applyTipoChange(cargaFormInitial('p'), 'TRANSDUTOR')
+    const form = applyTipoChange(cargaFormInitial('p'), 'TRANSDUTOR')
     form.transdutor = defaultTransdutor()
     const body = cargaFormToApiPayload(form)
     expect(body.transdutor).toEqual(

@@ -39,7 +39,7 @@ from composicao_painel.services.sugestoes.pendencias_sem_regra import (
     sincronizar_pendencias_cargas_sem_regra_catalogo,
 )
 
-from cargas.models import Carga, CargaMotor, CargaResistencia, CargaValvula
+from cargas.models import CargaMotor, CargaResistencia, CargaValvula
 from core.choices import NumeroFasesChoices
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
