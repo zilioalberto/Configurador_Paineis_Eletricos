@@ -117,7 +117,7 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from projetos.models import Projeto
+        from configurador.projetos.models import Projeto
 
         p1 = Projeto.objects.create(
             nome="Projeto Orc 1",
@@ -157,7 +157,7 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from projetos.models import Projeto
+        from configurador.projetos.models import Projeto
 
         Projeto.objects.create(
             nome="Projeto atribuído",
@@ -190,7 +190,7 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from projetos.models import Projeto
+        from configurador.projetos.models import Projeto
 
         projeto_outro = Projeto.objects.create(
             nome="Projeto privado",
@@ -218,7 +218,7 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from projetos.models import Projeto
+        from configurador.projetos.models import Projeto
 
         p_almox = Projeto.objects.create(
             nome="Projeto Almox",

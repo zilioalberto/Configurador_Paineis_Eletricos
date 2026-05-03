@@ -155,6 +155,7 @@ function NavIconClipboard({ className, ...rest }: IconProps) {
 
 const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/': NavIconHome,
+  '/dashboard': NavIconGrid,
   '/projetos': NavIconFolder,
   '/cargas': NavIconZap,
   '/cargas/modelos': NavIconClipboard,

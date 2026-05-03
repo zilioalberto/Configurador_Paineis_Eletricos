@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   APP_HEADER_BRAND,
-  APP_HEADER_TAGLINE,
   getHeaderUserDisplayName,
 } from '@/constants/appBranding'
+import { getPortalModuleContext } from '@/app/navigation/moduleContext'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { authDisplayName } from '@/modules/auth/types'
 import { BellIcon, UserAvatarPlaceholder } from './headerIcons'
@@ -55,7 +55,9 @@ export default function Header({
   onOpenMobileNav,
 }: HeaderProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useAuth()
+  const moduleContext = getPortalModuleContext(location.pathname)
   const userName = user ? authDisplayName(user) : getHeaderUserDisplayName()
   const firstName = userName.split(/\s+/)[0] ?? userName
 
@@ -133,7 +135,7 @@ export default function Header({
             <span className="app-header-brand-text">
               <span className="app-header-brand-title">{APP_HEADER_BRAND}</span>
               <span className="app-header-brand-tagline d-none d-sm-inline">
-                {APP_HEADER_TAGLINE}
+                {moduleContext.title}
               </span>
             </span>
           </Link>

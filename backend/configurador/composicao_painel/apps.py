@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class ComposicaoPainelConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'configurador.composicao_painel'
+    label = 'composicao_painel'

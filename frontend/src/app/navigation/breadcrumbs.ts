@@ -5,6 +5,7 @@ export type BreadcrumbItem = {
 }
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
+  '/dashboard': 'Painel do configurador',
   '/catalogo': 'Catálogo',
   '/dimensionamento': 'Dimensionamento de condutores',
   '/composicao': 'Composição do painel',
@@ -40,7 +41,7 @@ function cargasBreadcrumb(path: string): BreadcrumbItem[] | null {
 export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
   const path = pathname || '/'
 
-  if (path === '/') return [{ label: 'Início', to: '/' }]
+  if (path === '/') return [{ label: 'Portal ZFW', to: '/' }]
   if (path === '/administracao/utilizadores') {
     return [{ label: 'Utilizadores', to: '/administracao/utilizadores' }]
   }

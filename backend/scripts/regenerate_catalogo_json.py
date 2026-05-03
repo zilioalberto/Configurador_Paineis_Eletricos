@@ -7,7 +7,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "configuracoes.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "portal.settings")
 
 import django
 from django.db import models

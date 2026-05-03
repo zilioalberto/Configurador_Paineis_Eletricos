@@ -41,19 +41,19 @@ fi
 
 cd "$ROOT"
 
-PYTEST_ARGS="configuracoes/tests -v --tb=short"
+PYTEST_ARGS="portal/tests -v --tb=short"
 if [ "$COVERAGE" = 1 ]; then
-  PYTEST_ARGS="$PYTEST_ARGS --cov=configuracoes --cov-report=term-missing"
+  PYTEST_ARGS="$PYTEST_ARGS --cov=portal --cov-report=term-missing"
 fi
 
 run_backend() {
   echo ""
   echo "=== Backend (pytest) ==="
   if [ "$LOCAL" = 1 ]; then
-    (cd "$ROOT/backend" && DJANGO_SETTINGS_MODULE=configuracoes.settings_ci python -m pytest $PYTEST_ARGS)
+    (cd "$ROOT/backend" && DJANGO_SETTINGS_MODULE=portal.settings_ci python -m pytest $PYTEST_ARGS)
   else
     docker compose -f "$COMPOSE" exec -T backend sh -c \
-      "cd /app && export DJANGO_SETTINGS_MODULE=configuracoes.settings_ci && python -m pytest $PYTEST_ARGS"
+      "cd /app && export DJANGO_SETTINGS_MODULE=portal.settings_ci && python -m pytest $PYTEST_ARGS"
   fi
 }
 
