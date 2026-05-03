@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from cargas.models import Carga, CargaResistencia
+from cargas.models import Carga, CargaResistencia, CargaSensor, CargaTransdutor
 from cargas.models.motor import CargaMotor
 from cargas.models.valvula import CargaValvula
 from catalogo.models import Produto
@@ -51,6 +51,24 @@ def _valvula_ou_none(carga):
     try:
         return carga.valvula
     except CargaValvula.DoesNotExist:
+        return None
+
+
+def _sensor_ou_none(carga):
+    if carga is None or str(carga.tipo) != TipoCargaChoices.SENSOR.value:
+        return None
+    try:
+        return carga.sensor
+    except CargaSensor.DoesNotExist:
+        return None
+
+
+def _transdutor_ou_none(carga):
+    if carga is None or str(carga.tipo) != TipoCargaChoices.TRANSDUTOR.value:
+        return None
+    try:
+        return carga.transdutor
+    except CargaTransdutor.DoesNotExist:
         return None
 
 
@@ -105,17 +123,58 @@ class CargaComposicaoSerializer(serializers.ModelSerializer):
 
     def get_potencia_corrente_valor(self, obj):
         m = _motor_ou_none(obj)
-        if not m or m.potencia_corrente_valor is None:
-            return None
-        return str(m.potencia_corrente_valor)
+        if m and m.potencia_corrente_valor is not None:
+            return str(m.potencia_corrente_valor)
+        r = _resistencia_ou_none(obj)
+        if r and r.potencia_kw is not None:
+            return str(r.potencia_kw)
+        v = _valvula_ou_none(obj)
+        if v and v.tensao_alimentacao is not None and v.corrente_consumida_ma is not None:
+            potencia_w = (
+                Decimal(v.tensao_alimentacao) * Decimal(v.corrente_consumida_ma) / Decimal("1000")
+            )
+            return str(potencia_w.quantize(Decimal("0.01")))
+        s = _sensor_ou_none(obj)
+        if s and s.tensao_alimentacao is not None and s.corrente_consumida_ma is not None:
+            potencia_w = (
+                Decimal(s.tensao_alimentacao) * Decimal(s.corrente_consumida_ma) / Decimal("1000")
+            )
+            return str(potencia_w.quantize(Decimal("0.01")))
+        t = _transdutor_ou_none(obj)
+        if t and t.tensao_alimentacao is not None and t.corrente_consumida_ma is not None:
+            potencia_w = (
+                Decimal(t.tensao_alimentacao) * Decimal(t.corrente_consumida_ma) / Decimal("1000")
+            )
+            return str(potencia_w.quantize(Decimal("0.01")))
+        return None
 
     def get_potencia_corrente_unidade(self, obj):
         m = _motor_ou_none(obj)
-        return m.potencia_corrente_unidade if m else None
+        if m:
+            return m.potencia_corrente_unidade
+        if _resistencia_ou_none(obj):
+            return "KW"
+        if (
+            _valvula_ou_none(obj)
+            or _sensor_ou_none(obj)
+            or _transdutor_ou_none(obj)
+        ):
+            return "W"
+        return None
 
     def get_potencia_corrente_unidade_display(self, obj):
         m = _motor_ou_none(obj)
-        return m.get_potencia_corrente_unidade_display() if m else None
+        if m:
+            return m.get_potencia_corrente_unidade_display()
+        if _resistencia_ou_none(obj):
+            return "kW"
+        if (
+            _valvula_ou_none(obj)
+            or _sensor_ou_none(obj)
+            or _transdutor_ou_none(obj)
+        ):
+            return "W"
+        return None
 
     def get_tensao_carga_v(self, obj):
         m = _motor_ou_none(obj)

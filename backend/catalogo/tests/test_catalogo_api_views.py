@@ -142,6 +142,26 @@ class TestCatalogoProdutos:
         assert "CAT-SRC-ATIVO" in codigos
         assert "CAT-SRC-INAT" not in codigos
 
+    def test_list_search_composta_varias_palavras_and(self, admin_client):
+        """Várias palavras: cada uma deve casar (parcial) em código/descrição/fabricante."""
+        client, _ = admin_client
+        Produto.objects.create(
+            codigo="CAT-SRC-CT-6A",
+            descricao="3TS2901-0BB4 CONTATOR AC3:6A 1NF 24VCC",
+            categoria=CategoriaProdutoNomeChoices.CONTATORA,
+            unidade_medida=UnidadeMedidaChoices.UN,
+            ativo=True,
+        )
+        url = reverse("catalogo-produtos-list")
+        r = client.get(url, {"search": "contator 6A"})
+        assert r.status_code == 200
+        body = r.json()
+        codigos = {x["codigo"] for x in body["results"]}
+        assert "CAT-SRC-CT-6A" in codigos
+        r3 = client.get(url, {"search": "contator 6A fantasma"})
+        assert r3.status_code == 200
+        assert "CAT-SRC-CT-6A" not in {x["codigo"] for x in r3.json()["results"]}
+
     def test_retrieve_detalhe(self, admin_client):
         client, _ = admin_client
         p = Produto.objects.create(

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from cargas.models import Carga, CargaValvula
+from cargas.models import Carga, CargaResistencia, CargaValvula
 from catalogo.models import Produto
 from composicao_painel.api.serializers import (
     CargaComposicaoSerializer,
@@ -108,6 +108,29 @@ def test_carga_composicao_serializer_valvula_tensao_e_corrente(criar_projeto):
     data = CargaComposicaoSerializer(carga).data
     assert data["tensao_carga_v"] == TensaoChoices.V24
     assert data["corrente_a"] == "0.2000"
+    assert data["potencia_corrente_valor"] == "4.80"
+    assert data["potencia_corrente_unidade"] == "W"
+
+
+@pytest.mark.django_db
+def test_carga_composicao_serializer_resistencia_potencia_kw(criar_projeto):
+    projeto = criar_projeto(nome="CompR", codigo="22004-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="R01",
+        descricao="Resistência",
+        tipo=TipoCargaChoices.RESISTENCIA,
+    )
+    CargaResistencia.objects.create(
+        carga=carga,
+        numero_fases=3,
+        tensao_resistencia=TensaoChoices.V380,
+        potencia_kw=Decimal("3.500"),
+    )
+    data = CargaComposicaoSerializer(carga).data
+    assert data["potencia_corrente_valor"] == "3.500"
+    assert data["potencia_corrente_unidade"] == "KW"
+    assert data["potencia_corrente_unidade_display"] == "kW"
 
 
 def test_inclusao_manual_create_serializer_defaults():

@@ -15,6 +15,9 @@ from core.calculos.condutores import (
 )
 from core.choices import TipoCargaChoices
 from dimensionamento.models import ClassificacaoCircuitoChoices
+from dimensionamento.services.circuitos.alimentacao_geral import (
+    MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2,
+)
 
 
 def _minimo_bitola_painel_fase_mm2(tipo_carga: str | None) -> Decimal:
@@ -121,6 +124,7 @@ def validar_escolhas_circuito_carga(obj) -> None:
 def validar_escolhas_alimentacao_geral(obj) -> None:
     erros = []
     ib = Decimal(obj.corrente_total_painel_a or "0")
+    min_ag = MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2
 
     def checar(campo, secao, nome):
         if secao is None:
@@ -139,6 +143,12 @@ def validar_escolhas_alimentacao_geral(obj) -> None:
         obj.secao_condutor_fase_escolhida_mm2,
         obj.secao_condutor_fase_mm2,
     )
+    if ef_fase is not None and ef_fase < min_ag:
+        erros.append(
+            f"Fase (alimentação geral): a bitola mínima é {min_ag} mm². "
+            f"Não é permitido guardar {ef_fase} mm². Escolha {min_ag} mm² ou superior."
+        )
+
     if ef_fase is not None and ib > 0:
         iz = capacidade_nominal_iz_a(ef_fase)
         if iz is None:
@@ -153,6 +163,11 @@ def validar_escolhas_alimentacao_geral(obj) -> None:
             obj.secao_condutor_neutro_escolhida_mm2,
             obj.secao_condutor_neutro_mm2,
         )
+        if ef_n is not None and ef_n < min_ag:
+            erros.append(
+                f"Neutro (alimentação geral): a bitola mínima é {min_ag} mm². "
+                f"Não é permitido guardar {ef_n} mm². Escolha {min_ag} mm² ou superior."
+            )
         if ef_n is not None and ib > 0:
             izn = capacidade_nominal_iz_a(ef_n)
             if izn is None:
@@ -167,6 +182,11 @@ def validar_escolhas_alimentacao_geral(obj) -> None:
             obj.secao_condutor_pe_escolhida_mm2,
             obj.secao_condutor_pe_mm2,
         )
+        if ef_pe is not None and ef_pe < min_ag:
+            erros.append(
+                f"PE (alimentação geral): a bitola mínima é {min_ag} mm². "
+                f"Não é permitido guardar {ef_pe} mm². Escolha {min_ag} mm² ou superior."
+            )
         if ef_pe is not None and ef_fase is not None:
             pe_min = secao_pe_mm2_a_partir_da_fase(ef_fase)
             if ef_pe < pe_min:

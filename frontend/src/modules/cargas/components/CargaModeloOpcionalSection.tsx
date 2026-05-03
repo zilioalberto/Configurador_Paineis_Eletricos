@@ -7,8 +7,11 @@ import {
   useState,
 } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useListboxKeyboardNavigation } from '@/hooks/useListboxKeyboardNavigation'
 import { listarModelosCarga } from '../services/cargaService'
 import type { CargaModelo } from '../types/carga'
+
+const EMPTY_MODELOS: CargaModelo[] = []
 
 export type CargaModeloOpcionalSectionProps = {
   /** Segmento estável para `queryKey` dos modelos (evita cache partilhado entre criar/editar). */
@@ -23,8 +26,8 @@ export default function CargaModeloOpcionalSection({
   const [modeloBusca, setModeloBusca] = useState('')
   const [modeloBuscaDebounced, setModeloBuscaDebounced] = useState('')
   const [modeloDropdownAberto, setModeloDropdownAberto] = useState(false)
-  const [modeloResultadoAtivo, setModeloResultadoAtivo] = useState(-1)
   const modeloBuscaWrapRef = useRef<HTMLDivElement>(null)
+  const modeloListRef = useRef<HTMLUListElement>(null)
   const modeloBuscaId = useId()
 
   useEffect(() => {
@@ -33,10 +36,6 @@ export default function CargaModeloOpcionalSection({
     }, 250)
     return () => window.clearTimeout(timer)
   }, [modeloBusca])
-
-  useEffect(() => {
-    setModeloResultadoAtivo(-1)
-  }, [modeloBuscaDebounced])
 
   const { data: modelos = [], isPending: loadingModelos } = useQuery({
     queryKey: ['cargas', 'modelos', modeloQueryScope, modeloBuscaDebounced],
@@ -59,13 +58,31 @@ export default function CargaModeloOpcionalSection({
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [])
 
+  const modeloNavItems = loadingModelos ? EMPTY_MODELOS : modelos
+  const modeloListaTecladoAtiva =
+    Boolean(modeloDropdownAberto) && modeloNavItems.length > 0
+  const {
+    activeIndex: modeloResultadoAtivo,
+    handleKeyDown: handleModeloListKeyDown,
+  } = useListboxKeyboardNavigation(modeloNavItems, {
+    isActive: modeloListaTecladoAtiva,
+    resetKey: `${modeloBuscaDebounced}|${modelos.map((m) => m.id).join(',')}`,
+  })
+
+  useEffect(() => {
+    if (modeloResultadoAtivo < 0 || !modeloListRef.current) return
+    const el = modeloListRef.current.querySelector(
+      `#${modeloBuscaId}-opt-${modeloResultadoAtivo}`,
+    )
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [modeloResultadoAtivo, modeloBuscaId])
+
   const onSelecionarModelo = useCallback(
     (modelo: CargaModelo) => {
       onAplicarModelo(modelo)
       setModeloDropdownAberto(false)
       setModeloBusca('')
       setModeloBuscaDebounced('')
-      setModeloResultadoAtivo(-1)
     },
     [onAplicarModelo]
   )
@@ -101,34 +118,9 @@ export default function CargaModeloOpcionalSection({
                     setModeloDropdownAberto(true)
                     return
                   }
-                  if (!modeloDropdownAberto || modelos.length === 0) return
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault()
-                    setModeloResultadoAtivo((prev) =>
-                      prev < modelos.length - 1 ? prev + 1 : 0
-                    )
-                    return
-                  }
-                  if (event.key === 'ArrowUp') {
-                    event.preventDefault()
-                    setModeloResultadoAtivo((prev) =>
-                      prev > 0 ? prev - 1 : modelos.length - 1
-                    )
-                    return
-                  }
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    const idx = modeloResultadoAtivo >= 0 ? modeloResultadoAtivo : 0
-                    const escolhido = modelos[idx]
-                    if (!escolhido) return
-                    onSelecionarModelo(escolhido)
-                    return
-                  }
-                  if (event.key === 'Escape') {
-                    event.preventDefault()
-                    setModeloDropdownAberto(false)
-                    setModeloResultadoAtivo(-1)
-                  }
+                  handleModeloListKeyDown(event, onSelecionarModelo, {
+                    onEscape: () => setModeloDropdownAberto(false),
+                  })
                 }}
                 placeholder="Filtrar ou abrir a lista para ver todos"
                 autoComplete="off"
@@ -148,6 +140,7 @@ export default function CargaModeloOpcionalSection({
 
             {modeloDropdownAberto ? (
               <ul
+                ref={modeloListRef}
                 id={`${modeloBuscaId}-listbox`}
                 className="list-group position-absolute w-100 shadow-sm mt-1"
                 style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
@@ -161,7 +154,10 @@ export default function CargaModeloOpcionalSection({
                   modelos.map((modelo, index) => (
                     <li key={modelo.id} className="list-group-item list-group-item-action p-0">
                       <button
+                        id={`${modeloBuscaId}-opt-${index}`}
                         type="button"
+                        role="option"
+                        aria-selected={index === modeloResultadoAtivo}
                         className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
                           index === modeloResultadoAtivo ? 'bg-light' : ''
                         }`}

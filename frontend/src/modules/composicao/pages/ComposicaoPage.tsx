@@ -51,13 +51,31 @@ function montarNomeArquivoProjeto(
 
 function formatPotenciaCarga(c: CargaDetalhe | null | undefined) {
   const raw = c?.potencia_corrente_valor
-  if (raw != null && raw !== '') {
-    const valor = String(raw)
-    const u =
-      c?.potencia_corrente_unidade_display ?? c?.potencia_corrente_unidade ?? ''
-    return u ? `${valor} ${u}` : valor
+  if (raw == null || raw === '') return '—'
+  const valorStr = String(raw)
+  const u =
+    (c?.potencia_corrente_unidade_display ?? c?.potencia_corrente_unidade ?? '').trim()
+  const uUp = u.toUpperCase()
+
+  const n = Number.parseFloat(valorStr.replace(',', '.'))
+  if (!Number.isFinite(n)) {
+    return u ? `${valorStr} ${u}` : valorStr
   }
-  return '—'
+  // Resistência (kW) e cargas em W: exibir potência indicativa em kW na composição.
+  if (uUp === 'W') {
+    const kw = n / 1000
+    return `${kw.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    })} kW`
+  }
+  if (uUp === 'KW') {
+    return `${n.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
+    })} kW`
+  }
+  return u ? `${valorStr} ${u}` : valorStr
 }
 
 /** Descrição da carga (`cargas_carga.descricao`). */
@@ -97,9 +115,88 @@ function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
 }
 
 /** Linhas sem carga (seccionamento / painel geral): colunas alinhadas ao projeto e ao dimensionamento. */
-const LEGENDA_TAG_PAINEL_GERAL = 'Painel geral'
-const LEGENDA_DESCR_PAINEL_GERAL = 'Seccionamento'
-const LEGENDA_PAPEL_PAINEL_GERAL = 'Seccionamento geral'
+const LEGENDA_TAG_PAINEL_GERAL = 'GDBT'
+const LEGENDA_DESCR_PAINEL_GERAL = 'SECCIONAMENTO'
+const LEGENDA_TIPO_PAINEL_GERAL = 'GERAL'
+/** Papel/função: vazio visual (tipo e descrição cobrem a entrada geral). */
+const LEGENDA_PAPEL_PAINEL_GERAL = '—'
+
+const SQRT3 = Math.sqrt(3)
+
+function parseNumeroFasesPainel(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): number | null {
+  const raw = pa?.numero_fases ?? projeto?.numero_fases
+  if (raw == null) return null
+  const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10)
+  return Number.isFinite(n) ? n : null
+}
+
+function parseCorrentePainelA(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem?: string | null
+): number | null {
+  const ib = dimensionamento?.corrente_total_painel_a
+  const s =
+    ib != null && String(ib).trim() !== ''
+      ? String(ib).trim()
+      : correnteRefItem != null && String(correnteRefItem).trim() !== ''
+        ? String(correnteRefItem).trim()
+        : ''
+  if (!s) return null
+  const n = Number.parseFloat(s.replace(',', '.'))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function tensaoNominalPainelV(
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): number | null {
+  if (pa?.tensao_nominal != null) {
+    const v = Number(pa.tensao_nominal)
+    return Number.isFinite(v) && v > 0 ? v : null
+  }
+  if (projeto?.tensao_nominal != null) {
+    const v = Number(projeto.tensao_nominal)
+    return Number.isFinite(v) && v > 0 ? v : null
+  }
+  return null
+}
+
+/**
+ * Potência indicativa em kW a partir de Ib, tensão nominal e fases (cos φ = 1).
+ * CC: P = U·I; CA monofásico: P = U·I; CA trifásico (ou fases não informadas em CA): P = √3·U·I.
+ */
+function formatPotenciaPainelEntradaKw(
+  dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
+  correnteRefItem: string | null | undefined,
+  pa: ProjetoAlimentacaoSnapshot | null | undefined,
+  projeto: Projeto | undefined
+): string {
+  const i = parseCorrentePainelA(dimensionamento, correnteRefItem)
+  const u = tensaoNominalPainelV(pa, projeto)
+  if (i == null || u == null) return '—'
+
+  const tipo = (pa?.tipo_corrente ?? projeto?.tipo_corrente ?? 'CA').toUpperCase()
+  const nf = parseNumeroFasesPainel(pa, projeto)
+
+  let pW: number
+  if (tipo === 'CC') {
+    pW = u * i
+  } else if (nf === 1) {
+    pW = u * i
+  } else {
+    pW = SQRT3 * u * i
+  }
+
+  const pKw = pW / 1000
+  const rounded = Math.round(pKw * 100) / 100
+  return `${rounded.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} kW`
+}
 
 function textoTensaoAlimentacaoProjeto(
   pa: ProjetoAlimentacaoSnapshot | null | undefined,
@@ -191,9 +288,9 @@ type AgruparPorTagCargaOpts = {
 function tituloGrupoPainelGeral(opts?: AgruparPorTagCargaOpts): string {
   const raw = opts?.correnteTotalPainelA
   if (raw != null && String(raw).trim() !== '') {
-    return `Painel geral — ${String(raw).trim()} A`
+    return `GDBT — ${String(raw).trim()} A`
   }
-  return 'Painel geral'
+  return 'GDBT'
 }
 
 type GrupoItensPorTag<T> = {
@@ -823,11 +920,20 @@ export default function ComposicaoPage() {
                                 {em(c.carga.tipo_display)}
                               </span>
                             ) : (
-                              <span className="text-muted">—</span>
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
                             )}
                           </td>
                           <td>
-                            {c.carga ? formatPotenciaCarga(c.carga) : '—'}
+                            {c.carga
+                              ? formatPotenciaCarga(c.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  c.corrente_referencia_a,
+                                  c.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
                           </td>
                           <td>
                             {c.carga
@@ -957,11 +1063,20 @@ export default function ComposicaoPage() {
                                 {em(s.carga.tipo_display)}
                               </span>
                             ) : (
-                              <span className="text-muted">—</span>
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
                             )}
                           </td>
                           <td>
-                            {s.carga ? formatPotenciaCarga(s.carga) : '—'}
+                            {s.carga
+                              ? formatPotenciaCarga(s.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  s.corrente_referencia_a,
+                                  s.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
                           </td>
                           <td>
                             {s.carga
@@ -1088,11 +1203,20 @@ export default function ComposicaoPage() {
                                 {em(p.carga.tipo_display)}
                               </span>
                             ) : (
-                              <span className="text-muted">—</span>
+                              <span className="badge text-bg-secondary">
+                                {LEGENDA_TIPO_PAINEL_GERAL}
+                              </span>
                             )}
                           </td>
                           <td>
-                            {p.carga ? formatPotenciaCarga(p.carga) : '—'}
+                            {p.carga
+                              ? formatPotenciaCarga(p.carga)
+                              : formatPotenciaPainelEntradaKw(
+                                  dimensionamento,
+                                  p.corrente_referencia_a,
+                                  p.projeto_alimentacao,
+                                  projetoSelecionado
+                                )}
                           </td>
                           <td>
                             {p.carga

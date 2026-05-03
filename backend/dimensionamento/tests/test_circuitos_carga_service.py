@@ -122,3 +122,27 @@ def test_alimentacao_geral_trifasica_usa_resumo_e_projeto(criar_projeto):
     assert ag.possui_terra is True
     assert ag.secao_condutor_fase_mm2 is not None
     assert ag.secao_condutor_pe_mm2 is not None
+
+
+@pytest.mark.django_db
+def test_alimentacao_geral_minimo_bitola_2_5mm2(criar_projeto):
+    """Corrente baixa não deve produzir bitola inferior a 2,5 mm² na alimentação geral."""
+    projeto = criar_projeto(
+        nome="AG-min",
+        codigo="52002-26",
+        tensao_nominal=TensaoChoices.V380,
+    )
+    projeto.numero_fases = NumeroFasesChoices.TRIFASICO
+    projeto.possui_neutro = True
+    projeto.possui_terra = True
+    projeto.save(update_fields=["numero_fases", "possui_neutro", "possui_terra"])
+
+    resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
+    resumo.corrente_total_painel_a = Decimal("5.00")
+    resumo.save(update_fields=["corrente_total_painel_a"])
+
+    calcular_e_salvar_circuitos_cargas(projeto, resumo)
+    ag = DimensionamentoCircuitoAlimentacaoGeral.objects.get(projeto=projeto)
+    assert ag.secao_condutor_fase_mm2 == Decimal("2.50")
+    assert ag.secao_condutor_neutro_mm2 == Decimal("2.50")
+    assert ag.secao_condutor_pe_mm2 == Decimal("2.50")

@@ -10,10 +10,14 @@ from __future__ import annotations
 from decimal import Decimal
 
 from core.calculos.condutores import (
+    aplicar_minimo_bitola_painel,
     secao_fase_dimensionada_por_corrente_a,
     secao_pe_mm2_a_partir_da_fase,
 )
 from core.choices import NumeroFasesChoices, TipoCorrenteChoices
+
+# Mínimo de bitola para condutores do circuito de alimentação geral (regra de projeto).
+MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2: Decimal = Decimal("2.50")
 
 
 def _degraus_margem_bitola(projeto) -> int:
@@ -26,10 +30,11 @@ def _degraus_margem_bitola(projeto) -> int:
 
 
 def _secao_ib(ib, projeto):
-    return secao_fase_dimensionada_por_corrente_a(
+    base = secao_fase_dimensionada_por_corrente_a(
         ib,
         degraus_acima_do_minimo_normativo=_degraus_margem_bitola(projeto),
     )
+    return aplicar_minimo_bitola_painel(base, MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2)
 
 
 def dimensionar_circuito_alimentacao_geral(projeto, resumo) -> dict:
@@ -52,6 +57,10 @@ def dimensionar_circuito_alimentacao_geral(projeto, resumo) -> dict:
         linhas.append(
             f"Margem de bitola (projeto): +{degraus} degrau(ns) na tabela comercial acima do mínimo Iz."
         )
+    linhas.append(
+        f"Mínimo de bitola dos condutores de alimentação geral: "
+        f"{MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2} mm²."
+    )
 
     if tipo == TipoCorrenteChoices.CC:
         return _alimentacao_cc(ib, possui_t, linhas, projeto)

@@ -62,22 +62,28 @@ def _txt(v) -> str:
 
 
 def _potencia_carga(carga) -> str:
+    """Potência para exportação — alinhado ao `CargaComposicaoSerializer` (kW na composição)."""
     if carga is None:
         return ""
-    if str(carga.tipo) != TipoCargaChoices.MOTOR.value:
+    from composicao_painel.api.serializers import CargaComposicaoSerializer
+
+    data = CargaComposicaoSerializer(carga).data
+    val = data.get("potencia_corrente_valor")
+    if val in (None, ""):
         return ""
+    u_raw = (data.get("potencia_corrente_unidade") or "").strip().upper()
+    u_disp = (data.get("potencia_corrente_unidade_display") or "").strip()
     try:
-        motor = carga.motor
+        n = Decimal(str(val).replace(",", "."))
     except Exception:
-        return ""
-    if motor is None or motor.potencia_corrente_valor is None:
-        return ""
-    unidade = (
-        motor.get_potencia_corrente_unidade_display()
-        if hasattr(motor, "get_potencia_corrente_unidade_display")
-        else str(motor.potencia_corrente_unidade or "")
-    )
-    return f"{motor.potencia_corrente_valor} {unidade}".strip()
+        return f"{val} {u_disp}".strip() if u_disp else str(val)
+    if u_raw == "W":
+        kw = (n / Decimal("1000")).quantize(Decimal("0.0001"))
+        return f"{kw} kW"
+    if u_raw == "KW":
+        kw = n.quantize(Decimal("0.001"))
+        return f"{kw} kW"
+    return f"{val} {u_disp}".strip() if u_disp else str(val)
 
 
 def _corrente_para_carga(corrente_referencia_a, carga) -> str:

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -5,8 +6,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from cargas.models import Carga, CargaMotor
+from cargas.models import Carga, CargaMotor, CargaResistencia
 from core.choices import NumeroFasesChoices, TensaoChoices, TipoCargaChoices
+from core.choices.cargas import TipoAcionamentoResistenciaChoices
 from core.choices.usuarios import TipoUsuarioChoices
 from dimensionamento.models import (
     DimensionamentoCircuitoAlimentacaoGeral,
@@ -84,6 +86,62 @@ def test_post_recalcular_dimensionamento_registra_evento(
     kwargs = mock_evento.call_args.kwargs
     assert kwargs["projeto"] == projeto
     assert kwargs["usuario"] == user
+
+
+@pytest.mark.django_db
+def test_get_dimensionamento_sincroniza_circuitos_para_nova_carga_quando_resumo_ja_existia(
+    admin_client, criar_projeto
+):
+    """
+    Se o resumo já foi criado antes de uma nova carga (ex.: modelo aplicado depois da
+    primeira visita ao dimensionamento), o GET deve recalcular circuitos para todas as cargas.
+    """
+    client, _ = admin_client
+    projeto = criar_projeto(nome="DimSync", codigo="20008-26", tensao_nominal=TensaoChoices.V380)
+    projeto.numero_fases = NumeroFasesChoices.TRIFASICO
+    projeto.possui_neutro = True
+    projeto.possui_terra = True
+    projeto.save(update_fields=["numero_fases", "possui_neutro", "possui_terra"])
+
+    carga_m = Carga.objects.create(
+        projeto=projeto,
+        tag="M01",
+        descricao="MOTOR",
+        tipo=TipoCargaChoices.MOTOR,
+        quantidade=1,
+    )
+    CargaMotor.objects.create(
+        carga=carga_m,
+        potencia_corrente_valor="10.00",
+        potencia_corrente_unidade="A",
+        tensao_motor=380,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+    )
+    calcular_e_salvar_dimensionamento_basico(projeto)
+    assert DimensionamentoCircuitoCarga.objects.filter(projeto=projeto).count() == 1
+
+    carga_r = Carga.objects.create(
+        projeto=projeto,
+        tag="R10",
+        descricao="RESISTENCIA TRIFASICA 1KW",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=1,
+    )
+    CargaResistencia.objects.create(
+        carga=carga_r,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        potencia_kw=Decimal("1.000"),
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+    )
+    assert not DimensionamentoCircuitoCarga.objects.filter(carga=carga_r).exists()
+
+    url = reverse("dimensionamento-por-projeto", kwargs={"projeto_id": projeto.id})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert DimensionamentoCircuitoCarga.objects.filter(carga=carga_r).exists()
+    tags = {x["carga_tag"] for x in response.data["circuitos_carga"]}
+    assert "R10" in tags
 
 
 @pytest.mark.django_db

@@ -14,10 +14,21 @@ import type {
 } from '../types/dimensionamento'
 
 const SUGESTAO = '__sugestao__'
+/** Igual a `MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2` no backend (alimentação geral). */
+const MIN_MM2_ALIMENTACAO_GERAL = 2.5
 
 function parseNum(s: string | null | undefined): number {
   if (s == null || s === '') return 0
   return Number(String(s).replace(',', '.'))
+}
+
+/** Escolhas gravadas antes da regra de mínimo — volta à sugestão do sistema no UI. */
+function overrideBitolaAgCoerente(raw: string | null | undefined): string {
+  const base = raw ?? SUGESTAO
+  if (base === SUGESTAO) return base
+  const n = parseNum(base)
+  if (n > 0 && n < MIN_MM2_ALIMENTACAO_GERAL) return SUGESTAO
+  return base
 }
 
 function opcoesBitolaFase(
@@ -45,6 +56,22 @@ function opcoesBitolaAlimentacao(
 ): string[] {
   if (ib <= 0) return tabela.map((t) => t.secao_mm2)
   return tabela.filter((t) => parseNum(t.iz_a) >= ib).map((t) => t.secao_mm2)
+}
+
+/** Alimentação geral: não oferecer bitolas abaixo do mínimo de projeto (2,5 mm²). */
+function opcoesBitolaAlimentacaoGeral(
+  tabela: TabelaReferenciaCondutor[],
+  ib: number
+): string[] {
+  return opcoesBitolaAlimentacao(tabela, ib).filter(
+    (s) => parseNum(s) >= MIN_MM2_ALIMENTACAO_GERAL
+  )
+}
+
+function opcoesBitolaPeAlimentacaoGeral(tabela: TabelaReferenciaCondutor[]): string[] {
+  return tabela
+    .map((t) => t.secao_mm2)
+    .filter((s) => parseNum(s) >= MIN_MM2_ALIMENTACAO_GERAL)
 }
 
 function opcoesBitolaPe(tabela: TabelaReferenciaCondutor[]): string[] {
@@ -120,9 +147,9 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
       return
     }
     setAgOv({
-      fase: ag.secao_condutor_fase_escolhida_mm2 ?? SUGESTAO,
-      neutro: ag.secao_condutor_neutro_escolhida_mm2 ?? SUGESTAO,
-      pe: ag.secao_condutor_pe_escolhida_mm2 ?? SUGESTAO,
+      fase: overrideBitolaAgCoerente(ag.secao_condutor_fase_escolhida_mm2),
+      neutro: overrideBitolaAgCoerente(ag.secao_condutor_neutro_escolhida_mm2),
+      pe: overrideBitolaAgCoerente(ag.secao_condutor_pe_escolhida_mm2),
     })
   }, [ag?.id, ag?.secao_condutor_fase_escolhida_mm2, dim?.atualizado_em])
 
@@ -720,7 +747,7 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
                           <option value={SUGESTAO}>
                             Sugestão ({ag.secao_condutor_fase_mm2 ?? '—'} mm²)
                           </option>
-                          {opcoesBitolaAlimentacao(tabela, ibPainel).map((s) => (
+                          {opcoesBitolaAlimentacaoGeral(tabela, ibPainel).map((s) => (
                             <option key={s} value={s}>
                               {s} mm²
                             </option>
@@ -740,7 +767,7 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
                             <option value={SUGESTAO}>
                               Sugestão ({ag.secao_condutor_neutro_mm2 ?? '—'} mm²)
                             </option>
-                            {opcoesBitolaAlimentacao(tabela, ibPainel).map((s) => (
+                            {opcoesBitolaAlimentacaoGeral(tabela, ibPainel).map((s) => (
                               <option key={s} value={s}>
                                 {s} mm²
                               </option>
@@ -761,7 +788,7 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
                             <option value={SUGESTAO}>
                               Sugestão ({ag.secao_condutor_pe_mm2 ?? '—'} mm²)
                             </option>
-                            {opcoesBitolaPe(tabela).map((s) => (
+                            {opcoesBitolaPeAlimentacaoGeral(tabela).map((s) => (
                               <option key={s} value={s}>
                                 {s} mm²
                               </option>

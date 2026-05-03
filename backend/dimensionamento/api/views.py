@@ -20,7 +20,10 @@ from projetos.services.rastreabilidade import registrar_evento_projeto
 
 class DimensionamentoPorProjetoView(APIView):
     """
-    GET: retorna o resumo salvo (com circuitos e tabelas de condutores); cria e calcula na primeira vez.
+    GET: retorna o resumo salvo (com circuitos e tabelas de condutores).
+    Cria o resumo na primeira vez e, em todo GET, recalcula o dimensionamento básico e os circuitos
+    de carga para ficar alinhado às cargas atuais do projeto (novas cargas ou alterações sem POST em
+    recalcular obtêm linhas em ``DimensionamentoCircuitoCarga``).
     """
 
     permission_classes = [HasEffectivePermission]
@@ -28,11 +31,10 @@ class DimensionamentoPorProjetoView(APIView):
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
-        resumo, created = ResumoDimensionamento.objects.select_related(
-            "projeto"
-        ).get_or_create(projeto=projeto)
-        if created:
-            calcular_e_salvar_dimensionamento_basico(projeto)
+        ResumoDimensionamento.objects.select_related("projeto").get_or_create(
+            projeto=projeto
+        )
+        calcular_e_salvar_dimensionamento_basico(projeto)
         resumo = ResumoDimensionamento.objects.select_related("projeto").get(
             projeto=projeto
         )
