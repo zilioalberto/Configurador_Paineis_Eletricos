@@ -84,6 +84,15 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
             "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
         ) as mock_if,
         patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_estado_solido_para_carga"
+        ),
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_interface_para_carga"
+        ),
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_bornes_para_carga"
+        ),
+        patch(
             "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
         ),
     ):

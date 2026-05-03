@@ -77,7 +77,7 @@ describe('CargaModeloOpcionalSection', () => {
 
     expect(screen.getByText('Motor teste')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Motor teste/i }))
+    fireEvent.click(screen.getByRole('option', { name: /Motor teste/i }))
 
     expect(onAplicar).toHaveBeenCalledTimes(1)
     expect(onAplicar).toHaveBeenCalledWith(modelo)

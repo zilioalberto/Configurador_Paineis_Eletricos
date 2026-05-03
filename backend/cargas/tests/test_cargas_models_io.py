@@ -28,6 +28,7 @@ def test_resistencia_save_sincroniza_saida_digital_com_plc(criar_projeto):
         codigo="17001-26",
         tensao_nominal=TensaoChoices.V380,
         possui_plc=True,
+        familia_plc="S7-1200",
     )
     carga = Carga.objects.create(
         projeto=projeto,
@@ -126,6 +127,7 @@ def test_valvula_save_sincroniza_saida_e_feedback(criar_projeto):
         codigo="17005-26",
         tensao_nominal=TensaoChoices.V380,
         possui_plc=True,
+        familia_plc="S7-1200",
     )
     carga = Carga.objects.create(
         projeto=projeto,
@@ -170,6 +172,8 @@ def test_resistencia_clean_rejeita_numero_fases_invalido():
         numero_fases=999,
         tensao_resistencia=TensaoChoices.V380,
         potencia_kw=Decimal("1.0"),
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+        tipo_rele_interface=None,
     )
     with pytest.raises(ValidationError) as exc:
         CargaResistencia.clean(fake)
