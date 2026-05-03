@@ -9,6 +9,7 @@ from catalogo.models import Produto
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from composicao_painel.services.sugestoes.orquestrador import (
     gerar_sugestoes_painel,
+    montar_etapas_geracao,
     projeto_precisa_contatoras,
     projeto_tem_carga_com_minidisjuntor,
     projeto_tem_motor_com_disjuntor_motor,
@@ -17,7 +18,13 @@ from composicao_painel.services.sugestoes.orquestrador import (
     remover_sugestoes_ja_aprovadas,
 )
 from core.choices import CategoriaProdutoNomeChoices, PartesPainelChoices, TensaoChoices
-from core.choices.cargas import TipoCargaChoices
+from core.choices.cargas import (
+    TipoCargaChoices,
+    TipoConexaoCargaPainelChoices,
+    TipoPartidaMotorChoices,
+    TipoProtecaoMotorChoices,
+)
+from core.choices.eletrica import NumeroFasesChoices
 from core.choices.produtos import UnidadeMedidaChoices
 
 
@@ -240,3 +247,29 @@ def test_gerar_sugestoes_painel_erro_bd_na_etapa_permite_passos_finais(
     assert resultado["erros"]
     assert resultado["erros"][0]["etapa"] == "ETAPA_BD"
     mock_pendencias.assert_called_once_with(projeto)
+
+
+@pytest.mark.django_db
+def test_montar_etapas_sempre_inclui_bornes_com_motor_disjuntor(
+    criar_projeto,
+    criar_carga_motor,
+):
+    """Motores com bornes não devem depender de haver válvula no projeto."""
+    projeto = criar_projeto(nome="OrqB", codigo="12007-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="M05",
+        descricao="MOTOR",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    criar_carga_motor(
+        carga=carga,
+        tensao_motor=TensaoChoices.V380,
+        tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
+        tipo_partida=TipoPartidaMotorChoices.DIRETA,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tipo_conexao_painel=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+    )
+    nomes = [n for n, _ in montar_etapas_geracao(projeto)]
+    assert "DISJUNTORES_MOTOR" in nomes
+    assert "BORNES" in nomes

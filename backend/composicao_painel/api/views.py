@@ -28,6 +28,9 @@ from composicao_painel.services.sugestoes.aprovacao_sugestoes import aprovar_sug
 from composicao_painel.services.sugestoes.aprovacao_sugestoes import (
     reabrir_composicao_item_para_sugestao,
 )
+from composicao_painel.services.sugestoes.bornes import (
+    remover_pendencias_borne_sem_dimensionamento_obsoletas,
+)
 from composicao_painel.services.sugestoes.orquestrador import gerar_sugestoes_painel
 from composicao_painel.services.export_lista_completa import (
     montar_linhas_export,
@@ -40,6 +43,8 @@ from composicao_painel.services.sugestoes.orquestrador_pendencias import (
 )
 from core.choices import StatusPendenciaChoices
 from core.permissions import PermissionKeys
+from dimensionamento.models import ResumoDimensionamento
+from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from projetos.models import Projeto
 from projetos.services.fluxo_projeto import validar_projeto_editavel
 from projetos.services.rastreabilidade import registrar_evento_projeto
@@ -128,6 +133,12 @@ class ComposicaoProjetoSnapshotView(APIView):
 
     def get(self, request, projeto_id):
         projeto = get_object_or_404(Projeto, pk=projeto_id)
+        # Alinha circuitos de carga às cargas atuais (como o GET de dimensionamento) e
+        # limpa pendências de borne obsoletas «sem dimensionamento» para o snapshot
+        # refletir o estado real sem exigir um segundo clique em «Gerar sugestões».
+        ResumoDimensionamento.objects.get_or_create(projeto=projeto)
+        calcular_e_salvar_dimensionamento_basico(projeto)
+        remover_pendencias_borne_sem_dimensionamento_obsoletas(projeto)
         return Response(_snapshot(projeto))
 
 

@@ -8,17 +8,19 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from cargas.models import Carga
+from cargas.models import Carga, CargaSensor
 from catalogo.models import Produto
 from composicao_painel.api.views import _nome_usuario_auditoria
-from composicao_painel.models import ComposicaoItem, SugestaoItem
+from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
 from core.choices import (
     CategoriaProdutoNomeChoices,
     PartesPainelChoices,
+    StatusPendenciaChoices,
     StatusProjetoChoices,
     TensaoChoices,
 )
-from core.choices.cargas import TipoCargaChoices
+from core.choices.cargas import TipoCargaChoices, TipoSensorChoices
+from core.choices.eletrica import TipoCorrenteChoices, TipoSinalChoices
 from core.choices.produtos import UnidadeMedidaChoices
 from core.choices.usuarios import TipoUsuarioChoices
 
@@ -105,6 +107,42 @@ class TestComposicaoProjetoSnapshotView:
         url = reverse("composicao-projeto-snapshot", kwargs={"projeto_id": projeto.id})
         response = client.get(url)
         assert response.status_code == 403
+
+    def test_get_snapshot_recalcula_dim_e_remove_pendencia_borne_obsoleta(
+        self, admin_client, criar_projeto
+    ):
+        """Pendência «sem DimensionamentoCircuitoCarga» some após o GET (sem segundo POST)."""
+        client, _ = admin_client
+        projeto = criar_projeto(nome="PD", codigo="09004-26", tensao_nominal=TensaoChoices.V380)
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag="S02",
+            descricao="S01",
+            tipo=TipoCargaChoices.SENSOR,
+            quantidade=1,
+        )
+        CargaSensor.objects.create(
+            carga=carga,
+            tipo_sensor=TipoSensorChoices.INDUTIVO,
+            tipo_sinal=TipoSinalChoices.DIGITAL,
+            tensao_alimentacao=TensaoChoices.V24,
+            tipo_corrente=TipoCorrenteChoices.CC,
+        )
+        PendenciaItem.objects.create(
+            projeto=projeto,
+            carga=carga,
+            parte_painel=PartesPainelChoices.BORNES,
+            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+            descricao="Dimensionamento de condutores ausente para S02 - S01.",
+            memoria_calculo="[BORNE — SENSOR]\ncarga\nSem DimensionamentoCircuitoCarga.",
+            status=StatusPendenciaChoices.ABERTA,
+            ordem=43,
+        )
+        url = reverse("composicao-projeto-snapshot", kwargs={"projeto_id": projeto.id})
+        response = client.get(url)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["totais"]["pendencias"] == 0
 
 
 @pytest.mark.django_db
