@@ -123,15 +123,6 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
   const [circuitoOv, setCircuitoOv] = useState<Record<string, OverridesCircuito>>({})
   const [agOv, setAgOv] = useState<OverridesAg | null>(null)
 
-  const circuitosIdsKey = useMemo(
-    () =>
-      circuitos
-        .map((c) => c.id)
-        .sort()
-        .join(','),
-    [circuitos]
-  )
-
   useEffect(() => {
     if (!dim?.circuitos_carga) return
     const next: Record<string, OverridesCircuito> = {}
