@@ -1,4 +1,5 @@
 import type { CargaFormData, TipoCarga } from '../types/carga'
+import { defaultMotor } from './cargaFormDefaults'
 
 function omitEmptyStrings<T extends Record<string, unknown>>(obj: T): T {
   const out = { ...obj }
@@ -30,10 +31,14 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
   const tipo = data.tipo as TipoCarga
 
   if (tipo === 'MOTOR' && motor) {
+    const base = defaultMotor()
+    const merged = { ...base, ...motor }
+    const nf = Number(merged.numero_fases)
+    const tm = Number(merged.tensao_motor)
     const m = omitEmptyStrings({
-      ...motor,
-      numero_fases: Number(motor.numero_fases),
-      tensao_motor: Number(motor.tensao_motor),
+      ...merged,
+      numero_fases: Number.isFinite(nf) ? nf : base.numero_fases,
+      tensao_motor: Number.isFinite(tm) ? tm : base.tensao_motor,
     } as Record<string, unknown>)
     body.motor = m
   }

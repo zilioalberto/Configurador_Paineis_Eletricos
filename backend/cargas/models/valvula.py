@@ -11,6 +11,7 @@ from core.choices import (
     TipoCorrenteChoices,
     TipoProtecaoValvulaChoices,
     TipoAcionamentoValvulaChoices,
+    TipoReleInterfaceValvulaChoices,
 )
 
 from .base import Carga
@@ -81,8 +82,18 @@ class CargaValvula(models.Model):
     tipo_acionamento = models.CharField(
         max_length=30,
         choices=TipoAcionamentoValvulaChoices.choices,
-        default=TipoAcionamentoValvulaChoices.RELE_ESTADO_SOLIDO,
+        default=TipoAcionamentoValvulaChoices.SOLENOIDE_DIRETO,
         help_text="Tipo de acionamento da válvula.",
+    )
+
+    tipo_rele_interface = models.CharField(
+        max_length=30,
+        choices=TipoReleInterfaceValvulaChoices.choices,
+        null=True,
+        blank=True,
+        help_text=(
+            "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
+        ),
     )
 
     class Meta:
@@ -106,6 +117,17 @@ class CargaValvula(models.Model):
         if self.quantidade_solenoides < 1:
             erros["quantidade_solenoides"] = (
                 "A quantidade de solenoides deve ser maior ou igual a 1."
+            )
+
+        if self.tipo_acionamento == TipoAcionamentoValvulaChoices.RELE_INTERFACE:
+            if not self.tipo_rele_interface:
+                erros["tipo_rele_interface"] = (
+                    "Informe o tipo de relé de interface (eletromecânica ou estado sólido)."
+                )
+        elif self.tipo_rele_interface:
+            erros["tipo_rele_interface"] = (
+                "O tipo de relé de interface só se aplica ao acionamento "
+                "\"Relé de interface\"."
             )
 
         if erros:
@@ -133,6 +155,8 @@ class CargaValvula(models.Model):
         save_io_flags(self.carga)
 
     def save(self, *args, **kwargs):
+        if self.tipo_acionamento != TipoAcionamentoValvulaChoices.RELE_INTERFACE:
+            self.tipo_rele_interface = None
         self.full_clean()
         super().save(*args, **kwargs)
         self.sincronizar_quantidades_carga()

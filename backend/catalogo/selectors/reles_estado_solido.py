@@ -8,14 +8,18 @@ from catalogo.models import Produto
 from catalogo.selectors._base import filtrar_produtos_especificacao
 from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
+
 def selecionar_reles_estado_solido(
     corrente_nominal_min_a: Decimal | float | None = None,
+    numero_fases: str | None = None,
     tensao_carga_v: int | None = None,
     modo_montagem: str | None = None,
 ) -> QuerySet[Produto]:
     kw: dict = {}
     if corrente_nominal_min_a is not None:
         kw["corrente_nominal_a__gte"] = corrente_nominal_min_a
+    if numero_fases:
+        kw["numero_fases"] = numero_fases
     if tensao_carga_v is not None:
         kw["tensao_carga_v"] = tensao_carga_v
     if modo_montagem:

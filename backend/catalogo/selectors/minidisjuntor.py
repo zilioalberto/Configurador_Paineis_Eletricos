@@ -13,9 +13,11 @@ def selecionar_minidisjuntores(
     curva_disparo: str | None = None,
     numero_polos: str | None = None,
     niveis: int | None = 1,
+    superior_a_corrente: bool = False,
 ) -> QuerySet[Produto]:
     """
-    Minidisjuntores com corrente nominal >= a corrente exigida.
+    Minidisjuntores com corrente nominal >= corrente exigida (ou estritamente
+    maior quando ``superior_a_corrente`` é True).
     """
     if corrente_nominal is None:
         return Produto.objects.none()
@@ -24,8 +26,15 @@ def selecionar_minidisjuntores(
         ativo=True,
         categoria=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
         especificacao_minidisjuntor__corrente_nominal_a__isnull=False,
-        especificacao_minidisjuntor__corrente_nominal_a__gte=corrente_nominal,
     )
+    if superior_a_corrente:
+        qs_base = qs_base.filter(
+            especificacao_minidisjuntor__corrente_nominal_a__gt=corrente_nominal,
+        )
+    else:
+        qs_base = qs_base.filter(
+            especificacao_minidisjuntor__corrente_nominal_a__gte=corrente_nominal,
+        )
 
     if modo_montagem:
         qs_base = qs_base.filter(

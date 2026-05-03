@@ -183,6 +183,7 @@ class ProjetoAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "possui_plc",
+                    "familia_plc",
                     "possui_ihm",
                     "possui_switches",
                     "possui_climatizacao",

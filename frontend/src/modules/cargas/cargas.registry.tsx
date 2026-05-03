@@ -16,7 +16,7 @@ function withPermission(permission: string, element: ReactElement): ReactElement
 export const cargasMenuItems: AppMenuItem[] = [
   {
     to: '/cargas',
-    label: 'Cargas',
+    label: 'Cargas do projeto',
     order: 20,
     requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
   },

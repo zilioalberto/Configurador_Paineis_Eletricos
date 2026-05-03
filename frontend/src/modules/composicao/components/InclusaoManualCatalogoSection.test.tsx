@@ -98,7 +98,7 @@ describe('InclusaoManualCatalogoSection', () => {
       expect(buscarProdutosAutocompleteMock).toHaveBeenCalledWith('ab', null)
     })
 
-    const opt = await screen.findByRole('button', { name: /X-1/i })
+    const opt = await screen.findByRole('option', { name: /X-1/i })
     fireEvent.click(opt)
 
     expect(screen.getByRole('button', { name: /Trocar produto/i })).toBeInTheDocument()

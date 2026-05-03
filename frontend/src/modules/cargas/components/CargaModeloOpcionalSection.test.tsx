@@ -6,10 +6,13 @@ import type { CargaModelo } from '@/modules/cargas/types/carga'
 import CargaModeloOpcionalSection from './CargaModeloOpcionalSection'
 
 const useQueryMock = vi.hoisted(() =>
-  vi.fn((_options: unknown) => ({
-    data: [] as CargaModelo[],
-    isPending: false,
-  }))
+  vi.fn((options: unknown) => {
+    void options
+    return {
+      data: [] as CargaModelo[],
+      isPending: false,
+    }
+  })
 )
 
 vi.mock('@tanstack/react-query', () => ({
@@ -31,10 +34,13 @@ describe('CargaModeloOpcionalSection', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     useQueryMock.mockClear()
-    useQueryMock.mockImplementation((_options: unknown) => ({
-      data: [],
-      isPending: false,
-    }))
+    useQueryMock.mockImplementation((options: unknown) => {
+      void options
+      return {
+        data: [],
+        isPending: false,
+      }
+    })
   })
 
   afterEach(() => {
@@ -49,34 +55,29 @@ describe('CargaModeloOpcionalSection', () => {
 
     expect(screen.getByRole('heading', { name: /Modelo de carga \(opcional\)/i })).toBeInTheDocument()
     expect(
-      screen.getByPlaceholderText(/Digite ao menos 2 caracteres do modelo/i)
+      screen.getByPlaceholderText(/Filtrar ou abrir a lista para ver todos/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Digite para filtrar no servidor ou use/i)
     ).toBeInTheDocument()
   })
 
-  it('mostra dica quando há menos de 2 caracteres na busca', () => {
-    render(
-      <CargaModeloOpcionalSection modeloQueryScope="test" onAplicarModelo={vi.fn()} />
-    )
-
-    const input = screen.getByPlaceholderText(/Digite ao menos 2 caracteres do modelo/i)
-    fireEvent.change(input, { target: { value: 'a' } })
-
-    expect(screen.getByText(/Digite ao menos 2 caracteres para buscar/i)).toBeInTheDocument()
-  })
-
-  it('após buscar e selecionar modelo, Aplicar modelo chama onAplicarModelo', async () => {
+  it('após buscar e clicar no modelo, onAplicarModelo é chamado de imediato', async () => {
     const modelo = makeModelo()
-    useQueryMock.mockImplementation((_options: unknown) => ({
-      data: [modelo],
-      isPending: false,
-    }))
+    useQueryMock.mockImplementation((options: unknown) => {
+      void options
+      return {
+        data: [modelo],
+        isPending: false,
+      }
+    })
 
     const onAplicar = vi.fn()
     render(
       <CargaModeloOpcionalSection modeloQueryScope="test-scope" onAplicarModelo={onAplicar} />
     )
 
-    const input = screen.getByPlaceholderText(/Digite ao menos 2 caracteres do modelo/i)
+    const input = screen.getByPlaceholderText(/Filtrar ou abrir a lista para ver todos/i)
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: 'mo' } })
     await act(async () => {
@@ -85,11 +86,7 @@ describe('CargaModeloOpcionalSection', () => {
 
     expect(screen.getByText('Motor teste')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Motor teste/i }))
-
-    const aplicar = screen.getByRole('button', { name: /^Aplicar modelo$/i })
-    expect(aplicar).not.toBeDisabled()
-    fireEvent.click(aplicar)
+    fireEvent.click(screen.getByRole('option', { name: /Motor teste/i }))
 
     expect(onAplicar).toHaveBeenCalledTimes(1)
     expect(onAplicar).toHaveBeenCalledWith(modelo)
@@ -104,17 +101,20 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('Enter na lista aplica modelo diretamente', async () => {
     const modelo = makeModelo({ id: 'm2', nome: 'Valvula X', tipo: 'VALVULA' })
-    useQueryMock.mockImplementation((_options: unknown) => ({
-      data: [modelo],
-      isPending: false,
-    }))
+    useQueryMock.mockImplementation((options: unknown) => {
+      void options
+      return {
+        data: [modelo],
+        isPending: false,
+      }
+    })
 
     const onAplicar = vi.fn()
     render(
       <CargaModeloOpcionalSection modeloQueryScope="test" onAplicarModelo={onAplicar} />
     )
 
-    const input = screen.getByPlaceholderText(/Digite ao menos 2 caracteres do modelo/i)
+    const input = screen.getByPlaceholderText(/Filtrar ou abrir a lista para ver todos/i)
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: 'va' } })
     await act(async () => {

@@ -47,22 +47,22 @@ export default function ProjetoCreatePage() {
   )
 
   async function handleSubmit(data: ProjetoFormData) {
-    try {
-      const projeto = await createMutation.mutateAsync(data)
-      showToast({
-        variant: 'success',
-        message: 'Projeto criado com sucesso.',
-      })
-      navigate(`/cargas?projeto=${encodeURIComponent(projeto.id)}`)
-    } catch (err) {
-      console.error('Erro ao criar projeto:', err)
-      const mensagemApi = extrairMensagemErroApi(err)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível criar o projeto',
-        message: mensagemApi || 'Verifique os dados e tente novamente.',
-      })
-    }
+    const projeto = await createMutation.mutateAsync(data)
+    showToast({
+      variant: 'success',
+      message: 'Projeto criado com sucesso.',
+    })
+    navigate(`/cargas?projeto=${encodeURIComponent(projeto.id)}`)
+  }
+
+  function handleSubmitError(err: unknown) {
+    console.error('Erro ao criar projeto:', err)
+    const mensagemApi = extrairMensagemErroApi(err)
+    showToast({
+      variant: 'danger',
+      title: 'Não foi possível criar o projeto',
+      message: mensagemApi || 'Verifique os dados e tente novamente.',
+    })
   }
 
   return (
@@ -99,6 +99,7 @@ export default function ProjetoCreatePage() {
           <div className="card-body">
             <ProjetoForm
               onSubmit={handleSubmit}
+              onSubmitError={handleSubmitError}
               loading={createMutation.isPending}
               initialData={initialData}
               responsavelOptions={responsavelOptions}

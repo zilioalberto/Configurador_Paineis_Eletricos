@@ -1,8 +1,10 @@
-import { Link, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
+import { tipoConexaoCargaPainelOptions } from '../constants/cargaChoiceOptions'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
@@ -23,9 +25,29 @@ function formatDecimal(v: string | number | undefined | null, digits: number): s
   return n.toFixed(digits)
 }
 
+function labelTipoConexaoPainel(codigo: string | undefined): string {
+  if (!codigo) return '—'
+  const opt = tipoConexaoCargaPainelOptions.find((o) => o.value === codigo)
+  return opt?.label ?? codigo
+}
+
+type LocationState = { from?: string }
+
+function hrefListaCargasSeguro(state: unknown, projetoId: string | undefined): string {
+  const from = (state as LocationState | null)?.from
+  if (typeof from === 'string' && from.startsWith('/') && !from.startsWith('//')) {
+    return from
+  }
+  if (projetoId) {
+    return `/cargas?projeto=${encodeURIComponent(projetoId)}`
+  }
+  return '/cargas'
+}
+
 export default function CargaDetailPage() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
   const { data: c, isPending, isError, error } = useCargaDetailQuery(id)
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const projetoDaCarga =
@@ -34,6 +56,11 @@ export default function CargaDetailPage() {
   const podeEditar =
     !loadingProjetos && c != null && projetoPermiteEdicaoCargas(projetoDaCarga)
 
+  const fecharHref = useMemo(
+    () => hrefListaCargasSeguro(location.state, c?.projeto),
+    [location.state, c?.projeto]
+  )
+
   return (
     <div className="container-fluid">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -41,11 +68,18 @@ export default function CargaDetailPage() {
           <h1 className="h3 mb-1">Detalhes da carga</h1>
           <p className="text-muted mb-0">Leitura dos dados cadastrados.</p>
         </div>
-        {id && canEditCarga && podeEditar && (
-          <Link to={`/cargas/${id}/editar`} className="btn btn-primary">
-            Editar
-          </Link>
-        )}
+        {id ? (
+          <div className="d-flex flex-wrap gap-2">
+            <Link to={fecharHref} className="btn btn-outline-secondary">
+              Fechar
+            </Link>
+            {canEditCarga && podeEditar ? (
+              <Link to={`/cargas/${id}/editar`} className="btn btn-primary">
+                Editar
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="card">
@@ -216,6 +250,18 @@ export default function CargaDetailPage() {
                     <strong>Tipo</strong>
                     <div>{c.valvula.tipo_valvula}</div>
                   </div>
+                  <div className="col-md-4">
+                    <strong>Acionamento</strong>
+                    <div>{c.valvula.tipo_acionamento ?? '—'}</div>
+                  </div>
+                  {(c.valvula.tipo_acionamento === 'RELE_INTERFACE' ||
+                    c.valvula.tipo_acionamento === 'RELE_ACOPLADOR') &&
+                    c.valvula.tipo_rele_interface && (
+                      <div className="col-md-4">
+                        <strong>Relé de interface</strong>
+                        <div>{c.valvula.tipo_rele_interface}</div>
+                      </div>
+                    )}
                   <div className="col-md-2">
                     <strong>Feedback</strong>
                     <div>{bool(c.valvula.possui_feedback)}</div>
@@ -235,6 +281,12 @@ export default function CargaDetailPage() {
                   <div className="col-md-4">
                     <strong>Tensão</strong>
                     <div>{c.resistencia.tensao_resistencia ?? '—'}</div>
+                  </div>
+                  <div className="col-md-4">
+                    <strong>Conexão ao painel</strong>
+                    <div>
+                      {labelTipoConexaoPainel(c.resistencia.tipo_conexao_painel)}
+                    </div>
                   </div>
                   <div className="col-md-4">
                     <strong>Potência (kW)</strong>

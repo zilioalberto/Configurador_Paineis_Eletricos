@@ -8,6 +8,8 @@ export type ProjetoFormFieldChangeHandler = (
 export type ProjetoFormSectionProps = {
   formData: ProjetoFormData
   onFieldChange: ProjetoFormFieldChangeHandler
+  /** Erros de validação (cliente ou API) por nome do campo. */
+  fieldErrors?: Record<string, string>
   responsavelOptions?: ProjetoResponsavelOption[]
   canEditResponsavel?: boolean
   showStatus?: boolean

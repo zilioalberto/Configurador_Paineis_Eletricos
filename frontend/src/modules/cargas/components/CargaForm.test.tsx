@@ -3,10 +3,49 @@ import { describe, expect, it, vi } from 'vitest'
 
 import CargaForm from '@/modules/cargas/components/CargaForm'
 import { cargaFormInitial } from '@/modules/cargas/utils/cargaFormDefaults'
+import type { Projeto } from '@/modules/projetos/types/projeto'
 
 const onSubmit = vi.fn().mockResolvedValue(undefined)
 
 describe('CargaForm', () => {
+  const projetoComPlc = {
+    id: 'proj-1',
+    nome: 'P',
+    codigo: 'C-1',
+    status: 'EM_ANDAMENTO',
+    possui_plc: true,
+  } as Projeto
+
+  function renderFormulario(initial = cargaFormInitial('proj-1')) {
+    initial.tag ||= 'TAG-1'
+    initial.descricao ||= 'Carga teste'
+    return render(
+      <CargaForm
+        projetos={[projetoComPlc]}
+        initialData={initial}
+        onSubmit={onSubmit}
+      />
+    )
+  }
+
+  function selectComOpcao(value: string) {
+    const select = screen
+      .getAllByRole('combobox')
+      .find((el) =>
+        Array.from((el as HTMLSelectElement).options).some((o) => o.value === value)
+      )
+    expect(select).toBeDefined()
+    return select as HTMLSelectElement
+  }
+
+  function selectComValor(value: string) {
+    const select = screen
+      .getAllByRole('combobox')
+      .find((el) => (el as HTMLSelectElement).value === value)
+    expect(select).toBeDefined()
+    return select as HTMLSelectElement
+  }
+
   it('submete dados quando válidos', async () => {
     onSubmit.mockClear()
     const initial = cargaFormInitial('proj-1')
@@ -161,5 +200,82 @@ describe('CargaForm', () => {
       expect(screen.getByLabelText(/Entradas digitais/i)).toBeDisabled()
       expect(screen.getByLabelText(/Saídas digitais/i)).toBeDisabled()
     })
+  })
+
+  it('alterna para válvula, mostra relé de interface e recalcula feedback', async () => {
+    const initial = cargaFormInitial('proj-1')
+    initial.exige_comando = true
+    renderFormulario(initial)
+
+    fireEvent.change(selectComOpcao('VALVULA'), { target: { value: 'VALVULA' } })
+    expect(await screen.findByRole('heading', { name: 'Válvula' })).toBeInTheDocument()
+
+    fireEvent.change(selectComOpcao('RELE_INTERFACE'), {
+      target: { value: 'RELE_INTERFACE' },
+    })
+    expect(screen.getByText('Tipo de relé de interface')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Possui feedback'))
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Entradas digitais/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+      expect((screen.getByLabelText(/Saídas digitais/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+    })
+  })
+
+  it('recalcula IO para resistência, sensor encoder, transdutor e outro', async () => {
+    const initial = cargaFormInitial('proj-1')
+    initial.exige_comando = true
+    renderFormulario(initial)
+
+    fireEvent.change(selectComOpcao('RESISTENCIA'), {
+      target: { value: 'RESISTENCIA' },
+    })
+    expect(await screen.findByRole('heading', { name: 'Resistência' })).toBeInTheDocument()
+    fireEvent.change(selectComOpcao('RELE_INTERFACE'), {
+      target: { value: 'RELE_INTERFACE' },
+    })
+    expect(screen.getByText('Tipo de relé de interface')).toBeInTheDocument()
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Saídas digitais/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+    })
+
+    fireEvent.change(selectComOpcao('SENSOR'), { target: { value: 'SENSOR' } })
+    expect(await screen.findByRole('heading', { name: 'Sensor' })).toBeInTheDocument()
+    fireEvent.change(selectComValor('INDUTIVO'), { target: { value: 'ENCODER' } })
+    fireEvent.change(selectComValor('DIGITAL'), {
+      target: { value: 'ANALOGICO_DIGITAL' },
+    })
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Entradas digitais/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+      expect((screen.getByLabelText(/Entradas analógicas/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+      expect((screen.getByLabelText(/Entradas rápidas/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+    })
+
+    fireEvent.change(selectComOpcao('TRANSDUTOR'), {
+      target: { value: 'TRANSDUTOR' },
+    })
+    expect(await screen.findByRole('heading', { name: 'Transdutor' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Entradas analógicas/i) as HTMLInputElement).value).toBe(
+        '1'
+      )
+    })
+
+    fireEvent.change(selectComOpcao('OUTRO'), { target: { value: 'OUTRO' } })
+    expect(
+      screen.getByText(/Não há parâmetros específicos adicionais para este tipo/i)
+    ).toBeInTheDocument()
   })
 })

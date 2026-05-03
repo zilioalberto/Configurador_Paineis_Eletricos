@@ -1,5 +1,5 @@
 import apiClient from '@/services/apiClient'
-import type { ResumoDimensionamento } from '../types/dimensionamento'
+import type { PatchCondutoresPayload, ResumoDimensionamento } from '../types/dimensionamento'
 
 export async function obterDimensionamentoPorProjeto(
   projetoId: string
@@ -15,6 +15,17 @@ export async function recalcularDimensionamento(
 ): Promise<ResumoDimensionamento> {
   const response = await apiClient.post<ResumoDimensionamento>(
     `/dimensionamento/projeto/${projetoId}/recalcular/`
+  )
+  return response.data
+}
+
+export async function patchCondutoresDimensionamento(
+  projetoId: string,
+  payload: PatchCondutoresPayload
+): Promise<ResumoDimensionamento> {
+  const response = await apiClient.patch<ResumoDimensionamento>(
+    `/dimensionamento/projeto/${projetoId}/condutores/`,
+    payload
   )
   return response.data
 }

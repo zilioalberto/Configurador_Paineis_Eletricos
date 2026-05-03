@@ -18,7 +18,7 @@ from cargas.models import (
 )
 from cargas.api.serializers import CargaModeloSerializer
 from core.choices import TensaoChoices
-from core.choices.cargas import TipoCargaChoices
+from core.choices.cargas import TipoCargaChoices, TipoPartidaMotorChoices
 from core.choices.eletrica import TipoSinalChoices
 from core.choices.usuarios import TipoUsuarioChoices
 
@@ -222,6 +222,39 @@ class TestCargaViewSet:
         assert carga.tipo == TipoCargaChoices.RESISTENCIA
         assert not CargaMotor.objects.filter(carga=carga).exists()
         assert CargaResistencia.objects.filter(carga=carga).exists()
+
+    def test_patch_motor_parcial_reversivel_e_freio_persiste(
+        self, _mock_reproc, admin_client, criar_projeto
+    ):
+        """PATCH com subconjunto do motor deve atualizar flags (partial aninhado)."""
+        client, _ = admin_client
+        projeto = criar_projeto(nome="PR", codigo="10044-26", tensao_nominal=TensaoChoices.V380)
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag="MR",
+            descricao="Motor",
+            tipo=TipoCargaChoices.MOTOR,
+            quantidade=1,
+        )
+        CargaMotor.objects.create(
+            carga=carga,
+            potencia_corrente_valor="10.00",
+            potencia_corrente_unidade="A",
+            tensao_motor=380,
+            reversivel=False,
+            freio_motor=False,
+            tipo_partida=TipoPartidaMotorChoices.ESTRELA_TRIANGULO,
+        )
+        detail = reverse("cargas-detail", kwargs={"pk": carga.id})
+        r = client.patch(
+            detail,
+            {"motor": {"reversivel": True, "freio_motor": True}},
+            format="json",
+        )
+        assert r.status_code == 200, r.data
+        m = CargaMotor.objects.get(carga=carga)
+        assert m.reversivel is True
+        assert m.freio_motor is True
 
 
 @pytest.mark.django_db

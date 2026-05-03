@@ -3,7 +3,7 @@ Pendências para cargas que não se enquadram em nenhuma regra dos geradores de 
 do catálogo (contatora, disjuntor motor, etc.).
 """
 
-from cargas.models import Carga, CargaResistencia
+from cargas.models import Carga, CargaResistencia, CargaSensor, CargaValvula
 from composicao_painel.models import PendenciaItem
 
 from core.choices import (
@@ -13,8 +13,10 @@ from core.choices import (
 )
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
+    TipoAcionamentoValvulaChoices,
     TipoCargaChoices,
     TipoProtecaoResistenciaChoices,
+    TipoProtecaoValvulaChoices,
 )
 
 
@@ -23,9 +25,14 @@ def _carga_tem_alguma_regra_gerador_catalogo(carga: Carga) -> bool:
     True se alguma etapa atual de sugestão cobre a carga com regra de catálogo.
 
     - MOTOR: sempre há fluxo de contatora (AC3).
-    - RESISTENCIA: há regra se tipo_acionamento for CONTATOR (contatora AC1) ou
-      tipo_protecao for DISJUNTOR_MOTOR (disjuntor motor). Sem CargaResistencia,
+    - RESISTENCIA: há regra se tipo_acionamento for CONTATOR (contatora AC1),
+      RELE_ESTADO_SOLIDO (relé estado sólido), RELE_INTERFACE (relé de interface),
+      ou tipo_protecao for DISJUNTOR_MOTOR (disjuntor motor). Sem CargaResistencia,
       outras etapas já geram pendência específica — não duplicar aqui.
+    - VALVULA: há regra se tipo_acionamento for RELE_INTERFACE ou CONTATOR,
+      ou tipo_protecao for BORNE_FUSIVEL, SEM_PROTECAO ou MINIDISJUNTOR (bornes).
+    - SENSOR: há regra de borne PASSAGEM (catálogo) quando existe CargaSensor
+      (a etapa gera sugestão ou pendência específica de bornes).
     """
     if carga.tipo == TipoCargaChoices.MOTOR:
         return True
@@ -38,9 +45,33 @@ def _carga_tem_alguma_regra_gerador_catalogo(carga: Carga) -> bool:
 
         if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.CONTATOR:
             return True
+        if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO:
+            return True
+        if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
+            return True
         if r.tipo_protecao == TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR:
             return True
         return False
+
+    if carga.tipo == TipoCargaChoices.VALVULA:
+        try:
+            v = CargaValvula.objects.get(carga=carga)
+        except CargaValvula.DoesNotExist:
+            return False
+        if v.tipo_acionamento == TipoAcionamentoValvulaChoices.RELE_INTERFACE:
+            return True
+        if v.tipo_acionamento == TipoAcionamentoValvulaChoices.CONTATOR:
+            return True
+        if v.tipo_protecao in (
+            TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
+            TipoProtecaoValvulaChoices.SEM_PROTECAO,
+            TipoProtecaoValvulaChoices.MINIDISJUNTOR,
+        ):
+            return True
+        return False
+
+    if carga.tipo == TipoCargaChoices.SENSOR:
+        return CargaSensor.objects.filter(carga=carga).exists()
 
     return False
 
@@ -63,6 +94,8 @@ def _memoria_e_descricao_carga_sem_regra(carga: Carga) -> tuple[str, str]:
             linhas.append("")
             linhas.append(
                 "Regras atuais: contatora se acionamento CONTATOR; "
+                "relé estado sólido se acionamento RELE_ESTADO_SOLIDO; "
+                "relé de interface se acionamento RELE_INTERFACE; "
                 "disjuntor motor se proteção DISJUNTOR_MOTOR."
             )
         except CargaResistencia.DoesNotExist:

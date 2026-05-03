@@ -67,6 +67,7 @@ class CargaValvulaInline(admin.StackedInline):
                 "corrente_consumida_ma",
                 "tipo_protecao",
                 "tipo_acionamento",
+                "tipo_rele_interface",
             )
         }),
     )
@@ -86,6 +87,8 @@ class CargaResistenciaInline(admin.StackedInline):
                 "tensao_resistencia",
                 "tipo_protecao",
                 "tipo_acionamento",
+                "tipo_rele_interface",
+                "tipo_conexao_painel",
                 "potencia_kw",
             )
         }),

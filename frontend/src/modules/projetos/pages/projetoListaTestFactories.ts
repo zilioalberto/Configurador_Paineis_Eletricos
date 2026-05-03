@@ -20,6 +20,7 @@ const defaults: ProjetoListaLinhaFixture = {
   tipo_corrente_comando: 'CA',
   tensao_comando: 220,
   possui_plc: false,
+  familia_plc: null,
   possui_ihm: false,
   possui_switches: false,
   possui_plaqueta_identificacao: false,
@@ -29,6 +30,7 @@ const defaults: ProjetoListaLinhaFixture = {
   possui_climatizacao: false,
   tipo_climatizacao: null,
   fator_demanda: '1.00',
+  degraus_margem_bitola_condutores: 0,
   possui_seccionamento: false,
   tipo_seccionamento: null,
 }

@@ -28,6 +28,7 @@ from core.choices.produtos import (
     ConfiguracaoDisparadorDisjuntorCMChoices,
     ModoMontagemChoices,
     NumeroPolosChoices,
+    TipoFusivelChoices,
     UnidadeMedidaChoices,
 )
 
@@ -455,6 +456,28 @@ def test_listar_alternativas_disjuntor_motor_sem_corrente_retorna_vazio():
 
 
 @pytest.mark.django_db
+def test_listar_alternativas_rele_sobrecarga_sem_corrente_retorna_vazio():
+    s = MagicMock()
+    s.categoria_produto = CategoriaProdutoNomeChoices.RELE_SOBRECARGA
+    with patch(
+        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
+        return_value=None,
+    ):
+        assert not listar_alternativas_para_sugestao(s).exists()
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_fusivel_sem_corrente_retorna_vazio():
+    s = MagicMock()
+    s.categoria_produto = CategoriaProdutoNomeChoices.FUSIVEL
+    with patch(
+        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
+        return_value=None,
+    ):
+        assert not listar_alternativas_para_sugestao(s).exists()
+
+
+@pytest.mark.django_db
 def test_listar_alternativas_seccionadora_sem_corrente_retorna_vazio():
     s = MagicMock()
     s.categoria_produto = CategoriaProdutoNomeChoices.SECCIONADORA
@@ -534,6 +557,46 @@ def test_listar_alternativas_disjuntor_motor_delega_selecionar():
         ) as m_sel:
             assert listar_alternativas_para_sugestao(s) is fake_qs
     assert m_sel.call_args.kwargs["niveis"] == 0
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_rele_sobrecarga_delega_selecionar():
+    s = MagicMock()
+    s.categoria_produto = CategoriaProdutoNomeChoices.RELE_SOBRECARGA
+    s.produto_id = None
+    fake_qs = Produto.objects.none()
+    with patch(
+        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
+        return_value=Decimal("6"),
+    ):
+        with patch(
+            "composicao_painel.services.alternativas_produto.selecionar_reles_sobrecarga",
+            return_value=fake_qs,
+        ) as m_sel:
+            assert listar_alternativas_para_sugestao(s) is fake_qs
+    call_kw = m_sel.call_args.kwargs
+    assert call_kw["corrente_nominal"] == Decimal("6")
+    assert call_kw["modo_montagem"] is None
+    assert call_kw["niveis"] == 0
+
+
+@pytest.mark.django_db
+def test_listar_alternativas_fusivel_delega_selecionar():
+    s = MagicMock()
+    s.categoria_produto = CategoriaProdutoNomeChoices.FUSIVEL
+    fake_qs = Produto.objects.none()
+    with patch(
+        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
+        return_value=Decimal("8"),
+    ):
+        with patch(
+            "composicao_painel.services.alternativas_produto.selecionar_fusiveis",
+            return_value=fake_qs,
+        ) as m_sel:
+            assert listar_alternativas_para_sugestao(s) is fake_qs
+    call_kw = m_sel.call_args.kwargs
+    assert call_kw["corrente_nominal_maior_que_a"] == Decimal("8")
+    assert call_kw["tipo_fusivel"] == TipoFusivelChoices.RETARDADO
 
 
 @pytest.mark.django_db

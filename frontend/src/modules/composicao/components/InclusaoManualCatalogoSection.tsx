@@ -3,10 +3,12 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
+import { useListboxKeyboardNavigation } from '@/hooks/useListboxKeyboardNavigation'
 import { useCategoriaListQuery } from '@/modules/catalogo/hooks/useCategoriaListQuery'
 import { buscarProdutosAutocomplete } from '@/modules/catalogo/services/produtoService'
 import type { ProdutoListItem } from '@/modules/catalogo/types/produto'
@@ -31,6 +33,8 @@ function em(v: string | null | undefined) {
 const BUSCA_DEBOUNCE_MS = 320
 const BUSCA_MIN_CHARS = 2
 
+const EMPTY_PRODUTOS: ProdutoListItem[] = []
+
 export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
   const { showToast } = useToast()
   const baseId = useId()
@@ -39,6 +43,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
   const obsId = `${baseId}-obs`
 
   const wrapRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const [filtroCategoria, setFiltroCategoria] = useState('')
   const { data: categoriasCatalogo = [], isPending: loadingCategoriasCatalogo } =
     useCategoriaListQuery()
@@ -80,8 +85,28 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     }
   }, [debounced, selecionado, filtroCategoria])
 
-  const itensLista =
-    selecionado || debounced.length < BUSCA_MIN_CHARS ? [] : resultados
+  const itensLista = useMemo(() => {
+    if (selecionado || debounced.length < BUSCA_MIN_CHARS) return EMPTY_PRODUTOS
+    return resultados
+  }, [selecionado, debounced, resultados])
+
+  const navigableItems = carregandoBusca ? EMPTY_PRODUTOS : itensLista
+  const listaTecladoAtiva =
+    Boolean(aberto && !selecionado && debounced.length >= BUSCA_MIN_CHARS) &&
+    navigableItems.length > 0
+
+  const keyboardResetKey = `${debounced}|${filtroCategoria}|${resultados.map((p) => p.id).join(',')}`
+  const { activeIndex: highlightIndex, handleKeyDown: handleListboxKeyDown } =
+    useListboxKeyboardNavigation(navigableItems, {
+      isActive: listaTecladoAtiva,
+      resetKey: keyboardResetKey,
+    })
+
+  useEffect(() => {
+    if (highlightIndex < 0 || !listRef.current) return
+    const el = listRef.current.querySelector(`#${buscaId}-opt-${highlightIndex}`)
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [highlightIndex, buscaId])
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -198,6 +223,10 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                     type="search"
                     className="form-control"
                     autoComplete="off"
+                    role="combobox"
+                    aria-expanded={Boolean(aberto && !selecionado && termoBusca.trim().length >= BUSCA_MIN_CHARS)}
+                    aria-autocomplete="list"
+                    aria-controls={`${buscaId}-listbox`}
                     placeholder="Digite ao menos 2 caracteres…"
                     value={selecionado ? `${selecionado.codigo} — ${selecionado.descricao}` : termoBusca}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +236,12 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                     }}
                     onFocus={() => {
                       if (!selecionado) setAberto(true)
+                    }}
+                    onKeyDown={(e) => {
+                      if (selecionado || busy) return
+                      handleListboxKeyDown(e, onEscolherProduto, {
+                        onEscape: () => setAberto(false),
+                      })
                     }}
                     disabled={Boolean(selecionado) || busy}
                     readOnly={Boolean(selecionado)}
@@ -223,6 +258,8 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                   ) : null}
                   {aberto && !selecionado && termoBusca.trim().length >= BUSCA_MIN_CHARS ? (
                     <ul
+                      ref={listRef}
+                      id={`${buscaId}-listbox`}
                       className="list-group position-absolute w-100 shadow-sm mt-1"
                       style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
                       role="listbox"
@@ -234,11 +271,16 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                           Nenhum produto ativo encontrado.
                         </li>
                       ) : (
-                        itensLista.map((p) => (
+                        itensLista.map((p, index) => (
                           <li key={p.id} className="list-group-item list-group-item-action p-0">
                             <button
+                              id={`${buscaId}-opt-${index}`}
                               type="button"
-                              className="btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0"
+                              role="option"
+                              aria-selected={index === highlightIndex}
+                              className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
+                                index === highlightIndex ? 'bg-light' : ''
+                              }`}
                               onClick={() => onEscolherProduto(p)}
                             >
                               <span className="font-monospace fw-semibold me-2">{p.codigo}</span>

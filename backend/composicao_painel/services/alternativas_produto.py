@@ -7,11 +7,13 @@ from catalogo.models import Produto
 from catalogo.selectors.contatoras import selecionar_contatoras
 from catalogo.selectors.disjuntores_caixa_moldada import selecionar_disjuntores_caixa_moldada
 from catalogo.selectors.disjuntores_motor import selecionar_disjuntores_motor
+from catalogo.selectors.fusiveis import selecionar_fusiveis
+from catalogo.selectors.rele_sobrecarga import selecionar_reles_sobrecarga
 from catalogo.selectors.seccionadoras import selecionar_seccionadoras
 
 from composicao_painel.models import SugestaoItem
 from core.choices.cargas import TipoCargaChoices
-from core.choices.produtos import CategoriaProdutoNomeChoices
+from core.choices.produtos import CategoriaProdutoNomeChoices, TipoFusivelChoices
 
 
 def _corrente_referencia_sugestao(sugestao: SugestaoItem):
@@ -83,6 +85,31 @@ def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produt
             niveis=0,
             tipo_carga=tipo_carga,
             tipo_protecao=tipo_protecao,
+        )
+
+    if cat == CategoriaProdutoNomeChoices.RELE_SOBRECARGA:
+        corrente = _corrente_referencia_sugestao(sugestao)
+        if corrente is None:
+            return Produto.objects.none()
+        modo = None
+        if sugestao.produto_id:
+            try:
+                modo = prod_ref.especificacao_rele_sobrecarga.modo_montagem
+            except Exception:
+                modo = None
+        return selecionar_reles_sobrecarga(
+            corrente_nominal=corrente,
+            modo_montagem=modo,
+            niveis=0,
+        )
+
+    if cat == CategoriaProdutoNomeChoices.FUSIVEL:
+        corrente = _corrente_referencia_sugestao(sugestao)
+        if corrente is None:
+            return Produto.objects.none()
+        return selecionar_fusiveis(
+            corrente_nominal_maior_que_a=corrente,
+            tipo_fusivel=TipoFusivelChoices.RETARDADO,
         )
 
     if cat == CategoriaProdutoNomeChoices.SECCIONADORA:

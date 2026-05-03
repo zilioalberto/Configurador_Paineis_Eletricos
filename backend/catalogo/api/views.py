@@ -22,9 +22,31 @@ from core.choices.produtos import CategoriaProdutoNomeChoices, FamiliaPLCChoices
 from core.permissions import PermissionKeys
 
 
+def _produto_busca_por_tokens(search: str) -> Q:
+    """
+    Cada palavra deve aparecer em código, descrição ou fabricante (AND entre palavras).
+    Dentro de cada palavra vale correspondência parcial (icontains), em qualquer posição.
+    """
+    tokens = [t for t in search.split() if t]
+    if not tokens:
+        return Q(pk__in=[])
+    combined = Q()
+    for token in tokens:
+        parte = (
+            Q(codigo__icontains=token)
+            | Q(descricao__icontains=token)
+            | Q(fabricante__icontains=token)
+        )
+        combined = parte if not combined else combined & parte
+    return combined
+
+
 class PlcFamiliasListView(APIView):
     """
     Famílias já usadas em PLC, expansões, módulos de comunicação + rótulos padrão (sugestões).
+
+    Query: ``apenas_especificacao_plc=1`` restringe a valores distintos de
+    ``catalogo_especificacaoplc.familia`` (útil p.ex. no cadastro de projeto).
     """
 
     permission_classes = [HasEffectivePermission]
@@ -37,6 +59,11 @@ class PlcFamiliasListView(APIView):
             .values_list("familia", flat=True)
             .distinct()
         )
+        apenas_spec_plc = request.query_params.get("apenas_especificacao_plc")
+        if apenas_spec_plc in ("1", "true", "yes", "on"):
+            merged = sorted({*plc_vals}, key=str.casefold)
+            return Response({"familias": merged})
+
         exp_vals = (
             EspecificacaoExpansaoPLC.objects.exclude(familia_plc__isnull=True)
             .exclude(familia_plc="")
@@ -99,11 +126,7 @@ class ProdutoViewSet(ModelViewSet):
             qs = qs.filter(categoria=categoria)
         search = (self.request.query_params.get("search") or "").strip()
         if search:
-            qs = qs.filter(
-                Q(codigo__icontains=search)
-                | Q(descricao__icontains=search)
-                | Q(fabricante__icontains=search)
-            ).filter(ativo=True)
+            qs = qs.filter(_produto_busca_por_tokens(search)).filter(ativo=True)
             qs = qs.order_by("codigo", "descricao")[:40]
         return qs
 

@@ -15,6 +15,8 @@ from core.choices import (
     TensaoChoices,
     TipoProtecaoResistenciaChoices,
     TipoAcionamentoResistenciaChoices,
+    TipoReleInterfaceValvulaChoices,
+    TipoConexaoCargaPainelChoices,
 )
 
 from .base import Carga
@@ -52,6 +54,23 @@ class CargaResistencia(models.Model):
         choices=TipoAcionamentoResistenciaChoices.choices,
         default=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
         help_text="Tipo de acionamento da resistência.",
+    )
+
+    tipo_rele_interface = models.CharField(
+        max_length=30,
+        choices=TipoReleInterfaceValvulaChoices.choices,
+        null=True,
+        blank=True,
+        help_text=(
+            "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
+        ),
+    )
+
+    tipo_conexao_painel = models.CharField(
+        max_length=50,
+        choices=TipoConexaoCargaPainelChoices.choices,
+        default=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+        help_text="Tipo de conexão da carga no painel.",
     )
 
     potencia_kw = models.DecimalField(
@@ -132,6 +151,20 @@ class CargaResistencia(models.Model):
                     )
                 )
 
+        tipo_acionamento = getattr(self, "tipo_acionamento", None)
+        tipo_rele_interface = getattr(self, "tipo_rele_interface", None)
+
+        if tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
+            if not tipo_rele_interface:
+                erros["tipo_rele_interface"] = (
+                    "Informe o tipo de relé de interface (eletromecânica ou estado sólido)."
+                )
+        elif tipo_rele_interface:
+            erros["tipo_rele_interface"] = (
+                "O tipo de relé de interface só se aplica ao acionamento "
+                "\"Relé de interface\"."
+            )
+
         if erros:
             raise ValidationError(erros)
 
@@ -178,9 +211,14 @@ class CargaResistencia(models.Model):
             elif self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO:
                 self.carga.quantidade_saidas_digitais = 1
 
+            elif self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
+                self.carga.quantidade_saidas_digitais = 1
+
         save_io_flags(self.carga)
 
     def save(self, *args, **kwargs):
+        if self.tipo_acionamento != TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
+            self.tipo_rele_interface = None
         self.full_clean()
         self.corrente_calculada_a = self._calcular_corrente()
         super().save(*args, **kwargs)

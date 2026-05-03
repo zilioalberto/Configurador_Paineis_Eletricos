@@ -10,6 +10,7 @@ from catalogo import selectors as sel
 from catalogo.selectors._base import filtrar_produtos_especificacao, related_name_para_categoria
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
+    TipoAcionamentoValvulaChoices,
     TipoCargaChoices,
     TipoProtecaoResistenciaChoices,
 )
@@ -58,6 +59,13 @@ def test_selectors_smoke_chamadas_minimas():
         tensao_comando=TensaoChoices.V24,
         tipo_corrente_comando=TipoCorrenteChoices.CC,
     ).exists()
+    assert not sel.selecionar_contatoras(
+        TipoCargaChoices.VALVULA,
+        corrente_nominal=Decimal("1"),
+        tensao_comando=TensaoChoices.V24,
+        tipo_corrente_comando=TipoCorrenteChoices.CC,
+        tipo_acionamento=TipoAcionamentoValvulaChoices.RELE_INTERFACE,
+    ).exists()
     assert list(
         sel.selecionar_contatoras(
             TipoCargaChoices.RESISTENCIA,
@@ -65,6 +73,16 @@ def test_selectors_smoke_chamadas_minimas():
             tensao_comando=TensaoChoices.V24,
             tipo_corrente_comando=TipoCorrenteChoices.CC,
             tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+            niveis=0,
+        )
+    ) == []
+    assert list(
+        sel.selecionar_contatoras(
+            TipoCargaChoices.VALVULA,
+            corrente_nominal=Decimal("10"),
+            tensao_comando=TensaoChoices.V24,
+            tipo_corrente_comando=TipoCorrenteChoices.CC,
+            tipo_acionamento=TipoAcionamentoValvulaChoices.CONTATOR,
             niveis=0,
         )
     ) == []

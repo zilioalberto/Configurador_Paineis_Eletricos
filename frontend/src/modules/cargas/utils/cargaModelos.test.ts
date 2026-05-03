@@ -77,4 +77,18 @@ describe('aplicarModeloNoFormulario', () => {
     expect(r.tipo).toBe('MOTOR')
     expect(r.quantidade).toBe(1)
   })
+
+  it('mescla motor parcial do modelo sem perder fases e tensão', () => {
+    const r = aplicarModeloNoFormulario('pid-3', 'MOTOR', {
+      quantidade: 2,
+      motor: {
+        potencia_corrente_valor: '5.00',
+        tipo_partida: 'DIRETA',
+      },
+    })
+    expect(r.motor?.numero_fases).toBe(3)
+    expect(r.motor?.tensao_motor).toBe(380)
+    expect(r.motor?.potencia_corrente_valor).toBe('5.00')
+    expect(r.quantidade).toBe(2)
+  })
 })
