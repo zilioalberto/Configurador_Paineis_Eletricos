@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
+from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
+
 from composicao_painel.models import ComposicaoItem, SugestaoItem
 from composicao_painel.services.sugestoes.seccionadoras import (
     gerar_sugestao_seccionamento,
@@ -48,7 +50,6 @@ from core.choices.cargas import (
     TipoPartidaMotorChoices,
     TipoProtecaoMotorChoices,
     TipoProtecaoResistenciaChoices,
-    TipoProtecaoValvulaChoices,
 )
 
 
@@ -62,28 +63,6 @@ def limpar_sugestoes_projeto(projeto):
     print(f"[ORQUESTRADOR] Limpando sugestões do projeto {projeto.id}")
     deletados, _ = SugestaoItem.objects.filter(projeto=projeto).delete()
     print(f"[ORQUESTRADOR] Registros removidos: {deletados}")
-
-
-def projeto_tem_valvula_com_sugestao_borne(projeto) -> bool:
-    """
-    Válvula ativa cuja proteção gera sugestão de borne: borne-fusível,
-    sem proteção (passagem) ou minidisjuntor (passagem).
-    """
-    existe = CargaValvula.objects.filter(
-        carga__projeto=projeto,
-        carga__ativo=True,
-        carga__tipo=TipoCargaChoices.VALVULA,
-        tipo_protecao__in=(
-            TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
-            TipoProtecaoValvulaChoices.SEM_PROTECAO,
-            TipoProtecaoValvulaChoices.MINIDISJUNTOR,
-        ),
-    ).exists()
-    print(
-        "[ORQUESTRADOR] projeto_tem_valvula_com_sugestao_borne = "
-        f"{existe} para projeto {projeto.id}"
-    )
-    return existe
 
 
 def projeto_tem_carga_com_rele_interface(projeto) -> bool:
@@ -293,9 +272,6 @@ def montar_etapas_geracao(projeto):
     if projeto_tem_carga_com_rele_interface(projeto):
         etapas.append(("RELES_INTERFACE", gerar_sugestoes_reles_interface))
 
-    if projeto_tem_valvula_com_sugestao_borne(projeto):
-        etapas.append(("BORNES", gerar_sugestoes_bornes))
-
     if projeto_tem_motor_soft_starter_trifasico(projeto):
         etapas.append(
             ("SOFT_STARTER", gerar_sugestoes_soft_starters)
@@ -323,6 +299,10 @@ def montar_etapas_geracao(projeto):
 
     if projeto_tem_motor_com_fusivel(projeto):
         etapas.append(("FUSIVEIS", gerar_sugestoes_fusiveis))
+
+    # Bornes: motores (conexão a bornes), válvulas, sensores, etc. — a etapa aplica
+    # regras por carga em ``gerar_sugestoes_bornes``; não depender só de válvula.
+    etapas.append(("BORNES", gerar_sugestoes_bornes))
 
     print("[ORQUESTRADOR] Etapas montadas:")
     for nome_etapa, _ in etapas:
@@ -374,6 +354,10 @@ def gerar_sugestoes_painel(projeto, limpar_antes=False):
 
     print(f"[ORQUESTRADOR] Projeto recebido: id={projeto.id} | projeto={projeto}")
     print(f"[ORQUESTRADOR] limpar_antes = {limpar_antes}")
+
+    # Garante DimensionamentoCircuitoCarga para todas as cargas ativas (ex.: carga
+    # nova via modelo) antes de etapas que dependem de condutores (bornes, etc.).
+    calcular_e_salvar_dimensionamento_basico(projeto)
 
     if limpar_antes:
         limpar_sugestoes_projeto(projeto)

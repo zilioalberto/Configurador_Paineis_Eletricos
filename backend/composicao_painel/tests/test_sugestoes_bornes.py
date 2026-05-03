@@ -13,14 +13,17 @@ from cargas.models import (
 )
 from catalogo.models import EspecificacaoBorne, Produto
 from composicao_painel.models import SugestaoItem
+from composicao_painel.models import PendenciaItem
 from composicao_painel.services.sugestoes.bornes import (
     gerar_sugestoes_bornes,
     processar_sugestao_bornes_para_carga,
+    remover_pendencias_borne_sem_dimensionamento_obsoletas,
     reprocessar_bornes_para_carga,
 )
 from core.choices import (
     CategoriaProdutoNomeChoices,
     PartesPainelChoices,
+    StatusPendenciaChoices,
     TensaoChoices,
 )
 from core.choices.cargas import (
@@ -39,6 +42,49 @@ from dimensionamento.models import (
     ClassificacaoCircuitoChoices,
     DimensionamentoCircuitoCarga,
 )
+
+
+@pytest.mark.django_db
+def test_remover_pendencias_borne_sem_dimensionamento_obsoletas_apaga_marcador_dim_ausente(
+    criar_projeto,
+):
+    projeto = criar_projeto(nome="PDIM", codigo="31999-26", tensao_nominal=TensaoChoices.V380)
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag="S02",
+        descricao="S01",
+        tipo=TipoCargaChoices.SENSOR,
+        quantidade=1,
+    )
+    CargaSensor.objects.create(
+        carga=carga,
+        tipo_sensor=TipoSensorChoices.INDUTIVO,
+        tipo_sinal=TipoSinalChoices.DIGITAL,
+        tensao_alimentacao=TensaoChoices.V24,
+        tipo_corrente=TipoCorrenteChoices.CC,
+    )
+    PendenciaItem.objects.create(
+        projeto=projeto,
+        carga=carga,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        descricao="Dimensionamento de condutores ausente (teste).",
+        memoria_calculo="[BORNE — SENSOR]\ncarga\nSem DimensionamentoCircuitoCarga.",
+        status=StatusPendenciaChoices.ABERTA,
+        ordem=43,
+    )
+    DimensionamentoCircuitoCarga.objects.create(
+        projeto=projeto,
+        carga=carga,
+        tipo_carga=TipoCargaChoices.SENSOR,
+        classificacao_circuito=ClassificacaoCircuitoChoices.SINAL,
+        corrente_calculada_a=Decimal("0.01"),
+        secao_condutor_fase_mm2=Decimal("1.00"),
+    )
+
+    n = remover_pendencias_borne_sem_dimensionamento_obsoletas(projeto)
+    assert n == 1
+    assert PendenciaItem.objects.filter(projeto=projeto).count() == 0
 
 
 @pytest.mark.django_db

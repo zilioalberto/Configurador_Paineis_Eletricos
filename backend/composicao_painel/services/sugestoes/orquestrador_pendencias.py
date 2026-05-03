@@ -1,3 +1,5 @@
+from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
+
 from composicao_painel.models import PendenciaItem
 from composicao_painel.services.sugestoes.contatoras import reprocessar_contatora_para_carga
 from composicao_painel.services.sugestoes.disjuntores_motor import (
@@ -40,6 +42,8 @@ from core.choices.cargas import TipoCargaChoices
 def reavaliar_pendencias_projeto(projeto):
     if projeto is None:
         raise ValueError("Projeto não informado.")
+
+    calcular_e_salvar_dimensionamento_basico(projeto)
 
     pendencias_abertas = (
         PendenciaItem.objects.filter(

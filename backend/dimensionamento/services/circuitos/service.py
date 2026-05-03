@@ -107,7 +107,13 @@ def calcular_e_salvar_circuitos_cargas(projeto, resumo=None) -> int:
             old_ag.secao_condutor_pe_escolhida_mm2,
         ) if old_ag else (None, None, None)
 
-        DimensionamentoCircuitoCarga.objects.filter(projeto=projeto).delete()
+        active_ids = set(cargas.values_list("pk", flat=True))
+        # Circuitos de cargas inativas ou fora do conjunto actual — não apagar por projeto
+        # com INSERT em seguida: `carga` é OneToOne e pedidos GET paralelos ao dimensionamento
+        # causavam UniqueViolation em `carga_id`. Usar `update_or_create` por carga evita a corrida.
+        DimensionamentoCircuitoCarga.objects.filter(projeto=projeto).exclude(
+            carga_id__in=active_ids
+        ).delete()
 
         n = 0
         agora = timezone.now()
@@ -117,21 +123,25 @@ def calcular_e_salvar_circuitos_cargas(projeto, resumo=None) -> int:
                 continue
             snap = old_snaps.get(carga.pk)
             fp_novo = _fp_circuito_de_dados(dados)
-            obj = DimensionamentoCircuitoCarga(
-                projeto=projeto,
-                carga=carga,
+            defaults = {
+                "projeto": projeto,
                 **dados,
+            }
+            if snap and snap["aprovado"] and snap["fp"] == fp_novo:
+                defaults["condutores_aprovado"] = True
+                defaults["secao_condutor_fase_escolhida_mm2"] = snap["fase_e"]
+                defaults["secao_condutor_neutro_escolhida_mm2"] = snap["neutro_e"]
+                defaults["secao_condutor_pe_escolhida_mm2"] = snap["pe_e"]
+            else:
+                defaults["condutores_aprovado"] = False
+                defaults["secao_condutor_fase_escolhida_mm2"] = None
+                defaults["secao_condutor_neutro_escolhida_mm2"] = None
+                defaults["secao_condutor_pe_escolhida_mm2"] = None
+
+            DimensionamentoCircuitoCarga.objects.update_or_create(
+                carga=carga,
+                defaults=defaults,
             )
-            if (
-                snap
-                and snap["aprovado"]
-                and snap["fp"] == fp_novo
-            ):
-                obj.condutores_aprovado = True
-                obj.secao_condutor_fase_escolhida_mm2 = snap["fase_e"]
-                obj.secao_condutor_neutro_escolhida_mm2 = snap["neutro_e"]
-                obj.secao_condutor_pe_escolhida_mm2 = snap["pe_e"]
-            obj.save()
             n += 1
 
         if resumo is None:

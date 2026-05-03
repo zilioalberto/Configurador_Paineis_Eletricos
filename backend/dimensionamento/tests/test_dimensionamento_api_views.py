@@ -305,7 +305,7 @@ def test_recalcular_preserva_aprovacoes_se_dimensionamento_inalterado(
     calcular_e_salvar_dimensionamento_basico(projeto)
 
     circ2 = DimensionamentoCircuitoCarga.objects.get(carga=carga)
-    assert circ2.id != circ.id
+    assert circ2.id == circ.id
     assert circ2.condutores_aprovado is True
     ag = DimensionamentoCircuitoAlimentacaoGeral.objects.get(projeto=projeto)
     assert ag.condutores_aprovado is True

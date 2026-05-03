@@ -43,6 +43,9 @@ _INDICE_ESCOPO_BORNE_SENSOR_TERRA = 1
 _INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM = 2
 _INDICE_ESCOPO_BORNE_MOTOR_TERRA = 3
 
+# Pendências criadas quando não existia circuito (memória em ``update_or_create``).
+_MARCADOR_MEMORIA_DIM_CIRCUITO_AUSENTE = "Sem DimensionamentoCircuitoCarga."
+
 _PROTECOES_BORNE_FUSIVEL = frozenset({TipoProtecaoValvulaChoices.BORNE_FUSIVEL})
 _PROTECOES_BORNE_PASSAGEM = frozenset(
     {
@@ -1319,6 +1322,31 @@ def processar_sugestao_bornes_para_carga(
 def reprocessar_bornes_para_carga(projeto, carga) -> Optional[SugestaoItem]:
     _limpar_escopo_bornes_carga(projeto, carga)
     return processar_sugestao_bornes_para_carga(projeto, carga)
+
+
+def remover_pendencias_borne_sem_dimensionamento_obsoletas(projeto) -> int:
+    """
+    Remove pendências de borne guardadas quando não havia ``DimensionamentoCircuitoCarga``,
+    mas o circuito já existe (ex.: dimensionamento foi recalculado num GET à API de
+    dimensionamento e o snapshot da composição ainda devolvia a pendência antiga até
+    novo «Gerar sugestões»).
+    """
+    if projeto is None:
+        return 0
+
+    circuitos = DimensionamentoCircuitoCarga.objects.filter(carga__projeto=projeto)
+    if not circuitos.exists():
+        return 0
+
+    deleted, _ = PendenciaItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        carga_id__in=circuitos.values_list("carga_id", flat=True),
+        status=StatusPendenciaChoices.ABERTA,
+        memoria_calculo__contains=_MARCADOR_MEMORIA_DIM_CIRCUITO_AUSENTE,
+    ).delete()
+    return deleted
 
 
 def gerar_sugestoes_bornes(projeto):

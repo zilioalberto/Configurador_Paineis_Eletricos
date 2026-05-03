@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const gerarMutateAsyncMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    geracao: { erros_etapas: [], sugestoes_descartadas_aprovadas: 0 },
+  })
+)
 const useAuthMock = vi.hoisted(() => vi.fn())
 const useProjetoListQueryMock = vi.hoisted(() => vi.fn())
 const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
@@ -52,7 +57,10 @@ vi.mock('@/modules/projetos/components/ProjetoFluxoStepper', () => ({
 }))
 
 vi.mock('@/modules/composicao/hooks/useGerarSugestoesMutation', () => ({
-  useGerarSugestoesMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useGerarSugestoesMutation: () => ({
+    mutateAsync: gerarMutateAsyncMock,
+    isPending: false,
+  }),
 }))
 
 vi.mock('@/modules/composicao/hooks/useReavaliarPendenciasMutation', () => ({
@@ -100,6 +108,10 @@ describe('ComposicaoPage', () => {
     exportarComposicaoListaPdfMock.mockClear()
     exportarComposicaoListaXlsxMock.mockClear()
     showToastMock.mockClear()
+    gerarMutateAsyncMock.mockClear()
+    gerarMutateAsyncMock.mockResolvedValue({
+      geracao: { erros_etapas: [], sugestoes_descartadas_aprovadas: 0 },
+    })
     lastConfirmModalProps.current = null
   })
 
@@ -167,7 +179,7 @@ describe('ComposicaoPage', () => {
     })
   }
 
-  it('não exibe seletor de projeto quando a URL já define ?projeto=', () => {
+  it('não exibe seletor de projeto quando a URL já define ?projeto=', async () => {
     setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
 
     render(
@@ -178,6 +190,9 @@ describe('ComposicaoPage', () => {
 
     expect(document.querySelector('#comp-projeto')).toBeNull()
     expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
+    })
   })
 
   it('oculta acao de gerar sugestoes sem permissao de separacao', () => {

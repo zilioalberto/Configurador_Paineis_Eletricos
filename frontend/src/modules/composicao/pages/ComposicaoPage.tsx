@@ -1,4 +1,11 @@
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -26,12 +33,17 @@ import {
 import type {
   CargaDetalhe,
   ComposicaoItem,
+  ComposicaoSnapshot,
   PendenciaItem,
   ProjetoAlimentacaoSnapshot,
   SugestaoItem,
 } from '../types/composicao'
 
 const STATUS_APROVACAO_MARKER = '[STATUS_APROVACAO]'
+
+/** Evita POST duplicado no Strict Mode (dev) ao montar a página de composição. */
+const COMPOSICAO_AUTO_GERAR_DEDUP_MS = 800
+let composicaoAutoGerarDedup: { projetoId: string; at: number } | null = null
 
 function em(v: string | null | undefined) {
   if (v == null || v === '') return '—'
@@ -456,10 +468,8 @@ export default function ComposicaoPage() {
     [setSearchParams]
   )
 
-  const onGerar = useCallback(async () => {
-    if (!projetoId || !podeEditar) return
-    try {
-      const data = await gerarMutation.mutateAsync(true)
+  const notificarResultadoGeracao = useCallback(
+    (data: ComposicaoSnapshot) => {
       const erros = data.geracao?.erros_etapas ?? []
       const descartadas = data.geracao?.sugestoes_descartadas_aprovadas ?? 0
       if (erros.length > 0) {
@@ -477,6 +487,15 @@ export default function ComposicaoPage() {
               : 'Sugestões de composição atualizadas.',
         })
       }
+    },
+    [showToast]
+  )
+
+  const onGerar = useCallback(async () => {
+    if (!projetoId || !podeEditar) return
+    try {
+      const data = await gerarMutation.mutateAsync(true)
+      notificarResultadoGeracao(data)
     } catch (err) {
       console.error(err)
       showToast({
@@ -485,7 +504,59 @@ export default function ComposicaoPage() {
         message: extrairMensagemErroApi(err) || 'Tente novamente.',
       })
     }
-  }, [projetoId, podeEditar, gerarMutation, showToast])
+  }, [projetoId, podeEditar, gerarMutation, notificarResultadoGeracao, showToast])
+
+  const jaDisparouAutoGerarRef = useRef(false)
+  useEffect(() => {
+    jaDisparouAutoGerarRef.current = false
+  }, [projetoId])
+
+  useEffect(() => {
+    if (!projetoId || !podeEditar || loadingSnap || isError || !snapshot) return
+    if (jaDisparouAutoGerarRef.current) return
+
+    const now = Date.now()
+    if (
+      composicaoAutoGerarDedup?.projetoId === projetoId &&
+      now - composicaoAutoGerarDedup.at < COMPOSICAO_AUTO_GERAR_DEDUP_MS
+    ) {
+      return
+    }
+    composicaoAutoGerarDedup = { projetoId, at: now }
+    jaDisparouAutoGerarRef.current = true
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await gerarMutation.mutateAsync(true)
+        if (cancelled) return
+        notificarResultadoGeracao(data)
+      } catch (err) {
+        if (cancelled) return
+        jaDisparouAutoGerarRef.current = false
+        composicaoAutoGerarDedup = null
+        console.error(err)
+        showToast({
+          variant: 'danger',
+          title: 'Não foi possível gerar sugestões',
+          message: extrairMensagemErroApi(err) || 'Tente novamente.',
+        })
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    projetoId,
+    podeEditar,
+    loadingSnap,
+    isError,
+    snapshot,
+    gerarMutation,
+    notificarResultadoGeracao,
+    showToast,
+  ])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return
