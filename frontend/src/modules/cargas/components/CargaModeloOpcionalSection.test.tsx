@@ -6,7 +6,7 @@ import type { CargaModelo } from '@/modules/cargas/types/carga'
 import CargaModeloOpcionalSection from './CargaModeloOpcionalSection'
 
 const useQueryMock = vi.hoisted(() =>
-  vi.fn((_options: unknown) => ({
+  vi.fn(() => ({
     data: [] as CargaModelo[],
     isPending: false,
   }))
@@ -31,7 +31,7 @@ describe('CargaModeloOpcionalSection', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     useQueryMock.mockClear()
-    useQueryMock.mockImplementation((_options: unknown) => ({
+    useQueryMock.mockImplementation(() => ({
       data: [],
       isPending: false,
     }))
@@ -58,7 +58,7 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('após buscar e clicar no modelo, onAplicarModelo é chamado de imediato', async () => {
     const modelo = makeModelo()
-    useQueryMock.mockImplementation((_options: unknown) => ({
+    useQueryMock.mockImplementation(() => ({
       data: [modelo],
       isPending: false,
     }))
@@ -77,7 +77,7 @@ describe('CargaModeloOpcionalSection', () => {
 
     expect(screen.getByText('Motor teste')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Motor teste/i }))
+    fireEvent.click(screen.getByRole('option', { name: /Motor teste/i }))
 
     expect(onAplicar).toHaveBeenCalledTimes(1)
     expect(onAplicar).toHaveBeenCalledWith(modelo)
@@ -92,7 +92,7 @@ describe('CargaModeloOpcionalSection', () => {
 
   it('Enter na lista aplica modelo diretamente', async () => {
     const modelo = makeModelo({ id: 'm2', nome: 'Valvula X', tipo: 'VALVULA' })
-    useQueryMock.mockImplementation((_options: unknown) => ({
+    useQueryMock.mockImplementation(() => ({
       data: [modelo],
       isPending: false,
     }))
