@@ -177,6 +177,8 @@ const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/cargas': NavIconZap,
   '/cargas/modelos': NavIconClipboard,
   '/catalogo': NavIconGrid,
+  '/erp/cadastros': NavIconUsers,
+  '/erp/rh': NavIconUsers,
   '/tarefas': NavIconKanban,
   '/dimensionamento': NavIconSliders,
   '/composicao': NavIconLayers,

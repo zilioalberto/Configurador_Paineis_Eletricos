@@ -5,7 +5,7 @@
 import { unidadeMedidaProdutoOptions } from '@/modules/catalogo/constants/catalogoChoiceOptions'
 import type { NfeItemPreview, NfeProdutoExistenteResumo } from '../types/nfeImport'
 
-const UNIDADES_VALIDAS = new Set(unidadeMedidaProdutoOptions.map((o) => o.value))
+const UNIDADES_VALIDAS = new Set<string>(unidadeMedidaProdutoOptions.map((o) => o.value))
 
 const ORIGENS_ICMS = new Set(['0', '1', '2', '3', '4', '5', '6', '7', '8'])
 

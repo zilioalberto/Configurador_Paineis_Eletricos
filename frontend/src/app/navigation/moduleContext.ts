@@ -29,6 +29,12 @@ export function getPortalModuleContext(pathname: string): PortalModuleContext {
   if (path === '/tarefas' || path.startsWith('/tarefas/')) {
     return { title: 'Tarefas e Kanban' }
   }
+  if (path === '/erp/cadastros' || path.startsWith('/erp/cadastros/')) {
+    return { title: 'Cadastros' }
+  }
+  if (path === '/erp/rh' || path.startsWith('/erp/rh/')) {
+    return { title: 'RH' }
+  }
   if (path === '/erp/orcamentos' || path.startsWith('/erp/orcamentos/')) {
     return { title: 'Orçamentos' }
   }

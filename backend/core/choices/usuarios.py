@@ -30,6 +30,8 @@ class PermissaoUsuarioChoices(models.TextChoices):
     MATERIAL_EDITAR_LISTA = PermissionKeys.MATERIAL_EDITAR_LISTA, "Editar lista de materiais"
     CADASTRO_VISUALIZAR = PermissionKeys.CADASTRO_VISUALIZAR, "Ver cadastros"
     CADASTRO_EDITAR = PermissionKeys.CADASTRO_EDITAR, "Editar cadastros"
+    RH_VISUALIZAR = PermissionKeys.RH_VISUALIZAR, "Ver RH"
+    RH_EDITAR = PermissionKeys.RH_EDITAR, "Editar RH"
     ALMOXARIFADO_VISUALIZAR_TAREFAS = (
         PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS,
         "Ver tarefas de almoxarifado",

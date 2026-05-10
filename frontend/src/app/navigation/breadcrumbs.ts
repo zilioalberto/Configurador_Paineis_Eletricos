@@ -58,6 +58,12 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
   if (path === '/erp/orcamentos') {
     return [{ label: 'Orçamentos' }]
   }
+  if (path === '/erp/cadastros') {
+    return [{ label: 'Cadastros' }]
+  }
+  if (path === '/erp/rh') {
+    return [{ label: 'RH' }]
+  }
   if (/^\/erp\/orcamentos\/[^/]+$/.test(path)) {
     return [
       { label: 'Orçamentos', to: '/erp/orcamentos' },

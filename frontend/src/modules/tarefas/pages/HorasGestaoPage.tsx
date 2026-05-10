@@ -60,6 +60,8 @@ export default function HorasGestaoPage() {
 
   const selectColaboradorDesabilitado =
     responsaveisQuery.isPending && opcoesColaborador.length === 0
+
+  const params = useMemo(
     () => ({
       data_inicio: submetido.data_inicio,
       data_fim: submetido.data_fim,

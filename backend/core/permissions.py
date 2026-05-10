@@ -15,6 +15,9 @@ class PermissionKeys:
     CADASTRO_VISUALIZAR = "cadastro.visualizar"
     CADASTRO_EDITAR = "cadastro.editar"
 
+    RH_VISUALIZAR = "rh.visualizar"
+    RH_EDITAR = "rh.editar"
+
     ALMOXARIFADO_VISUALIZAR_TAREFAS = "almoxarifado.visualizar_tarefas"
     ALMOXARIFADO_SEPARAR_MATERIAL = "almoxarifado.separar_material"
     ALMOXARIFADO_BAIXAR_ESTOQUE = "almoxarifado.baixar_estoque"

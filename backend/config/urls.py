@@ -52,6 +52,8 @@ urlpatterns = [
 
     path(API_V1_PREFIX, include("apps.cadastros.api.urls")),
 
+    path(API_V1_PREFIX, include("apps.rh.api.urls")),
+
     path(API_V1_PREFIX, include("apps.configurador_paineis.dimensionamento.api.urls")),
 
     path(API_V1_PREFIX, include("apps.configurador_paineis.composicao_painel.api.urls")),

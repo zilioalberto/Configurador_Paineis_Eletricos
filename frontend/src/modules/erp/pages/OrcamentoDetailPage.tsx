@@ -6,8 +6,18 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { hasPermission } from '@/modules/auth/permissions'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
-import { atualizarOrcamento, obterOrcamento } from '../services/erpApi'
-import type { OrcamentoDto, OrcamentoItemDto } from '../types/erp'
+import {
+  atualizarOrcamento,
+  listarClientesOrcamento,
+  listarContatosCliente,
+  obterOrcamento,
+} from '../services/erpApi'
+import type {
+  ContatoClienteDto,
+  OrcamentoDto,
+  OrcamentoItemDto,
+  ParceiroClienteDto,
+} from '../types/erp'
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'RASCUNHO', label: 'Rascunho' },
@@ -20,8 +30,11 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
 type LinhaEditavel = {
   id?: string
   ordem: number
+  tipo: 'PRODUTO' | 'SERVICO'
   descricao: string
   quantidade: string
+  custo_unitario: string
+  margem_percentual: string
   preco_unitario: string
 }
 
@@ -39,8 +52,11 @@ function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavel[] {
     .map((item, idx) => ({
       id: item.id,
       ordem: idx,
+      tipo: item.tipo ?? 'PRODUTO',
       descricao: item.descricao,
       quantidade: String(item.quantidade),
+      custo_unitario: String(item.custo_unitario ?? '0'),
+      margem_percentual: String(item.margem_percentual ?? '0'),
       preco_unitario: String(item.preco_unitario),
     }))
 }
@@ -61,10 +77,13 @@ export default function OrcamentoDetailPage() {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [salvandoItens, setSalvandoItens] = useState(false)
+  const [clientes, setClientes] = useState<ParceiroClienteDto[]>([])
+  const [contatos, setContatos] = useState<ContatoClienteDto[]>([])
 
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
-  const [clienteReferencia, setClienteReferencia] = useState('')
+  const [clienteId, setClienteId] = useState('')
+  const [contatoId, setContatoId] = useState('')
   const [status, setStatus] = useState('RASCUNHO')
   const [validoAte, setValidoAte] = useState('')
   const [linhasItens, setLinhasItens] = useState<LinhaEditavel[]>([])
@@ -77,7 +96,8 @@ export default function OrcamentoDetailPage() {
       setOrcamento(dados)
       setTitulo(dados.titulo)
       setDescricao(dados.descricao ?? '')
-      setClienteReferencia(dados.cliente_referencia ?? '')
+      setClienteId(dados.cliente ?? '')
+      setContatoId(dados.contato_cliente ?? '')
       setStatus(dados.status)
       setValidoAte(toDateInputValue(dados.valido_ate))
       setLinhasItens(itensParaLinhas(dados.itens ?? []))
@@ -96,6 +116,58 @@ export default function OrcamentoDetailPage() {
   useEffect(() => {
     void recarregar()
   }, [recarregar])
+
+  useEffect(() => {
+    let ativo = true
+    listarClientesOrcamento()
+      .then((dados) => {
+        if (ativo) setClientes(dados)
+      })
+      .catch(() => {
+        if (ativo) {
+          showToast({
+            variant: 'warning',
+            title: 'Clientes',
+            message: 'Não foi possível carregar os clientes cadastrados.',
+          })
+        }
+      })
+    return () => {
+      ativo = false
+    }
+  }, [showToast])
+
+  useEffect(() => {
+    let ativo = true
+    if (!clienteId) {
+      setContatos([])
+      setContatoId('')
+      return () => {
+        ativo = false
+      }
+    }
+    listarContatosCliente(clienteId)
+      .then((dados) => {
+        if (ativo) {
+          setContatos(dados)
+          setContatoId((atual) =>
+            atual && dados.some((contato) => contato.id === atual) ? atual : ''
+          )
+        }
+      })
+      .catch(() => {
+        if (ativo) {
+          showToast({
+            variant: 'warning',
+            title: 'Contatos',
+            message: 'Não foi possível carregar os contatos do cliente.',
+          })
+        }
+      })
+    return () => {
+      ativo = false
+    }
+  }, [clienteId, showToast])
 
   const totalOrcamento = useMemo(() => {
     let soma = 0
@@ -116,7 +188,8 @@ export default function OrcamentoDetailPage() {
       const atualizado = await atualizarOrcamento(id, {
         titulo: titulo.trim(),
         descricao: descricao.trim(),
-        cliente_referencia: clienteReferencia.trim(),
+        cliente: clienteId || null,
+        contato_cliente: contatoId || null,
         status,
         valido_ate: validoAte.trim() ? validoAte.trim() : null,
       })
@@ -150,8 +223,11 @@ export default function OrcamentoDetailPage() {
         itens: linhasValidas.map((linha, idx) => ({
           ...(linha.id ? { id: linha.id } : {}),
           ordem: idx,
+          tipo: linha.tipo,
           descricao: linha.descricao.trim(),
           quantidade: linha.quantidade.trim() || '1',
+          custo_unitario: linha.custo_unitario.trim() || '0',
+          margem_percentual: linha.margem_percentual.trim() || '0',
           preco_unitario: linha.preco_unitario.trim() || '0',
         })),
       })
@@ -174,8 +250,11 @@ export default function OrcamentoDetailPage() {
       ...rows,
       {
         ordem: rows.length,
+        tipo: 'PRODUTO',
         descricao: '',
         quantidade: '1',
+        custo_unitario: '0',
+        margem_percentual: orcamento?.margem_produtos_percentual ?? '0',
         preco_unitario: '0',
       },
     ])
@@ -271,16 +350,42 @@ export default function OrcamentoDetailPage() {
                   </div>
                   <div>
                     <label className="form-label" htmlFor="orc-det-cliente">
-                      Cliente (referência)
+                      Cliente
                     </label>
-                    <input
+                    <select
                       id="orc-det-cliente"
-                      className="form-control"
-                      value={clienteReferencia}
-                      onChange={(e) => setClienteReferencia(e.target.value)}
-                      maxLength={200}
+                      className="form-select"
+                      value={clienteId}
+                      onChange={(e) => setClienteId(e.target.value)}
                       disabled={!podeEditar}
-                    />
+                    >
+                      <option value="">Selecione...</option>
+                      {clientes.map((cliente) => (
+                        <option key={cliente.id} value={cliente.id}>
+                          {cliente.razao_social} ({cliente.documento})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" htmlFor="orc-det-contato">
+                      Contato do cliente
+                    </label>
+                    <select
+                      id="orc-det-contato"
+                      className="form-select"
+                      value={contatoId}
+                      onChange={(e) => setContatoId(e.target.value)}
+                      disabled={!podeEditar || !clienteId || contatos.length === 0}
+                    >
+                      <option value="">Sem contato selecionado</option>
+                      {contatos.map((contato) => (
+                        <option key={contato.id} value={contato.id}>
+                          {contato.nome}
+                          {contato.email ? ` (${contato.email})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="form-label" htmlFor="orc-det-status">
@@ -354,9 +459,16 @@ export default function OrcamentoDetailPage() {
                       <thead>
                         <tr>
                           <th style={{ minWidth: '8rem' }}>#</th>
+                          <th style={{ width: '8rem' }}>Tipo</th>
                           <th>Descrição</th>
                           <th className="text-end" style={{ width: '7rem' }}>
                             Qtd
+                          </th>
+                          <th className="text-end" style={{ width: '8rem' }}>
+                            Custo
+                          </th>
+                          <th className="text-end" style={{ width: '7rem' }}>
+                            Margem %
                           </th>
                           <th className="text-end" style={{ width: '8rem' }}>
                             Preço unit.
@@ -383,6 +495,29 @@ export default function OrcamentoDetailPage() {
                           return (
                             <tr key={linha.id ?? `nova-${index}`}>
                               <td className="text-muted">{index + 1}</td>
+                              <td>
+                                {podeEditar ? (
+                                  <select
+                                    className="form-select form-select-sm"
+                                    value={linha.tipo}
+                                    onChange={(e) =>
+                                      atualizarLinha(index, {
+                                        tipo: e.target.value as 'PRODUTO' | 'SERVICO',
+                                        margem_percentual:
+                                          e.target.value === 'SERVICO'
+                                            ? orcamento.margem_servicos_percentual
+                                            : orcamento.margem_produtos_percentual,
+                                      })
+                                    }
+                                    disabled={salvandoItens}
+                                  >
+                                    <option value="PRODUTO">Produto</option>
+                                    <option value="SERVICO">Serviço</option>
+                                  </select>
+                                ) : (
+                                  linha.tipo
+                                )}
+                              </td>
                               <td>
                                 {podeEditar ? (
                                   <input
@@ -421,6 +556,40 @@ export default function OrcamentoDetailPage() {
                                   <input
                                     type="text"
                                     className="form-control form-control-sm text-end"
+                                    value={linha.custo_unitario}
+                                    onChange={(e) =>
+                                      atualizarLinha(index, { custo_unitario: e.target.value })
+                                    }
+                                    disabled={salvandoItens}
+                                    inputMode="decimal"
+                                  />
+                                ) : (
+                                  <span className="d-block text-end">{linha.custo_unitario}</span>
+                                )}
+                              </td>
+                              <td>
+                                {podeEditar ? (
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm text-end"
+                                    value={linha.margem_percentual}
+                                    onChange={(e) =>
+                                      atualizarLinha(index, { margem_percentual: e.target.value })
+                                    }
+                                    disabled={salvandoItens}
+                                    inputMode="decimal"
+                                  />
+                                ) : (
+                                  <span className="d-block text-end">
+                                    {linha.margem_percentual}
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                {podeEditar ? (
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm text-end"
                                     value={linha.preco_unitario}
                                     onChange={(e) =>
                                       atualizarLinha(index, { preco_unitario: e.target.value })
@@ -452,7 +621,7 @@ export default function OrcamentoDetailPage() {
                       </tbody>
                       <tfoot>
                         <tr>
-                          <td colSpan={4} className="text-end fw-semibold">
+                          <td colSpan={7} className="text-end fw-semibold">
                             Total
                           </td>
                           <td className="text-end fw-semibold">

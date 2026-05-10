@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import uuid
 
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
+from django.db import transaction
+from django.utils import timezone
+
+from apps.cadastros.models import ContatoParceiro, ParceiroComercial
 
 
 class StatusOrcamentoChoices(models.TextChoices):
@@ -13,21 +20,104 @@ class StatusOrcamentoChoices(models.TextChoices):
     CANCELADO = "CANCELADO", "Cancelado"
 
 
-class Orcamento(models.Model):
-    """
-    Esqueleto de orçamento comercial.
-    Campos de cliente/projeto serão FK quando o módulo cadastros/projetos estiver integrado.
-    """
+class TipoItemOrcamentoChoices(models.TextChoices):
+    PRODUTO = "PRODUTO", "Produto"
+    SERVICO = "SERVICO", "Servico"
 
+
+class OrigemItemOrcamentoChoices(models.TextChoices):
+    MANUAL = "MANUAL", "Manual"
+    CONFIGURADOR = "CONFIGURADOR", "Configurador de paineis"
+
+
+class SequenciaPropostaMensal(models.Model):
+    ano = models.PositiveSmallIntegerField()
+    mes = models.PositiveSmallIntegerField()
+    ultimo_numero = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "erp_orcamento_sequencia_mensal"
+        unique_together = ("ano", "mes")
+
+    @classmethod
+    def proximo_codigo(cls, data=None) -> str:
+        data = data or timezone.localdate()
+        with transaction.atomic():
+            sequencia, _created = cls.objects.select_for_update().get_or_create(
+                ano=data.year,
+                mes=data.month,
+                defaults={"ultimo_numero": 0},
+            )
+            while True:
+                sequencia.ultimo_numero += 1
+                codigo = (
+                    f"Prop-{data.month:02d}{sequencia.ultimo_numero:03d}-{data.year % 100:02d}"
+                )
+                if not Orcamento.objects.filter(codigo=codigo).exists():
+                    sequencia.save(update_fields=("ultimo_numero",))
+                    return codigo
+
+
+class ConfiguracaoMargemCliente(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo = models.CharField(max_length=32, unique=True, db_index=True)
+    cliente = models.OneToOneField(
+        ParceiroComercial,
+        on_delete=models.CASCADE,
+        related_name="configuracao_margem_orcamento",
+        limit_choices_to={"eh_cliente": True, "ativo": True},
+    )
+    margem_produtos_percentual = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    margem_servicos_percentual = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "erp_orcamento_margem_cliente"
+        verbose_name = "Configuracao de margem por cliente"
+        verbose_name_plural = "Configuracoes de margem por cliente"
+        ordering = ("cliente__razao_social",)
+
+    def __str__(self) -> str:
+        return f"{self.cliente} - produtos {self.margem_produtos_percentual}%"
+
+
+class Orcamento(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    codigo = models.CharField(max_length=32, unique=True, db_index=True, blank=True)
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
+    cliente = models.ForeignKey(
+        ParceiroComercial,
+        on_delete=models.PROTECT,
+        related_name="orcamentos",
+        null=True,
+        blank=True,
+        limit_choices_to={"eh_cliente": True, "ativo": True},
+    )
+    contato_cliente = models.ForeignKey(
+        ContatoParceiro,
+        on_delete=models.PROTECT,
+        related_name="orcamentos",
+        null=True,
+        blank=True,
+    )
     cliente_referencia = models.CharField(
         max_length=200,
         blank=True,
-        help_text="Texto livre até existir cadastro de clientes.",
+        help_text="Texto desnormalizado para histórico e compatibilidade.",
     )
+    margem_produtos_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    margem_servicos_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     status = models.CharField(
         max_length=20,
         choices=StatusOrcamentoChoices.choices,
@@ -45,6 +135,13 @@ class Orcamento(models.Model):
     def __str__(self) -> str:
         return f"{self.codigo} — {self.titulo}"
 
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            self.codigo = SequenciaPropostaMensal.proximo_codigo()
+        if self.cliente_id and not self.cliente_referencia:
+            self.cliente_referencia = self.cliente.razao_social
+        super().save(*args, **kwargs)
+
 
 class OrcamentoItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -54,8 +151,20 @@ class OrcamentoItem(models.Model):
         related_name="itens",
     )
     ordem = models.PositiveIntegerField(default=0)
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoItemOrcamentoChoices.choices,
+        default=TipoItemOrcamentoChoices.PRODUTO,
+    )
+    origem = models.CharField(
+        max_length=20,
+        choices=OrigemItemOrcamentoChoices.choices,
+        default=OrigemItemOrcamentoChoices.MANUAL,
+    )
     descricao = models.CharField(max_length=500)
     quantidade = models.DecimalField(max_digits=14, decimal_places=4, default=1)
+    custo_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    margem_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     preco_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
 
     class Meta:

@@ -5,6 +5,8 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
 
 const ErpModuleShellPage = lazy(() => import('./pages/ErpModuleShellPage'))
+const CadastrosPage = lazy(() => import('@/modules/cadastros/pages/CadastrosPage'))
+const RhPage = lazy(() => import('@/modules/rh/pages/RhPage'))
 const OrcamentoDetailPage = lazy(() => import('./pages/OrcamentoDetailPage'))
 const OrcamentoListPage = lazy(() => import('./pages/OrcamentoListPage'))
 const ConfiguracoesErpPage = lazy(() => import('./pages/ConfiguracoesErpPage'))
@@ -14,6 +16,18 @@ function withPermission(permission: string, element: ReactElement): ReactElement
 }
 
 export const erpMenuItems: AppMenuItem[] = [
+  {
+    to: '/erp/cadastros',
+    label: 'Cadastros',
+    order: 45,
+    requiresPermission: PERMISSION_KEYS.CADASTRO_VISUALIZAR,
+  },
+  {
+    to: '/erp/rh',
+    label: 'RH',
+    order: 45.5,
+    requiresPermission: PERMISSION_KEYS.RH_VISUALIZAR,
+  },
   {
     to: '/erp/orcamentos',
     label: 'Orçamentos',
@@ -32,6 +46,14 @@ export const erpRoutes: ModuleRouteConfig[] = [
   {
     path: '/erp/m/:moduleId',
     element: <ErpModuleShellPage />,
+  },
+  {
+    path: '/erp/cadastros',
+    element: withPermission(PERMISSION_KEYS.CADASTRO_VISUALIZAR, <CadastrosPage />),
+  },
+  {
+    path: '/erp/rh',
+    element: withPermission(PERMISSION_KEYS.RH_VISUALIZAR, <RhPage />),
   },
   {
     path: '/erp/orcamentos/:id',

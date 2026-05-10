@@ -47,8 +47,9 @@ export const ERP_MODULES: ErpModule[] = [
     title: 'Cadastros',
     area: 'Fundação',
     summary: 'Clientes, fornecedores, contatos, endereços e parceiros comerciais.',
-    status: 'planned',
-    to: '/erp/m/cadastros',
+    status: 'available',
+    to: '/erp/cadastros',
+    permissions: [PERMISSION_KEYS.CADASTRO_VISUALIZAR],
   },
   {
     id: 'rh',
@@ -56,8 +57,9 @@ export const ERP_MODULES: ErpModule[] = [
     title: 'RH',
     area: 'Fundação',
     summary: 'Colaboradores, cargos, departamentos, equipes e jornadas.',
-    status: 'planned',
-    to: '/erp/m/rh',
+    status: 'available',
+    to: '/erp/rh',
+    permissions: [PERMISSION_KEYS.RH_VISUALIZAR],
   },
   {
     id: 'crm',

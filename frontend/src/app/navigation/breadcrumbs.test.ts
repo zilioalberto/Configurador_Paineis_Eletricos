@@ -36,6 +36,8 @@ describe('getBreadcrumbItems', () => {
   })
 
   it('resolve trilhas ERP', () => {
+    expect(getBreadcrumbItems('/erp/cadastros')).toEqual([{ label: 'Cadastros' }])
+    expect(getBreadcrumbItems('/erp/rh')).toEqual([{ label: 'RH' }])
     expect(getBreadcrumbItems('/erp/orcamentos')).toEqual([{ label: 'Orçamentos' }])
     expect(getBreadcrumbItems('/erp/orcamentos/abc-uuid')).toEqual([
       { label: 'Orçamentos', to: '/erp/orcamentos' },
