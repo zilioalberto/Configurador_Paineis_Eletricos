@@ -33,12 +33,16 @@ jobs:
       - name: Testes e cobertura (Django) — neste workflow, não via scripts locais
         env:
           PYTHONPATH: ${{ github.workspace }}/backend
-          DJANGO_SETTINGS_MODULE: configuracoes.settings_ci
+          DJANGO_SETTINGS_MODULE: portal.settings_ci
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          pytest backend/configuracoes/tests backend/accounts/tests backend/projetos/tests \
-            backend/composicao_painel/tests backend/cargas/tests backend/catalogo/tests \
+          pytest backend/portal/tests backend/accounts/tests \
+            backend/configurador/projetos/tests \
+            backend/configurador/composicao_painel/tests \
+            backend/configurador/cargas/tests backend/catalogo/tests \
+            backend/configurador/dimensionamento/tests backend/core/tests \
+            backend/tarefas/tests \
             -q --tb=short \
             --cov=backend \
             --cov-config=.coveragerc \

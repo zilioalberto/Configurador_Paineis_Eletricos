@@ -153,6 +153,23 @@ function NavIconClipboard({ className, ...rest }: IconProps) {
   )
 }
 
+function NavIconKanban({ className, ...rest }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      {...rest}
+      {...stroke}
+    >
+      <rect x="3" y="4" width="5" height="16" rx="1" />
+      <rect x="10" y="4" width="5" height="10" rx="1" />
+      <rect x="17" y="4" width="4" height="13" rx="1" />
+    </svg>
+  )
+}
+
 const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/': NavIconHome,
   '/dashboard': NavIconGrid,
@@ -160,6 +177,7 @@ const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/cargas': NavIconZap,
   '/cargas/modelos': NavIconClipboard,
   '/catalogo': NavIconGrid,
+  '/tarefas': NavIconKanban,
   '/dimensionamento': NavIconSliders,
   '/composicao': NavIconLayers,
   '/administracao/utilizadores': NavIconUsers,

@@ -1,10 +1,52 @@
 /** Opções alinhadas a `core.choices` do backend (valores da API). */
 
-export const unidadeMedidaProdutoOptions = [
-  { value: 'UN', label: 'Unidade' },
-  { value: 'MT', label: 'Metro' },
-  { value: 'CJ', label: 'Conjunto' },
+/** Origem da mercadoria (ICMS) — `core.choices.fiscal.OrigemMercadoriaICMSChoices`. */
+export const origemMercadoriaIcmsOptions = [
+  { value: '', label: '(não definido)' },
+  { value: '0', label: '0 — Nacional' },
+  { value: '1', label: '1 — Estrangeira importação direta' },
+  { value: '2', label: '2 — Estrangeira mercado interno' },
+  { value: '3', label: '3 — Nacional importação >40% e ≤70%' },
+  { value: '4', label: '4 — Nacional processos básicos' },
+  { value: '5', label: '5 — Nacional importação ≤40%' },
+  { value: '6', label: '6 — Estrangeira importação sem similar' },
+  { value: '7', label: '7 — Estrangeira mercado interno sem similar' },
+  { value: '8', label: '8 — Nacional importação >70%' },
 ] as const
+
+/** Alinhado a `core.choices.produtos.UnidadeMedidaChoices` (campo `catalogo_produto.unidade_medida`). */
+export const unidadeMedidaProdutoOptions = [
+  { value: 'UN', label: 'Unidade', sigla: 'UN' },
+  { value: 'PC', label: 'Peça', sigla: 'pç' },
+  { value: 'MT', label: 'Metro', sigla: 'm' },
+  { value: 'CJ', label: 'Conjunto', sigla: 'cj' },
+  { value: 'KM', label: 'Quilómetro', sigla: 'km' },
+  { value: 'M2', label: 'Metro quadrado', sigla: 'm²' },
+  { value: 'M3', label: 'Metro cúbico', sigla: 'm³' },
+  { value: 'KG', label: 'Quilograma', sigla: 'kg' },
+  { value: 'G', label: 'Gramas', sigla: 'g' },
+  { value: 'L', label: 'Litro', sigla: 'L' },
+] as const
+
+export type UnidadeMedidaProduto = (typeof unidadeMedidaProdutoOptions)[number]['value']
+
+/** Inclui opção extra quando o cadastro tem código ainda não listado nas choices padrão. */
+export function unidadeMedidaOptionsComValorAtual(
+  valorAtual: string,
+): { value: string; label: string; title?: string }[] {
+  const u = String(valorAtual ?? '')
+    .trim()
+    .toUpperCase()
+  const base = unidadeMedidaProdutoOptions.map((o) => ({
+    value: o.value,
+    label: o.sigla,
+    title: o.label,
+  }))
+  if (u && !base.some((o) => o.value === u)) {
+    return [...base, { value: u, label: u, title: `Código ${u} (valor no cadastro)` }]
+  }
+  return base
+}
 
 export const tensaoBobinaOptions = [
   { value: 12, label: '12 V' },

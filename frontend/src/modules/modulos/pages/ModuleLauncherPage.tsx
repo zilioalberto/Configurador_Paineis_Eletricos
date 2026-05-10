@@ -29,13 +29,15 @@ function ModuleCard({
         <h3 className="module-card__title">{module.title}</h3>
         <p className="module-card__summary">{module.summary}</p>
         <div className="module-card__actions">
-          {available && module.to ? (
+          {module.to ? (
             <Link
-              className="btn btn-primary btn-sm"
+              className={`btn btn-sm ${available ? 'btn-primary' : 'btn-outline-secondary'}`}
               to={module.to}
-              aria-label={`Acessar ${module.title}`}
+              aria-label={
+                available ? `Acessar ${module.title}` : `Ver estrutura de ${module.title}`
+              }
             >
-              Acessar
+              {available ? 'Acessar' : 'Estrutura'}
             </Link>
           ) : (
             <button className="btn btn-outline-secondary btn-sm" type="button" disabled>
@@ -51,7 +53,11 @@ function ModuleCard({
 export default function ModuleLauncherPage() {
   const { user } = useAuth()
   const availableModules = ERP_MODULES.filter((module) => moduleVisible(user, module))
-  const plannedModules = ERP_MODULES.filter((module) => module.status === 'planned')
+  const plannedModules = ERP_MODULES.filter(
+    (module) =>
+      module.status === 'planned' ||
+      (module.status === 'available' && !moduleVisible(user, module)),
+  )
 
   return (
     <div className="container-fluid module-launcher">

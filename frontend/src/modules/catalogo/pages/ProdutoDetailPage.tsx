@@ -6,6 +6,7 @@ import { hasPermission } from '@/modules/auth/permissions'
 import { CATEGORIA_PARA_ESPEC_KEY } from '../constants/categoriaEspecKey'
 import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'
 import type { CategoriaProdutoNome } from '../types/categoria'
+import type { ItemFiscalProduto } from '../types/produto'
 import { labelCampoEspec, SPEC_FIELDS_BY_CATEGORIA } from '../utils/specFormHelpers'
 
 function SpecBlock({ title, children }: { title: string; children: ReactNode }) {
@@ -20,6 +21,51 @@ function SpecBlock({ title, children }: { title: string; children: ReactNode }) 
 function cell(v: unknown): string {
   if (v == null || v === '') return '—'
   return String(v)
+}
+
+function ItemFiscalTable({ itens }: { itens: ItemFiscalProduto[] }) {
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm table-bordered mb-0 align-middle">
+        <thead className="table-light">
+          <tr>
+            <th>Rótulo</th>
+            <th>CFOP</th>
+            <th>Orig.</th>
+            <th>CST ICMS</th>
+            <th>CSOSN</th>
+            <th>Grupo XML</th>
+            <th className="text-end">% ICMS</th>
+            <th className="text-end">R$ ICMS</th>
+            <th className="text-end">% IPI</th>
+            <th>Item NF-e</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map((it) => (
+            <tr key={it.id}>
+              <td>{cell(it.rotulo)}</td>
+              <td>
+                <code>{cell(it.cfop)}</code>
+              </td>
+              <td>{cell(it.origem_mercadoria)}</td>
+              <td>
+                <code>{cell(it.cst_icms)}</code>
+              </td>
+              <td>
+                <code>{cell(it.csosn)}</code>
+              </td>
+              <td className="small">{cell(it.icms_grupo_xml)}</td>
+              <td className="text-end">{cell(it.p_icms)}</td>
+              <td className="text-end">{cell(it.v_icms)}</td>
+              <td className="text-end">{cell(it.p_ipi)}</td>
+              <td>{it.n_item_nfe != null ? it.n_item_nfe : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -103,9 +149,38 @@ export default function ProdutoDetailPage() {
                   value={p.categoria_display ?? p.categoria_nome}
                 />
                 <Row label="Unidade" value={p.unidade_medida_display ?? p.unidade_medida} />
-                <Row label="Valor unitário" value={p.valor_unitario} />
+                <Row label="Preço base" value={p.preco_base} />
                 <Row label="Ativo" value={p.ativo ? 'Sim' : 'Não'} />
               </SpecBlock>
+
+              {p.informacao_comercial ? (
+                <SpecBlock title="Fiscal e logística (referência NF-e)">
+                  <Row label="GTIN / EAN" value={cell(p.informacao_comercial.gtin)} />
+                  <Row label="NCM" value={cell(p.informacao_comercial.ncm)} />
+                  <Row label="CEST" value={cell(p.informacao_comercial.cest)} />
+                  <Row label="Origem (ICMS)" value={cell(p.informacao_comercial.origem_mercadoria)} />
+                  <Row
+                    label="Unidade tributável"
+                    value={cell(p.informacao_comercial.unidade_tributavel)}
+                  />
+                  <Row
+                    label="Perfil fiscal"
+                    value={cell(p.informacao_comercial.codigo_perfil_fiscal)}
+                  />
+                  <Row
+                    label="Peso líq. / bruto (kg)"
+                    value={`${cell(p.informacao_comercial.peso_liquido_kg)} / ${cell(p.informacao_comercial.peso_bruto_kg)}`}
+                  />
+                </SpecBlock>
+              ) : null}
+
+              {p.itens_fiscais && p.itens_fiscais.length > 0 ? (
+                <SpecBlock title="Itens fiscais (referência)">
+                  <div className="col-12">
+                    <ItemFiscalTable itens={p.itens_fiscais} />
+                  </div>
+                </SpecBlock>
+              ) : null}
 
               <SpecBlock title="Fabricante e dimensões">
                 <Row label="Fabricante" value={p.fabricante} />

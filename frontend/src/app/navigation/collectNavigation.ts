@@ -1,13 +1,16 @@
 import { catalogoMenuItems, catalogoRoutes } from '@/modules/catalogo/catalogo.registry'
+import { fiscalMenuItems, fiscalRoutes } from '@/modules/fiscal/fiscal.registry'
 import {
-  configuradorMenuItems,
-  configuradorRoutes,
-} from '@/modules/configurador/configurador.registry'
+  configuradorPaineisMenuItems,
+  configuradorPaineisRoutes,
+} from '@/modules/configurador_paineis/configurador_paineis.registry'
+import { erpMenuItems, erpRoutes } from '@/modules/erp/erp.registry'
 import { modulosMenuItems, modulosRoutes } from '@/modules/modulos/modulos.registry'
 import {
   placeholdersMenuItems,
   placeholdersRoutes,
 } from '@/modules/placeholders/placeholders.registry'
+import { tarefasMenuItems, tarefasRoutes } from '@/modules/tarefas/tarefas.registry'
 import {
   usuariosAdminMenuItems,
   usuariosAdminRoutes,
@@ -16,16 +19,22 @@ import type { AppMenuItem, ModuleRouteConfig } from './types'
 
 const routeModules: ModuleRouteConfig[][] = [
   modulosRoutes,
-  configuradorRoutes,
+  configuradorPaineisRoutes,
   catalogoRoutes,
+  fiscalRoutes,
+  tarefasRoutes,
+  erpRoutes,
   placeholdersRoutes,
   usuariosAdminRoutes,
 ]
 
 const menuModules: AppMenuItem[][] = [
   modulosMenuItems,
-  configuradorMenuItems,
+  configuradorPaineisMenuItems,
   catalogoMenuItems,
+  fiscalMenuItems,
+  tarefasMenuItems,
+  erpMenuItems,
   placeholdersMenuItems,
   usuariosAdminMenuItems,
 ]

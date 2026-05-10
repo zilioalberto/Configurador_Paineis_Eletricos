@@ -10,6 +10,7 @@ describe('SidebarNavIcon', () => {
     '/cargas',
     '/cargas/modelos',
     '/catalogo',
+    '/tarefas',
     '/dimensionamento',
     '/composicao',
     '/administracao/utilizadores',

@@ -41,9 +41,9 @@ fi
 
 cd "$ROOT"
 
-PYTEST_ARGS="portal/tests -v --tb=short"
+PYTEST_ARGS="-v --tb=short"
 if [ "$COVERAGE" = 1 ]; then
-  PYTEST_ARGS="$PYTEST_ARGS --cov=portal --cov-report=term-missing"
+  PYTEST_ARGS="$PYTEST_ARGS --cov=. --cov-config=.coveragerc --cov-report=term-missing"
 fi
 
 run_backend() {

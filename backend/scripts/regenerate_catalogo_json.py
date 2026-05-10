@@ -7,14 +7,14 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "portal.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 import django
 from django.db import models
 
 django.setup()
 
-from catalogo.api.serializers import CATEGORIA_PARA_CAMPO, MODEL_BY_CAMPO
+from apps.catalogo.api.serializers import CATEGORIA_PARA_CAMPO, MODEL_BY_CAMPO
 from core.choices.produtos import CategoriaProdutoNomeChoices
 from core.choices import eletrica, paineis, produtos
 

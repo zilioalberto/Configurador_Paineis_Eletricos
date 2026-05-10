@@ -1,4 +1,5 @@
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
+import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
 import type { CategoriaProduto } from '../types/categoria'
 import type { CategoriaProdutoNome } from '../types/categoria'
 import type { ProdutoDetail, ProdutoFormData } from '../types/produto'
@@ -8,17 +9,38 @@ import {
 } from './specFormHelpers'
 import { applyCategoriaChange, produtoFormEmpty } from './produtoFormDefaults'
 
+const _CODIGOS_UNIDADE_CATALOGO = new Set(
+  unidadeMedidaProdutoOptions.map((o) => o.value),
+)
+
+function _unidadeMedidaApiParaForm(raw: unknown): ProdutoFormData['unidade_medida'] {
+  const u = String(raw ?? 'UN')
+    .trim()
+    .toUpperCase()
+  if (_CODIGOS_UNIDADE_CATALOGO.has(u as ProdutoFormData['unidade_medida'])) {
+    return u as ProdutoFormData['unidade_medida']
+  }
+  return 'UN'
+}
+
+function strDecApi(v: unknown): string {
+  if (v == null || v === '') return ''
+  return String(v)
+}
+
 export function produtoDetailToForm(
   p: ProdutoDetail,
-  categorias: CategoriaProduto[]
+  categorias: CategoriaProduto[],
 ): ProdutoFormData {
   let form: ProdutoFormData = {
     ...produtoFormEmpty(),
     codigo: p.codigo ?? '',
     descricao: p.descricao ?? '',
     categoria: p.categoria ?? '',
-    unidade_medida: (p.unidade_medida as ProdutoFormData['unidade_medida']) ?? 'UN',
-    valor_unitario: String(p.valor_unitario ?? '0'),
+    unidade_medida: _unidadeMedidaApiParaForm(p.unidade_medida),
+    preco_base: String(p.preco_base ?? '0'),
+    aliquota_ipi: strDecApi(p.aliquota_ipi),
+    fabricante_parceiro: p.fabricante_parceiro ?? '',
     fabricante: String(p.fabricante ?? ''),
     referencia_fabricante: String(p.referencia_fabricante ?? ''),
     largura_mm: p.largura_mm != null ? String(p.largura_mm) : '',

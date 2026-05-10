@@ -27,6 +27,21 @@ describe('getBreadcrumbItems', () => {
       { label: 'Cargas do projeto', to: '/cargas' },
       { label: 'Detalhes da carga' },
     ])
-    expect(getBreadcrumbItems('/catalogo')).toEqual([{ label: 'Catálogo' }])
+    expect(getBreadcrumbItems('/catalogo')).toEqual([{ label: 'Catálogo técnico' }])
+    expect(getBreadcrumbItems('/tarefas')).toEqual([{ label: 'Tarefas e Kanban' }])
+    expect(getBreadcrumbItems('/tarefas/horas-gestao')).toEqual([
+      { label: 'Tarefas e Kanban', to: '/tarefas' },
+      { label: 'Gestão de horas' },
+    ])
+  })
+
+  it('resolve trilhas ERP', () => {
+    expect(getBreadcrumbItems('/erp/orcamentos')).toEqual([{ label: 'Orçamentos' }])
+    expect(getBreadcrumbItems('/erp/orcamentos/abc-uuid')).toEqual([
+      { label: 'Orçamentos', to: '/erp/orcamentos' },
+      { label: 'Detalhe do orçamento' },
+    ])
+    expect(getBreadcrumbItems('/erp/configuracoes')).toEqual([{ label: 'Configurações do ERP' }])
+    expect(getBreadcrumbItems('/erp/m/crm')).toEqual([{ label: 'CRM' }])
   })
 })

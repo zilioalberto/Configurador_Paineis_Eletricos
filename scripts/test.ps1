@@ -46,9 +46,9 @@ if (-not (Test-Path $composeFile)) {
 function Invoke-BackendTests {
     param([bool]$UseLocal, [bool]$WithCoverage)
 
-    $pytestArgs = @("portal/tests", "-v", "--tb=short")
+    $pytestArgs = @("-v", "--tb=short")
     if ($WithCoverage) {
-        $pytestArgs += @("--cov=portal", "--cov-report=term-missing")
+        $pytestArgs += @("--cov=.", "--cov-config=.coveragerc", "--cov-report=term-missing")
     }
 
     if ($UseLocal) {

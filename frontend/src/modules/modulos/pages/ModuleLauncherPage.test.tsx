@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { authUser } from '@/test/factories/authUser'
@@ -12,7 +12,7 @@ vi.mock('@/modules/auth/AuthContext', () => ({
 import ModuleLauncherPage from './ModuleLauncherPage'
 
 describe('ModuleLauncherPage', () => {
-  it('mostra o configurador quando o usuario tem permissao do modulo', () => {
+  it('mostra o configurador de painéis quando o usuario tem permissao do modulo', () => {
     useAuthMock.mockReturnValue({
       user: authUser(['projeto.visualizar'], { email: 'user@example.com' }),
     })
@@ -30,8 +30,33 @@ describe('ModuleLauncherPage', () => {
       'href',
       '/dashboard'
     )
-    expect(screen.getByRole('heading', { name: 'Orçamentos' })).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Planejado' })[0]).toBeDisabled()
+    const orcamentosHeading = screen.getByRole('heading', { name: 'Orçamentos' })
+    const orcamentosCard = orcamentosHeading.closest('article')
+    expect(orcamentosCard).toHaveClass('module-card--planned')
+    expect(orcamentosCard).toHaveTextContent('Planejado')
+    expect(
+      within(orcamentosCard as HTMLElement).getByRole('link', {
+        name: 'Ver estrutura de Orçamentos',
+      })
+    ).toHaveAttribute('href', '/erp/orcamentos')
+  })
+
+  it('mostra tarefas quando o usuario tem permissao do Kanban', () => {
+    useAuthMock.mockReturnValue({
+      user: authUser(['tarefa.visualizar'], { email: 'user@example.com' }),
+    })
+
+    render(
+      <MemoryRouter>
+        <ModuleLauncherPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('heading', { name: 'Tarefas' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Acessar Tarefas' })).toHaveAttribute(
+      'href',
+      '/tarefas'
+    )
   })
 
   it('informa quando nao ha modulo liberado e mantem roadmap visivel', () => {

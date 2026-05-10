@@ -37,6 +37,12 @@ export function parseErrorResponseBody(data: unknown): string {
         return parts.join(' | ')
       }
     }
+    if (detail !== null && typeof detail === 'object' && !Array.isArray(detail)) {
+      const nested = parseErrorResponseBody(detail)
+      if (nested.trim()) {
+        return nested
+      }
+    }
   }
 
   if ('non_field_errors' in o) {

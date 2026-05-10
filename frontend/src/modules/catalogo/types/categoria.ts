@@ -30,6 +30,7 @@ export type CategoriaProdutoNome =
   | 'TRILHO_DIN'
   | 'PAINEL'
   | 'CLIMATIZACAO'
+  | 'OUTROS'
   | 'SEM_REGRA_SUGESTAO_AUTOMATICA'
 
 /** Opção de categoria (API: id === nome, valor fixo das choices). */

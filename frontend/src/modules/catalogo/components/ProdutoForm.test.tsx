@@ -14,6 +14,14 @@ vi.mock('@/modules/catalogo/components/EspecificacaoCatalogoFields', () => ({
   default: () => null,
 }))
 
+vi.mock('@/modules/catalogo/hooks/useFornecedoresAtivosQuery', () => ({
+  useFornecedoresAtivosQuery: () => ({ data: [], isFetching: false }),
+}))
+
+vi.mock('@/modules/auth/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}))
+
 import ProdutoForm from '@/modules/catalogo/components/ProdutoForm'
 
 describe('ProdutoForm', () => {
