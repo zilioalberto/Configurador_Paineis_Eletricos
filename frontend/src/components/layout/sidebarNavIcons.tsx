@@ -330,9 +330,8 @@ export function SidebarNavIcon(
   props: Readonly<{ to?: string; menuGroupId?: string }>
 ) {
   const { to, menuGroupId } = props
-  const Icon =
-    (menuGroupId && ICON_BY_MENU_GROUP_ID[menuGroupId]) ??
-    (to ? ICON_BY_PATH[to] : undefined) ??
-    NavIconGrid
+  const fromGroup = menuGroupId ? ICON_BY_MENU_GROUP_ID[menuGroupId] : undefined
+  const fromPath = to ? ICON_BY_PATH[to] : undefined
+  const Icon: ComponentType<IconProps> = fromGroup ?? fromPath ?? NavIconGrid
   return <Icon className="app-sidebar-nav-icon flex-shrink-0" aria-hidden />
 }
