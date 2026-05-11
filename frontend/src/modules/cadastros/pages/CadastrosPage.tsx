@@ -1,4 +1,12 @@
-import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  type Dispatch,
+  type FormEventHandler,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { Link } from 'react-router-dom'
 
 import { ConfirmModal, useToast } from '@/components/feedback'
@@ -442,22 +450,19 @@ export default function CadastrosPage() {
   }
 
   async function confirmarExclusao() {
-    if (!deleteTarget) return
+    const target = deleteTarget
+    if (!target) return
     setConfirmandoDelete(true)
     try {
-      if (deleteTarget.kind === 'parceiro') {
-        await excluirParceiro(deleteTarget.id)
+      if (target.kind === 'parceiro') {
+        await excluirParceiro(target.id)
         setSelecionado(null)
         setModoNovo(false)
         setForm(parceiroFormVazio)
         await recarregarLista()
-      }
-      if (deleteTarget.kind === 'contato' && selecionado) {
-        await excluirContatoParceiro(deleteTarget.id)
-        await recarregarSelecionado(selecionado.id)
-      }
-      if (deleteTarget.kind === 'endereco' && selecionado) {
-        await excluirEnderecoParceiro(deleteTarget.id)
+      } else if (selecionado) {
+        const remover = target.kind === 'contato' ? excluirContatoParceiro : excluirEnderecoParceiro
+        await remover(target.id)
         await recarregarSelecionado(selecionado.id)
       }
       setDeleteTarget(null)
@@ -475,17 +480,25 @@ export default function CadastrosPage() {
 
   const contatos = selecionado?.contatos ?? []
   const enderecos = selecionado?.enderecos ?? []
+  const mensagemExclusao = deleteTarget
+    ? `Deseja excluir "${deleteTarget.label}"? Esta ação não pode ser desfeita.`
+    : ''
+
+  function cancelarEdicaoParceiro() {
+    if (selecionado) {
+      setForm(parceiroParaForm(selecionado))
+      setModoNovo(false)
+      return
+    }
+    setModoNovo(false)
+  }
 
   return (
     <div className="container-fluid py-4">
       <ConfirmModal
         show={deleteTarget !== null}
         title="Excluir registro"
-        message={
-          deleteTarget
-            ? `Deseja excluir "${deleteTarget.label}"? Esta ação não pode ser desfeita.`
-            : ''
-        }
+        message={mensagemExclusao}
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         confirmVariant="danger"
@@ -533,127 +546,21 @@ export default function CadastrosPage() {
         <div className="col-xl-5">
           <div className="card shadow-sm">
             <div className="card-body">
-              <form className="row g-2 align-items-end mb-3" onSubmit={handleFiltroSubmit}>
-                <div className="col-12">
-                  <label className="form-label" htmlFor="cad-busca">
-                    Buscar
-                  </label>
-                  <input
-                    id="cad-busca"
-                    className="form-control"
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Razão social, documento ou email"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label" htmlFor="cad-tipo">
-                    Tipo
-                  </label>
-                  <select
-                    id="cad-tipo"
-                    className="form-select"
-                    value={tipoFiltro}
-                    onChange={(e) => setTipoFiltro(e.target.value as ParceiroTipoFiltro)}
-                  >
-                    <option value="">Todos</option>
-                    <option value="cliente">Clientes</option>
-                    <option value="fornecedor">Fornecedores</option>
-                    <option value="parceiro">Parceiros</option>
-                  </select>
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label" htmlFor="cad-ativo">
-                    Situação
-                  </label>
-                  <select
-                    id="cad-ativo"
-                    className="form-select"
-                    value={ativoFiltro}
-                    onChange={(e) => setAtivoFiltro(e.target.value as ParceiroAtivoFiltro)}
-                  >
-                    <option value="">Todos</option>
-                    <option value="1">Ativos</option>
-                    <option value="0">Inativos</option>
-                  </select>
-                </div>
-                <div className="col-12 d-flex flex-wrap gap-2">
-                  <button type="submit" className="btn btn-outline-primary">
-                    Buscar
-                  </button>
-                  {buscaAplicada ? (
-                    <button type="button" className="btn btn-outline-secondary" onClick={limparBusca}>
-                      Limpar
-                    </button>
-                  ) : null}
-                </div>
-              </form>
-
-              <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
-                <h2 className="h5 mb-0">Parceiros comerciais</h2>
-                <span className="badge text-bg-light">{lista.length}</span>
-              </div>
-
-              {carregando ? (
-                <p className="text-muted mb-0">Carregando…</p>
-              ) : lista.length === 0 ? (
-                <p className="text-muted mb-0">Nenhum cadastro encontrado.</p>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-sm align-middle">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>Documento</th>
-                        <th>Classificação</th>
-                        <th>Contato</th>
-                        <th aria-label="Ações" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lista.map((p) => (
-                        <tr key={p.id} className={selecionado?.id === p.id ? 'table-active' : ''}>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-link p-0 text-start align-baseline"
-                              onClick={() => void selecionarParceiro(p.id)}
-                            >
-                              {p.razao_social}
-                            </button>
-                            {p.ativo ? null : (
-                              <span className="badge text-bg-secondary ms-2">Inativo</span>
-                            )}
-                            {p.nome_fantasia ? (
-                              <div className="small text-muted">{p.nome_fantasia}</div>
-                            ) : null}
-                          </td>
-                          <td>{p.documento}</td>
-                          <td>
-                            <div className="d-flex flex-wrap gap-1">
-                              {rolesParceiro(p).map((role) => (
-                                <span key={role} className="badge text-bg-light">
-                                  {role}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td>{p.email || p.telefone || '—'}</td>
-                          <td className="text-end">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => void selecionarParceiro(p.id)}
-                            >
-                              Abrir
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <CadastrosListaPanel
+                ativoFiltro={ativoFiltro}
+                busca={busca}
+                buscaAplicada={buscaAplicada}
+                carregando={carregando}
+                lista={lista}
+                selecionadoId={selecionado?.id ?? null}
+                tipoFiltro={tipoFiltro}
+                limparBusca={limparBusca}
+                onFiltroSubmit={handleFiltroSubmit}
+                onSelecionar={selecionarParceiro}
+                setAtivoFiltro={setAtivoFiltro}
+                setBusca={setBusca}
+                setTipoFiltro={setTipoFiltro}
+              />
             </div>
           </div>
         </div>
@@ -661,662 +568,1136 @@ export default function CadastrosPage() {
         <div className="col-xl-7">
           <div className="card shadow-sm">
             <div className="card-body">
-              {!modoNovo && !selecionado ? (
-                <p className="text-muted mb-0">Selecione um cadastro ou crie um novo registro.</p>
-              ) : (
-                <>
-                  <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-                    <div>
-                      <h2 className="h5 mb-1">
-                        {modoNovo ? 'Novo cadastro' : selecionado?.razao_social}
-                      </h2>
-                      {selecionado ? (
-                        <p className="small text-muted mb-0">
-                          {tipoPessoaLabels[selecionado.tipo_pessoa]} · Origem{' '}
-                          {origemLabels[selecionado.origem]}
-                        </p>
-                      ) : null}
-                    </div>
-                    {canEdit && selecionado ? (
-                      <button
-                        type="button"
-                        className="btn btn-outline-danger btn-sm"
-                        onClick={() =>
-                          setDeleteTarget({
-                            kind: 'parceiro',
-                            id: selecionado.id,
-                            label: selecionado.razao_social,
-                          })
-                        }
-                      >
-                        Excluir
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {carregandoDetalhe ? (
-                    <p className="text-muted">Carregando cadastro…</p>
-                  ) : null}
-
-                  <form onSubmit={(e) => void salvarParceiro(e)}>
-                    <fieldset disabled={!canEdit || salvandoParceiro}>
-                      <div className="row g-3">
-                        <div className="col-md-4">
-                          <label className="form-label" htmlFor="cad-form-tipo-pessoa">
-                            Pessoa
-                          </label>
-                          <select
-                            id="cad-form-tipo-pessoa"
-                            className="form-select"
-                            value={form.tipo_pessoa}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                tipo_pessoa: e.target.value as TipoPessoaParceiro,
-                              }))
-                            }
-                          >
-                            <option value="PJ">Pessoa jurídica</option>
-                            <option value="PF">Pessoa física</option>
-                            <option value="EX">Estrangeiro</option>
-                          </select>
-                        </div>
-                        <div className="col-md-4">
-                          <label className="form-label" htmlFor="cad-form-documento">
-                            Documento
-                          </label>
-                          <input
-                            id="cad-form-documento"
-                            className="form-control"
-                            value={form.documento}
-                            onChange={(e) => setForm((f) => ({ ...f, documento: e.target.value }))}
-                            maxLength={20}
-                            required
-                          />
-                        </div>
-                        <div className="col-md-4">
-                          <label className="form-label" htmlFor="cad-form-ie">
-                            Inscrição estadual
-                          </label>
-                          <input
-                            id="cad-form-ie"
-                            className="form-control"
-                            value={form.inscricao_estadual}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, inscricao_estadual: e.target.value }))
-                            }
-                            maxLength={20}
-                          />
-                        </div>
-                        <div className="col-md-8">
-                          <label className="form-label" htmlFor="cad-form-razao">
-                            Razão social
-                          </label>
-                          <input
-                            id="cad-form-razao"
-                            className="form-control"
-                            value={form.razao_social}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, razao_social: e.target.value }))
-                            }
-                            maxLength={255}
-                            required
-                          />
-                        </div>
-                        <div className="col-md-4">
-                          <label className="form-label" htmlFor="cad-form-fantasia">
-                            Nome fantasia
-                          </label>
-                          <input
-                            id="cad-form-fantasia"
-                            className="form-control"
-                            value={form.nome_fantasia}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, nome_fantasia: e.target.value }))
-                            }
-                            maxLength={255}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label" htmlFor="cad-form-email">
-                            Email
-                          </label>
-                          <input
-                            id="cad-form-email"
-                            className="form-control"
-                            type="email"
-                            value={form.email}
-                            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label" htmlFor="cad-form-telefone">
-                            Telefone
-                          </label>
-                          <input
-                            id="cad-form-telefone"
-                            className="form-control"
-                            value={form.telefone}
-                            onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
-                            maxLength={30}
-                          />
-                        </div>
-                        <div className="col-12">
-                          <div className="d-flex flex-wrap gap-3">
-                            <div className="form-check">
-                              <input
-                                id="cad-form-cliente"
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={form.eh_cliente}
-                                onChange={(e) =>
-                                  setForm((f) => ({ ...f, eh_cliente: e.target.checked }))
-                                }
-                              />
-                              <label className="form-check-label" htmlFor="cad-form-cliente">
-                                Cliente
-                              </label>
-                            </div>
-                            <div className="form-check">
-                              <input
-                                id="cad-form-fornecedor"
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={form.eh_fornecedor}
-                                onChange={(e) =>
-                                  setForm((f) => ({ ...f, eh_fornecedor: e.target.checked }))
-                                }
-                              />
-                              <label className="form-check-label" htmlFor="cad-form-fornecedor">
-                                Fornecedor
-                              </label>
-                            </div>
-                            <div className="form-check">
-                              <input
-                                id="cad-form-parceiro"
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={form.eh_parceiro}
-                                onChange={(e) =>
-                                  setForm((f) => ({ ...f, eh_parceiro: e.target.checked }))
-                                }
-                              />
-                              <label className="form-check-label" htmlFor="cad-form-parceiro">
-                                Parceiro comercial
-                              </label>
-                            </div>
-                            <div className="form-check">
-                              <input
-                                id="cad-form-ativo"
-                                className="form-check-input"
-                                type="checkbox"
-                                checked={form.ativo}
-                                onChange={(e) =>
-                                  setForm((f) => ({ ...f, ativo: e.target.checked }))
-                                }
-                              />
-                              <label className="form-check-label" htmlFor="cad-form-ativo">
-                                Ativo
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </fieldset>
-                    <div className="d-flex flex-wrap gap-2 mt-3">
-                      {canEdit ? (
-                        <button
-                          type="submit"
-                          className="btn btn-primary"
-                          disabled={salvandoParceiro || !parceiroFormValido}
-                        >
-                          {salvandoParceiro ? 'Salvando…' : 'Salvar cadastro'}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => {
-                          if (selecionado) {
-                            setForm(parceiroParaForm(selecionado))
-                            setModoNovo(false)
-                          } else {
-                            setModoNovo(false)
-                          }
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
-
-                  {selecionado && !modoNovo ? (
-                    <>
-                      <section className="border-top pt-4 mt-4">
-                        <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
-                          <h3 className="h6 mb-0">Contatos</h3>
-                          {contatoEditId ? (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => {
-                                setContatoEditId(null)
-                                setContatoForm(contatoFormVazio)
-                              }}
-                            >
-                              Novo contato
-                            </button>
-                          ) : null}
-                        </div>
-                        {canEdit ? (
-                          <form className="row g-2 mb-3" onSubmit={(e) => void salvarContato(e)}>
-                            <div className="col-md-5">
-                              <label className="form-label" htmlFor="cad-contato-nome">
-                                Nome
-                              </label>
-                              <input
-                                id="cad-contato-nome"
-                                className="form-control"
-                                value={contatoForm.nome}
-                                onChange={(e) =>
-                                  setContatoForm((f) => ({ ...f, nome: e.target.value }))
-                                }
-                                maxLength={120}
-                                required
-                              />
-                            </div>
-                            <div className="col-md-3">
-                              <label className="form-label" htmlFor="cad-contato-cargo">
-                                Cargo
-                              </label>
-                              <input
-                                id="cad-contato-cargo"
-                                className="form-control"
-                                value={contatoForm.cargo}
-                                onChange={(e) =>
-                                  setContatoForm((f) => ({ ...f, cargo: e.target.value }))
-                                }
-                                maxLength={80}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label" htmlFor="cad-contato-email">
-                                Email
-                              </label>
-                              <input
-                                id="cad-contato-email"
-                                className="form-control"
-                                type="email"
-                                value={contatoForm.email}
-                                onChange={(e) =>
-                                  setContatoForm((f) => ({ ...f, email: e.target.value }))
-                                }
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label" htmlFor="cad-contato-telefone">
-                                Telefone
-                              </label>
-                              <input
-                                id="cad-contato-telefone"
-                                className="form-control"
-                                value={contatoForm.telefone}
-                                onChange={(e) =>
-                                  setContatoForm((f) => ({ ...f, telefone: e.target.value }))
-                                }
-                                maxLength={30}
-                              />
-                            </div>
-                            <div className="col-md-5">
-                              <label className="form-label" htmlFor="cad-contato-obs">
-                                Observações
-                              </label>
-                              <input
-                                id="cad-contato-obs"
-                                className="form-control"
-                                value={contatoForm.observacoes}
-                                onChange={(e) =>
-                                  setContatoForm((f) => ({ ...f, observacoes: e.target.value }))
-                                }
-                              />
-                            </div>
-                            <div className="col-md-3 d-flex align-items-end">
-                              <div className="form-check mb-2">
-                                <input
-                                  id="cad-contato-principal"
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={contatoForm.principal}
-                                  onChange={(e) =>
-                                    setContatoForm((f) => ({
-                                      ...f,
-                                      principal: e.target.checked,
-                                    }))
-                                  }
-                                />
-                                <label
-                                  className="form-check-label"
-                                  htmlFor="cad-contato-principal"
-                                >
-                                  Principal
-                                </label>
-                              </div>
-                            </div>
-                            <div className="col-12">
-                              <button
-                                type="submit"
-                                className="btn btn-outline-primary"
-                                disabled={salvandoContato || !contatoForm.nome.trim()}
-                              >
-                                {salvandoContato ? 'Salvando…' : contatoEditId ? 'Salvar contato' : 'Adicionar contato'}
-                              </button>
-                            </div>
-                          </form>
-                        ) : null}
-
-                        {contatos.length === 0 ? (
-                          <p className="text-muted mb-0">Nenhum contato cadastrado.</p>
-                        ) : (
-                          <div className="table-responsive">
-                            <table className="table table-sm align-middle">
-                              <thead>
-                                <tr>
-                                  <th>Nome</th>
-                                  <th>Cargo</th>
-                                  <th>Email</th>
-                                  <th>Telefone</th>
-                                  <th aria-label="Ações" />
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {contatos.map((contato) => (
-                                  <tr key={contato.id}>
-                                    <td>
-                                      {contato.nome}
-                                      {contato.principal ? (
-                                        <span className="badge text-bg-light ms-2">Principal</span>
-                                      ) : null}
-                                    </td>
-                                    <td>{contato.cargo || '—'}</td>
-                                    <td>{contato.email || '—'}</td>
-                                    <td>{contato.telefone || '—'}</td>
-                                    <td className="text-end">
-                                      {canEdit ? (
-                                        <div className="btn-group btn-group-sm">
-                                          <button
-                                            type="button"
-                                            className="btn btn-outline-primary"
-                                            onClick={() => editarContato(contato)}
-                                          >
-                                            Editar
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="btn btn-outline-danger"
-                                            onClick={() =>
-                                              setDeleteTarget({
-                                                kind: 'contato',
-                                                id: contato.id,
-                                                label: contato.nome,
-                                              })
-                                            }
-                                          >
-                                            Excluir
-                                          </button>
-                                        </div>
-                                      ) : null}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </section>
-
-                      <section className="border-top pt-4 mt-4">
-                        <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
-                          <h3 className="h6 mb-0">Endereços</h3>
-                          {enderecoEditId ? (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => {
-                                setEnderecoEditId(null)
-                                setEnderecoForm(enderecoFormVazio)
-                              }}
-                            >
-                              Novo endereço
-                            </button>
-                          ) : null}
-                        </div>
-                        {canEdit ? (
-                          <form className="row g-2 mb-3" onSubmit={(e) => void salvarEndereco(e)}>
-                            <div className="col-md-3">
-                              <label className="form-label" htmlFor="cad-end-nome">
-                                Nome
-                              </label>
-                              <input
-                                id="cad-end-nome"
-                                className="form-control"
-                                value={enderecoForm.nome}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, nome: e.target.value }))
-                                }
-                                maxLength={80}
-                              />
-                            </div>
-                            <div className="col-md-6">
-                              <label className="form-label" htmlFor="cad-end-logradouro">
-                                Logradouro
-                              </label>
-                              <input
-                                id="cad-end-logradouro"
-                                className="form-control"
-                                value={enderecoForm.logradouro}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, logradouro: e.target.value }))
-                                }
-                                maxLength={255}
-                              />
-                            </div>
-                            <div className="col-md-3">
-                              <label className="form-label" htmlFor="cad-end-numero">
-                                Número
-                              </label>
-                              <input
-                                id="cad-end-numero"
-                                className="form-control"
-                                value={enderecoForm.numero}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, numero: e.target.value }))
-                                }
-                                maxLength={20}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label" htmlFor="cad-end-complemento">
-                                Complemento
-                              </label>
-                              <input
-                                id="cad-end-complemento"
-                                className="form-control"
-                                value={enderecoForm.complemento}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, complemento: e.target.value }))
-                                }
-                                maxLength={120}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label" htmlFor="cad-end-bairro">
-                                Bairro
-                              </label>
-                              <input
-                                id="cad-end-bairro"
-                                className="form-control"
-                                value={enderecoForm.bairro}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, bairro: e.target.value }))
-                                }
-                                maxLength={120}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label" htmlFor="cad-end-municipio">
-                                Município
-                              </label>
-                              <input
-                                id="cad-end-municipio"
-                                className="form-control"
-                                value={enderecoForm.municipio}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, municipio: e.target.value }))
-                                }
-                                maxLength={120}
-                              />
-                            </div>
-                            <div className="col-md-2">
-                              <label className="form-label" htmlFor="cad-end-uf">
-                                UF
-                              </label>
-                              <input
-                                id="cad-end-uf"
-                                className="form-control text-uppercase"
-                                value={enderecoForm.uf}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({
-                                    ...f,
-                                    uf: e.target.value.toUpperCase(),
-                                  }))
-                                }
-                                maxLength={2}
-                              />
-                            </div>
-                            <div className="col-md-3">
-                              <label className="form-label" htmlFor="cad-end-cep">
-                                CEP
-                              </label>
-                              <input
-                                id="cad-end-cep"
-                                className="form-control"
-                                value={enderecoForm.cep}
-                                onChange={(e) =>
-                                  setEnderecoForm((f) => ({ ...f, cep: e.target.value }))
-                                }
-                                maxLength={8}
-                              />
-                            </div>
-                            <div className="col-md-3 d-flex align-items-end">
-                              <div className="form-check mb-2">
-                                <input
-                                  id="cad-end-principal"
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={enderecoForm.principal}
-                                  onChange={(e) =>
-                                    setEnderecoForm((f) => ({
-                                      ...f,
-                                      principal: e.target.checked,
-                                    }))
-                                  }
-                                />
-                                <label className="form-check-label" htmlFor="cad-end-principal">
-                                  Principal
-                                </label>
-                              </div>
-                            </div>
-                            <div className="col-md-4 d-flex align-items-end">
-                              <button
-                                type="submit"
-                                className="btn btn-outline-primary"
-                                disabled={salvandoEndereco}
-                              >
-                                {salvandoEndereco ? 'Salvando…' : enderecoEditId ? 'Salvar endereço' : 'Adicionar endereço'}
-                              </button>
-                            </div>
-                          </form>
-                        ) : null}
-
-                        {enderecos.length === 0 ? (
-                          <p className="text-muted mb-0">Nenhum endereço cadastrado.</p>
-                        ) : (
-                          <div className="table-responsive">
-                            <table className="table table-sm align-middle">
-                              <thead>
-                                <tr>
-                                  <th>Nome</th>
-                                  <th>Endereço</th>
-                                  <th>Cidade</th>
-                                  <th>CEP</th>
-                                  <th aria-label="Ações" />
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {enderecos.map((endereco) => (
-                                  <tr key={endereco.id}>
-                                    <td>
-                                      {endereco.nome || 'Endereço'}
-                                      {endereco.principal ? (
-                                        <span className="badge text-bg-light ms-2">Principal</span>
-                                      ) : null}
-                                    </td>
-                                    <td>
-                                      {[
-                                        endereco.logradouro,
-                                        endereco.numero,
-                                        endereco.complemento,
-                                        endereco.bairro,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(', ') || '—'}
-                                    </td>
-                                    <td>
-                                      {[endereco.municipio, endereco.uf].filter(Boolean).join(' / ') ||
-                                        '—'}
-                                    </td>
-                                    <td>{endereco.cep || '—'}</td>
-                                    <td className="text-end">
-                                      {canEdit ? (
-                                        <div className="btn-group btn-group-sm">
-                                          <button
-                                            type="button"
-                                            className="btn btn-outline-primary"
-                                            onClick={() => editarEndereco(endereco)}
-                                          >
-                                            Editar
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="btn btn-outline-danger"
-                                            onClick={() =>
-                                              setDeleteTarget({
-                                                kind: 'endereco',
-                                                id: endereco.id,
-                                                label: endereco.nome || endereco.municipio || 'endereço',
-                                              })
-                                            }
-                                          >
-                                            Excluir
-                                          </button>
-                                        </div>
-                                      ) : null}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </section>
-                    </>
-                  ) : null}
-                </>
-              )}
+              <CadastroDetalhePanel
+                canEdit={canEdit}
+                carregandoDetalhe={carregandoDetalhe}
+                contatoEditId={contatoEditId}
+                contatoForm={contatoForm}
+                contatos={contatos}
+                enderecoEditId={enderecoEditId}
+                enderecoForm={enderecoForm}
+                enderecos={enderecos}
+                form={form}
+                modoNovo={modoNovo}
+                parceiroFormValido={parceiroFormValido}
+                salvandoContato={salvandoContato}
+                salvandoEndereco={salvandoEndereco}
+                salvandoParceiro={salvandoParceiro}
+                selecionado={selecionado}
+                cancelarEdicaoParceiro={cancelarEdicaoParceiro}
+                editarContato={editarContato}
+                editarEndereco={editarEndereco}
+                onDelete={setDeleteTarget}
+                onSubmitContato={salvarContato}
+                onSubmitEndereco={salvarEndereco}
+                onSubmitParceiro={salvarParceiro}
+                setContatoEditId={setContatoEditId}
+                setContatoForm={setContatoForm}
+                setEnderecoEditId={setEnderecoEditId}
+                setEnderecoForm={setEnderecoForm}
+                setForm={setForm}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+function CadastrosListaPanel({
+  ativoFiltro,
+  busca,
+  buscaAplicada,
+  carregando,
+  lista,
+  selecionadoId,
+  tipoFiltro,
+  limparBusca,
+  onFiltroSubmit,
+  onSelecionar,
+  setAtivoFiltro,
+  setBusca,
+  setTipoFiltro,
+}: Readonly<{
+  ativoFiltro: ParceiroAtivoFiltro
+  busca: string
+  buscaAplicada: string
+  carregando: boolean
+  lista: ParceiroComercialDto[]
+  selecionadoId: string | null
+  tipoFiltro: ParceiroTipoFiltro
+  limparBusca: () => void
+  onFiltroSubmit: FormEventHandler<HTMLFormElement>
+  onSelecionar: (id: string) => void | Promise<void>
+  setAtivoFiltro: Dispatch<SetStateAction<ParceiroAtivoFiltro>>
+  setBusca: Dispatch<SetStateAction<string>>
+  setTipoFiltro: Dispatch<SetStateAction<ParceiroTipoFiltro>>
+}>) {
+  return (
+    <>
+      <form className="row g-2 align-items-end mb-3" onSubmit={onFiltroSubmit}>
+        <div className="col-12">
+          <label className="form-label" htmlFor="cad-busca">
+            Buscar
+          </label>
+          <input
+            id="cad-busca"
+            className="form-control"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Razão social, documento ou email"
+          />
+        </div>
+        <div className="col-sm-6">
+          <label className="form-label" htmlFor="cad-tipo">
+            Tipo
+          </label>
+          <select
+            id="cad-tipo"
+            className="form-select"
+            value={tipoFiltro}
+            onChange={(e) => setTipoFiltro(e.target.value as ParceiroTipoFiltro)}
+          >
+            <option value="">Todos</option>
+            <option value="cliente">Clientes</option>
+            <option value="fornecedor">Fornecedores</option>
+            <option value="parceiro">Parceiros</option>
+          </select>
+        </div>
+        <div className="col-sm-6">
+          <label className="form-label" htmlFor="cad-ativo">
+            Situação
+          </label>
+          <select
+            id="cad-ativo"
+            className="form-select"
+            value={ativoFiltro}
+            onChange={(e) => setAtivoFiltro(e.target.value as ParceiroAtivoFiltro)}
+          >
+            <option value="">Todos</option>
+            <option value="1">Ativos</option>
+            <option value="0">Inativos</option>
+          </select>
+        </div>
+        <div className="col-12 d-flex flex-wrap gap-2">
+          <button type="submit" className="btn btn-outline-primary">
+            Buscar
+          </button>
+          {buscaAplicada ? (
+            <button type="button" className="btn btn-outline-secondary" onClick={limparBusca}>
+              Limpar
+            </button>
+          ) : null}
+        </div>
+      </form>
+
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+        <h2 className="h5 mb-0">Parceiros comerciais</h2>
+        <span className="badge text-bg-light">{lista.length}</span>
+      </div>
+
+      <ParceirosTable
+        carregando={carregando}
+        lista={lista}
+        selecionadoId={selecionadoId}
+        onSelecionar={onSelecionar}
+      />
+    </>
+  )
+}
+
+function ParceirosTable({
+  carregando,
+  lista,
+  selecionadoId,
+  onSelecionar,
+}: Readonly<{
+  carregando: boolean
+  lista: ParceiroComercialDto[]
+  selecionadoId: string | null
+  onSelecionar: (id: string) => void | Promise<void>
+}>) {
+  if (carregando) return <p className="text-muted mb-0">Carregando…</p>
+  if (lista.length === 0) return <p className="text-muted mb-0">Nenhum cadastro encontrado.</p>
+
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Documento</th>
+            <th>Classificação</th>
+            <th>Contato</th>
+            <th aria-label="Ações" />
+          </tr>
+        </thead>
+        <tbody>
+          {lista.map((parceiro) => (
+            <ParceiroRow
+              key={parceiro.id}
+              parceiro={parceiro}
+              selected={selecionadoId === parceiro.id}
+              onSelecionar={onSelecionar}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ParceiroRow({
+  parceiro,
+  selected,
+  onSelecionar,
+}: Readonly<{
+  parceiro: ParceiroComercialDto
+  selected: boolean
+  onSelecionar: (id: string) => void | Promise<void>
+}>) {
+  return (
+    <tr className={selected ? 'table-active' : ''}>
+      <td>
+        <button
+          type="button"
+          className="btn btn-link p-0 text-start align-baseline"
+          onClick={() => void onSelecionar(parceiro.id)}
+        >
+          {parceiro.razao_social}
+        </button>
+        {parceiro.ativo ? null : <span className="badge text-bg-secondary ms-2">Inativo</span>}
+        {parceiro.nome_fantasia ? (
+          <div className="small text-muted">{parceiro.nome_fantasia}</div>
+        ) : null}
+      </td>
+      <td>{parceiro.documento}</td>
+      <td>
+        <div className="d-flex flex-wrap gap-1">
+          {rolesParceiro(parceiro).map((role) => (
+            <span key={role} className="badge text-bg-light">
+              {role}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td>{parceiro.email || parceiro.telefone || '—'}</td>
+      <td className="text-end">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary"
+          onClick={() => void onSelecionar(parceiro.id)}
+        >
+          Abrir
+        </button>
+      </td>
+    </tr>
+  )
+}
+
+function CadastroDetalhePanel(props: Readonly<CadastroDetalhePanelProps>) {
+  if (props.modoNovo || props.selecionado) return <CadastroDetalheConteudo {...props} />
+  return <p className="text-muted mb-0">Selecione um cadastro ou crie um novo registro.</p>
+}
+
+type CadastroDetalhePanelProps = {
+  canEdit: boolean
+  carregandoDetalhe: boolean
+  contatoEditId: string | null
+  contatoForm: ContatoFormState
+  contatos: ContatoParceiroDto[]
+  enderecoEditId: string | null
+  enderecoForm: EnderecoFormState
+  enderecos: EnderecoParceiroDto[]
+  form: ParceiroFormState
+  modoNovo: boolean
+  parceiroFormValido: boolean
+  salvandoContato: boolean
+  salvandoEndereco: boolean
+  salvandoParceiro: boolean
+  selecionado: ParceiroComercialDto | null
+  cancelarEdicaoParceiro: () => void
+  editarContato: (contato: ContatoParceiroDto) => void
+  editarEndereco: (endereco: EnderecoParceiroDto) => void
+  onDelete: (target: DeleteTarget) => void
+  onSubmitContato: FormEventHandler<HTMLFormElement>
+  onSubmitEndereco: FormEventHandler<HTMLFormElement>
+  onSubmitParceiro: FormEventHandler<HTMLFormElement>
+  setContatoEditId: Dispatch<SetStateAction<string | null>>
+  setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
+  setEnderecoEditId: Dispatch<SetStateAction<string | null>>
+  setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
+  setForm: Dispatch<SetStateAction<ParceiroFormState>>
+}
+
+function CadastroDetalheConteudo({
+  canEdit,
+  carregandoDetalhe,
+  contatoEditId,
+  contatoForm,
+  contatos,
+  enderecoEditId,
+  enderecoForm,
+  enderecos,
+  form,
+  modoNovo,
+  parceiroFormValido,
+  salvandoContato,
+  salvandoEndereco,
+  salvandoParceiro,
+  selecionado,
+  cancelarEdicaoParceiro,
+  editarContato,
+  editarEndereco,
+  onDelete,
+  onSubmitContato,
+  onSubmitEndereco,
+  onSubmitParceiro,
+  setContatoEditId,
+  setContatoForm,
+  setEnderecoEditId,
+  setEnderecoForm,
+  setForm,
+}: Readonly<CadastroDetalhePanelProps>) {
+  const mostrarRelacionados = Boolean(selecionado) && modoNovo === false
+
+  return (
+    <>
+      <CadastroDetalheHeader
+        canEdit={canEdit}
+        modoNovo={modoNovo}
+        selecionado={selecionado}
+        onDelete={onDelete}
+      />
+
+      {carregandoDetalhe ? <p className="text-muted">Carregando cadastro…</p> : null}
+
+      <ParceiroForm
+        canEdit={canEdit}
+        form={form}
+        parceiroFormValido={parceiroFormValido}
+        salvandoParceiro={salvandoParceiro}
+        cancelarEdicaoParceiro={cancelarEdicaoParceiro}
+        onSubmit={onSubmitParceiro}
+        setForm={setForm}
+      />
+
+      {mostrarRelacionados && selecionado ? (
+        <>
+          <ContatosSection
+            canEdit={canEdit}
+            contatoEditId={contatoEditId}
+            contatoForm={contatoForm}
+            contatos={contatos}
+            salvandoContato={salvandoContato}
+            editarContato={editarContato}
+            onDelete={onDelete}
+            onSubmit={onSubmitContato}
+            setContatoEditId={setContatoEditId}
+            setContatoForm={setContatoForm}
+          />
+          <EnderecosSection
+            canEdit={canEdit}
+            enderecoEditId={enderecoEditId}
+            enderecoForm={enderecoForm}
+            enderecos={enderecos}
+            salvandoEndereco={salvandoEndereco}
+            editarEndereco={editarEndereco}
+            onDelete={onDelete}
+            onSubmit={onSubmitEndereco}
+            setEnderecoEditId={setEnderecoEditId}
+            setEnderecoForm={setEnderecoForm}
+          />
+        </>
+      ) : null}
+    </>
+  )
+}
+
+function CadastroDetalheHeader({
+  canEdit,
+  modoNovo,
+  selecionado,
+  onDelete,
+}: Readonly<{
+  canEdit: boolean
+  modoNovo: boolean
+  selecionado: ParceiroComercialDto | null
+  onDelete: (target: DeleteTarget) => void
+}>) {
+  const titulo = modoNovo ? 'Novo cadastro' : selecionado?.razao_social
+
+  return (
+    <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <div>
+        <h2 className="h5 mb-1">{titulo}</h2>
+        {selecionado ? (
+          <p className="small text-muted mb-0">
+            {tipoPessoaLabels[selecionado.tipo_pessoa]} · Origem {origemLabels[selecionado.origem]}
+          </p>
+        ) : null}
+      </div>
+      {canEdit && selecionado ? (
+        <button
+          type="button"
+          className="btn btn-outline-danger btn-sm"
+          onClick={() =>
+            onDelete({
+              kind: 'parceiro',
+              id: selecionado.id,
+              label: selecionado.razao_social,
+            })
+          }
+        >
+          Excluir
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ParceiroForm({
+  canEdit,
+  form,
+  parceiroFormValido,
+  salvandoParceiro,
+  cancelarEdicaoParceiro,
+  onSubmit,
+  setForm,
+}: Readonly<{
+  canEdit: boolean
+  form: ParceiroFormState
+  parceiroFormValido: boolean
+  salvandoParceiro: boolean
+  cancelarEdicaoParceiro: () => void
+  onSubmit: FormEventHandler<HTMLFormElement>
+  setForm: Dispatch<SetStateAction<ParceiroFormState>>
+}>) {
+  const salvarLabel = salvandoParceiro ? 'Salvando…' : 'Salvar cadastro'
+
+  return (
+    <form onSubmit={onSubmit}>
+      <fieldset disabled={!canEdit || salvandoParceiro}>
+        <div className="row g-3">
+          <div className="col-md-4">
+            <label className="form-label" htmlFor="cad-form-tipo-pessoa">
+              Pessoa
+            </label>
+            <select
+              id="cad-form-tipo-pessoa"
+              className="form-select"
+              value={form.tipo_pessoa}
+              onChange={(e) =>
+                setForm((state) => ({
+                  ...state,
+                  tipo_pessoa: e.target.value as TipoPessoaParceiro,
+                }))
+              }
+            >
+              <option value="PJ">Pessoa jurídica</option>
+              <option value="PF">Pessoa física</option>
+              <option value="EX">Estrangeiro</option>
+            </select>
+          </div>
+          <div className="col-md-4">
+            <label className="form-label" htmlFor="cad-form-documento">
+              Documento
+            </label>
+            <input
+              id="cad-form-documento"
+              className="form-control"
+              value={form.documento}
+              onChange={(e) => setForm((state) => ({ ...state, documento: e.target.value }))}
+              maxLength={20}
+              required
+            />
+          </div>
+          <div className="col-md-4">
+            <label className="form-label" htmlFor="cad-form-ie">
+              Inscrição estadual
+            </label>
+            <input
+              id="cad-form-ie"
+              className="form-control"
+              value={form.inscricao_estadual}
+              onChange={(e) =>
+                setForm((state) => ({ ...state, inscricao_estadual: e.target.value }))
+              }
+              maxLength={20}
+            />
+          </div>
+          <div className="col-md-8">
+            <label className="form-label" htmlFor="cad-form-razao">
+              Razão social
+            </label>
+            <input
+              id="cad-form-razao"
+              className="form-control"
+              value={form.razao_social}
+              onChange={(e) => setForm((state) => ({ ...state, razao_social: e.target.value }))}
+              maxLength={255}
+              required
+            />
+          </div>
+          <div className="col-md-4">
+            <label className="form-label" htmlFor="cad-form-fantasia">
+              Nome fantasia
+            </label>
+            <input
+              id="cad-form-fantasia"
+              className="form-control"
+              value={form.nome_fantasia}
+              onChange={(e) => setForm((state) => ({ ...state, nome_fantasia: e.target.value }))}
+              maxLength={255}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="cad-form-email">
+              Email
+            </label>
+            <input
+              id="cad-form-email"
+              className="form-control"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((state) => ({ ...state, email: e.target.value }))}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label" htmlFor="cad-form-telefone">
+              Telefone
+            </label>
+            <input
+              id="cad-form-telefone"
+              className="form-control"
+              value={form.telefone}
+              onChange={(e) => setForm((state) => ({ ...state, telefone: e.target.value }))}
+              maxLength={30}
+            />
+          </div>
+          <ParceiroRoles form={form} setForm={setForm} />
+        </div>
+      </fieldset>
+      <div className="d-flex flex-wrap gap-2 mt-3">
+        {canEdit ? (
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={salvandoParceiro || !parceiroFormValido}
+          >
+            {salvarLabel}
+          </button>
+        ) : null}
+        <button type="button" className="btn btn-outline-secondary" onClick={cancelarEdicaoParceiro}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function ParceiroRoles({
+  form,
+  setForm,
+}: Readonly<{
+  form: ParceiroFormState
+  setForm: Dispatch<SetStateAction<ParceiroFormState>>
+}>) {
+  return (
+    <div className="col-12">
+      <div className="d-flex flex-wrap gap-3">
+        <div className="form-check">
+          <input
+            id="cad-form-cliente"
+            className="form-check-input"
+            type="checkbox"
+            checked={form.eh_cliente}
+            onChange={(e) => setForm((state) => ({ ...state, eh_cliente: e.target.checked }))}
+          />
+          <label className="form-check-label" htmlFor="cad-form-cliente">
+            Cliente
+          </label>
+        </div>
+        <div className="form-check">
+          <input
+            id="cad-form-fornecedor"
+            className="form-check-input"
+            type="checkbox"
+            checked={form.eh_fornecedor}
+            onChange={(e) => setForm((state) => ({ ...state, eh_fornecedor: e.target.checked }))}
+          />
+          <label className="form-check-label" htmlFor="cad-form-fornecedor">
+            Fornecedor
+          </label>
+        </div>
+        <div className="form-check">
+          <input
+            id="cad-form-parceiro"
+            className="form-check-input"
+            type="checkbox"
+            checked={form.eh_parceiro}
+            onChange={(e) => setForm((state) => ({ ...state, eh_parceiro: e.target.checked }))}
+          />
+          <label className="form-check-label" htmlFor="cad-form-parceiro">
+            Parceiro comercial
+          </label>
+        </div>
+        <div className="form-check">
+          <input
+            id="cad-form-ativo"
+            className="form-check-input"
+            type="checkbox"
+            checked={form.ativo}
+            onChange={(e) => setForm((state) => ({ ...state, ativo: e.target.checked }))}
+          />
+          <label className="form-check-label" htmlFor="cad-form-ativo">
+            Ativo
+          </label>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ContatosSection({
+  canEdit,
+  contatoEditId,
+  contatoForm,
+  contatos,
+  salvandoContato,
+  editarContato,
+  onDelete,
+  onSubmit,
+  setContatoEditId,
+  setContatoForm,
+}: Readonly<{
+  canEdit: boolean
+  contatoEditId: string | null
+  contatoForm: ContatoFormState
+  contatos: ContatoParceiroDto[]
+  salvandoContato: boolean
+  editarContato: (contato: ContatoParceiroDto) => void
+  onDelete: (target: DeleteTarget) => void
+  onSubmit: FormEventHandler<HTMLFormElement>
+  setContatoEditId: Dispatch<SetStateAction<string | null>>
+  setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
+}>) {
+  return (
+    <section className="border-top pt-4 mt-4">
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <h3 className="h6 mb-0">Contatos</h3>
+        {contatoEditId ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => {
+              setContatoEditId(null)
+              setContatoForm(contatoFormVazio)
+            }}
+          >
+            Novo contato
+          </button>
+        ) : null}
+      </div>
+      {canEdit ? (
+        <ContatoForm
+          contatoEditId={contatoEditId}
+          contatoForm={contatoForm}
+          salvandoContato={salvandoContato}
+          onSubmit={onSubmit}
+          setContatoForm={setContatoForm}
+        />
+      ) : null}
+      <ContatosTable
+        canEdit={canEdit}
+        contatos={contatos}
+        editarContato={editarContato}
+        onDelete={onDelete}
+      />
+    </section>
+  )
+}
+
+function ContatoForm({
+  contatoEditId,
+  contatoForm,
+  salvandoContato,
+  onSubmit,
+  setContatoForm,
+}: Readonly<{
+  contatoEditId: string | null
+  contatoForm: ContatoFormState
+  salvandoContato: boolean
+  onSubmit: FormEventHandler<HTMLFormElement>
+  setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
+}>) {
+  const submitLabel = contatoSubmitLabel(salvandoContato, contatoEditId)
+
+  return (
+    <form className="row g-2 mb-3" onSubmit={onSubmit}>
+      <div className="col-md-5">
+        <label className="form-label" htmlFor="cad-contato-nome">
+          Nome
+        </label>
+        <input
+          id="cad-contato-nome"
+          className="form-control"
+          value={contatoForm.nome}
+          onChange={(e) => setContatoForm((state) => ({ ...state, nome: e.target.value }))}
+          maxLength={120}
+          required
+        />
+      </div>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="cad-contato-cargo">
+          Cargo
+        </label>
+        <input
+          id="cad-contato-cargo"
+          className="form-control"
+          value={contatoForm.cargo}
+          onChange={(e) => setContatoForm((state) => ({ ...state, cargo: e.target.value }))}
+          maxLength={80}
+        />
+      </div>
+      <div className="col-md-4">
+        <label className="form-label" htmlFor="cad-contato-email">
+          Email
+        </label>
+        <input
+          id="cad-contato-email"
+          className="form-control"
+          type="email"
+          value={contatoForm.email}
+          onChange={(e) => setContatoForm((state) => ({ ...state, email: e.target.value }))}
+        />
+      </div>
+      <div className="col-md-4">
+        <label className="form-label" htmlFor="cad-contato-telefone">
+          Telefone
+        </label>
+        <input
+          id="cad-contato-telefone"
+          className="form-control"
+          value={contatoForm.telefone}
+          onChange={(e) => setContatoForm((state) => ({ ...state, telefone: e.target.value }))}
+          maxLength={30}
+        />
+      </div>
+      <div className="col-md-5">
+        <label className="form-label" htmlFor="cad-contato-obs">
+          Observações
+        </label>
+        <input
+          id="cad-contato-obs"
+          className="form-control"
+          value={contatoForm.observacoes}
+          onChange={(e) => setContatoForm((state) => ({ ...state, observacoes: e.target.value }))}
+        />
+      </div>
+      <div className="col-md-3 d-flex align-items-end">
+        <div className="form-check mb-2">
+          <input
+            id="cad-contato-principal"
+            className="form-check-input"
+            type="checkbox"
+            checked={contatoForm.principal}
+            onChange={(e) =>
+              setContatoForm((state) => ({
+                ...state,
+                principal: e.target.checked,
+              }))
+            }
+          />
+          <label className="form-check-label" htmlFor="cad-contato-principal">
+            Principal
+          </label>
+        </div>
+      </div>
+      <div className="col-12">
+        <button
+          type="submit"
+          className="btn btn-outline-primary"
+          disabled={salvandoContato || !contatoForm.nome.trim()}
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function contatoSubmitLabel(salvandoContato: boolean, contatoEditId: string | null): string {
+  if (salvandoContato) return 'Salvando…'
+  return contatoEditId ? 'Salvar contato' : 'Adicionar contato'
+}
+
+function ContatosTable({
+  canEdit,
+  contatos,
+  editarContato,
+  onDelete,
+}: Readonly<{
+  canEdit: boolean
+  contatos: ContatoParceiroDto[]
+  editarContato: (contato: ContatoParceiroDto) => void
+  onDelete: (target: DeleteTarget) => void
+}>) {
+  if (contatos.length === 0) return <p className="text-muted mb-0">Nenhum contato cadastrado.</p>
+
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Cargo</th>
+            <th>Email</th>
+            <th>Telefone</th>
+            <th aria-label="Ações" />
+          </tr>
+        </thead>
+        <tbody>
+          {contatos.map((contato) => (
+            <tr key={contato.id}>
+              <td>
+                {contato.nome}
+                {contato.principal ? (
+                  <span className="badge text-bg-light ms-2">Principal</span>
+                ) : null}
+              </td>
+              <td>{contato.cargo || '—'}</td>
+              <td>{contato.email || '—'}</td>
+              <td>{contato.telefone || '—'}</td>
+              <td className="text-end">
+                {canEdit ? (
+                  <div className="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary"
+                      onClick={() => editarContato(contato)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={() =>
+                        onDelete({
+                          kind: 'contato',
+                          id: contato.id,
+                          label: contato.nome,
+                        })
+                      }
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function EnderecosSection({
+  canEdit,
+  enderecoEditId,
+  enderecoForm,
+  enderecos,
+  salvandoEndereco,
+  editarEndereco,
+  onDelete,
+  onSubmit,
+  setEnderecoEditId,
+  setEnderecoForm,
+}: Readonly<{
+  canEdit: boolean
+  enderecoEditId: string | null
+  enderecoForm: EnderecoFormState
+  enderecos: EnderecoParceiroDto[]
+  salvandoEndereco: boolean
+  editarEndereco: (endereco: EnderecoParceiroDto) => void
+  onDelete: (target: DeleteTarget) => void
+  onSubmit: FormEventHandler<HTMLFormElement>
+  setEnderecoEditId: Dispatch<SetStateAction<string | null>>
+  setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
+}>) {
+  return (
+    <section className="border-top pt-4 mt-4">
+      <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <h3 className="h6 mb-0">Endereços</h3>
+        {enderecoEditId ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => {
+              setEnderecoEditId(null)
+              setEnderecoForm(enderecoFormVazio)
+            }}
+          >
+            Novo endereço
+          </button>
+        ) : null}
+      </div>
+      {canEdit ? (
+        <EnderecoForm
+          enderecoEditId={enderecoEditId}
+          enderecoForm={enderecoForm}
+          salvandoEndereco={salvandoEndereco}
+          onSubmit={onSubmit}
+          setEnderecoForm={setEnderecoForm}
+        />
+      ) : null}
+      <EnderecosTable
+        canEdit={canEdit}
+        enderecos={enderecos}
+        editarEndereco={editarEndereco}
+        onDelete={onDelete}
+      />
+    </section>
+  )
+}
+
+function EnderecoForm({
+  enderecoEditId,
+  enderecoForm,
+  salvandoEndereco,
+  onSubmit,
+  setEnderecoForm,
+}: Readonly<{
+  enderecoEditId: string | null
+  enderecoForm: EnderecoFormState
+  salvandoEndereco: boolean
+  onSubmit: FormEventHandler<HTMLFormElement>
+  setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
+}>) {
+  const submitLabel = enderecoSubmitLabel(salvandoEndereco, enderecoEditId)
+
+  return (
+    <form className="row g-2 mb-3" onSubmit={onSubmit}>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="cad-end-nome">
+          Nome
+        </label>
+        <input
+          id="cad-end-nome"
+          className="form-control"
+          value={enderecoForm.nome}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, nome: e.target.value }))}
+          maxLength={80}
+        />
+      </div>
+      <div className="col-md-6">
+        <label className="form-label" htmlFor="cad-end-logradouro">
+          Logradouro
+        </label>
+        <input
+          id="cad-end-logradouro"
+          className="form-control"
+          value={enderecoForm.logradouro}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, logradouro: e.target.value }))}
+          maxLength={255}
+        />
+      </div>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="cad-end-numero">
+          Número
+        </label>
+        <input
+          id="cad-end-numero"
+          className="form-control"
+          value={enderecoForm.numero}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, numero: e.target.value }))}
+          maxLength={20}
+        />
+      </div>
+      <div className="col-md-4">
+        <label className="form-label" htmlFor="cad-end-complemento">
+          Complemento
+        </label>
+        <input
+          id="cad-end-complemento"
+          className="form-control"
+          value={enderecoForm.complemento}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, complemento: e.target.value }))}
+          maxLength={120}
+        />
+      </div>
+      <div className="col-md-4">
+        <label className="form-label" htmlFor="cad-end-bairro">
+          Bairro
+        </label>
+        <input
+          id="cad-end-bairro"
+          className="form-control"
+          value={enderecoForm.bairro}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, bairro: e.target.value }))}
+          maxLength={120}
+        />
+      </div>
+      <div className="col-md-4">
+        <label className="form-label" htmlFor="cad-end-municipio">
+          Município
+        </label>
+        <input
+          id="cad-end-municipio"
+          className="form-control"
+          value={enderecoForm.municipio}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, municipio: e.target.value }))}
+          maxLength={120}
+        />
+      </div>
+      <div className="col-md-2">
+        <label className="form-label" htmlFor="cad-end-uf">
+          UF
+        </label>
+        <input
+          id="cad-end-uf"
+          className="form-control text-uppercase"
+          value={enderecoForm.uf}
+          onChange={(e) =>
+            setEnderecoForm((state) => ({
+              ...state,
+              uf: e.target.value.toUpperCase(),
+            }))
+          }
+          maxLength={2}
+        />
+      </div>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="cad-end-cep">
+          CEP
+        </label>
+        <input
+          id="cad-end-cep"
+          className="form-control"
+          value={enderecoForm.cep}
+          onChange={(e) => setEnderecoForm((state) => ({ ...state, cep: e.target.value }))}
+          maxLength={8}
+        />
+      </div>
+      <div className="col-md-3 d-flex align-items-end">
+        <div className="form-check mb-2">
+          <input
+            id="cad-end-principal"
+            className="form-check-input"
+            type="checkbox"
+            checked={enderecoForm.principal}
+            onChange={(e) =>
+              setEnderecoForm((state) => ({
+                ...state,
+                principal: e.target.checked,
+              }))
+            }
+          />
+          <label className="form-check-label" htmlFor="cad-end-principal">
+            Principal
+          </label>
+        </div>
+      </div>
+      <div className="col-md-4 d-flex align-items-end">
+        <button type="submit" className="btn btn-outline-primary" disabled={salvandoEndereco}>
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function enderecoSubmitLabel(salvandoEndereco: boolean, enderecoEditId: string | null): string {
+  if (salvandoEndereco) return 'Salvando…'
+  return enderecoEditId ? 'Salvar endereço' : 'Adicionar endereço'
+}
+
+function EnderecosTable({
+  canEdit,
+  enderecos,
+  editarEndereco,
+  onDelete,
+}: Readonly<{
+  canEdit: boolean
+  enderecos: EnderecoParceiroDto[]
+  editarEndereco: (endereco: EnderecoParceiroDto) => void
+  onDelete: (target: DeleteTarget) => void
+}>) {
+  if (enderecos.length === 0) return <p className="text-muted mb-0">Nenhum endereço cadastrado.</p>
+
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Endereço</th>
+            <th>Cidade</th>
+            <th>CEP</th>
+            <th aria-label="Ações" />
+          </tr>
+        </thead>
+        <tbody>
+          {enderecos.map((endereco) => (
+            <tr key={endereco.id}>
+              <td>
+                {endereco.nome || 'Endereço'}
+                {endereco.principal ? (
+                  <span className="badge text-bg-light ms-2">Principal</span>
+                ) : null}
+              </td>
+              <td>{enderecoLinha(endereco)}</td>
+              <td>{enderecoCidade(endereco)}</td>
+              <td>{endereco.cep || '—'}</td>
+              <td className="text-end">
+                {canEdit ? (
+                  <div className="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary"
+                      onClick={() => editarEndereco(endereco)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger"
+                      onClick={() =>
+                        onDelete({
+                          kind: 'endereco',
+                          id: endereco.id,
+                          label: endereco.nome || endereco.municipio || 'endereço',
+                        })
+                      }
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function enderecoLinha(endereco: EnderecoParceiroDto): string {
+  return (
+    [
+      endereco.logradouro,
+      endereco.numero,
+      endereco.complemento,
+      endereco.bairro,
+    ]
+      .filter(Boolean)
+      .join(', ') || '—'
+  )
+}
+
+function enderecoCidade(endereco: EnderecoParceiroDto): string {
+  return [endereco.municipio, endereco.uf].filter(Boolean).join(' / ') || '—'
 }

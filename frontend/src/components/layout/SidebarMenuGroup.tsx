@@ -10,7 +10,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import type { AppMenuLinkItem } from '@/app/navigation/types'
 import { SidebarNavIcon } from './sidebarNavIcons'
 
-export function pathMatchesMenuLink(
+function pathMatchesMenuLink(
   pathname: string,
   item: AppMenuLinkItem
 ): boolean {
@@ -68,7 +68,7 @@ export function SidebarMenuGroup({
     }
   }, [open, updatePosition])
 
-  const closeTimerRef = useRef<number | null>(null)
+  const closeTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
 
   const cancelScheduledClose = useCallback(() => {
     if (closeTimerRef.current != null) {

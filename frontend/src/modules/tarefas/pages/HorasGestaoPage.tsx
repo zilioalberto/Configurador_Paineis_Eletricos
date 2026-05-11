@@ -65,8 +65,11 @@ function montarParams(submetido: FiltrosSubmetidos): FiltrosSubmetidos {
   return params
 }
 
-function nomeColaborador(row: { colaborador_id: number | string; colaborador_nome?: string }) {
-  return row.colaborador_nome || `#${row.colaborador_id}`
+function nomeColaborador(row: {
+  colaborador_id: number | string | null
+  colaborador_nome?: string | null
+}) {
+  return row.colaborador_nome || `#${row.colaborador_id ?? '—'}`
 }
 
 function HorasGestaoTabs({

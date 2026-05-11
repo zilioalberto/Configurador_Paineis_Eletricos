@@ -376,26 +376,29 @@ export default function RhPage() {
   }
 
   function novoRegistro(tab: AbaRh = aba) {
-    if (tab === 'colaboradores') {
-      setColaboradorId(null)
-      setColaboradorForm(colaboradorVazio)
+    const resets: Record<AbaRh, () => void> = {
+      colaboradores: () => {
+        setColaboradorId(null)
+        setColaboradorForm(colaboradorVazio)
+      },
+      departamentos: () => {
+        setDepartamentoId(null)
+        setDepartamentoForm(simplesVazio)
+      },
+      cargos: () => {
+        setCargoId(null)
+        setCargoForm(simplesVazio)
+      },
+      equipes: () => {
+        setEquipeId(null)
+        setEquipeForm(equipeVazia)
+      },
+      jornadas: () => {
+        setJornadaId(null)
+        setJornadaForm(jornadaVazia)
+      },
     }
-    if (tab === 'departamentos') {
-      setDepartamentoId(null)
-      setDepartamentoForm(simplesVazio)
-    }
-    if (tab === 'cargos') {
-      setCargoId(null)
-      setCargoForm(simplesVazio)
-    }
-    if (tab === 'equipes') {
-      setEquipeId(null)
-      setEquipeForm(equipeVazia)
-    }
-    if (tab === 'jornadas') {
-      setJornadaId(null)
-      setJornadaForm(jornadaVazia)
-    }
+    resets[tab]()
   }
 
   function selecionarColaborador(item: ColaboradorDto) {
@@ -569,29 +572,38 @@ export default function RhPage() {
   }
 
   async function confirmarExclusao() {
-    if (!deleteTarget) return
+    const target = deleteTarget
+    if (!target) return
+    const exclusaoPorAba: Record<
+      AbaRh,
+      { remover: (id: string) => Promise<unknown>; selectedId: string | null }
+    > = {
+      colaboradores: {
+        remover: (registroId) => rhApi.excluirColaborador(registroId),
+        selectedId: colaboradorId,
+      },
+      departamentos: {
+        remover: (registroId) => rhApi.excluirDepartamento(registroId),
+        selectedId: departamentoId,
+      },
+      cargos: {
+        remover: (registroId) => rhApi.excluirCargo(registroId),
+        selectedId: cargoId,
+      },
+      equipes: {
+        remover: (registroId) => rhApi.excluirEquipe(registroId),
+        selectedId: equipeId,
+      },
+      jornadas: {
+        remover: (registroId) => rhApi.excluirJornada(registroId),
+        selectedId: jornadaId,
+      },
+    }
     setConfirmandoDelete(true)
     try {
-      if (deleteTarget.tipo === 'colaboradores') {
-        await rhApi.excluirColaborador(deleteTarget.id)
-        if (colaboradorId === deleteTarget.id) novoRegistro('colaboradores')
-      }
-      if (deleteTarget.tipo === 'departamentos') {
-        await rhApi.excluirDepartamento(deleteTarget.id)
-        if (departamentoId === deleteTarget.id) novoRegistro('departamentos')
-      }
-      if (deleteTarget.tipo === 'cargos') {
-        await rhApi.excluirCargo(deleteTarget.id)
-        if (cargoId === deleteTarget.id) novoRegistro('cargos')
-      }
-      if (deleteTarget.tipo === 'equipes') {
-        await rhApi.excluirEquipe(deleteTarget.id)
-        if (equipeId === deleteTarget.id) novoRegistro('equipes')
-      }
-      if (deleteTarget.tipo === 'jornadas') {
-        await rhApi.excluirJornada(deleteTarget.id)
-        if (jornadaId === deleteTarget.id) novoRegistro('jornadas')
-      }
+      const action = exclusaoPorAba[target.tipo]
+      await action.remover(target.id)
+      if (action.selectedId === target.id) novoRegistro(target.tipo)
       setDeleteTarget(null)
       await carregar()
       showToast({ variant: 'success', message: 'Registro excluído.' })
@@ -616,16 +628,16 @@ export default function RhPage() {
     })
   }
 
+  const mensagemExclusao = deleteTarget
+    ? `Deseja excluir "${deleteTarget.label}"? Esta ação não pode ser desfeita.`
+    : ''
+
   return (
     <div className="container-fluid py-4">
       <ConfirmModal
         show={deleteTarget !== null}
         title="Excluir registro de RH"
-        message={
-          deleteTarget
-            ? `Deseja excluir "${deleteTarget.label}"? Esta ação não pode ser desfeita.`
-            : ''
-        }
+        message={mensagemExclusao}
         confirmLabel="Excluir"
         cancelLabel="Cancelar"
         confirmVariant="danger"
@@ -745,61 +757,27 @@ export default function RhPage() {
                 <span className="badge text-bg-light">{listaAbaAtual.length}</span>
               </div>
 
-              {carregando ? (
-                <p className="text-muted mb-0">Carregando…</p>
-              ) : aba === 'colaboradores' ? (
-                <ListaColaboradores
-                  canEdit={canEdit}
-                  colaboradores={colaboradores}
-                  selectedId={colaboradorId}
-                  onDelete={(item) =>
-                    setDeleteTarget({ tipo: 'colaboradores', id: item.id, label: item.nome })
-                  }
-                  onSelect={selecionarColaborador}
-                />
-              ) : aba === 'departamentos' ? (
-                <ListaSimples
-                  canEdit={canEdit}
-                  items={departamentos}
-                  selectedId={departamentoId}
-                  onDelete={(item) =>
-                    setDeleteTarget({ tipo: 'departamentos', id: item.id, label: item.nome })
-                  }
-                  onSelect={selecionarDepartamento}
-                  renderMeta={(item) => item.codigo || 'Sem código'}
-                />
-              ) : aba === 'cargos' ? (
-                <ListaSimples
-                  canEdit={canEdit}
-                  items={cargos}
-                  selectedId={cargoId}
-                  onDelete={(item) =>
-                    setDeleteTarget({ tipo: 'cargos', id: item.id, label: item.nome })
-                  }
-                  onSelect={selecionarCargo}
-                  renderMeta={(item) => item.descricao || 'Sem descrição'}
-                />
-              ) : aba === 'equipes' ? (
-                <ListaEquipes
-                  canEdit={canEdit}
-                  equipes={equipes}
-                  selectedId={equipeId}
-                  onDelete={(item) =>
-                    setDeleteTarget({ tipo: 'equipes', id: item.id, label: item.nome })
-                  }
-                  onSelect={selecionarEquipe}
-                />
-              ) : (
-                <ListaJornadas
-                  canEdit={canEdit}
-                  jornadas={jornadas}
-                  selectedId={jornadaId}
-                  onDelete={(item) =>
-                    setDeleteTarget({ tipo: 'jornadas', id: item.id, label: item.nome })
-                  }
-                  onSelect={selecionarJornada}
-                />
-              )}
+              <RhListaAtual
+                aba={aba}
+                canEdit={canEdit}
+                cargos={cargos}
+                cargoId={cargoId}
+                carregando={carregando}
+                colaboradores={colaboradores}
+                colaboradorId={colaboradorId}
+                departamentos={departamentos}
+                departamentoId={departamentoId}
+                equipes={equipes}
+                equipeId={equipeId}
+                jornadas={jornadas}
+                jornadaId={jornadaId}
+                onDelete={setDeleteTarget}
+                onSelectCargo={selecionarCargo}
+                onSelectColaborador={selecionarColaborador}
+                onSelectDepartamento={selecionarDepartamento}
+                onSelectEquipe={selecionarEquipe}
+                onSelectJornada={selecionarJornada}
+              />
             </div>
           </div>
         </div>
@@ -807,71 +785,278 @@ export default function RhPage() {
         <div className="col-xl-7">
           <div className="card shadow-sm">
             <div className="card-body">
-              {aba === 'colaboradores' ? (
-                <FormColaborador
-                  canEdit={canEdit}
-                  cargos={cargos}
-                  departamentos={departamentos}
-                  equipes={equipes}
-                  form={colaboradorForm}
-                  isEditing={Boolean(colaboradorId)}
-                  jornadas={jornadas}
-                  usuarioVinculadoEmail={
-                    colaboradorId
-                      ? colaboradores.find((c) => c.id === colaboradorId)?.usuario_email?.trim() || ''
-                      : ''
-                  }
-                  usuariosVinculo={usuariosVinculo}
-                  salvando={salvando}
-                  setForm={setColaboradorForm}
-                  onSubmit={salvarColaborador}
-                />
-              ) : aba === 'departamentos' ? (
-                <FormDepartamento
-                  canEdit={canEdit}
-                  form={departamentoForm}
-                  isEditing={Boolean(departamentoId)}
-                  salvando={salvando}
-                  setForm={setDepartamentoForm}
-                  onSubmit={salvarDepartamento}
-                />
-              ) : aba === 'cargos' ? (
-                <FormCargo
-                  canEdit={canEdit}
-                  form={cargoForm}
-                  isEditing={Boolean(cargoId)}
-                  salvando={salvando}
-                  setForm={setCargoForm}
-                  onSubmit={salvarCargo}
-                />
-              ) : aba === 'equipes' ? (
-                <FormEquipe
-                  canEdit={canEdit}
-                  colaboradores={colaboradores}
-                  departamentos={departamentos}
-                  form={equipeForm}
-                  isEditing={Boolean(equipeId)}
-                  salvando={salvando}
-                  setForm={setEquipeForm}
-                  onSubmit={salvarEquipe}
-                />
-              ) : (
-                <FormJornada
-                  canEdit={canEdit}
-                  form={jornadaForm}
-                  isEditing={Boolean(jornadaId)}
-                  salvando={salvando}
-                  setForm={setJornadaForm}
-                  toggleDiaSemana={toggleDiaSemana}
-                  onSubmit={salvarJornada}
-                />
-              )}
+              <RhFormularioAtual
+                aba={aba}
+                canEdit={canEdit}
+                cargos={cargos}
+                cargoForm={cargoForm}
+                cargoId={cargoId}
+                colaboradores={colaboradores}
+                colaboradorForm={colaboradorForm}
+                colaboradorId={colaboradorId}
+                departamentoForm={departamentoForm}
+                departamentoId={departamentoId}
+                departamentos={departamentos}
+                equipeForm={equipeForm}
+                equipeId={equipeId}
+                equipes={equipes}
+                jornadaForm={jornadaForm}
+                jornadaId={jornadaId}
+                jornadas={jornadas}
+                salvando={salvando}
+                setCargoForm={setCargoForm}
+                setColaboradorForm={setColaboradorForm}
+                setDepartamentoForm={setDepartamentoForm}
+                setEquipeForm={setEquipeForm}
+                setJornadaForm={setJornadaForm}
+                toggleDiaSemana={toggleDiaSemana}
+                usuariosVinculo={usuariosVinculo}
+                onSubmitCargo={salvarCargo}
+                onSubmitColaborador={salvarColaborador}
+                onSubmitDepartamento={salvarDepartamento}
+                onSubmitEquipe={salvarEquipe}
+                onSubmitJornada={salvarJornada}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+function RhListaAtual({
+  aba,
+  canEdit,
+  cargos,
+  cargoId,
+  carregando,
+  colaboradores,
+  colaboradorId,
+  departamentos,
+  departamentoId,
+  equipes,
+  equipeId,
+  jornadas,
+  jornadaId,
+  onDelete,
+  onSelectCargo,
+  onSelectColaborador,
+  onSelectDepartamento,
+  onSelectEquipe,
+  onSelectJornada,
+}: Readonly<{
+  aba: AbaRh
+  canEdit: boolean
+  cargos: CargoDto[]
+  cargoId: string | null
+  carregando: boolean
+  colaboradores: ColaboradorDto[]
+  colaboradorId: string | null
+  departamentos: DepartamentoDto[]
+  departamentoId: string | null
+  equipes: EquipeDto[]
+  equipeId: string | null
+  jornadas: JornadaTrabalhoDto[]
+  jornadaId: string | null
+  onDelete: (target: DeleteTarget) => void
+  onSelectCargo: (item: CargoDto) => void
+  onSelectColaborador: (item: ColaboradorDto) => void
+  onSelectDepartamento: (item: DepartamentoDto) => void
+  onSelectEquipe: (item: EquipeDto) => void
+  onSelectJornada: (item: JornadaTrabalhoDto) => void
+}>) {
+  if (carregando) return <p className="text-muted mb-0">Carregando…</p>
+
+  switch (aba) {
+    case 'colaboradores':
+      return (
+        <ListaColaboradores
+          canEdit={canEdit}
+          colaboradores={colaboradores}
+          selectedId={colaboradorId}
+          onDelete={(item) => onDelete({ tipo: 'colaboradores', id: item.id, label: item.nome })}
+          onSelect={onSelectColaborador}
+        />
+      )
+    case 'departamentos':
+      return (
+        <ListaSimples
+          canEdit={canEdit}
+          items={departamentos}
+          selectedId={departamentoId}
+          onDelete={(item) => onDelete({ tipo: 'departamentos', id: item.id, label: item.nome })}
+          onSelect={onSelectDepartamento}
+          renderMeta={(item) => item.codigo || 'Sem código'}
+        />
+      )
+    case 'cargos':
+      return (
+        <ListaSimples
+          canEdit={canEdit}
+          items={cargos}
+          selectedId={cargoId}
+          onDelete={(item) => onDelete({ tipo: 'cargos', id: item.id, label: item.nome })}
+          onSelect={onSelectCargo}
+          renderMeta={(item) => item.descricao || 'Sem descrição'}
+        />
+      )
+    case 'equipes':
+      return (
+        <ListaEquipes
+          canEdit={canEdit}
+          equipes={equipes}
+          selectedId={equipeId}
+          onDelete={(item) => onDelete({ tipo: 'equipes', id: item.id, label: item.nome })}
+          onSelect={onSelectEquipe}
+        />
+      )
+    case 'jornadas':
+      return (
+        <ListaJornadas
+          canEdit={canEdit}
+          jornadas={jornadas}
+          selectedId={jornadaId}
+          onDelete={(item) => onDelete({ tipo: 'jornadas', id: item.id, label: item.nome })}
+          onSelect={onSelectJornada}
+        />
+      )
+  }
+}
+
+function RhFormularioAtual({
+  aba,
+  canEdit,
+  cargos,
+  cargoForm,
+  cargoId,
+  colaboradores,
+  colaboradorForm,
+  colaboradorId,
+  departamentoForm,
+  departamentoId,
+  departamentos,
+  equipeForm,
+  equipeId,
+  equipes,
+  jornadaForm,
+  jornadaId,
+  jornadas,
+  salvando,
+  setCargoForm,
+  setColaboradorForm,
+  setDepartamentoForm,
+  setEquipeForm,
+  setJornadaForm,
+  toggleDiaSemana,
+  usuariosVinculo,
+  onSubmitCargo,
+  onSubmitColaborador,
+  onSubmitDepartamento,
+  onSubmitEquipe,
+  onSubmitJornada,
+}: Readonly<{
+  aba: AbaRh
+  canEdit: boolean
+  cargos: CargoDto[]
+  cargoForm: SimplesForm
+  cargoId: string | null
+  colaboradores: ColaboradorDto[]
+  colaboradorForm: ColaboradorForm
+  colaboradorId: string | null
+  departamentoForm: SimplesForm
+  departamentoId: string | null
+  departamentos: DepartamentoDto[]
+  equipeForm: EquipeForm
+  equipeId: string | null
+  equipes: EquipeDto[]
+  jornadaForm: JornadaForm
+  jornadaId: string | null
+  jornadas: JornadaTrabalhoDto[]
+  salvando: boolean
+  setCargoForm: Dispatch<SetStateAction<SimplesForm>>
+  setColaboradorForm: Dispatch<SetStateAction<ColaboradorForm>>
+  setDepartamentoForm: Dispatch<SetStateAction<SimplesForm>>
+  setEquipeForm: Dispatch<SetStateAction<EquipeForm>>
+  setJornadaForm: Dispatch<SetStateAction<JornadaForm>>
+  toggleDiaSemana: (dia: number) => void
+  usuariosVinculo: UsuarioVinculoDto[]
+  onSubmitCargo: FormEventHandler<HTMLFormElement>
+  onSubmitColaborador: FormEventHandler<HTMLFormElement>
+  onSubmitDepartamento: FormEventHandler<HTMLFormElement>
+  onSubmitEquipe: FormEventHandler<HTMLFormElement>
+  onSubmitJornada: FormEventHandler<HTMLFormElement>
+}>) {
+  switch (aba) {
+    case 'colaboradores': {
+      const usuarioVinculadoEmail = colaboradorId
+        ? colaboradores.find((colaborador) => colaborador.id === colaboradorId)?.usuario_email?.trim() ?? ''
+        : ''
+      return (
+        <FormColaborador
+          canEdit={canEdit}
+          cargos={cargos}
+          departamentos={departamentos}
+          equipes={equipes}
+          form={colaboradorForm}
+          isEditing={Boolean(colaboradorId)}
+          jornadas={jornadas}
+          usuarioVinculadoEmail={usuarioVinculadoEmail}
+          usuariosVinculo={usuariosVinculo}
+          salvando={salvando}
+          setForm={setColaboradorForm}
+          onSubmit={onSubmitColaborador}
+        />
+      )
+    }
+    case 'departamentos':
+      return (
+        <FormDepartamento
+          canEdit={canEdit}
+          form={departamentoForm}
+          isEditing={Boolean(departamentoId)}
+          salvando={salvando}
+          setForm={setDepartamentoForm}
+          onSubmit={onSubmitDepartamento}
+        />
+      )
+    case 'cargos':
+      return (
+        <FormCargo
+          canEdit={canEdit}
+          form={cargoForm}
+          isEditing={Boolean(cargoId)}
+          salvando={salvando}
+          setForm={setCargoForm}
+          onSubmit={onSubmitCargo}
+        />
+      )
+    case 'equipes':
+      return (
+        <FormEquipe
+          canEdit={canEdit}
+          colaboradores={colaboradores}
+          departamentos={departamentos}
+          form={equipeForm}
+          isEditing={Boolean(equipeId)}
+          salvando={salvando}
+          setForm={setEquipeForm}
+          onSubmit={onSubmitEquipe}
+        />
+      )
+    case 'jornadas':
+      return (
+        <FormJornada
+          canEdit={canEdit}
+          form={jornadaForm}
+          isEditing={Boolean(jornadaId)}
+          salvando={salvando}
+          setForm={setJornadaForm}
+          toggleDiaSemana={toggleDiaSemana}
+          onSubmit={onSubmitJornada}
+        />
+      )
+  }
 }
 
 function ListaColaboradores({

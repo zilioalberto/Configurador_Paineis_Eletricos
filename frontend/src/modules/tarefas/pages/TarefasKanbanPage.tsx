@@ -41,6 +41,7 @@ import { tarefasQueryKeys } from '../tarefasQueryKeys'
 import { useTarefaResponsaveisQuery } from '../hooks/useTarefaResponsaveisQuery'
 import type {
   ApontamentoHora,
+  AtualizarTarefaPayload,
   ColunaKanban,
   ComentarioTarefa,
   CriarTarefaPayload,
@@ -379,7 +380,7 @@ function tarefaFormToPayload(form: TarefaFormState): CriarTarefaPayload {
     descricao: form.descricao.trim(),
     coluna: form.coluna,
     responsavel: form.responsavel ? Number(form.responsavel) : null,
-    colaboradores: form.colaboradores.map((colaborador) => Number(colaborador)),
+    colaboradores: form.colaboradores.map(Number),
     prioridade: form.prioridade,
     prazo: prazoDate && !Number.isNaN(prazoDate.getTime()) ? prazoDate.toISOString() : null,
     tipo_etapa: form.tipo_etapa,
@@ -430,7 +431,7 @@ function tarefaFormToPayloadNovaTarefa(form: TarefaFormState, colunaId: string):
     descricao: form.descricao.trim(),
     coluna: colunaId,
     responsavel: form.responsavel ? Number(form.responsavel) : null,
-    colaboradores: form.colaboradores.map((colaborador) => Number(colaborador)),
+    colaboradores: form.colaboradores.map(Number),
     prioridade: form.prioridade,
     prazo: prazoDate && !Number.isNaN(prazoDate.getTime()) ? prazoDate.toISOString() : null,
     tipo_etapa: tipo,
@@ -438,6 +439,14 @@ function tarefaFormToPayloadNovaTarefa(form: TarefaFormState, colunaId: string):
     ordem_producao_referencia: op,
     horas_estipuladas: horasEstipuladasFormParaApi(form.horas_estipuladas),
   }
+}
+
+function tarefaPayloadSemClassificacao(payload: CriarTarefaPayload): AtualizarTarefaPayload {
+  const restante: AtualizarTarefaPayload = { ...payload }
+  delete restante.tipo_etapa
+  delete restante.proposta_referencia
+  delete restante.ordem_producao_referencia
+  return restante
 }
 
 function toggleColaborador(colaboradores: string[], colaboradorId: string): string[] {
@@ -2444,12 +2453,7 @@ export default function TarefasKanbanPage() {
         if (podeEditarTarefa && podeClassificarTarefa) {
           await atualizarMutation.mutateAsync({ tarefaId, payload: full })
         } else if (podeEditarTarefa) {
-          const {
-            tipo_etapa: _tipo,
-            proposta_referencia: _orc,
-            ordem_producao_referencia: _op,
-            ...restante
-          } = full
+          const restante = tarefaPayloadSemClassificacao(full)
           await atualizarMutation.mutateAsync({ tarefaId, payload: restante })
         } else if (podeClassificarTarefa) {
           await classificarMutation.mutateAsync({

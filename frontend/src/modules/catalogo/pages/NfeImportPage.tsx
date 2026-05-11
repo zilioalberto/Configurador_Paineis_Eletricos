@@ -87,7 +87,6 @@ function linhaCatalogoClass(existente: NfeProdutoExistenteResumo | null, diverge
 function NfeStatusCell({
   aberto,
   diverge,
-  emitenteCadastroDisponivel,
   existente,
   item,
   selecao,
@@ -96,7 +95,6 @@ function NfeStatusCell({
 }: Readonly<{
   aberto: boolean
   diverge: boolean
-  emitenteCadastroDisponivel: boolean
   existente: NfeProdutoExistenteResumo | null
   item: NfeItemSnapshot
   selecao: ItemSelecaoImportacao
@@ -158,6 +156,7 @@ function NfeItemRow({
   categorias,
   catPending,
   diverge,
+  emitenteCadastroDisponivel,
   existente,
   fornecedorEmitenteLabel,
   fornecedoresCombo,
@@ -173,6 +172,7 @@ function NfeItemRow({
   categorias: CategoriaProduto[]
   catPending: boolean
   diverge: boolean
+  emitenteCadastroDisponivel: boolean
   existente: NfeProdutoExistenteResumo | null
   fornecedorEmitenteLabel: string
   fornecedoresCombo: NfeFornecedorOption[]
@@ -405,7 +405,7 @@ export default function NfeImportPage() {
     Record<number, NfeProdutoExistenteResumo | null>
   >({})
   const [detalheAberto, setDetalheAberto] = useState<Record<number, boolean>>({})
-  const debounceResumoRef = useRef<number | null>(null)
+  const debounceResumoRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
 
   const snapshot = preview?.snapshot ?? null
 
