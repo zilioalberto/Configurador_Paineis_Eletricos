@@ -7,8 +7,12 @@ import {
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
-import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
+import { unidadeMedidaOptionsComValorAtual } from '../constants/catalogoChoiceOptions'
+import { useFornecedoresAtivosQuery } from '../hooks/useFornecedoresAtivosQuery'
 import EspecificacaoCatalogoFields from './EspecificacaoCatalogoFields'
 import type { CategoriaProduto } from '../types/categoria'
 import type { CategoriaProdutoNome } from '../types/categoria'
@@ -31,7 +35,12 @@ export default function ProdutoForm({
   lockCategoria = false,
 }: ProdutoFormProps) {
   const { showToast } = useToast()
+  const { user } = useAuth()
   const [formData, setFormData] = useState<ProdutoFormData>(initialData)
+
+  const canVerCadastro = hasPermission(user, PERMISSION_KEYS.CADASTRO_VISUALIZAR)
+  const { data: fornecedores = [], isFetching: loadingFornecedores } =
+    useFornecedoresAtivosQuery(canVerCadastro)
 
   useEffect(() => {
     setFormData(initialData)
@@ -43,6 +52,25 @@ export default function ProdutoForm({
   }, [categorias, formData.categoria])
 
   const temBlocoEspecificacao = Boolean(categoriaNome && getEspecApiKey(categoriaNome))
+
+  const opcoesUnidade = useMemo(
+    () => unidadeMedidaOptionsComValorAtual(formData.unidade_medida),
+    [formData.unidade_medida],
+  )
+
+  const opcoesFabricanteParceiro = useMemo(() => {
+    const id = formData.fabricante_parceiro.trim()
+    if (!id) return fornecedores
+    if (fornecedores.some((x) => x.id === id)) return fornecedores
+    return [
+      ...fornecedores,
+      {
+        id,
+        razao_social: formData.fabricante.trim() || id,
+        documento: '',
+      },
+    ]
+  }, [fornecedores, formData.fabricante_parceiro, formData.fabricante])
 
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -58,21 +86,36 @@ export default function ProdutoForm({
       }
       setFormData((prev) => ({ ...prev, [name]: value }))
     },
-    [categorias]
+    [categorias],
   )
 
-  const patchEspecificacao = useCallback(
-    (patch: Partial<EspecificacaoFormState>) => {
+  const onFabricanteParceiroChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      const id = e.target.value.trim()
+      if (!id) {
+        setFormData((prev) => ({ ...prev, fabricante_parceiro: '' }))
+        return
+      }
+      const f = opcoesFabricanteParceiro.find((x) => x.id === id)
+      const nome = (f?.razao_social ?? '').trim()
       setFormData((prev) => ({
         ...prev,
-        especificacao: {
-          ...(prev.especificacao ?? {}),
-          ...patch,
-        } as EspecificacaoFormState,
+        fabricante_parceiro: id,
+        fabricante: nome,
       }))
     },
-    []
+    [opcoesFabricanteParceiro],
   )
+
+  const patchEspecificacao = useCallback((patch: Partial<EspecificacaoFormState>) => {
+    setFormData((prev) => ({
+      ...prev,
+      especificacao: {
+        ...(prev.especificacao ?? {}),
+        ...patch,
+      } as EspecificacaoFormState,
+    }))
+  }, [])
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -180,7 +223,7 @@ export default function ProdutoForm({
         />
       </div>
 
-      <div className="col-md-4">
+      <div className="col-md-3">
         <label className="form-label" htmlFor="produto-un">
           Unidade de medida
         </label>
@@ -191,28 +234,51 @@ export default function ProdutoForm({
           value={formData.unidade_medida}
           onChange={handleBaseChange}
         >
-          {unidadeMedidaProdutoOptions.map((o) => (
-            <option key={o.value} value={o.value}>
+          {opcoesUnidade.map((o) => (
+            <option key={o.value} value={o.value} title={o.title}>
               {o.label}
             </option>
           ))}
         </select>
       </div>
-      <div className="col-md-4">
-        <label className="form-label" htmlFor="produto-valor">
-          Valor unitário
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="produto-preco-base">
+          Preço base
+        </label>
+        <div className="input-group">
+          <span className="input-group-text">R$</span>
+          <input
+            id="produto-preco-base"
+            name="preco_base"
+            type="text"
+            inputMode="decimal"
+            className="form-control"
+            value={formData.preco_base}
+            onChange={handleBaseChange}
+            aria-label="Preço base em reais"
+          />
+        </div>
+      </div>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="produto-aliquota-ipi">
+          Alíquota IPI (%)
         </label>
         <input
-          id="produto-valor"
-          name="valor_unitario"
+          id="produto-aliquota-ipi"
+          name="aliquota_ipi"
           type="text"
           inputMode="decimal"
           className="form-control"
-          value={formData.valor_unitario}
+          value={formData.aliquota_ipi}
           onChange={handleBaseChange}
+          placeholder="Opcional"
+          aria-describedby="produto-aliquota-ipi-hint"
         />
+        <div id="produto-aliquota-ipi-hint" className="form-text">
+          Gravada como <code>p_ipi</code> no primeiro item fiscal do produto (ordem).
+        </div>
       </div>
-      <div className="col-md-4 d-flex align-items-end">
+      <div className="col-md-3 d-flex align-items-end">
         <div className="form-check">
           <input
             id="produto-ativo"
@@ -229,17 +295,36 @@ export default function ProdutoForm({
       </div>
 
       <div className="col-md-6">
-        <label className="form-label" htmlFor="produto-fabricante">
-          Fabricante
+        <label className="form-label" htmlFor="produto-fabricante-parceiro">
+          Fabricante (cadastro)
         </label>
-        <input
-          id="produto-fabricante"
-          name="fabricante"
-          className="form-control"
-          value={formData.fabricante}
-          onChange={handleBaseChange}
-          maxLength={100}
-        />
+        <select
+          id="produto-fabricante-parceiro"
+          className="form-select"
+          value={formData.fabricante_parceiro}
+          onChange={onFabricanteParceiroChange}
+          disabled={!canVerCadastro || loadingFornecedores}
+        >
+          <option value="">(em branco)</option>
+          {opcoesFabricanteParceiro.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.razao_social}
+              {p.documento ? ` — ${p.documento}` : ''}
+            </option>
+          ))}
+        </select>
+        {!canVerCadastro ? (
+          <p className="form-text small text-muted mb-0">
+            É necessária a permissão de visualizar cadastros para listar fornecedores/fabricantes. Sem
+            ela, o vínculo permanece em branco.
+          </p>
+        ) : null}
+        {formData.fabricante.trim() && !formData.fabricante_parceiro.trim() ? (
+          <p className="form-text small text-muted mb-0">
+            Fabricante em texto (sem vínculo): <strong>{formData.fabricante}</strong>. Selecione um
+            fornecedor acima para padronizar pelo cadastro.
+          </p>
+        ) : null}
       </div>
       <div className="col-md-6">
         <label className="form-label" htmlFor="produto-ref-fab">
@@ -252,6 +337,7 @@ export default function ProdutoForm({
           value={formData.referencia_fabricante}
           onChange={handleBaseChange}
           maxLength={120}
+          placeholder="Se vazio, será usado o código do produto ao salvar"
         />
       </div>
 

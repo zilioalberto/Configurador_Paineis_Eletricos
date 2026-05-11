@@ -8,7 +8,9 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   descricao: '',
   categoria: '',
   unidade_medida: 'UN',
-  valor_unitario: '0',
+  preco_base: '0',
+  aliquota_ipi: '',
+  fabricante_parceiro: '',
   fabricante: '',
   referencia_fabricante: '',
   largura_mm: '',
@@ -22,7 +24,7 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
 export function applyCategoriaChange(
   prev: ProdutoFormData,
   categoriaId: string,
-  categorias: CategoriaProduto[]
+  categorias: CategoriaProduto[],
 ): ProdutoFormData {
   const cat = categorias.find((c) => c.id === categoriaId || c.nome === categoriaId)
   const nome = cat?.nome as CategoriaProdutoNome | undefined

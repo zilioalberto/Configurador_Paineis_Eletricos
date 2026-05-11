@@ -6,10 +6,18 @@ import { SidebarNavIcon } from '@/components/layout/sidebarNavIcons'
 describe('SidebarNavIcon', () => {
   it.each([
     '/',
+    '/dashboard',
     '/projetos',
     '/cargas',
     '/cargas/modelos',
     '/catalogo',
+    '/fiscal',
+    '/erp/cadastros',
+    '/erp/rh',
+    '/erp/orcamentos',
+    '/erp/configuracoes',
+    '/tarefas',
+    '/tarefas/horas-gestao',
     '/dimensionamento',
     '/composicao',
     '/administracao/utilizadores',

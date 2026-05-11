@@ -1,10 +1,4 @@
-type AuthUser = {
-  email: string
-  first_name: string
-  last_name: string
-  tipo_usuario: string
-  permissoes?: string[]
-}
+import type { AuthUser } from '@/modules/auth/types'
 
 export function authUser(permissoes: string[] = [], overrides: Partial<AuthUser> = {}): AuthUser {
   return {

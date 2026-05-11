@@ -2,7 +2,7 @@
 
 import pytest
 
-from cargas.models import CargaMotor
+from apps.configurador_paineis.cargas.models import CargaMotor
 from core.choices import (
     FrequenciaChoices,
     NumeroFasesChoices,
@@ -10,7 +10,7 @@ from core.choices import (
     TipoConexaoAlimetacaoChoices,
     UnidadePotenciaCorrenteChoices,
 )
-from projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import Projeto
 
 
 @pytest.fixture

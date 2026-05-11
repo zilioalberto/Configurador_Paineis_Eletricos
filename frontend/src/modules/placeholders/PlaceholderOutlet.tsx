@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 const TITLES: Record<string, string> = {
   '/catalogo': 'Catálogo',
   '/dimensionamento': 'Dimensionamento de condutores',
-  '/composicao': 'Composição do painel',
+  '/composicao': 'Composição do Painel',
 }
 
 export default function PlaceholderOutlet() {

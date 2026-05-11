@@ -1,19 +1,16 @@
 import { catalogoMenuItems, catalogoRoutes } from '@/modules/catalogo/catalogo.registry'
-import { dashboardMenuItems, dashboardRoutes } from '@/modules/dashboard/dashboard.registry'
-import { cargasMenuItems, cargasRoutes } from '@/modules/cargas/cargas.registry'
+import { fiscalMenuItems, fiscalRoutes } from '@/modules/fiscal/fiscal.registry'
 import {
-  composicaoMenuItems,
-  composicaoRoutes,
-} from '@/modules/composicao/composicao.registry'
-import {
-  dimensionamentoMenuItems,
-  dimensionamentoRoutes,
-} from '@/modules/dimensionamento/dimensionamento.registry'
+  configuradorPaineisMenuItems,
+  configuradorPaineisRoutes,
+} from '@/modules/configurador_paineis/configurador_paineis.registry'
+import { erpMenuItems, erpRoutes } from '@/modules/erp/erp.registry'
+import { modulosMenuItems, modulosRoutes } from '@/modules/modulos/modulos.registry'
 import {
   placeholdersMenuItems,
   placeholdersRoutes,
 } from '@/modules/placeholders/placeholders.registry'
-import { projetosMenuItems, projetosRoutes } from '@/modules/projetos/projetos.registry'
+import { tarefasMenuItems, tarefasRoutes } from '@/modules/tarefas/tarefas.registry'
 import {
   usuariosAdminMenuItems,
   usuariosAdminRoutes,
@@ -21,23 +18,23 @@ import {
 import type { AppMenuItem, ModuleRouteConfig } from './types'
 
 const routeModules: ModuleRouteConfig[][] = [
-  dashboardRoutes,
-  projetosRoutes,
-  cargasRoutes,
+  modulosRoutes,
+  configuradorPaineisRoutes,
   catalogoRoutes,
-  dimensionamentoRoutes,
-  composicaoRoutes,
+  fiscalRoutes,
+  tarefasRoutes,
+  erpRoutes,
   placeholdersRoutes,
   usuariosAdminRoutes,
 ]
 
 const menuModules: AppMenuItem[][] = [
-  dashboardMenuItems,
-  projetosMenuItems,
-  cargasMenuItems,
+  modulosMenuItems,
+  configuradorPaineisMenuItems,
   catalogoMenuItems,
-  dimensionamentoMenuItems,
-  composicaoMenuItems,
+  fiscalMenuItems,
+  tarefasMenuItems,
+  erpMenuItems,
   placeholdersMenuItems,
   usuariosAdminMenuItems,
 ]

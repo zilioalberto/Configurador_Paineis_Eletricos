@@ -112,9 +112,14 @@ export default function ProdutoListPage() {
             Atualizar
           </button>
           {canManageProdutos ? (
-            <Link to="/catalogo/novo" className="btn btn-primary">
-              Novo produto
-            </Link>
+            <>
+              <Link to="/catalogo/importar-nfe" className="btn btn-outline-primary">
+                Importar NF-e
+              </Link>
+              <Link to="/catalogo/novo" className="btn btn-primary">
+                Novo produto
+              </Link>
+            </>
           ) : null}
         </div>
       </div>
