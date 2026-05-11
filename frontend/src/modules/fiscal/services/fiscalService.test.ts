@@ -41,7 +41,7 @@ describe('fiscalService', () => {
     getMock.mockResolvedValueOnce({
       data: {
         count: 42,
-        next: 'http://api/?page=2',
+        next: 'https://api/?page=2',
         previous: null,
         results: [rowStub('1')],
       },
@@ -66,7 +66,7 @@ describe('fiscalService', () => {
       data: {
         count: '99',
         next: null,
-        previous: 'http://api/?page=1',
+        previous: 'https://api/?page=1',
         results: [rowStub('2')],
       },
     })
