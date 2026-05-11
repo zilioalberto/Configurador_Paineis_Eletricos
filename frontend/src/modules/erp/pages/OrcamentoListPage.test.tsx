@@ -73,8 +73,15 @@ describe('OrcamentoListPage', () => {
   it('cria orçamento com cliente e contato principal', async () => {
     renderPage()
 
-    fireEvent.change(await screen.findByLabelText('Cliente'), {
+    const clienteSelect = await screen.findByLabelText('Cliente')
+    await waitFor(() => {
+      expect(clienteSelect).not.toBeDisabled()
+    })
+    fireEvent.change(clienteSelect, {
       target: { value: 'cli-1' },
+    })
+    await waitFor(() => {
+      expect(listarContatosCliente).toHaveBeenCalledWith('cli-1')
     })
     await waitFor(() => {
       expect(screen.getByLabelText('Contato do cliente')).toHaveValue('ct-1')
@@ -121,7 +128,11 @@ describe('OrcamentoListPage', () => {
 
     renderPage()
 
-    fireEvent.change(await screen.findByLabelText('Cliente'), {
+    const clienteSelect = await screen.findByLabelText('Cliente')
+    await waitFor(() => {
+      expect(clienteSelect).not.toBeDisabled()
+    })
+    fireEvent.change(clienteSelect, {
       target: { value: 'cli-1' },
     })
     await waitFor(() => {
