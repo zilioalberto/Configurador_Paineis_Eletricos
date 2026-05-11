@@ -104,8 +104,9 @@ class Tarefa(BaseModel):
 
     def pode_ser_excluida(self):
         """
-        Exclusão permitida só para tarefas ainda não iniciadas: status inicial no fluxo,
-        sem apontamentos de horas e sem sessões de cronômetro.
+        Critério estrito (sem apontamentos/sessões e status inicial) — útil para regras de UI
+        ou integrações. Administradores e gestores podem excluir pela API mesmo quando este
+        método retorna False (ver TarefaViewSet.destroy).
         """
         if self.status not in (
             StatusTarefaChoices.PENDENTE,

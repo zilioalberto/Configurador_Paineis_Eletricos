@@ -25,6 +25,10 @@ export type AdminUserDto = {
   permissoes_efetivas: string[]
   is_active: boolean
   date_created: string
+  /** Registo de RH vinculado (somente leitura; vínculo principal no cadastro do colaborador). */
+  colaborador_id: string | null
+  colaborador_matricula: string | null
+  colaborador_nome: string | null
 }
 
 export type AdminUserCreatePayload = {

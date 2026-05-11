@@ -4,12 +4,14 @@ import uuid
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db import transaction
 from django.utils import timezone
 
 from apps.cadastros.models import ContatoParceiro, ParceiroComercial
+from apps.catalogo.models import Produto
 
 
 class StatusOrcamentoChoices(models.TextChoices):
@@ -28,6 +30,7 @@ class TipoItemOrcamentoChoices(models.TextChoices):
 class OrigemItemOrcamentoChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
     CONFIGURADOR = "CONFIGURADOR", "Configurador de paineis"
+    CATALOGO = "CATALOGO", "Catalogo de produtos"
 
 
 class SequenciaPropostaMensal(models.Model):
@@ -125,6 +128,22 @@ class Orcamento(models.Model):
         db_index=True,
     )
     valido_ate = models.DateField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="criado por",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_criados",
+    )
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="ultima alteracao por",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_atualizados",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -166,6 +185,21 @@ class OrcamentoItem(models.Model):
     custo_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
     margem_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     preco_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="orcamento_itens",
+    )
+    aliquota_ipi = models.DecimalField(
+        "Aliquota IPI (%)",
+        max_digits=7,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Referencia do catalogo (primeiro item fiscal); pode ser ajustada na linha.",
+    )
 
     class Meta:
         db_table = "erp_orcamento_item"

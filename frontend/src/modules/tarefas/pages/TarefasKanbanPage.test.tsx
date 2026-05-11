@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -104,6 +105,17 @@ vi.mock('@/modules/auth/AuthContext', () => ({
 }))
 
 import TarefasKanbanPage from './TarefasKanbanPage'
+
+function renderKanban() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={client}>
+      <TarefasKanbanPage />
+    </QueryClientProvider>
+  )
+}
 
 function usuarioComPermissoes(
   permissoes = [
@@ -278,7 +290,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     expect(screen.getByRole('heading', { name: 'Tarefas e Kanban' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Nenhum quadro ativo encontrado' })).toBeInTheDocument()
@@ -295,7 +307,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar quadro padrão' }))
 
@@ -312,7 +324,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     expect(screen.getAllByText('Execução').length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: 'Pendentes' })).toBeInTheDocument()
@@ -332,7 +344,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     const dashboard = screen.getByLabelText(
       'Total das minhas horas apontadas hoje em tarefas'
@@ -354,7 +366,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Lista' }))
     expect(screen.getByRole('columnheader', { name: 'Tarefa' })).toBeInTheDocument()
@@ -380,7 +392,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     expect(
       screen.queryByRole('button', { name: 'Iniciar horas de Montar base do painel' })
@@ -403,7 +415,7 @@ describe('TarefasKanbanPage', () => {
     })
     const dataTransfer = dataTransferMock()
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.dragStart(screen.getByTestId('kanban-card-t-1'), { dataTransfer })
     fireEvent.dragOver(screen.getByTestId('kanban-column-c-2'), { dataTransfer })
@@ -428,7 +440,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('button', { name: 'Nova tarefa' }))
     fireEvent.change(screen.getByRole('textbox', { name: /título/i }), {
@@ -460,7 +472,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByTestId('kanban-card-t-1'))
     fireEvent.change(screen.getByLabelText('Título'), {
@@ -494,7 +506,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByTestId('kanban-card-t-1'))
     fireEvent.click(screen.getByRole('checkbox', { name: /Ana Souza/ }))
@@ -545,7 +557,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByTestId('kanban-card-t-1'))
 
@@ -569,7 +581,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByTestId('kanban-card-t-1'))
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar horas' }))
@@ -587,7 +599,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar horas de Montar base do painel' }))
 
@@ -622,7 +634,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('button', { name: 'Iniciar horas de Montar base do painel' }))
 
@@ -660,7 +672,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     expect(screen.getByTestId('kanban-card-t-1')).toHaveClass('is-timing')
 
@@ -697,7 +709,7 @@ describe('TarefasKanbanPage', () => {
       refetch: vi.fn(),
     })
 
-    render(<TarefasKanbanPage />)
+    renderKanban()
 
     fireEvent.click(screen.getByRole('button', { name: 'Parar horas de Montar base do painel' }))
 

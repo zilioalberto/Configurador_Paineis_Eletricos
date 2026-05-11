@@ -4,11 +4,26 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.serializers import empty
 
+from apps.catalogo.models import Produto
+from apps.fiscal.services import p_ipi_referencia_produto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
     OrcamentoItem,
+    OrigemItemOrcamentoChoices,
     TipoItemOrcamentoChoices,
+)
+
+_ORCAMENTO_ITEM_MERGE_FIELDS = (
+    "tipo",
+    "origem",
+    "descricao",
+    "quantidade",
+    "custo_unitario",
+    "margem_percentual",
+    "preco_unitario",
+    "produto",
+    "aliquota_ipi",
 )
 
 
@@ -16,6 +31,12 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
     """Item aninhado: `id` opcional na atualização (linhas novas sem id)."""
 
     id = serializers.UUIDField(required=False, allow_null=True)
+    descricao = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    produto = serializers.PrimaryKeyRelatedField(
+        queryset=Produto.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = OrcamentoItem
@@ -29,6 +50,8 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "custo_unitario",
             "margem_percentual",
             "preco_unitario",
+            "produto",
+            "aliquota_ipi",
         )
         read_only_fields = ()
 
@@ -38,6 +61,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.SerializerMethodField()
     contato_cliente_nome = serializers.SerializerMethodField()
     contato_cliente_email = serializers.SerializerMethodField()
+    criado_por_label = serializers.SerializerMethodField()
+    atualizado_por_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Orcamento
@@ -58,6 +83,10 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "valido_ate",
             "criado_em",
             "atualizado_em",
+            "criado_por",
+            "criado_por_label",
+            "atualizado_por",
+            "atualizado_por_label",
             "itens",
         )
         read_only_fields = (
@@ -68,6 +97,10 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "contato_cliente_email",
             "criado_em",
             "atualizado_em",
+            "criado_por",
+            "criado_por_label",
+            "atualizado_por",
+            "atualizado_por_label",
         )
 
     def get_cliente_nome(self, obj):
@@ -78,6 +111,21 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     def get_contato_cliente_email(self, obj):
         return obj.contato_cliente.email if obj.contato_cliente_id else ""
+
+    @staticmethod
+    def _usuario_label(user) -> str:
+        if user is None:
+            return ""
+        nome = f"{user.first_name} {user.last_name}".strip()
+        if nome:
+            return f"{nome} ({user.email})"
+        return user.email
+
+    def get_criado_por_label(self, obj):
+        return self._usuario_label(obj.criado_por)
+
+    def get_atualizado_por_label(self, obj):
+        return self._usuario_label(obj.atualizado_por)
 
     def validate(self, attrs):
         instance = self.instance
@@ -96,6 +144,10 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", empty)
         self._aplicar_margens_cliente(validated_data)
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user and getattr(user, "is_authenticated", False):
+            validated_data["atualizado_por"] = user
         instance = super().update(instance, validated_data)
         if itens_data is not empty:
             self._sync_itens(instance, itens_data)
@@ -122,26 +174,85 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             return orcamento.margem_servicos_percentual
         return orcamento.margem_produtos_percentual
 
-    def _normalizar_item_data(self, orcamento, item_data, idx):
+    def _preencher_item_produto_catalogo(self, data, produto: Produto) -> None:
+        if data.get("tipo") == TipoItemOrcamentoChoices.SERVICO:
+            raise serializers.ValidationError(
+                {"itens": "Serviço não pode referenciar produto do catálogo."}
+            )
+        data["tipo"] = TipoItemOrcamentoChoices.PRODUTO
+        data["origem"] = OrigemItemOrcamentoChoices.CATALOGO
+        desc = (data.get("descricao") or "").strip()
+        data["descricao"] = desc or produto.descricao
+        data["custo_unitario"] = produto.preco_base
+        data["aliquota_ipi"] = p_ipi_referencia_produto(produto)
+
+    def _normalizar_item_data(
+        self,
+        orcamento,
+        item_data,
+        idx,
+        *,
+        rehydrate_catalogo=False,
+        clear_produto=False,
+    ):
         data = dict(item_data)
+        if clear_produto:
+            data["produto"] = None
+            data["aliquota_ipi"] = None
+            if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
+                data["origem"] = OrigemItemOrcamentoChoices.MANUAL
         data["ordem"] = data.get("ordem", idx)
-        data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
-        data["origem"] = data.get("origem") or "MANUAL"
+        produto = data.get("produto")
+        if rehydrate_catalogo and produto is not None:
+            self._preencher_item_produto_catalogo(data, produto)
+        else:
+            data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
+            data["origem"] = data.get("origem") or OrigemItemOrcamentoChoices.MANUAL
         data["quantidade"] = data.get("quantidade", 1)
-        data["custo_unitario"] = data.get("custo_unitario", 0)
+        if not rehydrate_catalogo:
+            data["custo_unitario"] = data.get("custo_unitario", 0)
         if data.get("margem_percentual") in (None, "") or "margem_percentual" not in data:
             data["margem_percentual"] = self._margem_padrao_item(orcamento, data["tipo"])
         if "preco_unitario" not in data or data.get("preco_unitario") in (None, ""):
             custo = data.get("custo_unitario") or 0
             margem = data.get("margem_percentual") or 0
             data["preco_unitario"] = custo * (1 + margem / 100)
+        if not (data.get("descricao") or "").strip():
+            raise serializers.ValidationError(
+                {"itens": "Cada item precisa de descrição (ou produto do catálogo)."}
+            )
         return data
+
+    def _normalize_itens_list(self, orcamento, itens_data):
+        normalized = []
+        for idx, raw_in in enumerate(itens_data):
+            raw = dict(raw_in)
+            item_id = raw.get("id")
+            if item_id:
+                existing = OrcamentoItem.objects.filter(
+                    pk=item_id, orcamento=orcamento
+                ).first()
+                if existing:
+                    for field in _ORCAMENTO_ITEM_MERGE_FIELDS:
+                        if field not in raw_in:
+                            raw[field] = getattr(existing, field)
+            rehydrate = "produto" in raw_in and raw_in.get("produto") is not None
+            clear_prod = "produto" in raw_in and raw_in.get("produto") is None
+            normalized.append(
+                self._normalizar_item_data(
+                    orcamento,
+                    raw,
+                    idx,
+                    rehydrate_catalogo=rehydrate,
+                    clear_produto=clear_prod,
+                )
+            )
+        return normalized
 
     def _sync_itens(self, orcamento, itens_data):
         kept_ids = []
         with transaction.atomic():
-            for idx, raw in enumerate(itens_data):
-                raw = self._normalizar_item_data(orcamento, raw, idx)
+            for raw in self._normalize_itens_list(orcamento, itens_data):
                 item_id = raw.get("id")
                 ordem = raw["ordem"]
                 descricao = raw["descricao"]
@@ -165,6 +276,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                     item.custo_unitario = raw["custo_unitario"]
                     item.margem_percentual = raw["margem_percentual"]
                     item.preco_unitario = raw["preco_unitario"]
+                    item.produto = raw.get("produto")
+                    item.aliquota_ipi = raw.get("aliquota_ipi")
                     item.save(update_fields=(
                         "ordem",
                         "tipo",
@@ -174,6 +287,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                         "custo_unitario",
                         "margem_percentual",
                         "preco_unitario",
+                        "produto",
+                        "aliquota_ipi",
                     ))
                     kept_ids.append(item.pk)
                 else:
@@ -187,6 +302,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                         custo_unitario=raw["custo_unitario"],
                         margem_percentual=raw["margem_percentual"],
                         preco_unitario=raw["preco_unitario"],
+                        produto=raw.get("produto"),
+                        aliquota_ipi=raw.get("aliquota_ipi"),
                     )
                     kept_ids.append(novo.pk)
             OrcamentoItem.objects.filter(orcamento=orcamento).exclude(
@@ -196,20 +313,26 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         itens_data = validated_data.pop("itens", [])
         self._aplicar_margens_cliente(validated_data)
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user and getattr(user, "is_authenticated", False):
+            validated_data["criado_por"] = user
+            validated_data["atualizado_por"] = user
         with transaction.atomic():
             orcamento = Orcamento.objects.create(**validated_data)
-            for idx, item_data in enumerate(itens_data):
-                item_data = self._normalizar_item_data(orcamento, item_data, idx)
+            for raw in self._normalize_itens_list(orcamento, itens_data):
                 OrcamentoItem.objects.create(
                     orcamento=orcamento,
-                    ordem=item_data["ordem"],
-                    tipo=item_data["tipo"],
-                    origem=item_data["origem"],
-                    descricao=item_data["descricao"],
-                    quantidade=item_data["quantidade"],
-                    custo_unitario=item_data["custo_unitario"],
-                    margem_percentual=item_data["margem_percentual"],
-                    preco_unitario=item_data["preco_unitario"],
+                    ordem=raw["ordem"],
+                    tipo=raw["tipo"],
+                    origem=raw["origem"],
+                    descricao=raw["descricao"],
+                    quantidade=raw["quantidade"],
+                    custo_unitario=raw["custo_unitario"],
+                    margem_percentual=raw["margem_percentual"],
+                    preco_unitario=raw["preco_unitario"],
+                    produto=raw.get("produto"),
+                    aliquota_ipi=raw.get("aliquota_ipi"),
                 )
         return orcamento
 

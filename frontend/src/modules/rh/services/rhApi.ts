@@ -11,6 +11,7 @@ import type {
   JornadaTrabalhoDto,
   JornadaTrabalhoPayload,
   RhListFilters,
+  UsuarioVinculoDto,
 } from '../types/rh'
 
 const BASE = {
@@ -19,6 +20,7 @@ const BASE = {
   jornadas: '/rh/jornadas/',
   equipes: '/rh/equipes/',
   colaboradores: '/rh/colaboradores/',
+  usuariosVinculo: '/rh/colaboradores/usuarios-vinculo/',
 } as const
 
 function normalizeList<T>(data: unknown): T[] {
@@ -100,4 +102,14 @@ export const rhApi = {
   atualizarColaborador: (id: string, payload: Partial<ColaboradorPayload>) =>
     patch<ColaboradorDto, ColaboradorPayload>(BASE.colaboradores, id, payload),
   excluirColaborador: (id: string) => remove(BASE.colaboradores, id),
+
+  listarUsuariosParaVinculo: (params?: { colaborador?: string | null; search?: string }) =>
+    apiClient
+      .get<UsuarioVinculoDto[]>(BASE.usuariosVinculo, {
+        params: {
+          ...(params?.colaborador ? { colaborador: params.colaborador } : {}),
+          ...(params?.search?.trim() ? { search: params.search.trim() } : {}),
+        },
+      })
+      .then((r) => r.data),
 }

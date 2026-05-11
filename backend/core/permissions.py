@@ -31,6 +31,7 @@ class PermissionKeys:
     TAREFA_CLASSIFICAR = "tarefa.classificar"
     TAREFA_INICIAR = "tarefa.iniciar"
     TAREFA_CONCLUIR = "tarefa.concluir"
+    TAREFA_EXCLUIR = "tarefa.excluir"
     TAREFA_GERENCIAR_PARTICIPANTES = "tarefa.gerenciar_participantes"
     TAREFA_APONTAR_HORAS = "tarefa.apontar_horas"
     TAREFA_APONTAR_HORAS_TODAS = "tarefa.apontar_horas_todas"

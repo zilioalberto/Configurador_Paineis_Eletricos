@@ -48,7 +48,9 @@ class UserPermissionOptionsView(APIView):
 
 class AdminUserListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAppAdmin]
-    queryset = User.objects.all().order_by("email")
+
+    def get_queryset(self):
+        return User.objects.all().select_related("colaborador_rh").order_by("email")
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -58,7 +60,9 @@ class AdminUserListCreateView(generics.ListCreateAPIView):
 
 class AdminUserRetrieveUpdateView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsAppAdmin]
-    queryset = User.objects.all()
+
+    def get_queryset(self):
+        return User.objects.all().select_related("colaborador_rh")
 
     def get_serializer_class(self):
         if self.request.method == "GET":

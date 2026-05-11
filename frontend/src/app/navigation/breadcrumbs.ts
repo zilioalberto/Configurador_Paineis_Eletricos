@@ -7,14 +7,14 @@ export type BreadcrumbItem = {
 }
 
 const PLACEHOLDER_LABELS: Record<string, string> = {
-  '/dashboard': 'Painel do configurador de painéis',
-  '/catalogo': 'Catálogo técnico',
+  '/dashboard': 'Painel do configurador',
+  '/catalogo': 'Catálogo',
   '/tarefas': 'Tarefas e Kanban',
   '/dimensionamento': 'Dimensionamento de condutores',
-  '/composicao': 'Composição do painel',
+  '/composicao': 'Composição do Painel',
 }
 const PROJETO_BASE = { label: 'Projetos', to: '/projetos' } as const
-const CARGA_BASE = { label: 'Cargas do projeto', to: '/cargas' } as const
+const CARGA_BASE = { label: 'Cargas do Projeto', to: '/cargas' } as const
 
 function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
   if (path === '/projetos') return [PROJETO_BASE]

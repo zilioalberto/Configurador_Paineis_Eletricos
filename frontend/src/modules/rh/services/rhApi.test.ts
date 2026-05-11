@@ -105,4 +105,18 @@ describe('rhApi', () => {
     })
     expect(deleteMock).toHaveBeenCalledWith('/rh/colaboradores/col-1/')
   })
+
+  it('lista utilizadores para vínculo ao colaborador', async () => {
+    getMock.mockResolvedValueOnce({
+      data: [{ id: 3, email: 'a@x.com', nome: 'Ana' }],
+    })
+
+    await expect(
+      rhApi.listarUsuariosParaVinculo({ colaborador: 'uuid-col-1', search: 'ana' })
+    ).resolves.toHaveLength(1)
+
+    expect(getMock).toHaveBeenCalledWith('/rh/colaboradores/usuarios-vinculo/', {
+      params: { colaborador: 'uuid-col-1', search: 'ana' },
+    })
+  })
 })

@@ -1,11 +1,11 @@
 import { lazy } from 'react'
-import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
+import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
 
 const DimensionamentoPage = lazy(() => import('./pages/DimensionamentoPage'))
 
-export const dimensionamentoMenuItems: AppMenuItem[] = [
+export const dimensionamentoMenuItems: AppMenuLinkItem[] = [
   {
     to: '/dimensionamento',
     label: 'Dimensionamento de condutores',

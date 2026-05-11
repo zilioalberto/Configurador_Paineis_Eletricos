@@ -164,6 +164,10 @@ export type SessaoTrabalhoTarefa = {
 
 export type TarefaTimerAtivoResponse = {
   sessao: SessaoTrabalhoTarefa | null
+  /** ISO8601: quando o servidor encerrará o cronómetro se ninguém parar antes (fim do segmento da jornada). */
+  pausa_automatica_prevista_em?: string | null
+  jornada_permite_iniciar_cronometro?: boolean
+  jornada_mensagem?: string
 }
 
 export type TarefaTimerPararResponse = {

@@ -33,7 +33,7 @@ export const ERP_MODULES: ErpModule[] = [
   {
     id: 'catalogo',
     backendPackage: 'apps.catalogo',
-    title: 'Catálogo técnico',
+    title: 'Catálogo',
     area: 'Base compartilhada',
     summary:
       'Produtos, categorias, especificações técnicas e importação de XML de NF-e de fornecedores.',

@@ -513,6 +513,75 @@ h3,
   color: var(--cp-accent);
 }
 
+.app-sidebar-menu-group-trigger {
+  cursor: pointer;
+}
+
+.app-sidebar-menu-group-chevron {
+  flex-shrink: 0;
+  opacity: 0.75;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.app-sidebar-submenu {
+  min-width: 15rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+  background: var(--cp-primary);
+  color: #fff;
+  border-radius: var(--cp-radius-md);
+  box-shadow: var(--cp-shadow-md);
+  padding: 0.35rem 0;
+}
+
+.app-sidebar-submenu-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.6rem 1rem 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  margin-bottom: 0.25rem;
+}
+
+.app-sidebar-submenu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.25rem 0;
+}
+
+.app-sidebar-submenu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.94) !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-sidebar-submenu-link:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff !important;
+}
+
+.app-sidebar-submenu-link.active {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #fff !important;
+}
+
+.app-sidebar-submenu-link .app-sidebar-nav-icon {
+  opacity: 0.95;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.app-sidebar-submenu-link.active .app-sidebar-nav-icon {
+  color: var(--cp-accent);
+}
+
 .app-sidebar-footer {
   margin-top: auto;
   padding: 0.85rem 0.75rem 1.1rem;
@@ -605,6 +674,14 @@ h3,
   .app-sidebar:not(:hover):not(:focus-within) .app-sidebar-link-label {
     opacity: 0;
     max-width: 0;
+  }
+
+  .app-sidebar:not(:hover):not(:focus-within) .app-sidebar-menu-group-chevron {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
   }
 
   .app-sidebar:not(:hover):not(:focus-within) .app-sidebar-footer {

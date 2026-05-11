@@ -1,14 +1,14 @@
 import { lazy } from 'react'
-import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
+import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
 
 const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 
-export const composicaoMenuItems: AppMenuItem[] = [
+export const composicaoMenuItems: AppMenuLinkItem[] = [
   {
     to: '/composicao',
-    label: 'Composição do painel',
+    label: 'Composição do Painel',
     order: 50,
     requiresPermission: PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS,
   },

@@ -3,9 +3,8 @@ import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 
-export const dashboardMenuItems: AppMenuItem[] = [
-  { to: '/dashboard', label: 'Painel do configurador de painéis', end: true, order: 5 },
-]
+/** O painel `/dashboard` mantém-se como rota; deixou de constar no menu linear lateral. */
+export const dashboardMenuItems: AppMenuItem[] = []
 
 export const dashboardRoutes: ModuleRouteConfig[] = [
   { path: '/dashboard', element: <DashboardPage /> },

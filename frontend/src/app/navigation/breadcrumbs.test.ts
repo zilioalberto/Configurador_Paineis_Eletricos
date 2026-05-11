@@ -20,14 +20,14 @@ describe('getBreadcrumbItems', () => {
 
   it('resolve trilha de cargas e placeholders', () => {
     expect(getBreadcrumbItems('/cargas/novo')).toEqual([
-      { label: 'Cargas do projeto', to: '/cargas' },
+      { label: 'Cargas do Projeto', to: '/cargas' },
       { label: 'Nova carga' },
     ])
     expect(getBreadcrumbItems('/cargas/abc')).toEqual([
-      { label: 'Cargas do projeto', to: '/cargas' },
+      { label: 'Cargas do Projeto', to: '/cargas' },
       { label: 'Detalhes da carga' },
     ])
-    expect(getBreadcrumbItems('/catalogo')).toEqual([{ label: 'Catálogo técnico' }])
+    expect(getBreadcrumbItems('/catalogo')).toEqual([{ label: 'Catálogo' }])
     expect(getBreadcrumbItems('/tarefas')).toEqual([{ label: 'Tarefas e Kanban' }])
     expect(getBreadcrumbItems('/tarefas/horas-gestao')).toEqual([
       { label: 'Tarefas e Kanban', to: '/tarefas' },

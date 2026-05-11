@@ -103,6 +103,13 @@ export type EquipePayload = {
   ativo: boolean
 }
 
+/** Utilizadores disponíveis para vínculo no cadastro do colaborador (GET .../usuarios-vinculo/). */
+export type UsuarioVinculoDto = {
+  id: number
+  email: string
+  nome: string | null
+}
+
 export type ColaboradorPayload = {
   usuario?: number | null
   matricula: string

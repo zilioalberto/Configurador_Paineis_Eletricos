@@ -7,12 +7,17 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.cadastros.models import ContatoParceiro, ParceiroComercial
+from apps.catalogo.models import Produto
+from apps.fiscal.models import ItemFiscalProduto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
     OrcamentoItem,
+    OrigemItemOrcamentoChoices,
     StatusOrcamentoChoices,
+    TipoItemOrcamentoChoices,
 )
+from core.choices.produtos import CategoriaProdutoNomeChoices
 
 User = get_user_model()
 
@@ -85,6 +90,22 @@ def test_create_orcamento_gera_codigo_e_vincula_cliente_contato(
     orcamento = Orcamento.objects.get(pk=body["id"])
     assert orcamento.cliente == cliente
     assert orcamento.contato_cliente == contato
+    assert orcamento.criado_por_id == user.id
+    assert orcamento.atualizado_por_id == user.id
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_atualiza_atualizado_por(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(codigo="O-AUDIT", titulo="Audit", status=StatusOrcamentoChoices.RASCUNHO)
+    assert orc.criado_por_id is None
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+    resp = client.patch(url, {"titulo": "Audit 2"}, format="json")
+    assert resp.status_code == 200, resp.content
+    orc.refresh_from_db()
+    assert orc.atualizado_por_id == user.id
+    assert resp.json()["atualizado_por"] == user.id
 
 
 @pytest.mark.django_db
@@ -230,6 +251,69 @@ def test_patch_orcamento_sem_itens_preserva_linhas(user_admin):
     assert OrcamentoItem.objects.filter(orcamento=orc).count() == 2
     assert Orcamento.objects.get(pk=orc.pk).titulo == "Só cabeçalho"
     assert OrcamentoItem.objects.filter(pk=i1.pk).exists()
+
+
+@pytest.mark.django_db
+def test_create_orcamento_item_produto_catalogo_preco_e_ipi(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    produto = Produto.objects.create(
+        codigo="CAT-ORC-001",
+        descricao="Produto lista IPI",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="150.00",
+    )
+    ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="5.2500")
+    client = _auth_client(user, raw)
+
+    resp = client.post(
+        reverse("erp-orcamento-list"),
+        {
+            "titulo": "Com produto catalogo",
+            "cliente": str(cliente.id),
+            "margem_produtos_percentual": "10.00",
+            "itens": [
+                {"produto": str(produto.id), "quantidade": "2"},
+            ],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 201, resp.content
+    item = OrcamentoItem.objects.get(orcamento_id=resp.json()["id"])
+    assert item.produto_id == produto.id
+    assert item.origem == OrigemItemOrcamentoChoices.CATALOGO
+    assert item.tipo == TipoItemOrcamentoChoices.PRODUTO
+    assert item.descricao == produto.descricao
+    assert item.custo_unitario == 150
+    assert item.margem_percentual == 10
+    assert item.preco_unitario == 165
+    assert item.aliquota_ipi == 5.25
+
+
+@pytest.mark.django_db
+def test_create_orcamento_item_servico_com_produto_rejeita(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    produto = Produto.objects.create(
+        codigo="CAT-ORC-002",
+        descricao="X",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="1.00",
+    )
+    client = _auth_client(user, raw)
+    resp = client.post(
+        reverse("erp-orcamento-list"),
+        {
+            "titulo": "Invalido",
+            "cliente": str(cliente.id),
+            "itens": [
+                {"tipo": "SERVICO", "produto": str(produto.id), "descricao": "Servico misto"},
+            ],
+        },
+        format="json",
+    )
+    assert resp.status_code == 400
 
 
 @pytest.mark.django_db

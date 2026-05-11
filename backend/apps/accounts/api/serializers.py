@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from core.choices import DEFAULT_PERMISSIONS_BY_TIPO, PermissaoUsuarioChoices, TipoUsuarioChoices
@@ -8,6 +9,9 @@ User = get_user_model()
 
 class AdminUserListSerializer(serializers.ModelSerializer):
     permissoes_efetivas = serializers.SerializerMethodField()
+    colaborador_id = serializers.SerializerMethodField()
+    colaborador_matricula = serializers.SerializerMethodField()
+    colaborador_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -23,11 +27,32 @@ class AdminUserListSerializer(serializers.ModelSerializer):
             "permissoes_efetivas",
             "is_active",
             "date_created",
+            "colaborador_id",
+            "colaborador_matricula",
+            "colaborador_nome",
         )
         read_only_fields = fields
 
     def get_permissoes_efetivas(self, obj):
         return obj.permissoes_efetivas
+
+    def _colaborador_rh(self, obj):
+        try:
+            return obj.colaborador_rh
+        except ObjectDoesNotExist:
+            return None
+
+    def get_colaborador_id(self, obj):
+        c = self._colaborador_rh(obj)
+        return str(c.pk) if c else None
+
+    def get_colaborador_matricula(self, obj):
+        c = self._colaborador_rh(obj)
+        return c.matricula if c else None
+
+    def get_colaborador_nome(self, obj):
+        c = self._colaborador_rh(obj)
+        return c.nome if c else None
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):

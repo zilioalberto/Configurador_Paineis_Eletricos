@@ -197,7 +197,7 @@ describe('tarefasService', () => {
         },
       })
 
-    await expect(obterTimerAtivoTarefa()).resolves.toEqual({ sessao: null })
+    await expect(obterTimerAtivoTarefa()).resolves.toMatchObject({ sessao: null })
     await expect(iniciarTimerTarefa('t-1')).resolves.toEqual({
       sessao: { id: 's-1', tarefa: 't-1' },
     })

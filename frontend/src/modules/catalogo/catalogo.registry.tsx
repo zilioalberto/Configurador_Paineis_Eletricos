@@ -16,7 +16,7 @@ function withPermission(permission: string, element: ReactElement): ReactElement
 export const catalogoMenuItems: AppMenuItem[] = [
   {
     to: '/catalogo',
-    label: 'Catálogo técnico',
+    label: 'Catálogo',
     order: 30,
     requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
   },

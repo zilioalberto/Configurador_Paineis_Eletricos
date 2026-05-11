@@ -1,9 +1,11 @@
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.choices import DEFAULT_PERMISSIONS_BY_TIPO, TipoUsuarioChoices
@@ -21,6 +23,7 @@ from apps.tarefas.models import (
     TipoTarefaChoices,
     TipoHistoricoTarefaChoices,
 )
+from apps.rh.models import Colaborador, JornadaTrabalho
 from apps.tarefas.services.quadro_padrao import garantir_quadro_padrao_tarefas
 
 User = get_user_model()
@@ -927,7 +930,10 @@ class TestTarefasApi:
             password=raw,
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.USUARIO,
-            permissoes_extras=[PermissionKeys.TAREFA_VISUALIZAR_TODAS],
+            permissoes_extras=[
+                PermissionKeys.TAREFA_VISUALIZAR_TODAS,
+                PermissionKeys.TAREFA_EXCLUIR,
+            ],
         )
         _quadro, pendentes, _trabalhando, _entregue = quadro_colunas
         tarefa = _tarefa_interna(titulo="Excluir ok", coluna=pendentes, criador=user)
@@ -951,14 +957,35 @@ class TestTarefasApi:
         assert response.status_code == 403
         assert Tarefa.objects.filter(pk=tarefa.pk).exists()
 
-    def test_gestor_nao_exclui_tarefa_com_apontamento(self, quadro_colunas):
+    def test_visualizar_todas_sem_excluir_nao_exclui_tarefa(self, quadro_colunas):
+        raw = secrets.token_urlsafe(32)
+        user = User.objects.create_user(
+            email="tarefas-gestor-sem-excluir@test.com",
+            password=raw,
+            is_active=True,
+            tipo_usuario=TipoUsuarioChoices.USUARIO,
+            permissoes_extras=[PermissionKeys.TAREFA_VISUALIZAR_TODAS],
+        )
+        _quadro, pendentes, _trabalhando, _entregue = quadro_colunas
+        tarefa = _tarefa_interna(titulo="Só vê, não exclui", coluna=pendentes, criador=user)
+        client = _auth_client(user, raw)
+
+        response = client.delete(reverse("tarefas-detail", kwargs={"pk": tarefa.pk}))
+
+        assert response.status_code == 403
+        assert Tarefa.objects.filter(pk=tarefa.pk).exists()
+
+    def test_gestor_exclui_tarefa_com_apontamento(self, quadro_colunas):
         raw = secrets.token_urlsafe(32)
         user = User.objects.create_user(
             email="tarefas-gestor-del2@test.com",
             password=raw,
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.USUARIO,
-            permissoes_extras=[PermissionKeys.TAREFA_VISUALIZAR_TODAS],
+            permissoes_extras=[
+                PermissionKeys.TAREFA_VISUALIZAR_TODAS,
+                PermissionKeys.TAREFA_EXCLUIR,
+            ],
         )
         _quadro, _pendentes, trabalhando, _entregue = quadro_colunas
         tarefa = _tarefa_interna(titulo="Com horas", coluna=trabalhando, criador=user)
@@ -973,17 +1000,20 @@ class TestTarefasApi:
 
         response = client.delete(reverse("tarefas-detail", kwargs={"pk": tarefa.pk}))
 
-        assert response.status_code == 400
-        assert Tarefa.objects.filter(pk=tarefa.pk).exists()
+        assert response.status_code == 204
+        assert not Tarefa.objects.filter(pk=tarefa.pk).exists()
 
-    def test_gestor_nao_exclui_tarefa_em_coluna_iniciada(self, quadro_colunas):
+    def test_gestor_exclui_tarefa_em_coluna_iniciada(self, quadro_colunas):
         raw = secrets.token_urlsafe(32)
         user = User.objects.create_user(
             email="tarefas-gestor-del3@test.com",
             password=raw,
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.USUARIO,
-            permissoes_extras=[PermissionKeys.TAREFA_VISUALIZAR_TODAS],
+            permissoes_extras=[
+                PermissionKeys.TAREFA_VISUALIZAR_TODAS,
+                PermissionKeys.TAREFA_EXCLUIR,
+            ],
         )
         _quadro, _pendentes, trabalhando, _entregue = quadro_colunas
         tarefa = _tarefa_interna(titulo="Em andamento", coluna=trabalhando, criador=user)
@@ -992,8 +1022,71 @@ class TestTarefasApi:
 
         response = client.delete(reverse("tarefas-detail", kwargs={"pk": tarefa.pk}))
 
+        assert response.status_code == 204
+        assert not Tarefa.objects.filter(pk=tarefa.pk).exists()
+
+
+@pytest.mark.django_db
+class TestTarefasJornadaTimer:
+    def test_iniciar_timer_rejeitado_fora_jornada(self, user_basico, quadro_colunas):
+        user, raw = user_basico
+        client = _auth_client(user, raw)
+        jornada = JornadaTrabalho.objects.create(
+            nome="JR-test",
+            carga_horaria_semanal=44,
+            hora_inicio=time(8, 0),
+            hora_fim=time(17, 48),
+            dias_semana=[0, 1, 2, 3, 4],
+        )
+        Colaborador.objects.create(
+            matricula="JR-M1",
+            nome="Colaborador JR",
+            usuario=user,
+            jornada=jornada,
+        )
+        _, _pendentes, trabalhando, _ = quadro_colunas
+        tarefa = _tarefa_interna(titulo="Task jornada", coluna=trabalhando, criador=user)
+        noite = timezone.make_aware(datetime(2026, 5, 11, 20, 0))
+        with patch("apps.tarefas.api.views.timezone.now", return_value=noite):
+            response = client.post(
+                reverse("tarefas-timer-iniciar", kwargs={"tarefa_id": tarefa.id}),
+                format="json",
+            )
         assert response.status_code == 400
-        assert Tarefa.objects.filter(pk=tarefa.pk).exists()
+
+    def test_timer_ativo_encerra_ao_passar_fim_jornada(self, user_basico, quadro_colunas):
+        user, raw = user_basico
+        client = _auth_client(user, raw)
+        jornada = JornadaTrabalho.objects.create(
+            nome="JR-test-2",
+            carga_horaria_semanal=44,
+            hora_inicio=time(8, 0),
+            hora_fim=time(17, 48),
+            dias_semana=[0, 1, 2, 3, 4],
+        )
+        Colaborador.objects.create(
+            matricula="JR-M2",
+            nome="Colaborador JR",
+            usuario=user,
+            jornada=jornada,
+        )
+        _, _pendentes, trabalhando, _ = quadro_colunas
+        tarefa = _tarefa_interna(titulo="Task auto", coluna=trabalhando, criador=user)
+        sessao = SessaoTrabalhoTarefa.objects.create(
+            tarefa=tarefa,
+            colaborador=user,
+            etapa="Cronometro",
+        )
+        inicio = timezone.make_aware(datetime(2026, 5, 11, 17, 40))
+        SessaoTrabalhoTarefa.objects.filter(pk=sessao.pk).update(iniciado_em=inicio)
+        depois = timezone.make_aware(datetime(2026, 5, 11, 18, 5))
+        with patch("apps.tarefas.api.views.timezone.now", return_value=depois):
+            response = client.get(reverse("tarefas-timer-ativo"))
+        assert response.status_code == 200
+        assert response.data["sessao"] is None
+        sessao.refresh_from_db()
+        assert sessao.finalizado_em is not None
+        assert sessao.motivo_encerramento == MotivoEncerramentoSessaoChoices.FIM_JORNADA
 
 
 @pytest.mark.django_db

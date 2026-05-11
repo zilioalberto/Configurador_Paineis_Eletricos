@@ -24,7 +24,7 @@ export function getPortalModuleContext(pathname: string): PortalModuleContext {
     return { title: 'Configurador de painéis' }
   }
   if (path === '/catalogo' || path.startsWith('/catalogo/')) {
-    return { title: 'Catálogo técnico' }
+    return { title: 'Catálogo' }
   }
   if (path === '/tarefas' || path.startsWith('/tarefas/')) {
     return { title: 'Tarefas e Kanban' }

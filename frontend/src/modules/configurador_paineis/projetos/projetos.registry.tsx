@@ -1,5 +1,5 @@
 import { lazy, type ReactElement } from 'react'
-import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
+import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
 
@@ -13,7 +13,7 @@ function withPermission(permission: string, element: ReactElement): ReactElement
   return <RequirePermission permission={permission}>{element}</RequirePermission>
 }
 
-export const projetosMenuItems: AppMenuItem[] = [
+export const projetosMenuItems: AppMenuLinkItem[] = [
   {
     to: '/projetos',
     label: 'Projetos',

@@ -186,3 +186,48 @@ class TestRhApi:
 
         assert response.status_code == 204
         assert not Cargo.objects.filter(pk=cargo.pk).exists()
+
+    def test_lista_usuarios_para_vinculo(self, admin_client):
+        client, _ = admin_client
+        livre = User.objects.create_user(email="livre@test.com", password="x" * 10)
+        ocupado = User.objects.create_user(email="ocupado@test.com", password="x" * 10)
+        colab_ocupado = Colaborador.objects.create(
+            matricula="U-OCP", nome="Ocupado", usuario=ocupado
+        )
+
+        url = reverse("rh-usuarios-vinculo")
+        response = client.get(url)
+        assert response.status_code == 200
+        emails = [row["email"] for row in response.data]
+        assert livre.email in emails
+        assert ocupado.email not in emails
+
+        response_keep = client.get(url, {"colaborador": str(colab_ocupado.pk)})
+        assert response_keep.status_code == 200
+        emails_keep = [row["email"] for row in response_keep.data]
+        assert ocupado.email in emails_keep
+
+    def test_usuarios_para_vinculo_exige_edicao_rh(self, usuario_client):
+        client, _ = usuario_client
+        response = client.get(reverse("rh-usuarios-vinculo"))
+        assert response.status_code == 403
+
+    def test_rejeita_usuario_ja_vinculado_outro_colaborador(self, admin_client):
+        client, _ = admin_client
+        usuario = User.objects.create_user(email="dup@test.com", password="x" * 10)
+        Colaborador.objects.create(matricula="PRIMEIRO", nome="Primeiro", usuario=usuario)
+        departamento = Departamento.objects.create(nome="DP")
+
+        response = client.post(
+            reverse("rh-colaboradores-list"),
+            {
+                "matricula": "SEGUNDO",
+                "nome": "Segundo",
+                "departamento": str(departamento.pk),
+                "usuario": usuario.pk,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "usuario" in response.data

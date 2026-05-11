@@ -1,5 +1,5 @@
 import { lazy, type ReactElement } from 'react'
-import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
+import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
 
@@ -13,16 +13,16 @@ function withPermission(permission: string, element: ReactElement): ReactElement
   return <RequirePermission permission={permission}>{element}</RequirePermission>
 }
 
-export const cargasMenuItems: AppMenuItem[] = [
+export const cargasMenuItems: AppMenuLinkItem[] = [
   {
     to: '/cargas',
-    label: 'Cargas do projeto',
+    label: 'Cargas do Projeto',
     order: 20,
     requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
   },
   {
     to: '/cargas/modelos',
-    label: 'Modelos de carga',
+    label: 'Modelos de Carga',
     order: 21,
     requiresPermission: PERMISSION_KEYS.MATERIAL_EDITAR_LISTA,
   },

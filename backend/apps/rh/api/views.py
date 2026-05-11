@@ -1,4 +1,8 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Q
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from apps.accounts.api.permissions import HasEffectivePermission
@@ -11,6 +15,8 @@ from apps.rh.api.serializers import (
 )
 from apps.rh.models import Cargo, Colaborador, Departamento, Equipe, JornadaTrabalho
 from core.permissions import PermissionKeys
+
+User = get_user_model()
 
 
 class RhPermissionMixin:
@@ -92,6 +98,41 @@ class EquipeViewSet(RhPermissionMixin, ModelViewSet):
                 | Q(lider__nome__icontains=search)
             )
         return qs.order_by("nome")
+
+
+class RhUsuariosParaVinculoView(APIView):
+    """
+    Lista utilizadores ativos ainda não vinculados a um colaborador,
+    mais o utilizador já ligado ao colaborador em edição (para manter a seleção).
+
+    Exige permissão de edição de RH (gestão do vínculo é feita no cadastro do colaborador).
+    """
+
+    permission_classes = [IsAuthenticated, HasEffectivePermission]
+    required_permission = PermissionKeys.RH_EDITAR
+
+    def get(self, request):
+        colaborador_pk = (request.query_params.get("colaborador") or "").strip()
+        search = (request.query_params.get("search") or "").strip()
+
+        ocupados = Colaborador.objects.exclude(usuario_id__isnull=True)
+        if colaborador_pk:
+            ocupados = ocupados.exclude(pk=colaborador_pk)
+        ocupando_ids = ocupados.values_list("usuario_id", flat=True)
+
+        qs = User.objects.filter(is_active=True).exclude(pk__in=ocupando_ids).order_by("email")
+        if search:
+            qs = qs.filter(Q(email__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
+
+        data = [
+            {
+                "id": u.pk,
+                "email": u.email,
+                "nome": " ".join([u.first_name or "", u.last_name or ""]).strip() or None,
+            }
+            for u in qs
+        ]
+        return Response(data)
 
 
 class ColaboradorViewSet(RhPermissionMixin, ModelViewSet):

@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.rh.api.views import (
@@ -6,6 +7,7 @@ from apps.rh.api.views import (
     DepartamentoViewSet,
     EquipeViewSet,
     JornadaTrabalhoViewSet,
+    RhUsuariosParaVinculoView,
 )
 
 router = DefaultRouter()
@@ -15,4 +17,10 @@ router.register(r"rh/jornadas", JornadaTrabalhoViewSet, basename="rh-jornadas")
 router.register(r"rh/equipes", EquipeViewSet, basename="rh-equipes")
 router.register(r"rh/colaboradores", ColaboradorViewSet, basename="rh-colaboradores")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path(
+        "rh/colaboradores/usuarios-vinculo/",
+        RhUsuariosParaVinculoView.as_view(),
+        name="rh-usuarios-vinculo",
+    ),
+] + router.urls

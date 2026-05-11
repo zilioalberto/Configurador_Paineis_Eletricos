@@ -11,7 +11,12 @@ from apps.orcamentos.models import ConfiguracaoMargemCliente, Orcamento
 
 class OrcamentoListCreateView(generics.ListCreateAPIView):
     queryset = (
-        Orcamento.objects.select_related("cliente", "contato_cliente")
+        Orcamento.objects.select_related(
+            "cliente",
+            "contato_cliente",
+            "criado_por",
+            "atualizado_por",
+        )
         .prefetch_related("itens")
         .all()
     )
@@ -26,7 +31,12 @@ class OrcamentoListCreateView(generics.ListCreateAPIView):
 
 class OrcamentoDetailView(generics.RetrieveUpdateAPIView):
     queryset = (
-        Orcamento.objects.select_related("cliente", "contato_cliente")
+        Orcamento.objects.select_related(
+            "cliente",
+            "contato_cliente",
+            "criado_por",
+            "atualizado_por",
+        )
         .prefetch_related("itens")
         .all()
     )

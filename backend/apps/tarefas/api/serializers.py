@@ -7,6 +7,11 @@ from rest_framework import serializers
 
 from core.choices import TipoUsuarioChoices
 from core.permissions import PermissionKeys
+from apps.tarefas.services.jornada_apontamento import (
+    intervalo_horario_cabe_em_jornada,
+    obter_jornada_do_usuario,
+    segmentos_trabalho_no_dia,
+)
 from apps.tarefas.models import (
     ApontamentoHora,
     ChecklistTarefa,
@@ -118,14 +123,9 @@ class TarefaSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return False
         if user.is_superuser or getattr(user, "tipo_usuario", None) == TipoUsuarioChoices.ADMIN:
-            return obj.pode_ser_excluida()
+            return True
         permissoes = set(getattr(user, "permissoes_efetivas", []) or [])
-        if (
-            PermissionKeys.TAREFA_VISUALIZAR_TODAS not in permissoes
-            and PermissionKeys.TAREFA_GERENCIAR_QUADRO not in permissoes
-        ):
-            return False
-        return obj.pode_ser_excluida()
+        return PermissionKeys.TAREFA_EXCLUIR in permissoes
 
     def get_colaboradores_nomes(self, obj):
         return [_user_label(colaborador) for colaborador in obj.colaboradores.all()]
@@ -350,6 +350,67 @@ class ApontamentoHoraSerializer(serializers.ModelSerializer):
     def get_sessao_finalizado_em(self, obj):
         sessao = self._sessao_trabalho(obj)
         return sessao.finalizado_em if sessao else None
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if user and (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "tipo_usuario", None) == TipoUsuarioChoices.ADMIN
+        ):
+            return attrs
+
+        permissoes = set(getattr(user, "permissoes_efetivas", []) or [])
+        if PermissionKeys.TAREFA_APONTAR_HORAS_TODAS in permissoes:
+            return attrs
+
+        colaborador = attrs.get("colaborador")
+        if self.instance:
+            colaborador = attrs.get("colaborador", self.instance.colaborador)
+        elif colaborador is None:
+            colaborador = user
+
+        if colaborador is None:
+            return attrs
+
+        hi = attrs.get("hora_inicio")
+        hf = attrs.get("hora_fim")
+        if self.instance:
+            if hi is None:
+                hi = self.instance.hora_inicio
+            if hf is None:
+                hf = self.instance.hora_fim
+
+        data_ap = attrs.get("data")
+        if self.instance and data_ap is None:
+            data_ap = self.instance.data
+
+        j = obter_jornada_do_usuario(colaborador)
+        if not j or not j.hora_inicio:
+            return attrs
+
+        if hi and hf:
+            if not intervalo_horario_cabe_em_jornada(j, hi, hf):
+                raise serializers.ValidationError(
+                    {
+                        "hora_fim": (
+                            "Horario fora da jornada de trabalho cadastrada para este colaborador."
+                        )
+                    }
+                )
+        elif data_ap:
+            segs = segmentos_trabalho_no_dia(j, data_ap)
+            if segs == []:
+                raise serializers.ValidationError(
+                    {
+                        "data": (
+                            "Data fora dos dias da jornada de trabalho deste colaborador."
+                        )
+                    }
+                )
+
+        return attrs
 
 
 class SessaoTrabalhoTarefaSerializer(serializers.ModelSerializer):

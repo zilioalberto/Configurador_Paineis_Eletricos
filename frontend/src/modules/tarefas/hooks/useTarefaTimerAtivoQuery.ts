@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { tarefasQueryKeys } from '../tarefasQueryKeys'
 import { obterTimerAtivoTarefa } from '../services/tarefasService'
+import type { TarefaTimerAtivoResponse } from '../types/tarefa'
 
 export function useTarefaTimerAtivoQuery(enabled: boolean) {
   return useQuery({
@@ -8,5 +9,9 @@ export function useTarefaTimerAtivoQuery(enabled: boolean) {
     queryFn: obterTimerAtivoTarefa,
     enabled,
     staleTime: 10_000,
+    refetchInterval: (query) => {
+      const d = query.state.data as TarefaTimerAtivoResponse | undefined
+      return d?.sessao ? 20_000 : false
+    },
   })
 }

@@ -28,6 +28,7 @@ import type {
   EquipePayload,
   JornadaTrabalhoDto,
   JornadaTrabalhoPayload,
+  UsuarioVinculoDto,
 } from '../types/rh'
 
 type AbaRh = 'colaboradores' | 'departamentos' | 'cargos' | 'equipes' | 'jornadas'
@@ -44,6 +45,7 @@ type ColaboradorForm = {
   email: string
   telefone: string
   documento: string
+  usuario: string
   cargo: string
   departamento: string
   equipe: string
@@ -104,6 +106,7 @@ const colaboradorVazio: ColaboradorForm = {
   email: '',
   telefone: '',
   documento: '',
+  usuario: '',
   cargo: '',
   departamento: '',
   equipe: '',
@@ -158,6 +161,7 @@ function colaboradorParaForm(c: ColaboradorDto): ColaboradorForm {
     email: c.email ?? '',
     telefone: c.telefone ?? '',
     documento: c.documento ?? '',
+    usuario: c.usuario != null ? String(c.usuario) : '',
     cargo: c.cargo ?? '',
     departamento: c.departamento ?? '',
     equipe: c.equipe ?? '',
@@ -211,12 +215,14 @@ function jornadaParaForm(j: JornadaTrabalhoDto): JornadaForm {
 }
 
 function colaboradorPayload(form: ColaboradorForm): ColaboradorPayload {
+  const usuarioId = form.usuario.trim() ? Number.parseInt(form.usuario, 10) : null
   return {
     matricula: form.matricula.trim(),
     nome: form.nome.trim(),
     email: form.email.trim(),
     telefone: form.telefone.trim(),
     documento: form.documento.replace(/\D/g, ''),
+    usuario: Number.isFinite(usuarioId) ? usuarioId : null,
     cargo: form.cargo || null,
     departamento: form.departamento || null,
     equipe: form.equipe || null,
@@ -299,6 +305,7 @@ export default function RhPage() {
   const [equipeForm, setEquipeForm] = useState<EquipeForm>(equipeVazia)
   const [jornadaForm, setJornadaForm] = useState<JornadaForm>(jornadaVazia)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [usuariosVinculo, setUsuariosVinculo] = useState<UsuarioVinculoDto[]>([])
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -336,6 +343,27 @@ export default function RhPage() {
   useEffect(() => {
     void carregar()
   }, [carregar])
+
+  useEffect(() => {
+    if (!canEdit || aba !== 'colaboradores') {
+      setUsuariosVinculo([])
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const list = await rhApi.listarUsuariosParaVinculo({
+          colaborador: colaboradorId ?? undefined,
+        })
+        if (!cancelled) setUsuariosVinculo(list)
+      } catch {
+        if (!cancelled) setUsuariosVinculo([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [aba, canEdit, colaboradorId])
 
   const listaAbaAtual = useMemo(() => {
     if (aba === 'colaboradores') return colaboradores
@@ -771,6 +799,12 @@ export default function RhPage() {
                   form={colaboradorForm}
                   isEditing={Boolean(colaboradorId)}
                   jornadas={jornadas}
+                  usuarioVinculadoEmail={
+                    colaboradorId
+                      ? colaboradores.find((c) => c.id === colaboradorId)?.usuario_email?.trim() || ''
+                      : ''
+                  }
+                  usuariosVinculo={usuariosVinculo}
                   salvando={salvando}
                   setForm={setColaboradorForm}
                   onSubmit={salvarColaborador}
@@ -861,6 +895,9 @@ function ListaColaboradores({
                 </button>
                 {!item.ativo ? <span className="badge text-bg-secondary ms-2">Inativo</span> : null}
                 {item.email ? <div className="small text-muted">{item.email}</div> : null}
+                {item.usuario ? (
+                  <div className="small text-success">Conta: {item.usuario_email || `#${item.usuario}`}</div>
+                ) : null}
               </td>
               <td>{item.matricula}</td>
               <td>
@@ -1011,6 +1048,8 @@ function FormColaborador({
   form,
   isEditing,
   jornadas,
+  usuarioVinculadoEmail,
+  usuariosVinculo,
   salvando,
   setForm,
   onSubmit,
@@ -1022,6 +1061,8 @@ function FormColaborador({
   form: ColaboradorForm
   isEditing: boolean
   jornadas: JornadaTrabalhoDto[]
+  usuarioVinculadoEmail: string
+  usuariosVinculo: UsuarioVinculoDto[]
   salvando: boolean
   setForm: Dispatch<SetStateAction<ColaboradorForm>>
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -1033,6 +1074,33 @@ function FormColaborador({
         <div className="row g-3">
           <TextField label="Matrícula" value={form.matricula} onChange={(v) => setForm((f) => ({ ...f, matricula: v }))} required />
           <TextField label="Nome" value={form.nome} onChange={(v) => setForm((f) => ({ ...f, nome: v }))} required wide />
+          {canEdit ? (
+            <>
+              <SelectField
+                label="Utilizador (conta de acesso)"
+                value={form.usuario}
+                onChange={(v) => setForm((f) => ({ ...f, usuario: v }))}
+              >
+                <option value="">Sem vínculo</option>
+                {usuariosVinculo.map((u) => (
+                  <option key={u.id} value={String(u.id)}>
+                    {u.nome ? `${u.nome} — ${u.email}` : u.email}
+                  </option>
+                ))}
+              </SelectField>
+              <div className="col-md-8">
+                <p className="text-muted small mb-0">
+                  Associe o registo de RH à conta com que a pessoa inicia sessão. Só são listados
+                  utilizadores ativos ainda não ligados a outro colaborador.
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="col-12 col-md-8">
+              <span className="form-label d-block">Utilizador (conta de acesso)</span>
+              <p className="mb-0">{usuarioVinculadoEmail || 'Nenhum utilizador vinculado.'}</p>
+            </div>
+          )}
           <TextField label="Email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} type="email" />
           <TextField label="Telefone" value={form.telefone} onChange={(v) => setForm((f) => ({ ...f, telefone: v }))} />
           <TextField label="Documento" value={form.documento} onChange={(v) => setForm((f) => ({ ...f, documento: v }))} />

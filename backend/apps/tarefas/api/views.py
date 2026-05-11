@@ -53,6 +53,13 @@ from apps.tarefas.selectors.kanban import (
     tarefas_com_total_horas_queryset,
 )
 from apps.tarefas.services.historico import registrar_historico_tarefa
+from apps.tarefas.services.jornada_apontamento import (
+    deve_encerrar_sessao_por_jornada,
+    max_finalizado_em_valido_na_sessao,
+    obter_jornada_do_usuario,
+    previsao_fim_segmento_sessao,
+    usuario_pode_iniciar_cronometro_agora,
+)
 from apps.tarefas.services.kanban import mover_tarefa
 from apps.tarefas.services.quadro_padrao import garantir_quadro_padrao_tarefas
 from apps.tarefas.services.relatorio_horas_gestao import (
@@ -241,18 +248,65 @@ class TarefaTimerAtivoView(APIView):
     required_permission = PermissionKeys.TAREFA_APONTAR_HORAS
 
     def get(self, request):
+        agora = timezone.now()
         sessao = (
             SessaoTrabalhoTarefa.objects.select_related("tarefa", "colaborador")
             .filter(colaborador=request.user, finalizado_em__isnull=True)
             .first()
         )
+        if sessao:
+            encerrar, final_em, motivo = deve_encerrar_sessao_por_jornada(sessao, agora)
+            if encerrar and final_em and motivo:
+                with transaction.atomic():
+                    bloqueada = (
+                        SessaoTrabalhoTarefa.objects.select_for_update()
+                        .filter(pk=sessao.pk, finalizado_em__isnull=True)
+                        .first()
+                    )
+                    if bloqueada:
+                        apontamento = bloqueada.encerrar(
+                            finalizado_em=final_em,
+                            motivo=motivo,
+                            observacoes="Contagem encerrada automaticamente conforme jornada de trabalho.",
+                        )
+                        registrar_historico_tarefa(
+                            tarefa=bloqueada.tarefa,
+                            usuario=request.user,
+                            tipo=TipoHistoricoTarefaChoices.APONTAMENTO,
+                            descricao=(
+                                "Apontamento encerrado ao fim da jornada."
+                                if motivo == MotivoEncerramentoSessaoChoices.FIM_JORNADA
+                                else "Apontamento encerrado no inicio do intervalo."
+                            ),
+                            dados={
+                                "horas": str(apontamento.horas),
+                                "data": apontamento.data.isoformat(),
+                                "sessao": str(bloqueada.id),
+                                "motivo_encerramento": bloqueada.motivo_encerramento,
+                            },
+                        )
+
+        sessao = (
+            SessaoTrabalhoTarefa.objects.select_related("tarefa", "colaborador")
+            .filter(colaborador=request.user, finalizado_em__isnull=True)
+            .first()
+        )
+
+        pausa_em = previsao_fim_segmento_sessao(sessao, agora) if sessao else None
+        pode_iniciar, msg_jornada = usuario_pode_iniciar_cronometro_agora(request.user, agora)
+
         return Response(
             {
                 "sessao": (
                     SessaoTrabalhoTarefaSerializer(sessao).data
                     if sessao
                     else None
-                )
+                ),
+                "pausa_automatica_prevista_em": (
+                    pausa_em.isoformat() if pausa_em else None
+                ),
+                "jornada_permite_iniciar_cronometro": pode_iniciar,
+                "jornada_mensagem": msg_jornada,
             }
         )
 
@@ -412,6 +466,10 @@ class TarefaTimerIniciarView(APIView):
                 status=400,
             )
 
+        ok_jornada, msg_jornada = usuario_pode_iniciar_cronometro_agora(request.user)
+        if not ok_jornada:
+            return Response({"detail": msg_jornada}, status=400)
+
         sessao_ativa = (
             SessaoTrabalhoTarefa.objects.select_related("tarefa", "colaborador")
             .filter(colaborador=request.user, finalizado_em__isnull=True)
@@ -505,6 +563,14 @@ class TarefaTimerPararView(APIView):
                 )
 
             finalizado_em = timezone.now()
+            jornada_u = obter_jornada_do_usuario(request.user)
+            if jornada_u and jornada_u.hora_inicio and jornada_u.hora_fim:
+                cap = max_finalizado_em_valido_na_sessao(
+                    sessao, jornada_u, finalizado_em
+                )
+                if finalizado_em > cap:
+                    finalizado_em = cap
+
             apontamento = sessao.encerrar(
                 finalizado_em=finalizado_em,
                 motivo=MotivoEncerramentoSessaoChoices.MANUAL,
@@ -601,7 +667,7 @@ class TarefaViewSet(ModelViewSet):
         if self.action == "concluir":
             return PermissionKeys.TAREFA_CONCLUIR
         if self.action == "destroy":
-            return PermissionKeys.TAREFA_VISUALIZAR_PROPRIAS
+            return PermissionKeys.TAREFA_EXCLUIR
         if self.action in ("update", "partial_update"):
             campos_classificacao = {
                 "tipo_etapa",
@@ -646,22 +712,6 @@ class TarefaViewSet(ModelViewSet):
             descricao="Tarefa criada.",
             coluna_destino=tarefa.coluna,
         )
-
-    def destroy(self, request, *args, **kwargs):
-        if not _usuario_pode_visualizar_todas_tarefas(request.user):
-            raise PermissionDenied("Apenas gestores podem excluir tarefas.")
-        tarefa = self.get_object()
-        if not tarefa.pode_ser_excluida():
-            return Response(
-                {
-                    "detail": (
-                        "So e possivel excluir tarefas que ainda nao foram iniciadas "
-                        "(sem apontamentos de horas nem cronometro)."
-                    )
-                },
-                status=400,
-            )
-        return super().destroy(request, *args, **kwargs)
 
     def perform_update(self, serializer):
         anterior = self.get_object()

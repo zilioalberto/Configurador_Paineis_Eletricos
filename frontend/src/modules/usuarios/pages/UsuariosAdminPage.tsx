@@ -409,6 +409,7 @@ export default function UsuariosAdminPage() {
                   <tr>
                     <th>E-mail</th>
                     <th>Nome</th>
+                    <th>Colaborador (RH)</th>
                     <th>Tipo</th>
                     <th>Permissões</th>
                     <th>Ativo</th>
@@ -422,6 +423,16 @@ export default function UsuariosAdminPage() {
                       <td>{u.email}</td>
                       <td>
                         {[u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="small">
+                        {u.colaborador_matricula || u.colaborador_nome ? (
+                          <>
+                            <div>{u.colaborador_nome ?? '—'}</div>
+                            <div className="text-muted">{u.colaborador_matricula ?? ''}</div>
+                          </>
+                        ) : (
                           <span className="text-muted">—</span>
                         )}
                       </td>

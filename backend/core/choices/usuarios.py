@@ -56,6 +56,7 @@ class PermissaoUsuarioChoices(models.TextChoices):
     TAREFA_CLASSIFICAR = PermissionKeys.TAREFA_CLASSIFICAR, "Classificar tarefas"
     TAREFA_INICIAR = PermissionKeys.TAREFA_INICIAR, "Iniciar tarefas"
     TAREFA_CONCLUIR = PermissionKeys.TAREFA_CONCLUIR, "Concluir tarefas"
+    TAREFA_EXCLUIR = PermissionKeys.TAREFA_EXCLUIR, "Excluir tarefas do Kanban"
     TAREFA_GERENCIAR_PARTICIPANTES = (
         PermissionKeys.TAREFA_GERENCIAR_PARTICIPANTES,
         "Gerenciar participantes de tarefas",

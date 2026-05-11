@@ -173,6 +173,18 @@ class ColaboradorSerializer(serializers.ModelSerializer):
     def get_jornada_nome(self, obj):
         return obj.jornada.nome if obj.jornada_id else ""
 
+    def validate_usuario(self, value):
+        if value is None:
+            return value
+        qs = Colaborador.objects.filter(usuario=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "Este utilizador já está vinculado a outro colaborador."
+            )
+        return value
+
     def validate(self, attrs):
         data_admissao = attrs.get("data_admissao", getattr(self.instance, "data_admissao", None))
         data_demissao = attrs.get("data_demissao", getattr(self.instance, "data_demissao", None))

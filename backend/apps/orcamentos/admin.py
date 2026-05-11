@@ -10,7 +10,16 @@ class OrcamentoItemInline(admin.TabularInline):
 
 @admin.register(Orcamento)
 class OrcamentoAdmin(admin.ModelAdmin):
-    list_display = ("codigo", "titulo", "status", "cliente", "contato_cliente", "criado_em")
+    list_display = (
+        "codigo",
+        "titulo",
+        "status",
+        "cliente",
+        "contato_cliente",
+        "criado_por",
+        "atualizado_por",
+        "criado_em",
+    )
     list_filter = ("status",)
     search_fields = ("codigo", "titulo", "cliente_referencia", "cliente__razao_social")
     inlines = (OrcamentoItemInline,)

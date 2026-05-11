@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
@@ -36,6 +37,7 @@ import { useTarefaComentariosQuery } from '../hooks/useTarefaComentariosQuery'
 import { useTarefaHistoricoQuery } from '../hooks/useTarefaHistoricoQuery'
 import { useTarefaDashboardHorasDiaQuery } from '../hooks/useTarefaDashboardHorasDiaQuery'
 import { useTarefaTimerAtivoQuery } from '../hooks/useTarefaTimerAtivoQuery'
+import { tarefasQueryKeys } from '../tarefasQueryKeys'
 import { useTarefaResponsaveisQuery } from '../hooks/useTarefaResponsaveisQuery'
 import type {
   ApontamentoHora,
@@ -697,6 +699,7 @@ function TarefaCard({
   timerAtivo,
   tempoAtivoLabel,
   isSavingTime,
+  jornadaPermiteIniciarTimer = true,
   onDragStart,
   onDragEnd,
   onDropBefore,
@@ -711,6 +714,7 @@ function TarefaCard({
   timerAtivo: boolean
   tempoAtivoLabel: string | null
   isSavingTime: boolean
+  jornadaPermiteIniciarTimer?: boolean
   onDragStart: (event: DragEvent<HTMLElement>, tarefa: TarefaKanbanItem) => void
   onDragEnd: () => void
   onDropBefore: (event: DragEvent<HTMLElement>, tarefa: TarefaKanbanItem) => void
@@ -724,7 +728,7 @@ function TarefaCard({
   const prazoVencido = tarefaVencida(tarefa)
   const totalHorasLabel = formatarHoras(tarefa.total_horas_apontadas ?? '0.00')
   const podeControlarTimer = podeApontarHoras && !tarefaEntregue(tarefa)
-  const podeIniciarTimer = tarefa.pode_iniciar !== false
+  const podeIniciarTimer = tarefa.pode_iniciar !== false && jornadaPermiteIniciarTimer
   const rotuloTipoEtapa =
     tarefa.tipo_etapa_display ??
     TIPOS_ETAPA_OPTIONS.find((opcao) => opcao.value === tarefa.tipo_etapa)?.label
@@ -834,9 +838,11 @@ function TarefaCard({
                 className="kanban-task-card__time-button kanban-task-card__time-button--play"
                 aria-label={`Iniciar horas de ${tarefa.titulo}`}
                 title={
-                  podeIniciarTimer
-                    ? 'Iniciar horas'
-                    : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
+                  !jornadaPermiteIniciarTimer
+                    ? 'Fora da jornada de trabalho (cadastro em RH).'
+                    : podeIniciarTimer
+                      ? 'Iniciar horas'
+                      : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
                 }
                 disabled={isSavingTime || !podeIniciarTimer}
                 onMouseDown={(event) => event.stopPropagation()}
@@ -1336,6 +1342,7 @@ function TarefaEditModal({
   const podeVerOrcamentos = hasPermission(user, PERMISSION_KEYS.ORCAMENTO_VISUALIZAR)
   const podeAprovarHoras = hasPermission(user, PERMISSION_KEYS.TAREFA_APROVAR_HORAS)
   const podeAjustarHoras = hasPermission(user, PERMISSION_KEYS.TAREFA_AJUSTAR_HORAS)
+  const podeExcluirTarefaKanban = hasPermission(user, PERMISSION_KEYS.TAREFA_EXCLUIR)
   const criarComentarioMutation = useCriarComentarioTarefaMutation()
   const atualizarComentarioMutation = useAtualizarComentarioTarefaMutation()
   const eliminarComentarioMutation = useEliminarComentarioTarefaMutation()
@@ -2191,7 +2198,7 @@ function TarefaEditModal({
             </div>
             <div className="modal-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
               <div>
-                {tarefa.pode_excluir ? (
+                {podeExcluirTarefaKanban ? (
                   <button
                     type="button"
                     className="btn btn-outline-danger"
@@ -2271,6 +2278,7 @@ function TarefaEditModal({
 }
 
 export default function TarefasKanbanPage() {
+  const queryClient = useQueryClient()
   const { data, isPending, isError, error, refetch, isFetching } = useKanbanTarefasQuery()
   const criarQuadroPadraoMutation = useCriarQuadroPadraoTarefasMutation()
   const criarMutation = useCriarTarefaMutation()
@@ -2303,6 +2311,8 @@ export default function TarefasKanbanPage() {
   const dashboardHoras = dashboardHorasQuery.data
   const timerQuery = useTarefaTimerAtivoQuery(podeApontarHoras)
   const sessaoAtiva = timerQuery.data?.sessao ?? null
+  const jornadaPermiteIniciarTimer =
+    timerQuery.data?.jornada_permite_iniciar_cronometro !== false
   const podeGerenciarQuadro = hasPermission(user, PERMISSION_KEYS.TAREFA_GERENCIAR_QUADRO)
   const podeCriarQuadroPadrao = podeCriar || podeGerenciarQuadro
   const [busca, setBusca] = useState('')
@@ -2325,6 +2335,34 @@ export default function TarefasKanbanPage() {
     const intervalId = window.setInterval(() => setTimerTick(Date.now()), 1000)
     return () => window.clearInterval(intervalId)
   }, [sessaoAtiva])
+
+  useEffect(() => {
+    const iso = timerQuery.data?.pausa_automatica_prevista_em
+    if (!iso || !sessaoAtiva) return undefined
+    const ms = new Date(iso).getTime() - Date.now()
+    if (Number.isNaN(ms) || ms <= 0 || ms > 86_400_000) return undefined
+    const id = window.setTimeout(() => {
+      void pararTimerMutation
+        .mutateAsync()
+        .then(() => {
+          showToast({
+            variant: 'success',
+            message: 'Contagem encerrada automaticamente ao fim da jornada.',
+          })
+        })
+        .catch(() => {
+          void queryClient.invalidateQueries({ queryKey: tarefasQueryKeys.timerAtivo() })
+          void queryClient.invalidateQueries({ queryKey: tarefasQueryKeys.kanban() })
+        })
+    }, ms)
+    return () => window.clearTimeout(id)
+  }, [
+    timerQuery.data?.pausa_automatica_prevista_em,
+    sessaoAtiva?.id,
+    pararTimerMutation,
+    queryClient,
+    showToast,
+  ])
 
   const tarefasVencidas = useMemo(() => {
     return (
@@ -2456,6 +2494,15 @@ export default function TarefasKanbanPage() {
         })
         return
       }
+      if (timerQuery.data?.jornada_permite_iniciar_cronometro === false) {
+        showToast({
+          variant: 'warning',
+          message:
+            timerQuery.data?.jornada_mensagem?.trim() ||
+            'Fora da jornada de trabalho; não é possível iniciar o cronómetro.',
+        })
+        return
+      }
 
       try {
         if (sessaoAtiva && sessaoAtiva.tarefa !== tarefa.id) {
@@ -2478,7 +2525,7 @@ export default function TarefasKanbanPage() {
         })
       }
     },
-    [iniciarTimerMutation, pararTimerMutation, sessaoAtiva, showToast]
+    [iniciarTimerMutation, pararTimerMutation, sessaoAtiva, showToast, timerQuery]
   )
 
   const handleStopTimer = useCallback(async () => {
@@ -2847,6 +2894,7 @@ export default function TarefasKanbanPage() {
                             key={tarefa.id}
                             podeMover={podeMover}
                             podeApontarHoras={podeApontarHoras}
+                            jornadaPermiteIniciarTimer={jornadaPermiteIniciarTimer}
                             arrastando={draggingTaskId === tarefa.id}
                             timerAtivo={sessaoAtiva?.tarefa === tarefa.id}
                             tempoAtivoLabel={
