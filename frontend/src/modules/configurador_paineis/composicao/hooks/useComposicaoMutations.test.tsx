@@ -58,13 +58,13 @@ describe('hooks de mutação da composição', () => {
     const { result: ok } = renderHook(() => useGerarSugestoesMutation('p2'), {
       wrapper: (props) => wrapper(qc, props),
     })
-    await ok.current.mutateAsync()
+    await ok.current.mutateAsync(undefined)
     expect(gerarSugestoesComposicao).toHaveBeenCalledWith('p2', true)
 
     const { result: erro } = renderHook(() => useGerarSugestoesMutation(null), {
       wrapper: (props) => wrapper(createClient(), props),
     })
-    await expect(erro.current.mutateAsync()).rejects.toThrow('Projeto não selecionado.')
+    await expect(erro.current.mutateAsync(undefined)).rejects.toThrow('Projeto não selecionado.')
   })
 
   it('adiciona inclusão manual e grava snapshot', async () => {
@@ -77,10 +77,10 @@ describe('hooks de mutação da composição', () => {
       wrapper: (props) => wrapper(qc, props),
     })
 
-    await result.current.mutateAsync({ produto: 'prod-1', quantidade: '2' })
+    await result.current.mutateAsync({ produto_id: 'prod-1', quantidade: '2' })
 
     expect(adicionarInclusaoManual).toHaveBeenCalledWith('p3', {
-      produto: 'prod-1',
+      produto_id: 'prod-1',
       quantidade: '2',
     })
     expect(qc.getQueryData(composicaoQueryKeys.snapshot('p3'))).toBe(snapshot)
@@ -92,7 +92,7 @@ describe('hooks de mutação da composição', () => {
       wrapper: (props) => wrapper(createClient(), props),
     })
 
-    await expect(result.current.mutateAsync({ produto: 'p' })).rejects.toThrow(
+    await expect(result.current.mutateAsync({ produto_id: 'p' })).rejects.toThrow(
       'projetoId ausente'
     )
   })

@@ -1,3 +1,4 @@
+import type { UseMutationResult } from '@tanstack/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -81,7 +82,10 @@ function wrapper(client: QueryClient, { children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
-function renderMutation<T>(hook: () => T, client = createClient()) {
+function renderMutation(
+  hook: () => UseMutationResult<any, Error, any, any>,
+  client = createClient()
+) {
   return {
     client,
     ...renderHook(hook, {
@@ -143,7 +147,7 @@ describe('useTarefaMutations', () => {
 
     for (const item of cases) {
       const { result } = renderMutation(item.hook, client)
-      await result.current.mutateAsync(item.payload)
+      await result.current.mutateAsync(item.payload as never)
       expect(item.service).toHaveBeenCalled()
     }
 
@@ -155,7 +159,7 @@ describe('useTarefaMutations', () => {
     criarQuadroPadraoTarefas.mockResolvedValueOnce(kanban)
     const { client, result } = renderMutation(useCriarQuadroPadraoTarefasMutation)
 
-    await result.current.mutateAsync()
+    await result.current.mutateAsync(undefined)
 
     expect(client.getQueryData(tarefasQueryKeys.kanban())).toBe(kanban)
   })
@@ -232,7 +236,7 @@ describe('useTarefaMutations', () => {
     expect(client.getQueryData(tarefasQueryKeys.timerAtivo())).toBe(timer)
 
     const parar = renderMutation(usePararTimerTarefaMutation, client)
-    await parar.result.current.mutateAsync('s1')
+    await parar.result.current.mutateAsync(undefined)
 
     expect(client.getQueryData(tarefasQueryKeys.timerAtivo())).toEqual({ sessao: null })
     expect(inv).toHaveBeenCalledWith({ queryKey: tarefasQueryKeys.kanban() })
@@ -295,7 +299,8 @@ describe('useTarefaMutations', () => {
 
     await renderMutation(useRegistrarApontamentoHoraMutation, client).result.current.mutateAsync({
       tarefa: 't1',
-      minutos: 30,
+      data: '2026-05-11',
+      horas: '0.5',
     })
     await renderMutation(useAprovarApontamentoHoraMutation, client).result.current.mutateAsync({
       tarefaId: 't1',
@@ -308,14 +313,21 @@ describe('useTarefaMutations', () => {
     await renderMutation(useAjustarApontamentoHoraMutation, client).result.current.mutateAsync({
       tarefaId: 't1',
       apontamentoId: 'a1',
-      payload: { minutos: 45 },
+      payload: { justificativa_ajuste: 'Correção', horas: '0.75' },
     })
 
     await waitFor(() => {
-      expect(registrarApontamentoHora).toHaveBeenCalled()
+      expect(registrarApontamentoHora).toHaveBeenCalledWith({
+        tarefa: 't1',
+        data: '2026-05-11',
+        horas: '0.5',
+      })
       expect(aprovarApontamentoHora).toHaveBeenCalledWith('a1')
       expect(rejeitarApontamentoHora).toHaveBeenCalledWith('a1')
-      expect(ajustarApontamentoHora).toHaveBeenCalledWith('a1', { minutos: 45 })
+      expect(ajustarApontamentoHora).toHaveBeenCalledWith('a1', {
+        justificativa_ajuste: 'Correção',
+        horas: '0.75',
+      })
     })
     expect(inv).toHaveBeenCalledWith({ queryKey: tarefasQueryKeys.apontamentos('t1') })
     expect(inv).toHaveBeenCalledWith({ queryKey: tarefasQueryKeys.historico('t1') })

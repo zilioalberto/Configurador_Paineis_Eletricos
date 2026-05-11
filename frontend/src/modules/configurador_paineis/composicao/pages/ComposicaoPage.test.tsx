@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ProdutoAlternativa } from '@/modules/configurador_paineis/composicao/types/composicao'
+
 const gerarMutateAsyncMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue({
     geracao: { erros_etapas: [], sugestoes_descartadas_aprovadas: 0 },
@@ -10,8 +12,15 @@ const gerarMutateAsyncMock = vi.hoisted(() =>
 const reavaliarMutateAsyncMock = vi.hoisted(() => vi.fn())
 const aprovarMutateAsyncMock = vi.hoisted(() => vi.fn())
 const reabrirMutateAsyncMock = vi.hoisted(() => vi.fn())
+type AlternativasQueryReturn = {
+  data: ProdutoAlternativa[]
+  isPending: boolean
+  isError: boolean
+  error: unknown
+}
+
 const useAlternativasSugestaoQueryMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((_sugestaoId: string | null, _enabled: boolean): AlternativasQueryReturn => ({
     data: [],
     isPending: false,
     isError: false,
@@ -96,8 +105,8 @@ vi.mock('@/modules/configurador_paineis/composicao/hooks/useReabrirComposicaoIte
 }))
 
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useAlternativasSugestaoQuery', () => ({
-  useAlternativasSugestaoQuery: (...args: unknown[]) =>
-    useAlternativasSugestaoQueryMock(...args),
+  useAlternativasSugestaoQuery: (sugestaoId: string | null, enabled: boolean) =>
+    useAlternativasSugestaoQueryMock(sugestaoId, enabled),
 }))
 
 vi.mock('@/modules/configurador_paineis/composicao/components/InclusaoManualCatalogoSection', () => ({
@@ -129,12 +138,12 @@ describe('ComposicaoPage', () => {
     aprovarMutateAsyncMock.mockReset()
     reabrirMutateAsyncMock.mockReset()
     useAlternativasSugestaoQueryMock.mockReset()
-    useAlternativasSugestaoQueryMock.mockReturnValue({
+    useAlternativasSugestaoQueryMock.mockImplementation(() => ({
       data: [],
       isPending: false,
       isError: false,
       error: null,
-    })
+    }))
     reavaliarMutateAsyncMock.mockResolvedValue({})
     aprovarMutateAsyncMock.mockResolvedValue({})
     reabrirMutateAsyncMock.mockResolvedValue({})
@@ -417,7 +426,7 @@ describe('ComposicaoPage', () => {
       projetos: baseProjetos,
       snapshot: snapshotComItens,
     })
-    useAlternativasSugestaoQueryMock.mockReturnValue({
+    useAlternativasSugestaoQueryMock.mockImplementation(() => ({
       data: [
         {
           id: 'prod-alt',
@@ -430,7 +439,7 @@ describe('ComposicaoPage', () => {
       isPending: false,
       isError: false,
       error: null,
-    })
+    }))
 
     render(
       <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
