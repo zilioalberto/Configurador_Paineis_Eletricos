@@ -18,6 +18,10 @@ import {
   criarOrcamento,
   listarClientesOrcamento,
   listarContatosCliente,
+  listarMargensClientes,
+  listarOrcamentos,
+  listarParametrosConfiguracao,
+  obterErpModuleMeta,
   obterOrcamento,
 } from './erpApi'
 
@@ -110,6 +114,87 @@ describe('erpApi', () => {
       valor: 'x',
       descricao: 'd',
     })
+  })
+
+  it('obtem meta do modulo ERP', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        id: 'mod-orcamentos',
+        area: 'erp',
+        title: 'Orçamentos',
+        summary: '',
+        backend_package: 'erp',
+        notes: '',
+      },
+    })
+
+    await expect(obterErpModuleMeta('orcamentos')).resolves.toMatchObject({
+      id: 'mod-orcamentos',
+      title: 'Orçamentos',
+    })
+
+    expect(getMock).toHaveBeenCalledWith('/erp/modules/orcamentos/meta/')
+  })
+
+  it('lista orcamentos', async () => {
+    getMock.mockResolvedValueOnce({
+      data: [{ id: 'o-1', codigo: 'P-1', titulo: 'A', itens: [] }],
+    })
+
+    await expect(listarOrcamentos()).resolves.toHaveLength(1)
+    expect(getMock).toHaveBeenCalledWith('/erp/orcamentos/')
+  })
+
+  it('lista margens de clientes como array ou como paginacao', async () => {
+    getMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'm-1',
+          cliente: 'c-1',
+          cliente_nome: 'Cliente',
+          margem_produtos_percentual: '10',
+          margem_servicos_percentual: '8',
+        },
+      ],
+    })
+    await expect(listarMargensClientes()).resolves.toHaveLength(1)
+
+    getMock.mockResolvedValueOnce({
+      data: {
+        results: [
+          {
+            id: 'm-2',
+            cliente: 'c-2',
+            cliente_nome: 'Outro',
+            margem_produtos_percentual: '5',
+            margem_servicos_percentual: '4',
+          },
+        ],
+      },
+    })
+    await expect(listarMargensClientes()).resolves.toEqual([
+      {
+        id: 'm-2',
+        cliente: 'c-2',
+        cliente_nome: 'Outro',
+        margem_produtos_percentual: '5',
+        margem_servicos_percentual: '4',
+      },
+    ])
+
+    getMock.mockResolvedValueOnce({ data: { foo: 1 } })
+    await expect(listarMargensClientes()).resolves.toEqual([])
+
+    expect(getMock).toHaveBeenCalledWith('/erp/orcamentos/margens-clientes/')
+  })
+
+  it('lista parametros de configuracao', async () => {
+    getMock.mockResolvedValueOnce({
+      data: [{ id: 1, chave: 'x', valor: 'y', descricao: 'd', atualizado_em: '' }],
+    })
+
+    await expect(listarParametrosConfiguracao()).resolves.toMatchObject([{ chave: 'x' }])
+    expect(getMock).toHaveBeenCalledWith('/erp/configuracoes/parametros/')
   })
 
   it('lista clientes e contatos de cliente', async () => {
