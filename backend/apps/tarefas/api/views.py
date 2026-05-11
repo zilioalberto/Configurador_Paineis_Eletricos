@@ -799,14 +799,17 @@ class TarefaViewSet(ModelViewSet):
         alterou_classificacao = any(
             getattr(tarefa, campo) != dados.get(campo, "") for campo in campos
         )
-        if alterou_classificacao and tarefa.apontamentos.exists():
-            if not _usuario_tem_permissao(
+        if (
+            alterou_classificacao
+            and tarefa.apontamentos.exists()
+            and not _usuario_tem_permissao(
                 request.user,
                 PermissionKeys.TAREFA_ALTERAR_CLASSIFICACAO_COM_APONTAMENTOS,
-            ):
-                raise PermissionDenied(
-                    "Nao altere a classificacao de tarefas que ja possuem apontamentos."
-                )
+            )
+        ):
+            raise PermissionDenied(
+                "Nao altere a classificacao de tarefas que ja possuem apontamentos."
+            )
 
         valores_anteriores = {campo: getattr(tarefa, campo) for campo in campos}
         if "horas_estipuladas" in dados:

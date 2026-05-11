@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react'
 
-type IconProps = {
+type IconProps = Readonly<{
   className?: string
   'aria-hidden'?: boolean
-}
+}>
 
 const stroke = {
   fill: 'none' as const,

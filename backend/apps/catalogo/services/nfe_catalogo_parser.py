@@ -44,6 +44,14 @@ def _somente_digitos(valor: str, max_len: int | None = None) -> str:
     return d
 
 
+def _tipo_documento_emitente(cnpj: str, cpf: str) -> str:
+    if len(cnpj) == 14:
+        return "CNPJ"
+    if len(cpf) == 11:
+        return "CPF"
+    return ""
+
+
 def _normalizar_cean(raw: str) -> str:
     t = (raw or "").strip().upper()
     if not t or t in ("SEM GTIN", "SEM GTIN."):
@@ -272,7 +280,7 @@ def parse_nfe_xml_bytes(content: bytes) -> dict[str, Any]:
         "cnpj": cnpj_norm,
         "cpf": cpf_emit if len(cpf_emit) == 11 else "",
         "documento_original": cnpj_emit or cpf_emit,
-        "tipo_documento": "CNPJ" if len(cnpj_emit) == 14 else ("CPF" if len(cpf_emit) == 11 else ""),
+        "tipo_documento": _tipo_documento_emitente(cnpj_emit, cpf_emit),
         "cadastro_fornecedor_disponivel": len(cnpj_emit) == 14,
         "razao_social": _text(emit, "xNome") if emit is not None else "",
         "nome_fantasia": _text(emit, "xFant") if emit is not None else "",

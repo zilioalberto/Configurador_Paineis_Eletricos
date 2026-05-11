@@ -10,6 +10,7 @@ import {
   listarFornecedoresNfe,
   previewNfeXml,
 } from '../services/nfeImportService'
+import type { CategoriaProduto } from '../types/categoria'
 import type {
   NfeAplicarItem,
   NfeAplicarResponse,
@@ -64,6 +65,325 @@ function resumoImpostoIcms(imp?: Record<string, string> | null): string {
   if (imp.p_icms) partes.push(`${imp.p_icms}% ICMS`)
   if (imp.v_icms) partes.push(`R$ ${imp.v_icms}`)
   return partes.length ? partes.join(' · ') : '—'
+}
+
+type NfeItemSnapshot = NfeSnapshot['itens'][number]
+
+function selecaoPadraoItem(item: NfeItemSnapshot, snapshot: NfeSnapshot): ItemSelecaoImportacao {
+  return {
+    importar: true,
+    codigo: item.c_prod,
+    fornecedor: fornecedorPadraoSnapshot(snapshot),
+    categoria: item.produto_existente?.categoria ?? '',
+    atualizar_se_existir: false,
+  }
+}
+
+function linhaCatalogoClass(existente: NfeProdutoExistenteResumo | null, diverge: boolean): string {
+  if (!existente) return ''
+  return diverge ? 'table-warning' : 'table-success'
+}
+
+function NfeStatusCell({
+  aberto,
+  diverge,
+  emitenteCadastroDisponivel,
+  existente,
+  item,
+  selecao,
+  onSelecaoChange,
+  onToggleDetalhe,
+}: Readonly<{
+  aberto: boolean
+  diverge: boolean
+  emitenteCadastroDisponivel: boolean
+  existente: NfeProdutoExistenteResumo | null
+  item: NfeItemSnapshot
+  selecao: ItemSelecaoImportacao
+  onSelecaoChange: (nItem: number, selecao: ItemSelecaoImportacao) => void
+  onToggleDetalhe: (nItem: number) => void
+}>) {
+  if (!existente) {
+    return (
+      <td className="small" style={{ minWidth: '9rem' }}>
+        <span className="badge bg-secondary">Novo</span>
+      </td>
+    )
+  }
+
+  return (
+    <td className="small" style={{ minWidth: '9rem' }}>
+      {diverge ? (
+        <>
+          <span className="badge bg-warning text-dark">Divergente</span>
+          <div className="form-check mt-1 mb-0">
+            <input
+              id={`nfe-atualizar-${item.n_item}`}
+              type="checkbox"
+              className="form-check-input"
+              checked={selecao.atualizar_se_existir}
+              disabled={!selecao.importar}
+              onChange={(e) =>
+                onSelecaoChange(item.n_item, {
+                  ...selecao,
+                  atualizar_se_existir: e.target.checked,
+                })
+              }
+            />
+            <label className="form-check-label" htmlFor={`nfe-atualizar-${item.n_item}`}>
+              Atualizar
+            </label>
+          </div>
+        </>
+      ) : (
+        <span className="badge bg-success">Alinhado</span>
+      )}
+      <div>
+        <button
+          type="button"
+          className="btn btn-link btn-sm p-0 align-baseline"
+          onClick={() => onToggleDetalhe(item.n_item)}
+        >
+          {aberto ? 'Ocultar' : 'Ver campos'}
+        </button>
+      </div>
+    </td>
+  )
+}
+
+function NfeItemRow({
+  aberto,
+  carregandoFornecedores,
+  categoriaLabel,
+  categorias,
+  catPending,
+  diverge,
+  existente,
+  fornecedorEmitenteLabel,
+  fornecedoresCombo,
+  item,
+  selecao,
+  trClass,
+  onSelecaoChange,
+  onToggleDetalhe,
+}: Readonly<{
+  aberto: boolean
+  carregandoFornecedores: boolean
+  categoriaLabel: (cid: string) => string
+  categorias: CategoriaProduto[]
+  catPending: boolean
+  diverge: boolean
+  existente: NfeProdutoExistenteResumo | null
+  fornecedorEmitenteLabel: string
+  fornecedoresCombo: NfeFornecedorOption[]
+  item: NfeItemSnapshot
+  selecao: ItemSelecaoImportacao
+  trClass: string
+  onSelecaoChange: (nItem: number, selecao: ItemSelecaoImportacao) => void
+  onToggleDetalhe: (nItem: number) => void
+}>) {
+  return (
+    <Fragment>
+      <tr className={trClass}>
+        <td>
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={selecao.importar}
+            onChange={(e) =>
+              onSelecaoChange(item.n_item, { ...selecao, importar: e.target.checked })
+            }
+            aria-label={`Importar item ${item.n_item}`}
+          />
+        </td>
+        <td>{item.n_item}</td>
+        <td style={{ minWidth: '8rem' }}>
+          <input
+            className="form-control form-control-sm"
+            maxLength={60}
+            value={selecao.codigo}
+            onChange={(e) =>
+              onSelecaoChange(item.n_item, { ...selecao, codigo: e.target.value })
+            }
+          />
+        </td>
+        <td style={{ minWidth: '18rem' }}>
+          <select
+            className="form-select form-select-sm"
+            value={selecao.fornecedor}
+            disabled={!selecao.importar || carregandoFornecedores}
+            onChange={(e) =>
+              onSelecaoChange(item.n_item, {
+                ...selecao,
+                fornecedor: e.target.value as FornecedorSelecao,
+              })
+            }
+            aria-label={`Fornecedor do item ${item.n_item}`}
+          >
+            <option value={FORNECEDOR_EMITENTE} disabled={!emitenteCadastroDisponivel}>
+              {fornecedorEmitenteLabel}
+            </option>
+            <option value={FORNECEDOR_NENHUM}>Nenhum fornecedor</option>
+            {fornecedoresCombo.length ? (
+              <optgroup label="Fornecedores cadastrados">
+                {fornecedoresCombo.map((fornecedor) => (
+                  <option key={fornecedor.id} value={fornecedorExistenteValue(fornecedor.id)}>
+                    {fornecedor.razao_social} ({fornecedor.cnpj})
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+          </select>
+        </td>
+        <td style={{ minWidth: '14rem' }}>
+          <select
+            className={`form-select form-select-sm ${
+              selecao.importar && !selecao.categoria ? 'is-invalid' : ''
+            }`}
+            value={selecao.categoria}
+            disabled={!selecao.importar || catPending}
+            onChange={(e) =>
+              onSelecaoChange(item.n_item, { ...selecao, categoria: e.target.value })
+            }
+            aria-label={`Categoria do item ${item.n_item}`}
+          >
+            <option value="">Selecione...</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome_display ?? c.nome}
+              </option>
+            ))}
+          </select>
+        </td>
+        <NfeStatusCell
+          aberto={aberto}
+          diverge={diverge}
+          existente={existente}
+          item={item}
+          selecao={selecao}
+          onSelecaoChange={onSelecaoChange}
+          onToggleDetalhe={onToggleDetalhe}
+        />
+        <td>
+          <span className="small">{item.x_prod}</span>
+        </td>
+        <td>
+          <code>{item.ncm || '—'}</code>
+        </td>
+        <td>
+          <code>{item.cfop || '—'}</code>
+        </td>
+        <td className="small text-break" style={{ maxWidth: '14rem' }}>
+          <span className="d-block">{resumoImpostoIcms(item.imposto)}</span>
+          {item.imposto?.cst_pis ? (
+            <span className="text-muted">
+              PIS CST {item.imposto.cst_pis}
+              {item.imposto.p_pis ? ` · ${item.imposto.p_pis}%` : ''}
+            </span>
+          ) : null}
+        </td>
+        <td>{item.unidade_catalogo}</td>
+        <td>{item.u_trib_catalogo || '—'}</td>
+        <td className="text-end">{item.v_un_com}</td>
+      </tr>
+      {aberto && existente ? (
+        <tr className={trClass}>
+          <td colSpan={13} className="p-0">
+            <div className="px-3 py-2 border-top bg-white small">
+              <strong className="d-block mb-2">XML × catálogo (código {existente.codigo})</strong>
+              <div className="table-responsive">
+                <table className="table table-sm table-bordered mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Campo</th>
+                      <th>Valor no XML / seleção</th>
+                      <th>Valor no catálogo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {buildNfeCamposComparacao(
+                      item,
+                      selecao.categoria,
+                      categoriaLabel(selecao.categoria),
+                      existente,
+                    ).map((row) => (
+                      <tr key={row.id} className={row.diverge ? 'table-warning' : ''}>
+                        <td>{row.label}</td>
+                        <td>{row.xml || '—'}</td>
+                        <td>{row.catalogo || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
+  )
+}
+
+function NfeItensTableRows({
+  carregandoFornecedores,
+  categoriaLabel,
+  categorias,
+  catPending,
+  detalheAberto,
+  emitenteCadastroDisponivel,
+  existentePorNItem,
+  fornecedorEmitenteLabel,
+  fornecedoresCombo,
+  selecoes,
+  snapshot,
+  onSelecaoChange,
+  onToggleDetalhe,
+}: Readonly<{
+  carregandoFornecedores: boolean
+  categoriaLabel: (cid: string) => string
+  categorias: CategoriaProduto[]
+  catPending: boolean
+  detalheAberto: Record<number, boolean>
+  emitenteCadastroDisponivel: boolean
+  existentePorNItem: Record<number, NfeProdutoExistenteResumo | null>
+  fornecedorEmitenteLabel: string
+  fornecedoresCombo: NfeFornecedorOption[]
+  selecoes: Record<number, ItemSelecaoImportacao>
+  snapshot: NfeSnapshot
+  onSelecaoChange: (nItem: number, selecao: ItemSelecaoImportacao) => void
+  onToggleDetalhe: (nItem: number) => void
+}>) {
+  return (
+    <>
+      {snapshot.itens.map((item) => {
+        const selecao = selecoes[item.n_item] ?? selecaoPadraoItem(item, snapshot)
+        const existente = existentePorNItem[item.n_item] ?? item.produto_existente ?? null
+        const diverge = Boolean(
+          existente && nfeItemLinhaDivergeDoCatalogo(item, selecao.categoria, existente)
+        )
+        return (
+          <NfeItemRow
+            key={item.n_item}
+            aberto={Boolean(detalheAberto[item.n_item])}
+            carregandoFornecedores={carregandoFornecedores}
+            categoriaLabel={categoriaLabel}
+            categorias={categorias}
+            catPending={catPending}
+            diverge={diverge}
+            emitenteCadastroDisponivel={emitenteCadastroDisponivel}
+            existente={existente}
+            fornecedorEmitenteLabel={fornecedorEmitenteLabel}
+            fornecedoresCombo={fornecedoresCombo}
+            item={item}
+            selecao={selecao}
+            trClass={linhaCatalogoClass(existente, diverge)}
+            onSelecaoChange={onSelecaoChange}
+            onToggleDetalhe={onToggleDetalhe}
+          />
+        )
+      })}
+    </>
+  )
 }
 
 export default function NfeImportPage() {
@@ -224,8 +544,8 @@ export default function NfeImportPage() {
   useEffect(() => {
     if (!snapshot?.itens?.length) return
     let cancelled = false
-    if (debounceResumoRef.current) window.clearTimeout(debounceResumoRef.current)
-    debounceResumoRef.current = window.setTimeout(() => {
+    if (debounceResumoRef.current) globalThis.clearTimeout(debounceResumoRef.current)
+    debounceResumoRef.current = globalThis.setTimeout(() => {
       void (async () => {
         for (const it of snapshot.itens) {
           if (cancelled) return
@@ -250,7 +570,7 @@ export default function NfeImportPage() {
     return () => {
       cancelled = true
       if (debounceResumoRef.current) {
-        window.clearTimeout(debounceResumoRef.current)
+        globalThis.clearTimeout(debounceResumoRef.current)
         debounceResumoRef.current = null
       }
     }
@@ -327,6 +647,14 @@ export default function NfeImportPage() {
       return next
     })
   }, [fornecedorGlobal, snapshot])
+
+  const alterarSelecao = useCallback((nItem: number, selecao: ItemSelecaoImportacao) => {
+    setSelecoes((prev) => ({ ...prev, [nItem]: selecao }))
+  }, [])
+
+  const alternarDetalhe = useCallback((nItem: number) => {
+    setDetalheAberto((prev) => ({ ...prev, [nItem]: !prev[nItem] }))
+  }, [])
 
   const aplicar = useCallback(async () => {
     if (!preview) return
@@ -456,12 +784,12 @@ export default function NfeImportPage() {
                       Fornecedor já existe nos cadastros ({preview.fornecedor_catalogo.razao_social}).
                     </p>
                   ) : null}
-                  {!preview.snapshot.emitente.cadastro_fornecedor_disponivel ? (
+                  {preview.snapshot.emitente.cadastro_fornecedor_disponivel ? null : (
                     <p className="small text-warning mt-2 mb-0">
                       Emitente com CPF: não é possível usar o cadastro automático de fornecedor por
                       CNPJ; pode importar apenas produtos.
                     </p>
-                  ) : null}
+                  )}
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label" htmlFor="fab-padrao">
@@ -567,9 +895,9 @@ export default function NfeImportPage() {
                 </div>
               </div>
               {itensSemCategoria.length ? (
-                <div className="alert alert-warning py-2 small" role="status">
+                <output className="alert alert-warning py-2 small d-block">
                   Categorize todos os produtos marcados para liberar a importação.
-                </div>
+                </output>
               ) : null}
               <div className="table-responsive">
                 <table className="table table-sm align-middle">
@@ -591,228 +919,23 @@ export default function NfeImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {preview.snapshot.itens.map((it) => {
-                      const s = selecoes[it.n_item] ?? {
-                        importar: true,
-                        codigo: it.c_prod,
-                        fornecedor: fornecedorPadraoSnapshot(preview.snapshot),
-                        categoria: it.produto_existente?.categoria ?? '',
-                        atualizar_se_existir: false,
+                    <NfeItensTableRows
+                      carregandoFornecedores={carregandoFornecedores}
+                      categoriaLabel={categoriaLabel}
+                      categorias={categorias}
+                      catPending={catPending}
+                      detalheAberto={detalheAberto}
+                      emitenteCadastroDisponivel={
+                        preview.snapshot.emitente.cadastro_fornecedor_disponivel
                       }
-                      const ex = existentePorNItem[it.n_item] ?? it.produto_existente ?? null
-                      const diverge = Boolean(
-                        ex && nfeItemLinhaDivergeDoCatalogo(it, s.categoria, ex),
-                      )
-                      const trClass = ex ? (diverge ? 'table-warning' : 'table-success') : ''
-                      const aberto = Boolean(detalheAberto[it.n_item])
-                      return (
-                        <Fragment key={it.n_item}>
-                          <tr className={trClass}>
-                            <td>
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                checked={s.importar}
-                                onChange={(e) =>
-                                  setSelecoes((prev) => ({
-                                    ...prev,
-                                    [it.n_item]: { ...s, importar: e.target.checked },
-                                  }))
-                                }
-                                aria-label={`Importar item ${it.n_item}`}
-                              />
-                            </td>
-                            <td>{it.n_item}</td>
-                            <td style={{ minWidth: '8rem' }}>
-                              <input
-                                className="form-control form-control-sm"
-                                maxLength={60}
-                                value={s.codigo}
-                                onChange={(e) =>
-                                  setSelecoes((prev) => ({
-                                    ...prev,
-                                    [it.n_item]: { ...s, codigo: e.target.value },
-                                  }))
-                                }
-                              />
-                            </td>
-                            <td style={{ minWidth: '18rem' }}>
-                              <select
-                                className="form-select form-select-sm"
-                                value={s.fornecedor}
-                                disabled={!s.importar || carregandoFornecedores}
-                                onChange={(e) =>
-                                  setSelecoes((prev) => ({
-                                    ...prev,
-                                    [it.n_item]: {
-                                      ...s,
-                                      fornecedor: e.target.value as FornecedorSelecao,
-                                    },
-                                  }))
-                                }
-                                aria-label={`Fornecedor do item ${it.n_item}`}
-                              >
-                                <option
-                                  value={FORNECEDOR_EMITENTE}
-                                  disabled={
-                                    !preview.snapshot.emitente.cadastro_fornecedor_disponivel
-                                  }
-                                >
-                                  {fornecedorEmitenteLabel}
-                                </option>
-                                <option value={FORNECEDOR_NENHUM}>Nenhum fornecedor</option>
-                                {fornecedoresCombo.length ? (
-                                  <optgroup label="Fornecedores cadastrados">
-                                    {fornecedoresCombo.map((fornecedor) => (
-                                      <option
-                                        key={fornecedor.id}
-                                        value={fornecedorExistenteValue(fornecedor.id)}
-                                      >
-                                        {fornecedor.razao_social} ({fornecedor.cnpj})
-                                      </option>
-                                    ))}
-                                  </optgroup>
-                                ) : null}
-                              </select>
-                            </td>
-                            <td style={{ minWidth: '14rem' }}>
-                              <select
-                                className={`form-select form-select-sm ${
-                                  s.importar && !s.categoria ? 'is-invalid' : ''
-                                }`}
-                                value={s.categoria}
-                                disabled={!s.importar || catPending}
-                                onChange={(e) =>
-                                  setSelecoes((prev) => ({
-                                    ...prev,
-                                    [it.n_item]: { ...s, categoria: e.target.value },
-                                  }))
-                                }
-                                aria-label={`Categoria do item ${it.n_item}`}
-                              >
-                                <option value="">Selecione...</option>
-                                {categorias.map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    {c.nome_display ?? c.nome}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="small" style={{ minWidth: '9rem' }}>
-                              {!ex ? (
-                                <span className="badge bg-secondary">Novo</span>
-                              ) : diverge ? (
-                                <>
-                                  <span className="badge bg-warning text-dark">Divergente</span>
-                                  <div className="form-check mt-1 mb-0">
-                                    <input
-                                      id={`nfe-atualizar-${it.n_item}`}
-                                      type="checkbox"
-                                      className="form-check-input"
-                                      checked={s.atualizar_se_existir}
-                                      disabled={!s.importar}
-                                      onChange={(e) =>
-                                        setSelecoes((prev) => ({
-                                          ...prev,
-                                          [it.n_item]: {
-                                            ...s,
-                                            atualizar_se_existir: e.target.checked,
-                                          },
-                                        }))
-                                      }
-                                    />
-                                    <label
-                                      className="form-check-label"
-                                      htmlFor={`nfe-atualizar-${it.n_item}`}
-                                    >
-                                      Atualizar
-                                    </label>
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="badge bg-success">Alinhado</span>
-                              )}
-                              {ex ? (
-                                <div>
-                                  <button
-                                    type="button"
-                                    className="btn btn-link btn-sm p-0 align-baseline"
-                                    onClick={() =>
-                                      setDetalheAberto((d) => ({
-                                        ...d,
-                                        [it.n_item]: !d[it.n_item],
-                                      }))
-                                    }
-                                  >
-                                    {aberto ? 'Ocultar' : 'Ver campos'}
-                                  </button>
-                                </div>
-                              ) : null}
-                            </td>
-                            <td>
-                              <span className="small">{it.x_prod}</span>
-                            </td>
-                            <td>
-                              <code>{it.ncm || '—'}</code>
-                            </td>
-                            <td>
-                              <code>{it.cfop || '—'}</code>
-                            </td>
-                            <td className="small text-break" style={{ maxWidth: '14rem' }}>
-                              <span className="d-block">{resumoImpostoIcms(it.imposto)}</span>
-                              {it.imposto?.cst_pis ? (
-                                <span className="text-muted">
-                                  PIS CST {it.imposto.cst_pis}
-                                  {it.imposto.p_pis ? ` · ${it.imposto.p_pis}%` : ''}
-                                </span>
-                              ) : null}
-                            </td>
-                            <td>{it.unidade_catalogo}</td>
-                            <td>{it.u_trib_catalogo || '—'}</td>
-                            <td className="text-end">{it.v_un_com}</td>
-                          </tr>
-                          {aberto && ex ? (
-                            <tr className={trClass}>
-                              <td colSpan={13} className="p-0">
-                                <div className="px-3 py-2 border-top bg-white small">
-                                  <strong className="d-block mb-2">
-                                    XML × catálogo (código {ex.codigo})
-                                  </strong>
-                                  <div className="table-responsive">
-                                    <table className="table table-sm table-bordered mb-0">
-                                      <thead className="table-light">
-                                        <tr>
-                                          <th>Campo</th>
-                                          <th>Valor no XML / seleção</th>
-                                          <th>Valor no catálogo</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {buildNfeCamposComparacao(
-                                          it,
-                                          s.categoria,
-                                          categoriaLabel(s.categoria),
-                                          ex,
-                                        ).map((row) => (
-                                          <tr
-                                            key={row.id}
-                                            className={row.diverge ? 'table-warning' : ''}
-                                          >
-                                            <td>{row.label}</td>
-                                            <td>{row.xml || '—'}</td>
-                                            <td>{row.catalogo || '—'}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : null}
-                        </Fragment>
-                      )
-                    })}
+                      existentePorNItem={existentePorNItem}
+                      fornecedorEmitenteLabel={fornecedorEmitenteLabel}
+                      fornecedoresCombo={fornecedoresCombo}
+                      selecoes={selecoes}
+                      snapshot={preview.snapshot}
+                      onSelecaoChange={alterarSelecao}
+                      onToggleDetalhe={alternarDetalhe}
+                    />
                   </tbody>
                 </table>
               </div>
@@ -860,7 +983,7 @@ export default function NfeImportPage() {
                     ) : null}
                   </ul>
                   {resultadoImportacao.avisos.length ? (
-                    <div className="alert alert-warning py-2 small mb-2" role="status">
+                    <div className="alert alert-warning py-2 small mb-2">
                       <strong>Avisos</strong>
                       <ul className="mb-0 mt-1">
                         {resultadoImportacao.avisos.map((a) => (

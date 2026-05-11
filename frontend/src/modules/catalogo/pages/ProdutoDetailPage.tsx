@@ -9,7 +9,7 @@ import type { CategoriaProdutoNome } from '../types/categoria'
 import type { ItemFiscalProduto } from '../types/produto'
 import { labelCampoEspec, SPEC_FIELDS_BY_CATEGORIA } from '../utils/specFormHelpers'
 
-function SpecBlock({ title, children }: { title: string; children: ReactNode }) {
+function SpecBlock({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
     <div className="col-12">
       <h3 className="h6 text-muted border-bottom pb-2">{title}</h3>
@@ -23,7 +23,7 @@ function cell(v: unknown): string {
   return String(v)
 }
 
-function ItemFiscalTable({ itens }: { itens: ItemFiscalProduto[] }) {
+function ItemFiscalTable({ itens }: Readonly<{ itens: ItemFiscalProduto[] }>) {
   return (
     <div className="table-responsive">
       <table className="table table-sm table-bordered mb-0 align-middle">
@@ -59,7 +59,7 @@ function ItemFiscalTable({ itens }: { itens: ItemFiscalProduto[] }) {
               <td className="text-end">{cell(it.p_icms)}</td>
               <td className="text-end">{cell(it.v_icms)}</td>
               <td className="text-end">{cell(it.p_ipi)}</td>
-              <td>{it.n_item_nfe != null ? it.n_item_nfe : '—'}</td>
+              <td>{it.n_item_nfe ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -68,7 +68,7 @@ function ItemFiscalTable({ itens }: { itens: ItemFiscalProduto[] }) {
   )
 }
 
-function Row({ label, value }: { label: string; value: ReactNode }) {
+function Row({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
   return (
     <div className="col-md-4">
       <strong className="d-block text-muted">{label}</strong>

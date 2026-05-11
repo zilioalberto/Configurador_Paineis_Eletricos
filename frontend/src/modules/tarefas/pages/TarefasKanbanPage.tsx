@@ -469,7 +469,7 @@ function ColaboradoresChecklist({
   }
 
   return (
-    <div className="tarefa-collaborators-picker" role="group" aria-labelledby={labelId}>
+    <fieldset className="tarefa-collaborators-picker" aria-labelledby={labelId}>
       {responsaveis.map((responsavel) => {
         const value = String(responsavel.id)
         return (
@@ -487,7 +487,7 @@ function ColaboradoresChecklist({
           </label>
         )
       })}
-    </div>
+    </fieldset>
   )
 }
 
@@ -898,10 +898,10 @@ function TarefaCreateModal({
       }
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', onKeyDown)
+      globalThis.removeEventListener('keydown', onKeyDown)
     }
   }, [isSubmitting, onClose])
 
@@ -1412,10 +1412,10 @@ function TarefaEditModal({
       }
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', onKeyDown)
+      globalThis.removeEventListener('keydown', onKeyDown)
     }
   }, [isSavingTime, isSubmitting, mutacoesExtrasPendentes, onClose])
 
@@ -1742,7 +1742,7 @@ function TarefaEditModal({
                             className="btn btn-sm btn-link text-danger p-0"
                             disabled={eliminarComentarioMutation.isPending}
                             onClick={() => {
-                              if (!window.confirm('Excluir este comentário?')) return
+                              if (!globalThis.confirm('Excluir este comentário?')) return
                               void eliminarComentarioMutation
                                 .mutateAsync({ tarefaId: tarefa.id, comentarioId: c.id })
                                 .catch(() =>
@@ -2210,7 +2210,7 @@ function TarefaEditModal({
                     }
                     onClick={() => {
                       if (
-                        !window.confirm(
+                        !globalThis.confirm(
                           'Excluir esta tarefa permanentemente? Esta ação não pode ser desfeita.'
                         )
                       ) {
@@ -2332,8 +2332,8 @@ export default function TarefasKanbanPage() {
 
   useEffect(() => {
     if (!sessaoAtiva) return undefined
-    const intervalId = window.setInterval(() => setTimerTick(Date.now()), 1000)
-    return () => window.clearInterval(intervalId)
+    const intervalId = globalThis.setInterval(() => setTimerTick(Date.now()), 1000)
+    return () => globalThis.clearInterval(intervalId)
   }, [sessaoAtiva])
 
   useEffect(() => {
@@ -2341,7 +2341,7 @@ export default function TarefasKanbanPage() {
     if (!iso || !sessaoAtiva) return undefined
     const ms = new Date(iso).getTime() - Date.now()
     if (Number.isNaN(ms) || ms <= 0 || ms > 86_400_000) return undefined
-    const id = window.setTimeout(() => {
+    const id = globalThis.setTimeout(() => {
       void pararTimerMutation
         .mutateAsync()
         .then(() => {
@@ -2355,7 +2355,7 @@ export default function TarefasKanbanPage() {
           void queryClient.invalidateQueries({ queryKey: tarefasQueryKeys.kanban() })
         })
     }, ms)
-    return () => window.clearTimeout(id)
+    return () => globalThis.clearTimeout(id)
   }, [
     timerQuery.data?.pausa_automatica_prevista_em,
     sessaoAtiva?.id,
@@ -2701,7 +2701,7 @@ export default function TarefasKanbanPage() {
               <strong>{quadro.nome}</strong>
               {quadro.equipe ? <span>{quadro.equipe}</span> : null}
             </div>
-            <nav className="tarefas-board-tabs" aria-label="Visualizações de tarefas" role="tablist">
+            <div className="tarefas-board-tabs" role="tablist" aria-label="Visualizações de tarefas">
               {VISUALIZACOES_TAREFAS.map(([value, label]) => (
                 <button
                   type="button"
@@ -2714,7 +2714,7 @@ export default function TarefasKanbanPage() {
                   {label}
                 </button>
               ))}
-            </nav>
+            </div>
           </section>
 
           <div className="kanban-workspace">
@@ -2790,7 +2790,7 @@ export default function TarefasKanbanPage() {
 
               <div className="kanban-filter-panel__section">
                 <h2>Filtros rápidos</h2>
-                <div className="kanban-filter-panel__group" role="group" aria-label="Situação">
+                <fieldset className="kanban-filter-panel__group" aria-label="Situação">
                   {FILTROS_SITUACAO.map(([value, label]) => (
                     <button
                       type="button"
@@ -2803,7 +2803,7 @@ export default function TarefasKanbanPage() {
                       {label}
                     </button>
                   ))}
-                </div>
+                </fieldset>
               </div>
 
               <div className="kanban-filter-panel__section">

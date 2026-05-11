@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ConfirmModal, useToast } from '@/components/feedback'
@@ -323,7 +323,7 @@ export default function CadastrosPage() {
     setEnderecoForm(enderecoFormVazio)
   }
 
-  function handleFiltroSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleFiltroSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
   }
@@ -341,8 +341,12 @@ export default function CadastrosPage() {
     [form]
   )
 
-  async function salvarParceiro(event: FormEvent<HTMLFormElement>) {
+  const salvarParceiro: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarParceiroAsync()
+  }
+
+  async function salvarParceiroAsync() {
     if (!canEdit || !parceiroFormValido) return
     setSalvandoParceiro(true)
     try {
@@ -367,8 +371,12 @@ export default function CadastrosPage() {
     }
   }
 
-  async function salvarContato(event: FormEvent<HTMLFormElement>) {
+  const salvarContato: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarContatoAsync()
+  }
+
+  async function salvarContatoAsync() {
     if (!canEdit || !selecionado || !contatoForm.nome.trim()) return
     setSalvandoContato(true)
     try {
@@ -393,8 +401,12 @@ export default function CadastrosPage() {
     }
   }
 
-  async function salvarEndereco(event: FormEvent<HTMLFormElement>) {
+  const salvarEndereco: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarEnderecoAsync()
+  }
+
+  async function salvarEnderecoAsync() {
     if (!canEdit || !selecionado) return
     setSalvandoEndereco(true)
     try {
@@ -609,9 +621,9 @@ export default function CadastrosPage() {
                             >
                               {p.razao_social}
                             </button>
-                            {!p.ativo ? (
+                            {p.ativo ? null : (
                               <span className="badge text-bg-secondary ms-2">Inativo</span>
-                            ) : null}
+                            )}
                             {p.nome_fantasia ? (
                               <div className="small text-muted">{p.nome_fantasia}</div>
                             ) : null}

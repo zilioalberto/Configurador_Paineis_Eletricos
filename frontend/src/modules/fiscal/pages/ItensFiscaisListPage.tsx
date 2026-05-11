@@ -9,8 +9,8 @@ export default function ItensFiscaisListPage() {
   const pageSize = 50
 
   useEffect(() => {
-    const t = window.setTimeout(() => setDebouncedSearch(inputSearch.trim()), 400)
-    return () => window.clearTimeout(t)
+    const t = globalThis.setTimeout(() => setDebouncedSearch(inputSearch.trim()), 400)
+    return () => globalThis.clearTimeout(t)
   }, [inputSearch])
 
   useEffect(() => {
@@ -135,7 +135,7 @@ export default function ItensFiscaisListPage() {
               <p className="small text-muted mb-0">
                 {`Mostrando ${items.length} de ${pageData?.total ?? items.length} itens`}
               </p>
-              <div className="btn-group" role="group" aria-label="Paginação">
+              <nav className="btn-group" aria-label="Paginação">
                 <button
                   type="button"
                   className="btn btn-outline-secondary btn-sm"
@@ -155,7 +155,7 @@ export default function ItensFiscaisListPage() {
                 >
                   Próxima
                 </button>
-              </div>
+              </nav>
             </div>
           )}
         </div>

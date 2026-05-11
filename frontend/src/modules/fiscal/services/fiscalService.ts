@@ -5,6 +5,13 @@ const BASE_URL = '/fiscal/itens-fiscais/'
 
 type ListResponse<T> = { results?: T[] }
 
+function normalizeTotal(count: unknown, fallback: number): number {
+  if (typeof count === 'number') return count
+  if (typeof count !== 'string' || count === '') return fallback
+  const parsed = Number(count)
+  return Number.isNaN(parsed) ? fallback : parsed
+}
+
 export type ItensFiscaisListPage = {
   readonly items: ItemFiscalProdutoListRow[]
   readonly total: number
@@ -33,12 +40,7 @@ function normalizeListPage(
     }
     return {
       items: payload.results,
-      total:
-        typeof payload.count === 'number'
-          ? payload.count
-          : typeof payload.count === 'string' && payload.count !== '' && !Number.isNaN(Number(payload.count))
-            ? Number(payload.count)
-            : payload.results.length,
+      total: normalizeTotal(payload.count, payload.results.length),
       page,
       pageSize,
       hasNext: Boolean(payload.next),

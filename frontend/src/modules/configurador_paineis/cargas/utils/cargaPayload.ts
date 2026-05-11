@@ -39,7 +39,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       ...merged,
       numero_fases: Number.isFinite(nf) ? nf : base.numero_fases,
       tensao_motor: Number.isFinite(tm) ? tm : base.tensao_motor,
-    } as Record<string, unknown>)
+    })
     body.motor = m
   }
   if (tipo === 'VALVULA' && valvula) {
@@ -54,7 +54,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
         : null,
       tensao_alimentacao: Number(valvula.tensao_alimentacao),
       corrente_consumida_ma: Number(valvula.corrente_consumida_ma || 0),
-    } as Record<string, unknown>)
+    })
   }
   if (tipo === 'RESISTENCIA' && resistencia) {
     body.resistencia = {
@@ -72,7 +72,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       corrente_consumida_ma: Number(sensor.corrente_consumida_ma || 0),
       quantidade_fios:
         sensor.quantidade_fios === '' ? null : Number(sensor.quantidade_fios),
-    } as Record<string, unknown>)
+    })
   }
   if (tipo === 'TRANSDUTOR' && transdutor) {
     body.transdutor = omitEmptyStrings({
@@ -82,7 +82,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       corrente_consumida_ma: Number(transdutor.corrente_consumida_ma || 0),
       quantidade_fios:
         transdutor.quantidade_fios === '' ? null : Number(transdutor.quantidade_fios),
-    } as Record<string, unknown>)
+    })
   }
 
   return body

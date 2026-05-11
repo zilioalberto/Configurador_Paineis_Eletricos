@@ -24,8 +24,8 @@ const getMock = vi.hoisted(() =>
 
 vi.mock('@/services/apiClient', () => ({
   default: {
-    get: (...args: unknown[]) => getMock(args[0] as string),
-    post: (...args: unknown[]) => postMock(args[0] as string),
+    get: (url: string) => getMock(url),
+    post: (url: string) => postMock(url),
     put: vi.fn(),
     delete: vi.fn(),
   },

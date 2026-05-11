@@ -1897,45 +1897,40 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             aplicar_aliquota_ipi_referencia_produto(produto, aliquota_ipi)
         return produto
 
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        info_payload = validated_data.pop("informacao_comercial", serializers.empty)
-        itens_payload = validated_data.pop("itens_fiscais", serializers.empty)
-        aliquota_ipi = validated_data.pop("aliquota_ipi", serializers.empty)
-        payloads = {}
-        for k in NESTED_KEYS:
-            if k in validated_data:
-                payloads[k] = validated_data.pop(k)
-        if info_payload is not serializers.empty:
-            if info_payload is None:
-                _limpar_informacao_comercial(instance)
-            else:
-                validated_data.update(info_payload)
-        categoria_antiga = instance.categoria
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        try:
-            instance.full_clean()
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(exc.message_dict) from exc
-        instance.save()
-        nome_novo = instance.categoria
-        if itens_payload is not serializers.empty:
-            if itens_payload is None:
-                instance.itens_fiscais.all().delete()
-            else:
-                _salvar_itens_fiscais_catalogo(instance, itens_payload)
-        if aliquota_ipi is not serializers.empty:
-            aplicar_aliquota_ipi_referencia_produto(instance, aliquota_ipi)
+    def _aplicar_info_payload_update(self, instance, validated_data, info_payload) -> None:
+        if info_payload is serializers.empty:
+            return
+        if info_payload is None:
+            _limpar_informacao_comercial(instance)
+            return
+        validated_data.update(info_payload)
+
+    def _sincronizar_itens_fiscais_update(self, instance, itens_payload) -> None:
+        if itens_payload is serializers.empty:
+            return
+        if itens_payload is None:
+            instance.itens_fiscais.all().delete()
+            return
+        _salvar_itens_fiscais_catalogo(instance, itens_payload)
+
+    def _salvar_especificacao_update(
+        self,
+        instance,
+        *,
+        categoria_antiga,
+        nome_novo,
+        payloads,
+    ):
         if nome_novo != categoria_antiga:
             _clear_specs(instance)
-            if CATEGORIA_PARA_CAMPO.get(nome_novo):
-                campo = CATEGORIA_PARA_CAMPO[nome_novo]
-                _salvar_especificacao(instance, nome_novo, payloads.get(campo))
-            return instance
+            campo_novo = CATEGORIA_PARA_CAMPO.get(nome_novo)
+            if campo_novo:
+                _salvar_especificacao(instance, nome_novo, payloads.get(campo_novo))
+            return
+
         campo = CATEGORIA_PARA_CAMPO.get(nome_novo)
         if not campo or campo not in payloads or payloads[campo] is None:
-            return instance
+            return
         Model = MODEL_BY_CAMPO[campo]
         merged = _merge_spec(
             _defaults_para_categoria(nome_novo),
@@ -1954,4 +1949,33 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             spec.save()
         except DjangoValidationError as exc:
             _raise_erro_especificacao_amigavel(campo, exc)
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        info_payload = validated_data.pop("informacao_comercial", serializers.empty)
+        itens_payload = validated_data.pop("itens_fiscais", serializers.empty)
+        aliquota_ipi = validated_data.pop("aliquota_ipi", serializers.empty)
+        payloads = {}
+        for k in NESTED_KEYS:
+            if k in validated_data:
+                payloads[k] = validated_data.pop(k)
+        self._aplicar_info_payload_update(instance, validated_data, info_payload)
+        categoria_antiga = instance.categoria
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        try:
+            instance.full_clean()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
+        instance.save()
+        nome_novo = instance.categoria
+        self._sincronizar_itens_fiscais_update(instance, itens_payload)
+        if aliquota_ipi is not serializers.empty:
+            aplicar_aliquota_ipi_referencia_produto(instance, aliquota_ipi)
+        self._salvar_especificacao_update(
+            instance,
+            categoria_antiga=categoria_antiga,
+            nome_novo=nome_novo,
+            payloads=payloads,
+        )
         return instance

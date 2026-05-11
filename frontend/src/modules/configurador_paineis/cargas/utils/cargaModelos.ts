@@ -85,5 +85,5 @@ export function aplicarModeloNoFormulario(
     tipo,
     tag: '',
     quantidade,
-  } as CargaFormData
+  }
 }

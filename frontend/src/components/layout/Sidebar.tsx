@@ -95,13 +95,9 @@ export default function Sidebar({
       >
         {menuItems.map((item) =>
           isAppMenuGroup(item) ? (
-            <SidebarMenuGroup
-              key={item.id}
-              id={item.id}
-              label={item.label}
-              children={item.children}
-              onNavigate={onNavigate}
-            />
+            <SidebarMenuGroup key={item.id} id={item.id} label={item.label} onNavigate={onNavigate}>
+              {item.children}
+            </SidebarMenuGroup>
           ) : (
             <NavLink
               key={item.to}

@@ -1,6 +1,6 @@
 import {
   type Dispatch,
-  type FormEvent,
+  type FormEventHandler,
   type ReactNode,
   type SetStateAction,
   useCallback,
@@ -365,15 +365,12 @@ export default function RhPage() {
     }
   }, [aba, canEdit, colaboradorId])
 
-  const listaAbaAtual = useMemo(() => {
-    if (aba === 'colaboradores') return colaboradores
-    if (aba === 'departamentos') return departamentos
-    if (aba === 'cargos') return cargos
-    if (aba === 'equipes') return equipes
-    return jornadas
-  }, [aba, cargos, colaboradores, departamentos, equipes, jornadas])
+  const listaAbaAtual = useMemo(
+    () => ({ colaboradores, departamentos, cargos, equipes, jornadas })[aba],
+    [aba, cargos, colaboradores, departamentos, equipes, jornadas]
+  )
 
-  function aplicarBusca(event: FormEvent<HTMLFormElement>) {
+  const aplicarBusca: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
   }
@@ -431,8 +428,12 @@ export default function RhPage() {
     setJornadaForm(jornadaParaForm(item))
   }
 
-  async function salvarColaborador(event: FormEvent<HTMLFormElement>) {
+  const salvarColaborador: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarColaboradorAsync()
+  }
+
+  async function salvarColaboradorAsync() {
     if (!canEdit || !colaboradorForm.matricula.trim() || !colaboradorForm.nome.trim()) return
     setSalvando(true)
     try {
@@ -455,8 +456,12 @@ export default function RhPage() {
     }
   }
 
-  async function salvarDepartamento(event: FormEvent<HTMLFormElement>) {
+  const salvarDepartamento: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarDepartamentoAsync()
+  }
+
+  async function salvarDepartamentoAsync() {
     if (!canEdit || !departamentoForm.nome.trim()) return
     setSalvando(true)
     try {
@@ -479,8 +484,12 @@ export default function RhPage() {
     }
   }
 
-  async function salvarCargo(event: FormEvent<HTMLFormElement>) {
+  const salvarCargo: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarCargoAsync()
+  }
+
+  async function salvarCargoAsync() {
     if (!canEdit || !cargoForm.nome.trim()) return
     setSalvando(true)
     try {
@@ -503,8 +512,12 @@ export default function RhPage() {
     }
   }
 
-  async function salvarEquipe(event: FormEvent<HTMLFormElement>) {
+  const salvarEquipe: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarEquipeAsync()
+  }
+
+  async function salvarEquipeAsync() {
     if (!canEdit || !equipeForm.nome.trim()) return
     setSalvando(true)
     try {
@@ -527,8 +540,12 @@ export default function RhPage() {
     }
   }
 
-  async function salvarJornada(event: FormEvent<HTMLFormElement>) {
+  const salvarJornada: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
+    void salvarJornadaAsync()
+  }
+
+  async function salvarJornadaAsync() {
     if (!canEdit || !jornadaForm.nome.trim()) return
     setSalvando(true)
     try {
@@ -863,13 +880,13 @@ function ListaColaboradores({
   selectedId,
   onDelete,
   onSelect,
-}: {
+}: Readonly<{
   canEdit: boolean
   colaboradores: ColaboradorDto[]
   selectedId: string | null
   onDelete: (item: ColaboradorDto) => void
   onSelect: (item: ColaboradorDto) => void
-}) {
+}>) {
   if (colaboradores.length === 0) return <p className="text-muted mb-0">Nenhum colaborador.</p>
   return (
     <div className="table-responsive">
@@ -893,7 +910,7 @@ function ListaColaboradores({
                 >
                   {item.nome}
                 </button>
-                {!item.ativo ? <span className="badge text-bg-secondary ms-2">Inativo</span> : null}
+                {item.ativo ? null : <span className="badge text-bg-secondary ms-2">Inativo</span>}
                 {item.email ? <div className="small text-muted">{item.email}</div> : null}
                 {item.usuario ? (
                   <div className="small text-success">Conta: {item.usuario_email || `#${item.usuario}`}</div>
@@ -933,14 +950,14 @@ function ListaSimples<T extends { id: string; nome: string; ativo: boolean }>({
   renderMeta,
   onDelete,
   onSelect,
-}: {
+}: Readonly<{
   canEdit: boolean
   items: T[]
   selectedId: string | null
   renderMeta: (item: T) => string
   onDelete: (item: T) => void
   onSelect: (item: T) => void
-}) {
+}>) {
   if (items.length === 0) return <p className="text-muted mb-0">Nenhum registro.</p>
   return (
     <div className="table-responsive">
@@ -963,7 +980,7 @@ function ListaSimples<T extends { id: string; nome: string; ativo: boolean }>({
                 >
                   {item.nome}
                 </button>
-                {!item.ativo ? <span className="badge text-bg-secondary ms-2">Inativo</span> : null}
+                {item.ativo ? null : <span className="badge text-bg-secondary ms-2">Inativo</span>}
               </td>
               <td>{renderMeta(item)}</td>
               <td className="text-end">
@@ -992,13 +1009,13 @@ function ListaEquipes({
   selectedId,
   onDelete,
   onSelect,
-}: {
+}: Readonly<{
   canEdit: boolean
   equipes: EquipeDto[]
   selectedId: string | null
   onDelete: (item: EquipeDto) => void
   onSelect: (item: EquipeDto) => void
-}) {
+}>) {
   if (equipes.length === 0) return <p className="text-muted mb-0">Nenhuma equipe.</p>
   return (
     <ListaSimples
@@ -1020,13 +1037,13 @@ function ListaJornadas({
   selectedId,
   onDelete,
   onSelect,
-}: {
+}: Readonly<{
   canEdit: boolean
   jornadas: JornadaTrabalhoDto[]
   selectedId: string | null
   onDelete: (item: JornadaTrabalhoDto) => void
   onSelect: (item: JornadaTrabalhoDto) => void
-}) {
+}>) {
   if (jornadas.length === 0) return <p className="text-muted mb-0">Nenhuma jornada.</p>
   return (
     <ListaSimples
@@ -1053,7 +1070,7 @@ function FormColaborador({
   salvando,
   setForm,
   onSubmit,
-}: {
+}: Readonly<{
   canEdit: boolean
   cargos: CargoDto[]
   departamentos: DepartamentoDto[]
@@ -1065,8 +1082,8 @@ function FormColaborador({
   usuariosVinculo: UsuarioVinculoDto[]
   salvando: boolean
   setForm: Dispatch<SetStateAction<ColaboradorForm>>
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+  onSubmit: FormEventHandler<HTMLFormElement>
+}>) {
   return (
     <form onSubmit={onSubmit}>
       <h2 className="h5 mb-3">{isEditing ? 'Editar colaborador' : 'Novo colaborador'}</h2>
@@ -1155,14 +1172,14 @@ function FormDepartamento({
   salvando,
   setForm,
   onSubmit,
-}: {
+}: Readonly<{
   canEdit: boolean
   form: SimplesForm
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<SimplesForm>>
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+  onSubmit: FormEventHandler<HTMLFormElement>
+}>) {
   return (
     <form onSubmit={onSubmit}>
       <h2 className="h5 mb-3">{isEditing ? 'Editar departamento' : 'Novo departamento'}</h2>
@@ -1186,14 +1203,14 @@ function FormCargo({
   salvando,
   setForm,
   onSubmit,
-}: {
+}: Readonly<{
   canEdit: boolean
   form: SimplesForm
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<SimplesForm>>
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+  onSubmit: FormEventHandler<HTMLFormElement>
+}>) {
   return (
     <form onSubmit={onSubmit}>
       <h2 className="h5 mb-3">{isEditing ? 'Editar cargo' : 'Novo cargo'}</h2>
@@ -1218,7 +1235,7 @@ function FormEquipe({
   salvando,
   setForm,
   onSubmit,
-}: {
+}: Readonly<{
   canEdit: boolean
   colaboradores: ColaboradorDto[]
   departamentos: DepartamentoDto[]
@@ -1226,8 +1243,8 @@ function FormEquipe({
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<EquipeForm>>
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+  onSubmit: FormEventHandler<HTMLFormElement>
+}>) {
   return (
     <form onSubmit={onSubmit}>
       <h2 className="h5 mb-3">{isEditing ? 'Editar equipe' : 'Nova equipe'}</h2>
@@ -1263,15 +1280,15 @@ function FormJornada({
   setForm,
   toggleDiaSemana,
   onSubmit,
-}: {
+}: Readonly<{
   canEdit: boolean
   form: JornadaForm
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<JornadaForm>>
   toggleDiaSemana: (dia: number) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+  onSubmit: FormEventHandler<HTMLFormElement>
+}>) {
   return (
     <form onSubmit={onSubmit}>
       <h2 className="h5 mb-3">{isEditing ? 'Editar jornada' : 'Nova jornada'}</h2>
@@ -1317,14 +1334,14 @@ function TextField({
   type = 'text',
   required = false,
   wide = false,
-}: {
+}: Readonly<{
   label: string
   value: string
   onChange: (value: string) => void
   type?: string
   required?: boolean
   wide?: boolean
-}) {
+}>) {
   const id = `rh-field-${label.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <div className={wide ? 'col-md-8' : 'col-md-4'}>
@@ -1347,11 +1364,11 @@ function TextArea({
   label,
   value,
   onChange,
-}: {
+}: Readonly<{
   label: string
   value: string
   onChange: (value: string) => void
-}) {
+}>) {
   const id = `rh-field-${label.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <div className="col-12">
@@ -1374,12 +1391,12 @@ function SelectField({
   value,
   children,
   onChange,
-}: {
+}: Readonly<{
   label: string
   value: string
   children: ReactNode
   onChange: (value: string) => void
-}) {
+}>) {
   const id = `rh-field-${label.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <div className="col-md-4">
@@ -1396,10 +1413,10 @@ function SelectField({
 function AtivoCheck({
   checked,
   onChange,
-}: {
+}: Readonly<{
   checked: boolean
   onChange: (checked: boolean) => void
-}) {
+}>) {
   return (
     <div className="col-12">
       <div className="form-check">
@@ -1422,11 +1439,11 @@ function SubmitBar({
   canEdit,
   disabled,
   salvando,
-}: {
+}: Readonly<{
   canEdit: boolean
   disabled: boolean
   salvando: boolean
-}) {
+}>) {
   if (!canEdit) return null
   return (
     <div className="d-flex flex-wrap gap-2 mt-3">

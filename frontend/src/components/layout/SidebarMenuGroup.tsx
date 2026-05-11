@@ -43,7 +43,7 @@ export function SidebarMenuGroup({
   )
 
   useEffect(() => {
-    const mq = window.matchMedia('(hover: hover)')
+    const mq = globalThis.matchMedia('(hover: hover)')
     const sync = () => setSupportsHover(mq.matches)
     sync()
     mq.addEventListener('change', sync)
@@ -60,11 +60,11 @@ export function SidebarMenuGroup({
   useLayoutEffect(() => {
     if (!open) return
     updatePosition()
-    window.addEventListener('scroll', updatePosition, true)
-    window.addEventListener('resize', updatePosition)
+    globalThis.addEventListener('scroll', updatePosition, true)
+    globalThis.addEventListener('resize', updatePosition)
     return () => {
-      window.removeEventListener('scroll', updatePosition, true)
-      window.removeEventListener('resize', updatePosition)
+      globalThis.removeEventListener('scroll', updatePosition, true)
+      globalThis.removeEventListener('resize', updatePosition)
     }
   }, [open, updatePosition])
 
@@ -72,14 +72,14 @@ export function SidebarMenuGroup({
 
   const cancelScheduledClose = useCallback(() => {
     if (closeTimerRef.current != null) {
-      window.clearTimeout(closeTimerRef.current)
+      globalThis.clearTimeout(closeTimerRef.current)
       closeTimerRef.current = null
     }
   }, [])
 
   const scheduleClose = useCallback(() => {
     cancelScheduledClose()
-    closeTimerRef.current = window.setTimeout(() => {
+    closeTimerRef.current = globalThis.setTimeout(() => {
       setOpen(false)
       closeTimerRef.current = null
     }, 180)
@@ -96,14 +96,14 @@ export function SidebarMenuGroup({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
+    return () => globalThis.removeEventListener('keydown', onKeyDown)
   }, [open])
 
   useEffect(() => {
     if (!open) return
     let dismiss: ((e: MouseEvent | TouchEvent) => void) | undefined
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       dismiss = (e: MouseEvent | TouchEvent) => {
         const el = e.target as Node
         if (triggerRef.current?.contains(el)) return
@@ -114,7 +114,7 @@ export function SidebarMenuGroup({
       document.addEventListener('touchstart', dismiss)
     }, 0)
     return () => {
-      window.clearTimeout(timer)
+      globalThis.clearTimeout(timer)
       if (dismiss) {
         document.removeEventListener('mousedown', dismiss)
         document.removeEventListener('touchstart', dismiss)
@@ -125,10 +125,10 @@ export function SidebarMenuGroup({
   const submenu =
     open &&
     createPortal(
-      <div
+      <nav
         ref={submenuRef}
         id={`sidebar-submenu-${id}`}
-        role="menu"
+        aria-label={label}
         className="app-sidebar-submenu"
         style={{
           position: 'fixed',
@@ -144,7 +144,6 @@ export function SidebarMenuGroup({
           {children.map((child) => (
             <NavLink
               key={child.to}
-              role="menuitem"
               to={child.to}
               end={child.end}
               className={({ isActive }) =>
@@ -160,7 +159,7 @@ export function SidebarMenuGroup({
             </NavLink>
           ))}
         </div>
-      </div>,
+      </nav>,
       document.body
     )
 
@@ -173,7 +172,7 @@ export function SidebarMenuGroup({
           hasActiveChild ? 'active' : ''
         }`}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-haspopup="true"
         aria-controls={`sidebar-submenu-${id}`}
         title={label}
         onMouseEnter={supportsHover ? openMenu : undefined}

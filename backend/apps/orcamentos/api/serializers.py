@@ -186,6 +186,30 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         data["custo_unitario"] = produto.preco_base
         data["aliquota_ipi"] = p_ipi_referencia_produto(produto)
 
+    def _limpar_produto_catalogo_item(self, data) -> None:
+        data["produto"] = None
+        data["aliquota_ipi"] = None
+        if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
+            data["origem"] = OrigemItemOrcamentoChoices.MANUAL
+
+    def _normalizar_origem_tipo_item(self, data, produto, rehydrate_catalogo) -> None:
+        if rehydrate_catalogo and produto is not None:
+            self._preencher_item_produto_catalogo(data, produto)
+            return
+        data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
+        data["origem"] = data.get("origem") or OrigemItemOrcamentoChoices.MANUAL
+
+    def _preencher_valores_padrao_item(self, orcamento, data, rehydrate_catalogo) -> None:
+        data["quantidade"] = data.get("quantidade", 1)
+        if not rehydrate_catalogo:
+            data["custo_unitario"] = data.get("custo_unitario", 0)
+        if data.get("margem_percentual") in (None, "") or "margem_percentual" not in data:
+            data["margem_percentual"] = self._margem_padrao_item(orcamento, data["tipo"])
+        if "preco_unitario" not in data or data.get("preco_unitario") in (None, ""):
+            custo = data.get("custo_unitario") or 0
+            margem = data.get("margem_percentual") or 0
+            data["preco_unitario"] = custo * (1 + margem / 100)
+
     def _normalizar_item_data(
         self,
         orcamento,
@@ -197,26 +221,11 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     ):
         data = dict(item_data)
         if clear_produto:
-            data["produto"] = None
-            data["aliquota_ipi"] = None
-            if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
-                data["origem"] = OrigemItemOrcamentoChoices.MANUAL
+            self._limpar_produto_catalogo_item(data)
         data["ordem"] = data.get("ordem", idx)
         produto = data.get("produto")
-        if rehydrate_catalogo and produto is not None:
-            self._preencher_item_produto_catalogo(data, produto)
-        else:
-            data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
-            data["origem"] = data.get("origem") or OrigemItemOrcamentoChoices.MANUAL
-        data["quantidade"] = data.get("quantidade", 1)
-        if not rehydrate_catalogo:
-            data["custo_unitario"] = data.get("custo_unitario", 0)
-        if data.get("margem_percentual") in (None, "") or "margem_percentual" not in data:
-            data["margem_percentual"] = self._margem_padrao_item(orcamento, data["tipo"])
-        if "preco_unitario" not in data or data.get("preco_unitario") in (None, ""):
-            custo = data.get("custo_unitario") or 0
-            margem = data.get("margem_percentual") or 0
-            data["preco_unitario"] = custo * (1 + margem / 100)
+        self._normalizar_origem_tipo_item(data, produto, rehydrate_catalogo)
+        self._preencher_valores_padrao_item(orcamento, data, rehydrate_catalogo)
         if not (data.get("descricao") or "").strip():
             raise serializers.ValidationError(
                 {"itens": "Cada item precisa de descrição (ou produto do catálogo)."}
