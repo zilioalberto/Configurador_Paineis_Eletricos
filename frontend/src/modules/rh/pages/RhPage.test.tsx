@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { AxiosError } from 'axios'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { authUser } from '@/test/factories/authUser'
@@ -25,9 +26,20 @@ const excluirDepartamentoMock = vi.hoisted(() => vi.fn())
 const excluirCargoMock = vi.hoisted(() => vi.fn())
 const excluirEquipeMock = vi.hoisted(() => vi.fn())
 const excluirJornadaMock = vi.hoisted(() => vi.fn())
+type ConfirmModalPropsShape = {
+  show?: boolean
+  onConfirm?: () => void
+  onCancel?: () => void
+}
+const lastConfirmModalProps = vi.hoisted(
+  () => ({ current: null as null | ConfirmModalPropsShape })
+)
 
 vi.mock('@/components/feedback', () => ({
-  ConfirmModal: () => null,
+  ConfirmModal: (props: ConfirmModalPropsShape) => {
+    lastConfirmModalProps.current = props
+    return null
+  },
   useToast: () => ({ showToast: showToastMock }),
 }))
 
@@ -128,6 +140,7 @@ const colaboradorBase = {
 
 function setupRhPage() {
   showToastMock.mockClear()
+  lastConfirmModalProps.current = null
   listarDepartamentosMock.mockResolvedValue([departamentoBase])
   listarCargosMock.mockResolvedValue([cargoBase])
   listarJornadasMock.mockResolvedValue([jornadaBase])
@@ -209,4 +222,131 @@ describe('RhPage', () => {
       })
     )
   })
+
+  it('aplica filtros de busca e situação ao recarregar listas', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.change(screen.getByLabelText('Buscar'), {
+      target: { value: '  maria  ' },
+    })
+    fireEvent.change(screen.getByLabelText('Situação'), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+
+    await waitFor(() => {
+      expect(listarColaboradoresMock).toHaveBeenLastCalledWith({
+        ativo: '',
+        search: 'maria',
+      })
+    })
+    expect(screen.getByRole('button', { name: 'Limpar' })).toBeInTheDocument()
+  })
+
+  it('mostra toast quando falha ao carregar cadastros', async () => {
+    const err = new AxiosError('network')
+    err.response = { status: 500, data: { detail: 'Falha RH' } } as AxiosError['response']
+    listarDepartamentosMock.mockRejectedValueOnce(err)
+
+    renderRhPage()
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'danger',
+          title: 'RH',
+          message: 'Falha RH',
+        })
+      )
+    })
+    expect(await screen.findByText('Nenhum colaborador.')).toBeInTheDocument()
+  })
+
+  it('cria novo cargo pela aba de cargos', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargos' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Novo registro' }))
+    fireEvent.change(screen.getByLabelText('Nome'), {
+      target: { value: 'Analista RH' },
+    })
+    fireEvent.change(screen.getByLabelText('Descrição'), {
+      target: { value: 'Atendimento interno' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => expect(criarCargoMock).toHaveBeenCalled())
+    expect(criarCargoMock).toHaveBeenCalledWith({
+      nome: 'Analista RH',
+      descricao: 'Atendimento interno',
+      ativo: true,
+    })
+  })
+
+  it('edita equipe vinculando líder', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.click(screen.getByRole('button', { name: 'Equipes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Automação' }))
+    fireEvent.change(screen.getByLabelText('Líder'), {
+      target: { value: 'col-1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => expect(atualizarEquipeMock).toHaveBeenCalled())
+    expect(atualizarEquipeMock).toHaveBeenCalledWith(
+      'eq-1',
+      expect.objectContaining({
+        nome: 'Automação',
+        departamento: 'dep-1',
+        lider: 'col-1',
+      })
+    )
+  })
+
+  it('edita jornada convertendo horários e dias da semana', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.click(screen.getByRole('button', { name: 'Jornadas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Comercial' }))
+    fireEvent.click(screen.getByLabelText('Seg'))
+    fireEvent.click(screen.getByLabelText('Sáb'))
+    fireEvent.change(screen.getByLabelText('Horas semanais'), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => expect(atualizarJornadaMock).toHaveBeenCalled())
+    expect(atualizarJornadaMock).toHaveBeenCalledWith(
+      'jor-1',
+      expect.objectContaining({
+        nome: 'Comercial',
+        carga_horaria_semanal: '0',
+        hora_inicio: '08:00:00',
+        intervalo_fim: '13:00:00',
+        dias_semana: [1, 2, 3, 4, 5],
+      })
+    )
+  })
+
+  it('confirma exclusão do registro selecionado', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.click(screen.getByRole('button', { name: 'Maria Silva' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    await waitFor(() => expect(lastConfirmModalProps.current?.show).toBe(true))
+    lastConfirmModalProps.current?.onConfirm?.()
+
+    await waitFor(() => expect(excluirColaboradorMock).toHaveBeenCalledWith('col-1'))
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'success', message: 'Registro excluído.' })
+    )
+  })
+
 })
