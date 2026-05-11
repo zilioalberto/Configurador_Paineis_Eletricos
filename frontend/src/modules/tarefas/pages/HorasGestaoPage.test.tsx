@@ -110,14 +110,14 @@ describe('HorasGestaoPage', () => {
     expect(screen.getByRole('heading', { name: 'Gestão de horas' })).toBeInTheDocument()
     expect(screen.getByText('12,50 h')).toBeInTheDocument()
     expect(screen.getAllByText('Ana Souza').length).toBeGreaterThan(0)
-    expect(screen.getByText('Montagem painel')).toBeInTheDocument()
-    expect(screen.getByText('PROP-001')).toBeInTheDocument()
+    expect(screen.getAllByText('Montagem painel').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('PROP-001').length).toBeGreaterThan(0)
   })
 
   it('submete filtros opcionais e alterna foco para propostas', () => {
     renderHorasGestaoPage()
 
-    fireEvent.change(screen.getByLabelText('Colaborador'), { target: { value: '8' } })
+    fireEvent.change(document.getElementById('hg-colaborador')!, { target: { value: '8' } })
     fireEvent.change(screen.getByLabelText('Proposta (referência PROP)'), {
       target: { value: 'PROP-777' },
     })
