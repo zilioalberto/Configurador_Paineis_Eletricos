@@ -54,7 +54,7 @@ function Invoke-BackendTests {
     if ($UseLocal) {
         Push-Location (Join-Path $RepoRoot "backend")
         try {
-            $env:DJANGO_SETTINGS_MODULE = "portal.settings_ci"
+            $env:DJANGO_SETTINGS_MODULE = "config.settings_ci"
             python -m pytest @pytestArgs
             if ($LASTEXITCODE -ne 0) { throw "pytest falhou com código $LASTEXITCODE" }
         }
@@ -65,7 +65,7 @@ function Invoke-BackendTests {
     }
     else {
         $pytestCmd = [string]::Join(' ', $pytestArgs)
-        $inner = "cd /app && export DJANGO_SETTINGS_MODULE=portal.settings_ci && python -m pytest $pytestCmd"
+        $inner = "cd /app && export DJANGO_SETTINGS_MODULE=config.settings_ci && python -m pytest $pytestCmd"
         docker compose -f "$composeFile" exec -T backend sh -c $inner
         if ($LASTEXITCODE -ne 0) { throw "pytest no Docker falhou com código $LASTEXITCODE" }
     }

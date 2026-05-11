@@ -50,10 +50,10 @@ run_backend() {
   echo ""
   echo "=== Backend (pytest) ==="
   if [ "$LOCAL" = 1 ]; then
-    (cd "$ROOT/backend" && DJANGO_SETTINGS_MODULE=portal.settings_ci python -m pytest $PYTEST_ARGS)
+    (cd "$ROOT/backend" && DJANGO_SETTINGS_MODULE=config.settings_ci python -m pytest $PYTEST_ARGS)
   else
     docker compose -f "$COMPOSE" exec -T backend sh -c \
-      "cd /app && export DJANGO_SETTINGS_MODULE=portal.settings_ci && python -m pytest $PYTEST_ARGS"
+      "cd /app && export DJANGO_SETTINGS_MODULE=config.settings_ci && python -m pytest $PYTEST_ARGS"
   fi
 }
 
