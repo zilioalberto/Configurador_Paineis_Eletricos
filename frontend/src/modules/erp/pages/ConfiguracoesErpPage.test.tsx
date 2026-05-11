@@ -74,7 +74,7 @@ describe('ConfiguracoesErpPage', () => {
         descricao: 'Novo texto',
       })
     })
-    expect(screen.getByText('PRJ')).toBeInTheDocument()
+    expect(await screen.findByText('PRJ')).toBeInTheDocument()
     expect(showToast).toHaveBeenCalledWith({
       variant: 'success',
       message: 'Parâmetro atualizado.',
