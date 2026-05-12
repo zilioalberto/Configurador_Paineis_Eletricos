@@ -8,6 +8,11 @@ describe('produtoFormDefaults', () => {
     const f = produtoFormEmpty()
     expect(f.unidade_medida).toBe('UN')
     expect(f.especificacao).toBeNull()
+<<<<<<< HEAD
+    expect(f.fabricante_parceiro).toBe('')
+    expect(f.aliquota_ipi).toBe('')
+=======
+>>>>>>> origin/main
     expect(f.codigo).toBe('')
   })
 

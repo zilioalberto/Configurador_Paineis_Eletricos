@@ -1,5 +1,6 @@
 import { DEVELOPER, getWhatsAppUrl } from '@/constants/developer'
 import { ZFW_SITE_URL } from '@/constants/zfwSite'
+import { APP_PRODUCT_FULL_NAME } from '@/constants/appBranding'
 
 function WhatsAppGlyph({ className }: { className?: string }) {
   return (
@@ -36,8 +37,7 @@ export default function AppFooter() {
           . Todos os direitos reservados.
         </p>
         <p className="app-footer-line mb-0 mt-1">
-          Configurador de Painéis Elétricos · Interface desenvolvida por{' '}
-          <strong>{DEVELOPER.name}</strong>.
+          {APP_PRODUCT_FULL_NAME} · Interface desenvolvida por <strong>{DEVELOPER.name}</strong>.
         </p>
         <div className="app-footer-actions justify-content-center">
           <a

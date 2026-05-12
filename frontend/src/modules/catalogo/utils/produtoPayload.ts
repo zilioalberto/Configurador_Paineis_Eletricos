@@ -9,6 +9,13 @@ function dec(s: string): string | null {
   return t === '' ? null : t
 }
 
+function decNullablePercent(s: string): string | number | null {
+  const t = s.trim()
+  if (!t) return null
+  const n = Number(t.replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
 function num(s: string): string | number {
   const t = s.trim()
   if (t === '') return 0
@@ -18,19 +25,28 @@ function num(s: string): string | number {
 
 export function produtoFormToApiPayload(
   data: ProdutoFormData,
-  categorias: CategoriaProduto[]
+  categorias: CategoriaProduto[],
 ): Record<string, unknown> {
   const cat = categorias.find((c) => c.id === data.categoria || c.nome === data.categoria)
   const nome = (cat?.nome ?? data.categoria) as CategoriaProdutoNome
+<<<<<<< HEAD
+
+  const codigo = data.codigo.trim()
+  const refFab = data.referencia_fabricante.trim()
+  const fabPar = data.fabricante_parceiro.trim()
+=======
+>>>>>>> origin/main
 
   const base: Record<string, unknown> = {
-    codigo: data.codigo.trim(),
+    codigo,
     descricao: data.descricao.trim(),
     categoria: data.categoria,
     unidade_medida: data.unidade_medida,
-    valor_unitario: num(data.valor_unitario),
+    preco_base: num(data.preco_base),
+    aliquota_ipi: decNullablePercent(data.aliquota_ipi),
+    fabricante_parceiro: fabPar || null,
     fabricante: data.fabricante.trim(),
-    referencia_fabricante: data.referencia_fabricante.trim(),
+    referencia_fabricante: refFab || codigo,
     largura_mm: dec(data.largura_mm),
     altura_mm: dec(data.altura_mm),
     profundidade_mm: dec(data.profundidade_mm),

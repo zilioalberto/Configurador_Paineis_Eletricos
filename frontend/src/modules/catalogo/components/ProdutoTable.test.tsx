@@ -14,7 +14,7 @@ function makeProduto(): ProdutoListItem {
     categoria_display: 'Contatora',
     fabricante: 'Fabricante',
     unidade_medida: 'UN',
-    valor_unitario: '100.00',
+    preco_base: '100.00',
     ativo: true,
   }
 }

@@ -144,7 +144,7 @@ log "VALIDANDO ARQUIVOS"
 require_file "infra/docker/docker-compose.prod.yml"
 require_file "infra/docker/Dockerfile.backend"
 require_file "infra/docker/Dockerfile.frontend"
-require_file "manage.py"
+require_file "backend/manage.py"
 require_file "$SHARED_DIR/.env"
 
 log "BACKUP DO BANCO"

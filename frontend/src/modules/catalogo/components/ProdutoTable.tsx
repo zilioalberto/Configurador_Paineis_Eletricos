@@ -29,7 +29,7 @@ export default function ProdutoTable({
             <th>Descrição</th>
             <th>Categoria</th>
             <th>Fabricante</th>
-            <th>Valor unit.</th>
+            <th>Preço base</th>
             <th>Ativo</th>
             {canManage ? <th className="text-end">Ações</th> : null}
           </tr>
@@ -47,7 +47,7 @@ export default function ProdutoTable({
                 </span>
               </td>
               <td>{p.fabricante || '—'}</td>
-              <td>{p.valor_unitario}</td>
+              <td>{p.preco_base}</td>
               <td>{p.ativo ? 'Sim' : 'Não'}</td>
               {canManage ? (
                 <td className="text-end">

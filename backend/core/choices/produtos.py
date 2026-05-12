@@ -33,6 +33,10 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     GATEWAY = "GATEWAY", "Gateway"
     SWITCH_REDE = "SWITCH_REDE", "Switch Industrial"
 
+<<<<<<< HEAD
+    RELE_SEGURANCA = "RELE_SEGURANCA", "Relé de Segurança"
+=======
+>>>>>>> origin/main
 
     FONTE_CHAVEADA = "FONTE_CHAVEADA", "Fonte Chaveada"
 
@@ -110,8 +114,19 @@ class CorManoplaChoices(models.TextChoices):
     
 class UnidadeMedidaChoices(models.TextChoices):
     UN = "UN", "Unidade"
+    PC = "PC", "Peça"
     MT = "MT", "Metro"
     CJ = "CJ", "Conjunto"
+<<<<<<< HEAD
+    KM = "KM", "Kilometro"
+    M2 = "M2", "Metro Quadrado"
+    M3 = "M3", "Metro Cubico"
+    KG = "KG", "Kilograma"
+    G = "G", "Gramas"
+    L = "L", "Litro"
+
+=======
+>>>>>>> origin/main
 
 
 class TipoModuloExpansaoPLCChoices(models.TextChoices):
@@ -438,6 +453,12 @@ class TipoBorneChoices(models.TextChoices):
     SECCIONAVEL = "SECCIONAVEL", "Seccionável"
     SENSOR = "SENSOR", "Sensor"
     AFERICAO = "AFERICAO", "Borne de aferição"
+<<<<<<< HEAD
+    TAMPA = "TAMPA", "Tampa"
+    JUMPER = "JUMPER", "Jumper"
+
+=======
+>>>>>>> origin/main
 
 
 class TipoConexaoBorneChoices(models.TextChoices):

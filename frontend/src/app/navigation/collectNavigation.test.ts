@@ -7,6 +7,15 @@ describe('collectNavigation', () => {
     expect(appChildRoutes.length).toBeGreaterThan(5)
     expect(appChildRoutes.some((route) => route.path === '/projetos')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/cargas')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/tarefas')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/tarefas/horas-gestao')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/cadastros')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/rh')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos/:id')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/m/:moduleId')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/fiscal')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/fiscal/itens-fiscais')).toBe(true)
   })
 
   it('ordena menu pelo campo order', () => {

@@ -81,9 +81,16 @@ export async function listarProdutos(
 export async function buscarProdutosAutocomplete(
   termo: string,
   categoria?: string | null,
+<<<<<<< HEAD
+  minChars: number = 2,
+): Promise<ProdutoListItem[]> {
+  const t = termo.trim()
+  if (t.length < minChars) return []
+=======
 ): Promise<ProdutoListItem[]> {
   const t = termo.trim()
   if (t.length < 2) return []
+>>>>>>> origin/main
   const params: Record<string, string> = { search: t }
   const cat = (categoria ?? '').trim()
   if (cat) params.categoria = cat

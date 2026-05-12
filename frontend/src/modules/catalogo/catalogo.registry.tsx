@@ -7,6 +7,7 @@ const ProdutoListPage = lazy(() => import('./pages/ProdutoListPage'))
 const ProdutoCreatePage = lazy(() => import('./pages/ProdutoCreatePage'))
 const ProdutoEditPage = lazy(() => import('./pages/ProdutoEditPage'))
 const ProdutoDetailPage = lazy(() => import('./pages/ProdutoDetailPage'))
+const NfeImportPage = lazy(() => import('./pages/NfeImportPage'))
 
 function withPermission(permission: string, element: ReactElement): ReactElement {
   return <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -29,6 +30,10 @@ export const catalogoRoutes: ModuleRouteConfig[] = [
   {
     path: '/catalogo/novo',
     element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <ProdutoCreatePage />),
+  },
+  {
+    path: '/catalogo/importar-nfe',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <NfeImportPage />),
   },
   {
     path: '/catalogo/:id/editar',

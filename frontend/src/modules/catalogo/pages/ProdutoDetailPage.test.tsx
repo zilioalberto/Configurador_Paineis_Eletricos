@@ -32,7 +32,7 @@ const produto = {
   categoria: 'CONTATORA',
   unidade_medida: 'UN',
   ativo: true,
-  valor_unitario: '10.00',
+  preco_base: '10.00',
 }
 
 function renderProdutoDetailPage(id: string) {
@@ -135,4 +135,48 @@ describe('ProdutoDetailPage', () => {
     expect(screen.getByText(/Especificação/i)).toBeInTheDocument()
     expect(screen.getByText('9.0')).toBeInTheDocument()
   })
+<<<<<<< HEAD
+
+  it('mostra tabela de itens fiscais quando a API envia', () => {
+    mockProdutoDetailQuery({
+      data: {
+        ...produto,
+        itens_fiscais: [
+          {
+            id: 'if1',
+            ordem: 0,
+            rotulo: 'NF-e',
+            cfop: '5102',
+            origem_mercadoria: '0',
+            cst_icms: '00',
+            csosn: '',
+            icms_grupo_xml: 'ICMS00',
+            mod_bc_icms: '3',
+            v_bc_icms: '52.5',
+            p_icms: '18',
+            v_icms: '9.45',
+            cst_ipi: '',
+            v_bc_ipi: null,
+            p_ipi: null,
+            v_ipi: null,
+            cst_pis: '01',
+            v_bc_pis: null,
+            p_pis: '1.65',
+            v_pis: '0.87',
+            cst_cofins: '',
+            v_bc_cofins: null,
+            p_cofins: null,
+            v_cofins: null,
+            n_item_nfe: 1,
+          },
+        ],
+      },
+    })
+    renderProdutoDetailPage('pr1')
+    expect(screen.getByText(/Itens fiscais/i)).toBeInTheDocument()
+    expect(screen.getByText('5102')).toBeInTheDocument()
+    expect(screen.getByText('ICMS00')).toBeInTheDocument()
+  })
+=======
+>>>>>>> origin/main
 })

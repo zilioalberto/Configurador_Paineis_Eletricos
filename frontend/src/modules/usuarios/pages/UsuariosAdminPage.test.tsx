@@ -52,6 +52,9 @@ const adminUsersBase = [
     permissoes_efetivas: ['projeto.visualizar'],
     is_active: true,
     date_created: new Date().toISOString(),
+    colaborador_id: null,
+    colaborador_matricula: null,
+    colaborador_nome: null,
   },
 ]
 
