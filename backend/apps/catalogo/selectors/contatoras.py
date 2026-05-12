@@ -2,7 +2,11 @@ from decimal import Decimal
 
 from django.db.models import QuerySet
 
+<<<<<<< HEAD:backend/apps/catalogo/selectors/contatoras.py
 from apps.catalogo.models import Produto
+=======
+from catalogo.models import Produto
+>>>>>>> origin/main:backend/catalogo/selectors/contatoras.py
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
     TipoAcionamentoValvulaChoices,

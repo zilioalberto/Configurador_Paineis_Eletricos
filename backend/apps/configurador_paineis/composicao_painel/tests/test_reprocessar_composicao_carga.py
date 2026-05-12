@@ -75,6 +75,7 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
             "apps.configurador_paineis.composicao_painel.services.reprocessar_composicao_carga.reprocessar_contatora_para_carga"
         ) as mock_c,
         patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_reprocessar_composicao_carga.py
             "apps.configurador_paineis.composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
         ) as mock_md,
         patch(
@@ -94,6 +95,27 @@ def test_reprocessar_remove_aprovados_sugestoes_e_pendencias_da_carga(
         ),
         patch(
             "apps.configurador_paineis.composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+=======
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
+        ) as mock_md,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_soft_starter_para_carga"
+        ) as mock_ss,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
+        ) as mock_if,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_estado_solido_para_carga"
+        ),
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_rele_interface_para_carga"
+        ),
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_bornes_para_carga"
+        ),
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_reprocessar_composicao_carga.py
         ),
     ):
         reprocessar_composicao_painel_para_carga(projeto, carga)
@@ -128,6 +150,7 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
             side_effect=ValidationError("erro esperado"),
         ) as mock_c,
         patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_reprocessar_composicao_carga.py
             "apps.configurador_paineis.composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
         ) as mock_md,
         patch(
@@ -138,6 +161,18 @@ def test_reprocessar_troca_projeto_e_ignora_erro_contatora(criar_projeto):
         ) as mock_if,
         patch(
             "apps.configurador_paineis.composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+=======
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_minidisjuntores_para_carga"
+        ) as mock_md,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_soft_starter_para_carga"
+        ) as mock_ss,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.reprocessar_inversores_frequencia_para_carga"
+        ) as mock_if,
+        patch(
+            "composicao_painel.services.reprocessar_composicao_carga.calcular_e_salvar_dimensionamento_basico"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_reprocessar_composicao_carga.py
         ) as mock_dim,
     ):
         reprocessar_composicao_painel_para_carga(projeto_fake, carga)

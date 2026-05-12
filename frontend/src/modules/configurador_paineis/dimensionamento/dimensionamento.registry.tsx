@@ -5,7 +5,11 @@ import RequirePermission from '@/modules/auth/RequirePermission'
 
 const DimensionamentoPage = lazy(() => import('./pages/DimensionamentoPage'))
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/dimensionamento/dimensionamento.registry.tsx
 export const dimensionamentoMenuItems: AppMenuLinkItem[] = [
+=======
+export const dimensionamentoMenuItems: AppMenuItem[] = [
+>>>>>>> origin/main:frontend/src/modules/dimensionamento/dimensionamento.registry.tsx
   {
     to: '/dimensionamento',
     label: 'Dimensionamento de condutores',

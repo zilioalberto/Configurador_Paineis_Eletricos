@@ -2,9 +2,15 @@ from decimal import Decimal
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_composicao_serializers.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaValvula
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.api.serializers import (
+=======
+from cargas.models import Carga, CargaResistencia, CargaValvula
+from catalogo.models import Produto
+from composicao_painel.api.serializers import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_composicao_serializers.py
     CargaComposicaoSerializer,
     ComposicaoItemSerializer,
     InclusaoManualCreateSerializer,

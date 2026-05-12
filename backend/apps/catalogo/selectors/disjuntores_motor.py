@@ -2,7 +2,11 @@ from decimal import Decimal
 
 from django.db.models import F, ExpressionWrapper, DecimalField, QuerySet
 
+<<<<<<< HEAD:backend/apps/catalogo/selectors/disjuntores_motor.py
 from apps.catalogo.models import Produto
+=======
+from catalogo.models import Produto
+>>>>>>> origin/main:backend/catalogo/selectors/disjuntores_motor.py
 from core.choices.cargas import TipoCargaChoices, TipoProtecaoResistenciaChoices
 from core.choices.produtos import CategoriaProdutoNomeChoices
 

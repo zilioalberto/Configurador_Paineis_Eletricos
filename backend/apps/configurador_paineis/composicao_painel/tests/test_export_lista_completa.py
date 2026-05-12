@@ -4,9 +4,15 @@ from decimal import Decimal
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_export_lista_completa.py
 from apps.configurador_paineis.cargas.models import Carga
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import (
+=======
+from cargas.models import Carga
+from catalogo.models import Produto
+from composicao_painel.models import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_export_lista_completa.py
     ComposicaoInclusaoManual,
     ComposicaoItem,
     PendenciaItem,

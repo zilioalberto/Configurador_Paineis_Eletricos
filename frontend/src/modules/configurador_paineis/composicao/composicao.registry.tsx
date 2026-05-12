@@ -8,7 +8,11 @@ const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 export const composicaoMenuItems: AppMenuLinkItem[] = [
   {
     to: '/composicao',
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/composicao/composicao.registry.tsx
     label: 'Composição do Painel',
+=======
+    label: 'Composição do painel',
+>>>>>>> origin/main:frontend/src/modules/composicao/composicao.registry.tsx
     order: 50,
     requiresPermission: PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS,
   },

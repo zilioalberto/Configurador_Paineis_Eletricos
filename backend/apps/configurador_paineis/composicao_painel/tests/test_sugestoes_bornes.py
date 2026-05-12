@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
 from apps.configurador_paineis.cargas.models import (
+=======
+from cargas.models import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
     Carga,
     CargaMotor,
     CargaResistencia,
@@ -11,10 +15,17 @@ from apps.configurador_paineis.cargas.models import (
     CargaTransdutor,
     CargaValvula,
 )
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
 from apps.catalogo.models import EspecificacaoBorne, Produto
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes import (
+=======
+from catalogo.models import EspecificacaoBorne, Produto
+from composicao_painel.models import SugestaoItem
+from composicao_painel.models import PendenciaItem
+from composicao_painel.services.sugestoes.bornes import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
     gerar_sugestoes_bornes,
     processar_sugestao_bornes_para_carga,
     remover_pendencias_borne_sem_dimensionamento_obsoletas,
@@ -38,7 +49,11 @@ from core.choices.cargas import (
 from core.choices.eletrica import NumeroFasesChoices, TipoSinalChoices, TipoSinaisAnalogicosChoices
 from core.choices.eletrica import TipoCorrenteChoices
 from core.choices.produtos import ModoMontagemChoices, TipoBorneChoices, UnidadeMedidaChoices
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
 from apps.configurador_paineis.dimensionamento.models import (
+=======
+from dimensionamento.models import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
     ClassificacaoCircuitoChoices,
     DimensionamentoCircuitoCarga,
 )
@@ -319,7 +334,11 @@ def test_reprocessar_bornes_para_carga(criar_projeto):
         modo_montagem=ModoMontagemChoices.TRILHO_DIN,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.bornes.selecionar_bornes",
+=======
+        "composicao_painel.services.sugestoes.bornes.selecionar_bornes",
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
         return_value=Produto.objects.filter(pk=p.pk),
     ):
         sug = reprocessar_bornes_para_carga(projeto, carga)
@@ -423,7 +442,11 @@ def test_borne_sensor_mais_de_3_fios_passagem_um_nivel_qtd_igual_fios(criar_proj
 
 @pytest.mark.django_db
 def test_borne_sensor_sem_quantidade_fios_nao_sugere(criar_projeto):
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
     from apps.configurador_paineis.composicao_painel.models import PendenciaItem
+=======
+    from composicao_painel.models import PendenciaItem
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
 
     projeto = criar_projeto(nome="BRS3", codigo="31103-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(
@@ -513,7 +536,11 @@ def test_borne_sensor_analogico_inclui_passagem_e_terra(criar_projeto):
 
 @pytest.mark.django_db
 def test_borne_sensor_analogico_sem_terra_no_catalogo_gera_pendencia(criar_projeto):
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
     from apps.configurador_paineis.composicao_painel.models import PendenciaItem
+=======
+    from composicao_painel.models import PendenciaItem
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
 
     projeto = criar_projeto(nome="BRS5", codigo="31105-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(
@@ -764,7 +791,11 @@ def test_borne_motor_sem_pe_so_passagem(criar_projeto):
 
 @pytest.mark.django_db
 def test_borne_motor_sem_dimensionamento_pendencia(criar_projeto):
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_bornes.py
     from apps.configurador_paineis.composicao_painel.models import PendenciaItem
+=======
+    from composicao_painel.models import PendenciaItem
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_bornes.py
 
     projeto = criar_projeto(nome="BRM4", codigo="31204-26", tensao_nominal=TensaoChoices.V380)
     carga = Carga.objects.create(

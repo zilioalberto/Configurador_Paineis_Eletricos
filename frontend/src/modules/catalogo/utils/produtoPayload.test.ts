@@ -13,14 +13,22 @@ describe('produtoFormToApiPayload', () => {
     const data = produtoFormEmpty()
     data.categoria = 'cid-plc'
     data.codigo = ' P1 '
+<<<<<<< HEAD
     data.preco_base = '10,5'
+=======
+    data.valor_unitario = '10,5'
+>>>>>>> origin/main
     data.especificacao = { campo: '1' }
     const categorias: CategoriaProduto[] = [
       { id: 'cid-plc', nome: 'PLC', descricao: '', ativo: true },
     ]
     const payload = produtoFormToApiPayload(data, categorias)
     expect(payload.codigo).toBe('P1')
+<<<<<<< HEAD
     expect(payload.preco_base).toBe(10.5)
+=======
+    expect(payload.valor_unitario).toBe(10.5)
+>>>>>>> origin/main
     expect(payload).toHaveProperty('especificacao_plc')
   })
 
@@ -32,6 +40,7 @@ describe('produtoFormToApiPayload', () => {
     const payload = produtoFormToApiPayload(data, categorias)
     expect(payload.largura_mm).toBeNull()
   })
+<<<<<<< HEAD
 
   it('não envia itens fiscais (evita sobrescrever dados fiscais importados)', () => {
     const data = produtoFormEmpty()
@@ -69,4 +78,6 @@ describe('produtoFormToApiPayload', () => {
     const payload = produtoFormToApiPayload(data, categorias)
     expect(payload.fabricante_parceiro).toBeNull()
   })
+=======
+>>>>>>> origin/main
 })

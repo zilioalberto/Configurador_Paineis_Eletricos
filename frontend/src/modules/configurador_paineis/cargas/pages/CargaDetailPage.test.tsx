@@ -16,11 +16,19 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/pages/CargaDetailPage.test.tsx
 vi.mock('@/modules/configurador_paineis/cargas/hooks/useCargaDetailQuery', () => ({
   useCargaDetailQuery: (id: string | undefined) => useCargaDetailQuery(id),
 }))
 
 vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery', () => ({
+=======
+vi.mock('@/modules/cargas/hooks/useCargaDetailQuery', () => ({
+  useCargaDetailQuery: (id: string | undefined) => useCargaDetailQuery(id),
+}))
+
+vi.mock('@/modules/projetos/hooks/useProjetoListQuery', () => ({
+>>>>>>> origin/main:frontend/src/modules/cargas/pages/CargaDetailPage.test.tsx
   useProjetoListQuery: () => useProjetoListQuery(),
 }))
 
@@ -34,7 +42,11 @@ vi.mock('@/modules/auth/AuthContext', () => ({
   }),
 }))
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/pages/CargaDetailPage.test.tsx
 import CargaDetailPage from '@/modules/configurador_paineis/cargas/pages/CargaDetailPage'
+=======
+import CargaDetailPage from '@/modules/cargas/pages/CargaDetailPage'
+>>>>>>> origin/main:frontend/src/modules/cargas/pages/CargaDetailPage.test.tsx
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 

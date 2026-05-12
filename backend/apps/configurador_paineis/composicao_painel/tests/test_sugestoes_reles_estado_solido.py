@@ -2,10 +2,17 @@ from decimal import Decimal
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_reles_estado_solido.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia
 from apps.catalogo.models import EspecificacaoReleEstadoSolido, Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.reles_estado_solido import (
+=======
+from cargas.models import Carga, CargaResistencia
+from catalogo.models import EspecificacaoReleEstadoSolido, Produto
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.reles_estado_solido import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_reles_estado_solido.py
     gerar_sugestoes_reles_estado_solido,
     processar_sugestao_rele_estado_solido_para_carga,
     reprocessar_rele_estado_solido_para_carga,

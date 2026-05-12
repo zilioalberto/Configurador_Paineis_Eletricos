@@ -1,5 +1,10 @@
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates.ts
 import { useCargaListQuery } from '@/modules/configurador_paineis/cargas/hooks/useCargaListQuery'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
+=======
+import { useCargaListQuery } from '@/modules/cargas/hooks/useCargaListQuery'
+import { useDimensionamentoQuery } from '@/modules/dimensionamento/hooks/useDimensionamentoQuery'
+>>>>>>> origin/main:frontend/src/modules/projetos/hooks/useProjetoFluxoGates.ts
 
 export type ProjetoFluxoEtapaId = 'projeto' | 'cargas' | 'dimensionamento' | 'composicao'
 

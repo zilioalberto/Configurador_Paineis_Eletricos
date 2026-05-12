@@ -3,7 +3,11 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/pages/CargaDetailPage.tsx
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+=======
+import { useProjetoListQuery } from '@/modules/projetos/hooks/useProjetoListQuery'
+>>>>>>> origin/main:frontend/src/modules/cargas/pages/CargaDetailPage.tsx
 import { tipoConexaoCargaPainelOptions } from '../constants/cargaChoiceOptions'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'

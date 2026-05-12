@@ -6,7 +6,10 @@ import { hasPermission } from '@/modules/auth/permissions'
 import { CATEGORIA_PARA_ESPEC_KEY } from '../constants/categoriaEspecKey'
 import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'
 import type { CategoriaProdutoNome } from '../types/categoria'
+<<<<<<< HEAD
 import type { ItemFiscalProduto } from '../types/produto'
+=======
+>>>>>>> origin/main
 import { labelCampoEspec, SPEC_FIELDS_BY_CATEGORIA } from '../utils/specFormHelpers'
 
 function SpecBlock({ title, children }: Readonly<{ title: string; children: ReactNode }>) {

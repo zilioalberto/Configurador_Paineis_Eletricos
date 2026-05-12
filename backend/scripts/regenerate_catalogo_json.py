@@ -7,14 +7,22 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+<<<<<<< HEAD
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+=======
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "configuracoes.settings")
+>>>>>>> origin/main
 
 import django
 from django.db import models
 
 django.setup()
 
+<<<<<<< HEAD
 from apps.catalogo.api.serializers import CATEGORIA_PARA_CAMPO, MODEL_BY_CAMPO
+=======
+from catalogo.api.serializers import CATEGORIA_PARA_CAMPO, MODEL_BY_CAMPO
+>>>>>>> origin/main
 from core.choices.produtos import CategoriaProdutoNomeChoices
 from core.choices import eletrica, paineis, produtos
 

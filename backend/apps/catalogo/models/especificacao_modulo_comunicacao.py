@@ -8,7 +8,11 @@ from core.choices.produtos import (
     ProtocoloIndustrialChoices,
     TipoModuloComunicacaoChoices,
 )
+<<<<<<< HEAD:backend/apps/catalogo/models/especificacao_modulo_comunicacao.py
 from apps.catalogo.utils.plc_familia import normalizar_chave_familia_plc
+=======
+from catalogo.utils.plc_familia import normalizar_chave_familia_plc
+>>>>>>> origin/main:backend/catalogo/models/especificacao_modulo_comunicacao.py
 from .base import Produto
 
 

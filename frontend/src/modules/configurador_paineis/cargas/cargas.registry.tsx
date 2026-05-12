@@ -16,7 +16,11 @@ function withPermission(permission: string, element: ReactElement): ReactElement
 export const cargasMenuItems: AppMenuLinkItem[] = [
   {
     to: '/cargas',
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/cargas.registry.tsx
     label: 'Cargas do Projeto',
+=======
+    label: 'Cargas do projeto',
+>>>>>>> origin/main:frontend/src/modules/cargas/cargas.registry.tsx
     order: 20,
     requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
   },

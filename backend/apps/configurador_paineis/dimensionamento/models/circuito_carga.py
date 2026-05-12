@@ -2,8 +2,13 @@ from django.db import models
 
 from core.models import BaseModel
 from core.choices import TipoCargaChoices
+<<<<<<< HEAD:backend/apps/configurador_paineis/dimensionamento/models/circuito_carga.py
 from apps.configurador_paineis.cargas.models import Carga
 from apps.configurador_paineis.projetos.models import Projeto
+=======
+from cargas.models import Carga
+from projetos.models import Projeto
+>>>>>>> origin/main:backend/dimensionamento/models/circuito_carga.py
 
 
 class ClassificacaoCircuitoChoices(models.TextChoices):

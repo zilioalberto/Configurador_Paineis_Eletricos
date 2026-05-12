@@ -1,6 +1,7 @@
 import type { CategoriaProdutoNome } from './categoria'
 import type { UnidadeMedidaProduto } from '../constants/catalogoChoiceOptions'
 
+<<<<<<< HEAD
 /** Item fiscal persistido (`apps.fiscal.models.ItemFiscalProduto`) — detalhe/listagem, não editável neste formulário. */
 export type ItemFiscalProduto = {
   id: string
@@ -44,6 +45,9 @@ export type ProdutoInformacaoComercial = {
   criado_em?: string
   atualizado_em?: string
 }
+=======
+export type UnidadeMedidaProduto = 'UN' | 'MT' | 'CJ'
+>>>>>>> origin/main
 
 /** Estado editável da especificação da categoria atual (uma entrada por campo do modelo). */
 export type EspecificacaoFormState = Record<string, string | number | boolean>
@@ -96,5 +100,8 @@ export type ProdutoDetail = ProdutoListItem & {
   altura_mm?: string | null
   profundidade_mm?: string | null
   observacoes_tecnicas?: string
+<<<<<<< HEAD
   itens_fiscais?: ItemFiscalProduto[]
+=======
+>>>>>>> origin/main
 }

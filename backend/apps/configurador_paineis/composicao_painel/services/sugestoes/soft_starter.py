@@ -3,10 +3,17 @@
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/soft_starter.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor
 from apps.catalogo.selectors.soft_starters import selecionar_soft_starters
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
+=======
+from cargas.models import Carga, CargaMotor
+from catalogo.selectors.soft_starters import selecionar_soft_starters
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/soft_starter.py
     executar_com_savepoint_por_carga,
 )
 

@@ -3,8 +3,13 @@ Pendências para cargas que não se enquadram em nenhuma regra dos geradores de 
 do catálogo (contatora, disjuntor motor, etc.).
 """
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/pendencias_sem_regra.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaSensor, CargaValvula
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem
+=======
+from cargas.models import Carga, CargaResistencia, CargaSensor, CargaValvula
+from composicao_painel.models import PendenciaItem
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/pendencias_sem_regra.py
 
 from core.choices import (
     PartesPainelChoices,

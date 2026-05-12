@@ -5,10 +5,17 @@ from __future__ import annotations
 from math import sqrt
 from typing import Literal, Optional
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/inversores_frequencia.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor
 from apps.catalogo.selectors.inversores_frequencia import selecionar_inversores_frequencia
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
+=======
+from cargas.models import Carga, CargaMotor
+from catalogo.selectors.inversores_frequencia import selecionar_inversores_frequencia
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/inversores_frequencia.py
     executar_com_savepoint_por_carga,
 )
 

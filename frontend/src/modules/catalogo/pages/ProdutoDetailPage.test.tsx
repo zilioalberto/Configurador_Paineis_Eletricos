@@ -135,6 +135,7 @@ describe('ProdutoDetailPage', () => {
     expect(screen.getByText(/Especificação/i)).toBeInTheDocument()
     expect(screen.getByText('9.0')).toBeInTheDocument()
   })
+<<<<<<< HEAD
 
   it('mostra tabela de itens fiscais quando a API envia', () => {
     mockProdutoDetailQuery({
@@ -176,4 +177,6 @@ describe('ProdutoDetailPage', () => {
     expect(screen.getByText('5102')).toBeInTheDocument()
     expect(screen.getByText('ICMS00')).toBeInTheDocument()
   })
+=======
+>>>>>>> origin/main
 })

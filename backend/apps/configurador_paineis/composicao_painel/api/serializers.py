@@ -2,11 +2,19 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/api/serializers.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaSensor, CargaTransdutor
 from apps.configurador_paineis.cargas.models.motor import CargaMotor
 from apps.configurador_paineis.cargas.models.valvula import CargaValvula
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import (
+=======
+from cargas.models import Carga, CargaResistencia, CargaSensor, CargaTransdutor
+from cargas.models.motor import CargaMotor
+from cargas.models.valvula import CargaValvula
+from catalogo.models import Produto
+from composicao_painel.models import (
+>>>>>>> origin/main:backend/composicao_painel/api/serializers.py
     ComposicaoInclusaoManual,
     ComposicaoItem,
     PendenciaItem,

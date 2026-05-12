@@ -5,10 +5,17 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/reles_interface.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaValvula
 from apps.catalogo.selectors.reles_interface import selecionar_reles_interface
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
+=======
+from cargas.models import Carga, CargaResistencia, CargaValvula
+from catalogo.selectors.reles_interface import selecionar_reles_interface
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/reles_interface.py
     executar_com_savepoint_por_carga,
 )
 

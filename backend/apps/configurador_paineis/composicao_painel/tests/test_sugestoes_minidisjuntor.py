@@ -3,10 +3,17 @@ from unittest.mock import patch
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_minidisjuntor.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia
 from apps.catalogo.models import EspecificacaoMiniDisjuntor, Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.minidisjuntores import (
+=======
+from cargas.models import Carga, CargaMotor, CargaResistencia
+from catalogo.models import EspecificacaoMiniDisjuntor, Produto
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.minidisjuntores import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_minidisjuntor.py
     gerar_sugestoes_minidisjuntores,
     processar_sugestao_minidisjuntores_para_carga,
     reprocessar_minidisjuntores_para_carga,
@@ -130,7 +137,11 @@ def test_minidisjuntor_selector_vazio_cria_pendencia(
         numero_fases=NumeroFasesChoices.TRIFASICO,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_minidisjuntor.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.minidisjuntores.selecionar_minidisjuntores",
+=======
+        "composicao_painel.services.sugestoes.minidisjuntores.selecionar_minidisjuntores",
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_minidisjuntor.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_minidisjuntores_para_carga(projeto, carga) is None

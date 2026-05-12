@@ -5,7 +5,11 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/bornes.py
 from apps.configurador_paineis.cargas.models import (
+=======
+from cargas.models import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/bornes.py
     Carga,
     CargaMotor,
     CargaResistencia,
@@ -13,10 +17,17 @@ from apps.configurador_paineis.cargas.models import (
     CargaTransdutor,
     CargaValvula,
 )
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/bornes.py
 from apps.catalogo.selectors.bornes import selecionar_bornes
 from apps.configurador_paineis.dimensionamento.models import DimensionamentoCircuitoCarga
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
+=======
+from catalogo.selectors.bornes import selecionar_bornes
+from dimensionamento.models import DimensionamentoCircuitoCarga
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/bornes.py
     executar_com_savepoint_por_carga,
 )
 

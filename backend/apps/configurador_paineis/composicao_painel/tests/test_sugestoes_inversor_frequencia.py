@@ -3,15 +3,26 @@ from unittest.mock import patch
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
 from apps.configurador_paineis.cargas.models import Carga
 from apps.catalogo.models import EspecificacaoInversorFrequencia, Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.inversores_frequencia import (
+=======
+from cargas.models import Carga
+from catalogo.models import EspecificacaoInversorFrequencia, Produto
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.inversores_frequencia import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
     gerar_sugestoes_inversores_frequencia,
     processar_sugestao_inversores_frequencia_para_carga,
     reprocessar_inversores_frequencia_para_carga,
 )
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
 from apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador import (
+=======
+from composicao_painel.services.sugestoes.orquestrador import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
     montar_etapas_geracao,
     projeto_tem_motor_inversor_frequencia,
 )
@@ -156,7 +167,11 @@ def test_inversor_selector_vazio_pendencia(criar_projeto, criar_carga_motor):
         potencia_corrente_valor=Decimal("50"),
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.inversores_frequencia.selecionar_inversores_frequencia",
+=======
+        "composicao_painel.services.sugestoes.inversores_frequencia.selecionar_inversores_frequencia",
+>>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_inversor_frequencia.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_inversores_frequencia_para_carga(projeto, carga) is None

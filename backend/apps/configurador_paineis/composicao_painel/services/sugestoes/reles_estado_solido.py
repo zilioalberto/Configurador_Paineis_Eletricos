@@ -5,10 +5,17 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/reles_estado_solido.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia
 from apps.catalogo.selectors.reles_estado_solido import selecionar_reles_estado_solido
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
+=======
+from cargas.models import Carga, CargaResistencia
+from catalogo.selectors.reles_estado_solido import selecionar_reles_estado_solido
+from composicao_painel.models import PendenciaItem, SugestaoItem
+from composicao_painel.services.sugestoes.executar_por_carga import (
+>>>>>>> origin/main:backend/composicao_painel/services/sugestoes/reles_estado_solido.py
     executar_com_savepoint_por_carga,
 )
 

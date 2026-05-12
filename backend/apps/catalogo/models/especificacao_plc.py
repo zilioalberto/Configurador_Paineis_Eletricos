@@ -4,7 +4,11 @@ from django.db import models
 from core.models import BaseModel
 from core.choices.eletrica import TensaoChoices
 from core.choices.produtos import ProtocoloComunicacaoChoices, TipoAnalogicoPlcChoices
+<<<<<<< HEAD:backend/apps/catalogo/models/especificacao_plc.py
 from apps.catalogo.utils.plc_familia import normalizar_chave_familia_plc
+=======
+from catalogo.utils.plc_familia import normalizar_chave_familia_plc
+>>>>>>> origin/main:backend/catalogo/models/especificacao_plc.py
 from .base import Produto
 
 

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/utils/cargaDetailToForm.test.ts
 import type { CargaDetail } from '@/modules/configurador_paineis/cargas/types/carga'
 import { cargaDetailToForm } from '@/modules/configurador_paineis/cargas/utils/cargaDetailToForm'
+=======
+import type { CargaDetail } from '@/modules/cargas/types/carga'
+import { cargaDetailToForm } from '@/modules/cargas/utils/cargaDetailToForm'
+>>>>>>> origin/main:frontend/src/modules/cargas/utils/cargaDetailToForm.test.ts
 
 const base: Omit<CargaDetail, 'tipo'> = {
   id: '1',

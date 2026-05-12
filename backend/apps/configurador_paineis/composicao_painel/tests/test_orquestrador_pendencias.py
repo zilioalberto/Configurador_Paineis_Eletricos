@@ -4,9 +4,15 @@ from unittest.mock import patch
 
 import pytest
 
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
 from apps.configurador_paineis.cargas.models import Carga
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias import (
+=======
+from cargas.models import Carga
+from composicao_painel.models import PendenciaItem
+from composicao_painel.services.sugestoes.orquestrador_pendencias import (
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
     reavaliar_pendencias_projeto,
 )
 from core.choices import (
@@ -165,7 +171,11 @@ def test_reavaliar_contatora_com_carga_chama_reprocessar(
         status=StatusPendenciaChoices.ABERTA,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_contatora_para_carga"
+=======
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_contatora_para_carga"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
     ) as mock_r:
         mock_r.return_value = None
         r = reavaliar_pendencias_projeto(projeto)
@@ -197,7 +207,11 @@ def test_reavaliar_rele_sobrecarga_com_carga_chama_reprocessar(
         status=StatusPendenciaChoices.ABERTA,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_rele_sobrecarga_para_carga"
+=======
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_rele_sobrecarga_para_carga"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
     ) as mock_r:
         mock_r.return_value = None
         r = reavaliar_pendencias_projeto(projeto)
@@ -228,7 +242,11 @@ def test_reavaliar_fusivel_com_carga_chama_reprocessar(
         status=StatusPendenciaChoices.ABERTA,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_fusivel_para_carga"
+=======
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_fusivel_para_carga"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
     ) as mock_r:
         mock_r.return_value = None
         r = reavaliar_pendencias_projeto(projeto)
@@ -249,7 +267,11 @@ def test_reavaliar_seccionamento_chama_reprocessar(criar_projeto):
         status=StatusPendenciaChoices.ABERTA,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_seccionamento_para_pendencia"
+=======
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_seccionamento_para_pendencia"
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
     ) as mock_s:
         mock_s.return_value = None
         r = reavaliar_pendencias_projeto(projeto)
@@ -298,7 +320,11 @@ def test_reavaliar_excecao_no_reprocess_vai_para_erros(criar_projeto, criar_carg
         status=StatusPendenciaChoices.ABERTA,
     )
     with patch(
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_orquestrador_pendencias.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_contatora_para_carga",
+=======
+        "composicao_painel.services.sugestoes.orquestrador_pendencias.reprocessar_contatora_para_carga",
+>>>>>>> origin/main:backend/composicao_painel/tests/test_orquestrador_pendencias.py
         side_effect=RuntimeError("falha simulada"),
     ):
         r = reavaliar_pendencias_projeto(projeto)

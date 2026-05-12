@@ -14,11 +14,19 @@ vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoDetailQuery', (
   useProjetoDetailQuery: () => useProjetoDetailQueryMock(),
 }))
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/pages/ProjetoDetailPage.test.tsx
 vi.mock('@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper', () => ({
   ProjetoFluxoStepper: () => null,
 }))
 
 import ProjetoDetailPage from '@/modules/configurador_paineis/projetos/pages/ProjetoDetailPage'
+=======
+vi.mock('@/modules/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => null,
+}))
+
+import ProjetoDetailPage from '@/modules/projetos/pages/ProjetoDetailPage'
+>>>>>>> origin/main:frontend/src/modules/projetos/pages/ProjetoDetailPage.test.tsx
 
 const projeto = {
   id: 'p-1',

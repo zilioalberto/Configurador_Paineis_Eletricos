@@ -284,6 +284,20 @@ function NavIconClipboard({ className, ...rest }: IconProps) {
       <line x1="9" y1="16" x2="15" y2="16" />
     </svg>
   )
+<<<<<<< HEAD
+=======
+}
+
+const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
+  '/': NavIconHome,
+  '/projetos': NavIconFolder,
+  '/cargas': NavIconZap,
+  '/cargas/modelos': NavIconClipboard,
+  '/catalogo': NavIconGrid,
+  '/dimensionamento': NavIconSliders,
+  '/composicao': NavIconLayers,
+  '/administracao/utilizadores': NavIconUsers,
+>>>>>>> origin/main
 }
 
 function NavIconKanban({ className, ...rest }: IconProps) {

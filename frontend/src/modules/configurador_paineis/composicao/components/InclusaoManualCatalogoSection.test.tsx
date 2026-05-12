@@ -22,7 +22,11 @@ vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast: showToastMock }),
 }))
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/composicao/components/InclusaoManualCatalogoSection.test.tsx
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useInclusaoManualMutations', () => ({
+=======
+vi.mock('@/modules/composicao/hooks/useInclusaoManualMutations', () => ({
+>>>>>>> origin/main:frontend/src/modules/composicao/components/InclusaoManualCatalogoSection.test.tsx
   useAdicionarInclusaoManualMutation: () => ({
     mutateAsync: adicionarMutateAsyncMock,
     isPending: false,
@@ -33,8 +37,13 @@ vi.mock('@/modules/configurador_paineis/composicao/hooks/useInclusaoManualMutati
   }),
 }))
 
+<<<<<<< HEAD:frontend/src/modules/configurador_paineis/composicao/components/InclusaoManualCatalogoSection.test.tsx
 import { InclusaoManualCatalogoSection } from '@/modules/configurador_paineis/composicao/components/InclusaoManualCatalogoSection'
 import type { InclusaoManualItem } from '@/modules/configurador_paineis/composicao/types/composicao'
+=======
+import { InclusaoManualCatalogoSection } from '@/modules/composicao/components/InclusaoManualCatalogoSection'
+import type { InclusaoManualItem } from '@/modules/composicao/types/composicao'
+>>>>>>> origin/main:frontend/src/modules/composicao/components/InclusaoManualCatalogoSection.test.tsx
 
 function makeQueryClient() {
   return new QueryClient({

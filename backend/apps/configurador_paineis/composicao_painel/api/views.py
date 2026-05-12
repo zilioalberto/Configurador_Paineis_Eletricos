@@ -28,11 +28,19 @@ from apps.configurador_paineis.composicao_painel.services.sugestoes.aprovacao_su
 from apps.configurador_paineis.composicao_painel.services.sugestoes.aprovacao_sugestoes import (
     reabrir_composicao_item_para_sugestao,
 )
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/api/views.py
 from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes import (
     remover_pendencias_borne_sem_dimensionamento_obsoletas,
 )
 from apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador import gerar_sugestoes_painel
 from apps.configurador_paineis.composicao_painel.services.export_lista_completa import (
+=======
+from composicao_painel.services.sugestoes.bornes import (
+    remover_pendencias_borne_sem_dimensionamento_obsoletas,
+)
+from composicao_painel.services.sugestoes.orquestrador import gerar_sugestoes_painel
+from composicao_painel.services.export_lista_completa import (
+>>>>>>> origin/main:backend/composicao_painel/api/views.py
     montar_linhas_export,
     nome_arquivo_seguro,
     render_pdf_bytes,
@@ -43,11 +51,19 @@ from apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador
 )
 from core.choices import StatusPendenciaChoices
 from core.permissions import PermissionKeys
+<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/api/views.py
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from apps.configurador_paineis.projetos.models import Projeto
 from apps.configurador_paineis.projetos.services.fluxo_projeto import validar_projeto_editavel
 from apps.configurador_paineis.projetos.services.rastreabilidade import registrar_evento_projeto
+=======
+from dimensionamento.models import ResumoDimensionamento
+from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
+from projetos.models import Projeto
+from projetos.services.fluxo_projeto import validar_projeto_editavel
+from projetos.services.rastreabilidade import registrar_evento_projeto
+>>>>>>> origin/main:backend/composicao_painel/api/views.py
 
 
 def _composicao_select_related():
