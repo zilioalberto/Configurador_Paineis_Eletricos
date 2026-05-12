@@ -2,6 +2,17 @@ import { isAxiosError, type AxiosError } from 'axios'
 import { ApiError } from './ApiError'
 import { parseErrorResponseBody } from './parseErrorResponseBody'
 
+/** Mensagens conhecidas de bibliotecas (ex.: JWT) antes da tradução no backend. */
+const KNOWN_ENGLISH_API_MESSAGES: Record<string, string> = {
+  'No active account found with the given credentials':
+    'E-mail ou senha incorretos. Se a conta existir mas estiver inativa, fale com o administrador.',
+}
+
+function translateKnownApiMessage(message: string): string {
+  const key = message.trim()
+  return KNOWN_ENGLISH_API_MESSAGES[key] ?? message
+}
+
 function statusFallbackMessage(status: number): string {
   switch (status) {
     case 400:
@@ -54,7 +65,8 @@ export function normalizeAxiosError(error: unknown): ApiError {
     const statusText =
       typeof ax.response.statusText === 'string' ? ax.response.statusText.trim() : ''
 
-    const message = parsed || (statusText ? statusText : statusFallbackMessage(status))
+    const rawMessage = parsed || statusText || statusFallbackMessage(status)
+    const message = translateKnownApiMessage(rawMessage)
 
     return new ApiError(message, {
       status,

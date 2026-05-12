@@ -1,6 +1,14 @@
 from django.db import models
 
 
+class TensaoIluminacaoBotaoChoices(models.IntegerChoices):
+    """Tensões admitidas para iluminação de botão de comando."""
+
+    V24 = 24, "24 V"
+    V110 = 110, "110 V"
+    V220 = 220, "220 V"
+
+
 class TensaoChoices(models.IntegerChoices):
     V12 = 12, "12 V"
     V24 = 24, "24 V"
@@ -38,6 +46,7 @@ class FrequenciaChoices(models.IntegerChoices):
 class TipoSinalChoices(models.TextChoices):
     DIGITAL = "DIGITAL", "Digital"
     ANALOGICO = "ANALOGICO", "Analógico"
+    ANALOGICO_DIGITAL = "ANALOGICO_DIGITAL", "Analógico/Digital"
     PULSO = "PULSO", "Pulso"
     COMUNICACAO = "COMUNICACAO", "Comunicação"
     

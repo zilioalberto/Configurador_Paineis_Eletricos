@@ -1,0 +1,26 @@
+import { describe, expect, it } from 'vitest'
+
+import { appChildRoutes, appMenuItems } from '@/app/navigation/collectNavigation'
+
+describe('collectNavigation', () => {
+  it('agrega rotas dos modulos', () => {
+    expect(appChildRoutes.length).toBeGreaterThan(5)
+    expect(appChildRoutes.some((route) => route.path === '/projetos')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/cargas')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/tarefas')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/tarefas/horas-gestao')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/cadastros')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/rh')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos/:id')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/erp/m/:moduleId')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/fiscal')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/fiscal/itens-fiscais')).toBe(true)
+  })
+
+  it('ordena menu pelo campo order', () => {
+    const orders = appMenuItems.map((item) => item.order ?? 100)
+    const sorted = [...orders].sort((a, b) => a - b)
+    expect(orders).toEqual(sorted)
+  })
+})

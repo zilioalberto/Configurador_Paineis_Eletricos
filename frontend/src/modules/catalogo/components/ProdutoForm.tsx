@@ -7,16 +7,21 @@ import {
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
-import {
-  corManoplaOptions,
-  modoMontagemOptions,
-  tensaoBobinaOptions,
-  tipoCorrenteBobinaOptions,
-  tipoFixacaoSeccionadoraOptions,
-  unidadeMedidaProdutoOptions,
-} from '../constants/catalogoChoiceOptions'
+<<<<<<< HEAD
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
+import { getEspecApiKey } from '../constants/categoriaEspecKey'
+import { unidadeMedidaOptionsComValorAtual } from '../constants/catalogoChoiceOptions'
+import { useFornecedoresAtivosQuery } from '../hooks/useFornecedoresAtivosQuery'
+=======
+import { getEspecApiKey } from '../constants/categoriaEspecKey'
+import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
+>>>>>>> origin/main
+import EspecificacaoCatalogoFields from './EspecificacaoCatalogoFields'
 import type { CategoriaProduto } from '../types/categoria'
-import type { ProdutoFormData } from '../types/produto'
+import type { CategoriaProdutoNome } from '../types/categoria'
+import type { EspecificacaoFormState, ProdutoFormData } from '../types/produto'
 import { applyCategoriaChange } from '../utils/produtoFormDefaults'
 
 type ProdutoFormProps = {
@@ -35,7 +40,12 @@ export default function ProdutoForm({
   lockCategoria = false,
 }: ProdutoFormProps) {
   const { showToast } = useToast()
+  const { user } = useAuth()
   const [formData, setFormData] = useState<ProdutoFormData>(initialData)
+
+  const canVerCadastro = hasPermission(user, PERMISSION_KEYS.CADASTRO_VISUALIZAR)
+  const { data: fornecedores = [], isFetching: loadingFornecedores } =
+    useFornecedoresAtivosQuery(canVerCadastro)
 
   useEffect(() => {
     setFormData(initialData)
@@ -43,9 +53,33 @@ export default function ProdutoForm({
 
   const categoriaNome = useMemo(() => {
     const c = categorias.find((x) => x.id === formData.categoria || x.nome === formData.categoria)
-    return c?.nome
+    return c?.nome as CategoriaProdutoNome | undefined
   }, [categorias, formData.categoria])
 
+  const temBlocoEspecificacao = Boolean(categoriaNome && getEspecApiKey(categoriaNome))
+
+<<<<<<< HEAD
+  const opcoesUnidade = useMemo(
+    () => unidadeMedidaOptionsComValorAtual(formData.unidade_medida),
+    [formData.unidade_medida],
+  )
+
+  const opcoesFabricanteParceiro = useMemo(() => {
+    const id = formData.fabricante_parceiro.trim()
+    if (!id) return fornecedores
+    if (fornecedores.some((x) => x.id === id)) return fornecedores
+    return [
+      ...fornecedores,
+      {
+        id,
+        razao_social: formData.fabricante.trim() || id,
+        documento: '',
+      },
+    ]
+  }, [fornecedores, formData.fabricante_parceiro, formData.fabricante])
+
+=======
+>>>>>>> origin/main
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const t = e.target
@@ -60,60 +94,62 @@ export default function ProdutoForm({
       }
       setFormData((prev) => ({ ...prev, [name]: value }))
     },
-    [categorias]
+    [categorias],
   )
 
-  const patchContatora = useCallback(
-    (patch: Partial<NonNullable<ProdutoFormData['especificacao_contatora']>>) => {
-      setFormData((prev) =>
-        prev.especificacao_contatora
-          ? { ...prev, especificacao_contatora: { ...prev.especificacao_contatora, ...patch } }
-          : prev
-      )
+<<<<<<< HEAD
+  const onFabricanteParceiroChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      const id = e.target.value.trim()
+      if (!id) {
+        setFormData((prev) => ({ ...prev, fabricante_parceiro: '' }))
+        return
+      }
+      const f = opcoesFabricanteParceiro.find((x) => x.id === id)
+      const nome = (f?.razao_social ?? '').trim()
+      setFormData((prev) => ({
+        ...prev,
+        fabricante_parceiro: id,
+        fabricante: nome,
+      }))
+    },
+    [opcoesFabricanteParceiro],
+  )
+
+  const patchEspecificacao = useCallback((patch: Partial<EspecificacaoFormState>) => {
+    setFormData((prev) => ({
+      ...prev,
+      especificacao: {
+        ...(prev.especificacao ?? {}),
+        ...patch,
+      } as EspecificacaoFormState,
+    }))
+  }, [])
+=======
+  const patchEspecificacao = useCallback(
+    (patch: Partial<EspecificacaoFormState>) => {
+      setFormData((prev) => ({
+        ...prev,
+        especificacao: {
+          ...(prev.especificacao ?? {}),
+          ...patch,
+        } as EspecificacaoFormState,
+      }))
     },
     []
   )
-
-  const patchDisjuntor = useCallback(
-    (patch: Partial<NonNullable<ProdutoFormData['especificacao_disjuntor_motor']>>) => {
-      setFormData((prev) =>
-        prev.especificacao_disjuntor_motor
-          ? {
-              ...prev,
-              especificacao_disjuntor_motor: {
-                ...prev.especificacao_disjuntor_motor,
-                ...patch,
-              },
-            }
-          : prev
-      )
-    },
-    []
-  )
-
-  const patchSeccionadora = useCallback(
-    (patch: Partial<NonNullable<ProdutoFormData['especificacao_seccionadora']>>) => {
-      setFormData((prev) =>
-        prev.especificacao_seccionadora
-          ? {
-              ...prev,
-              especificacao_seccionadora: {
-                ...prev.especificacao_seccionadora,
-                ...patch,
-              },
-            }
-          : prev
-      )
-    },
-    []
-  )
+>>>>>>> origin/main
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!formData.categoria.trim()) return
-    if (categoriaNome === 'CONTATORA' && formData.especificacao_contatora) {
-      const s = formData.especificacao_contatora
-      if (!s.corrente_ac3_a.trim() && !s.corrente_ac1_a.trim()) {
+
+    const esp = formData.especificacao
+
+    if (categoriaNome === 'CONTATORA' && esp) {
+      const ac3 = String(esp.corrente_ac3_a ?? '').trim()
+      const ac1 = String(esp.corrente_ac1_a ?? '').trim()
+      if (!ac3 && !ac1) {
         showToast({
           variant: 'warning',
           message: 'Informe corrente AC-3 ou AC-1 da contatora.',
@@ -121,12 +157,35 @@ export default function ProdutoForm({
         return
       }
     }
+
+    if (categoriaNome === 'SECCIONADORA' && esp) {
+      const ac1 = String(esp.corrente_ac1_a ?? '').trim()
+      const ac3 = String(esp.corrente_ac3_a ?? '').trim()
+      if (!ac1 || !ac3) {
+        showToast({
+          variant: 'warning',
+          message: 'Informe corrente AC-1 e AC-3 da seccionadora.',
+        })
+        return
+      }
+    }
+
+    if (categoriaNome === 'DISJUNTOR_MOTOR' && esp) {
+      const mn = String(esp.faixa_ajuste_min_a ?? '').trim()
+      const mx = String(esp.faixa_ajuste_max_a ?? '').trim()
+      if (!mn || !mx) {
+        showToast({
+          variant: 'warning',
+          message: 'Informe faixa de ajuste mínima e máxima (A) do disjuntor motor.',
+        })
+        return
+      }
+    }
+
     await onSubmit(formData)
   }
 
-  const specContatora = formData.especificacao_contatora
-  const specDisjuntor = formData.especificacao_disjuntor_motor
-  const specSeccionadora = formData.especificacao_seccionadora
+  const espec = formData.especificacao ?? {}
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="row g-3">
@@ -187,7 +246,7 @@ export default function ProdutoForm({
         />
       </div>
 
-      <div className="col-md-4">
+      <div className="col-md-3">
         <label className="form-label" htmlFor="produto-un">
           Unidade de medida
         </label>
@@ -198,28 +257,51 @@ export default function ProdutoForm({
           value={formData.unidade_medida}
           onChange={handleBaseChange}
         >
-          {unidadeMedidaProdutoOptions.map((o) => (
-            <option key={o.value} value={o.value}>
+          {opcoesUnidade.map((o) => (
+            <option key={o.value} value={o.value} title={o.title}>
               {o.label}
             </option>
           ))}
         </select>
       </div>
-      <div className="col-md-4">
-        <label className="form-label" htmlFor="produto-valor">
-          Valor unitário
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="produto-preco-base">
+          Preço base
+        </label>
+        <div className="input-group">
+          <span className="input-group-text">R$</span>
+          <input
+            id="produto-preco-base"
+            name="preco_base"
+            type="text"
+            inputMode="decimal"
+            className="form-control"
+            value={formData.preco_base}
+            onChange={handleBaseChange}
+            aria-label="Preço base em reais"
+          />
+        </div>
+      </div>
+      <div className="col-md-3">
+        <label className="form-label" htmlFor="produto-aliquota-ipi">
+          Alíquota IPI (%)
         </label>
         <input
-          id="produto-valor"
-          name="valor_unitario"
+          id="produto-aliquota-ipi"
+          name="aliquota_ipi"
           type="text"
           inputMode="decimal"
           className="form-control"
-          value={formData.valor_unitario}
+          value={formData.aliquota_ipi}
           onChange={handleBaseChange}
+          placeholder="Opcional"
+          aria-describedby="produto-aliquota-ipi-hint"
         />
+        <div id="produto-aliquota-ipi-hint" className="form-text">
+          Gravada como <code>p_ipi</code> no primeiro item fiscal do produto (ordem).
+        </div>
       </div>
-      <div className="col-md-4 d-flex align-items-end">
+      <div className="col-md-3 d-flex align-items-end">
         <div className="form-check">
           <input
             id="produto-ativo"
@@ -236,17 +318,36 @@ export default function ProdutoForm({
       </div>
 
       <div className="col-md-6">
-        <label className="form-label" htmlFor="produto-fabricante">
-          Fabricante
+        <label className="form-label" htmlFor="produto-fabricante-parceiro">
+          Fabricante (cadastro)
         </label>
-        <input
-          id="produto-fabricante"
-          name="fabricante"
-          className="form-control"
-          value={formData.fabricante}
-          onChange={handleBaseChange}
-          maxLength={100}
-        />
+        <select
+          id="produto-fabricante-parceiro"
+          className="form-select"
+          value={formData.fabricante_parceiro}
+          onChange={onFabricanteParceiroChange}
+          disabled={!canVerCadastro || loadingFornecedores}
+        >
+          <option value="">(em branco)</option>
+          {opcoesFabricanteParceiro.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.razao_social}
+              {p.documento ? ` — ${p.documento}` : ''}
+            </option>
+          ))}
+        </select>
+        {!canVerCadastro ? (
+          <p className="form-text small text-muted mb-0">
+            É necessária a permissão de visualizar cadastros para listar fornecedores/fabricantes. Sem
+            ela, o vínculo permanece em branco.
+          </p>
+        ) : null}
+        {formData.fabricante.trim() && !formData.fabricante_parceiro.trim() ? (
+          <p className="form-text small text-muted mb-0">
+            Fabricante em texto (sem vínculo): <strong>{formData.fabricante}</strong>. Selecione um
+            fornecedor acima para padronizar pelo cadastro.
+          </p>
+        ) : null}
       </div>
       <div className="col-md-6">
         <label className="form-label" htmlFor="produto-ref-fab">
@@ -259,6 +360,7 @@ export default function ProdutoForm({
           value={formData.referencia_fabricante}
           onChange={handleBaseChange}
           maxLength={120}
+          placeholder="Se vazio, será usado o código do produto ao salvar"
         />
       </div>
 
@@ -319,302 +421,13 @@ export default function ProdutoForm({
         />
       </div>
 
-      {categoriaNome === 'CONTATORA' && specContatora && (
-        <>
-          <div className="col-12 mt-3">
-            <h2 className="h6 text-muted mb-2">Especificação — contatora</h2>
-            <p className="small text-muted mb-0">
-              Informe pelo menos uma corrente (AC-3 ou AC-1).
-            </p>
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-ac3">
-              Corrente AC-3 (A)
-            </label>
-            <input
-              id="ct-ac3"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specContatora.corrente_ac3_a}
-              onChange={(e) => patchContatora({ corrente_ac3_a: e.target.value })}
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-ac1">
-              Corrente AC-1 (A)
-            </label>
-            <input
-              id="ct-ac1"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specContatora.corrente_ac1_a}
-              onChange={(e) => patchContatora({ corrente_ac1_a: e.target.value })}
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-tensao-bobina">
-              Tensão da bobina
-            </label>
-            <select
-              id="ct-tensao-bobina"
-              className="form-select"
-              value={specContatora.tensao_bobina_v}
-              onChange={(e) =>
-                patchContatora({ tensao_bobina_v: Number(e.target.value) })
-              }
-            >
-              {tensaoBobinaOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-tipo-bobina">
-              Tipo de corrente da bobina
-            </label>
-            <select
-              id="ct-tipo-bobina"
-              className="form-select"
-              value={specContatora.tipo_corrente_bobina}
-              onChange={(e) =>
-                patchContatora({
-                  tipo_corrente_bobina: e.target.value as 'CA' | 'CC',
-                })
-              }
-            >
-              {tipoCorrenteBobinaOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-na">
-              Contatos aux. NA
-            </label>
-            <input
-              id="ct-na"
-              type="number"
-              min={0}
-              className="form-control"
-              value={specContatora.contatos_aux_na}
-              onChange={(e) =>
-                patchContatora({ contatos_aux_na: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="ct-nf">
-              Contatos aux. NF
-            </label>
-            <input
-              id="ct-nf"
-              type="number"
-              min={0}
-              className="form-control"
-              value={specContatora.contatos_aux_nf}
-              onChange={(e) =>
-                patchContatora({ contatos_aux_nf: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label" htmlFor="ct-modo">
-              Modo de montagem
-            </label>
-            <select
-              id="ct-modo"
-              className="form-select"
-              value={specContatora.modo_montagem}
-              onChange={(e) => patchContatora({ modo_montagem: e.target.value })}
-            >
-              {modoMontagemOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </>
-      )}
-
-      {categoriaNome === 'DISJUNTOR_MOTOR' && specDisjuntor && (
-        <>
-          <div className="col-12 mt-3">
-            <h2 className="h6 text-muted mb-2">Especificação — disjuntor motor</h2>
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="dm-min">
-              Faixa ajuste mín. (A)
-            </label>
-            <input
-              id="dm-min"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specDisjuntor.faixa_ajuste_min_a}
-              onChange={(e) => patchDisjuntor({ faixa_ajuste_min_a: e.target.value })}
-              required
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="dm-max">
-              Faixa ajuste máx. (A)
-            </label>
-            <input
-              id="dm-max"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specDisjuntor.faixa_ajuste_max_a}
-              onChange={(e) => patchDisjuntor({ faixa_ajuste_max_a: e.target.value })}
-              required
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="dm-na">
-              Contatos aux. NA
-            </label>
-            <input
-              id="dm-na"
-              type="number"
-              min={0}
-              className="form-control"
-              value={specDisjuntor.contatos_aux_na}
-              onChange={(e) =>
-                patchDisjuntor({ contatos_aux_na: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="dm-nf">
-              Contatos aux. NF
-            </label>
-            <input
-              id="dm-nf"
-              type="number"
-              min={0}
-              className="form-control"
-              value={specDisjuntor.contatos_aux_nf}
-              onChange={(e) =>
-                patchDisjuntor({ contatos_aux_nf: Math.max(0, Number(e.target.value) || 0) })
-              }
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label" htmlFor="dm-modo">
-              Modo de montagem
-            </label>
-            <select
-              id="dm-modo"
-              className="form-select"
-              value={specDisjuntor.modo_montagem}
-              onChange={(e) => patchDisjuntor({ modo_montagem: e.target.value })}
-            >
-              {modoMontagemOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </>
-      )}
-
-      {categoriaNome === 'SECCIONADORA' && specSeccionadora && (
-        <>
-          <div className="col-12 mt-3">
-            <h2 className="h6 text-muted mb-2">Especificação — seccionadora</h2>
-            <p className="small text-muted mb-0">
-              Informe corrente AC-1 e AC-3 conforme placa do equipamento.
-            </p>
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="sc-ac1">
-              Corrente AC-1 (A)
-            </label>
-            <input
-              id="sc-ac1"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specSeccionadora.corrente_ac1_a}
-              onChange={(e) => patchSeccionadora({ corrente_ac1_a: e.target.value })}
-              required
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="sc-ac3">
-              Corrente AC-3 (A)
-            </label>
-            <input
-              id="sc-ac3"
-              type="text"
-              inputMode="decimal"
-              className="form-control"
-              value={specSeccionadora.corrente_ac3_a}
-              onChange={(e) => patchSeccionadora({ corrente_ac3_a: e.target.value })}
-              required
-            />
-          </div>
-          <div className="col-md-4">
-            <label className="form-label" htmlFor="sc-tipo-mont">
-              Tipo de montagem
-            </label>
-            <select
-              id="sc-tipo-mont"
-              className="form-select"
-              value={specSeccionadora.tipo_montagem}
-              onChange={(e) => patchSeccionadora({ tipo_montagem: e.target.value })}
-            >
-              {modoMontagemOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-6">
-            <label className="form-label" htmlFor="sc-fix">
-              Tipo de fixação
-            </label>
-            <select
-              id="sc-fix"
-              className="form-select"
-              value={specSeccionadora.tipo_fixacao}
-              onChange={(e) => patchSeccionadora({ tipo_fixacao: e.target.value })}
-            >
-              {tipoFixacaoSeccionadoraOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-md-6">
-            <label className="form-label" htmlFor="sc-cor">
-              Cor da manopla
-            </label>
-            <select
-              id="sc-cor"
-              className="form-select"
-              value={specSeccionadora.cor_manopla}
-              onChange={(e) => patchSeccionadora({ cor_manopla: e.target.value })}
-            >
-              {corManoplaOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </>
-      )}
+      {temBlocoEspecificacao && categoriaNome ? (
+        <EspecificacaoCatalogoFields
+          categoria={categoriaNome}
+          value={espec}
+          onPatch={patchEspecificacao}
+        />
+      ) : null}
 
       <div className="col-12 mt-3">
         <button type="submit" className="btn btn-primary" disabled={loading}>

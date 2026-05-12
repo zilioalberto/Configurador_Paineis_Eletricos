@@ -1,9 +1,19 @@
+import { getEspecApiKey } from '../constants/categoriaEspecKey'
 import type { CategoriaProduto } from '../types/categoria'
+import type { CategoriaProdutoNome } from '../types/categoria'
 import type { ProdutoFormData } from '../types/produto'
+import { especFormParaPayload } from './specFormHelpers'
 
 function dec(s: string): string | null {
   const t = s.trim()
   return t === '' ? null : t
+}
+
+function decNullablePercent(s: string): string | number | null {
+  const t = s.trim()
+  if (!t) return null
+  const n = Number(t.replace(',', '.'))
+  return Number.isFinite(n) ? n : null
 }
 
 function num(s: string): string | number {
@@ -13,59 +23,30 @@ function num(s: string): string | number {
   return Number.isFinite(n) ? n : 0
 }
 
-function specContatora(
-  s: NonNullable<ProdutoFormData['especificacao_contatora']>
-) {
-  return {
-    corrente_ac3_a: dec(s.corrente_ac3_a),
-    corrente_ac1_a: dec(s.corrente_ac1_a),
-    tensao_bobina_v: s.tensao_bobina_v,
-    tipo_corrente_bobina: s.tipo_corrente_bobina,
-    contatos_aux_na: s.contatos_aux_na,
-    contatos_aux_nf: s.contatos_aux_nf,
-    modo_montagem: s.modo_montagem,
-  }
-}
-
-function specDisjuntor(
-  s: NonNullable<ProdutoFormData['especificacao_disjuntor_motor']>
-) {
-  return {
-    faixa_ajuste_min_a: num(s.faixa_ajuste_min_a),
-    faixa_ajuste_max_a: num(s.faixa_ajuste_max_a),
-    contatos_aux_na: s.contatos_aux_na,
-    contatos_aux_nf: s.contatos_aux_nf,
-    modo_montagem: s.modo_montagem,
-  }
-}
-
-function specSeccionadora(
-  s: NonNullable<ProdutoFormData['especificacao_seccionadora']>
-) {
-  return {
-    corrente_ac1_a: dec(s.corrente_ac1_a),
-    corrente_ac3_a: dec(s.corrente_ac3_a),
-    tipo_montagem: s.tipo_montagem,
-    tipo_fixacao: s.tipo_fixacao,
-    cor_manopla: s.cor_manopla,
-  }
-}
-
 export function produtoFormToApiPayload(
   data: ProdutoFormData,
-  categorias: CategoriaProduto[]
+  categorias: CategoriaProduto[],
 ): Record<string, unknown> {
   const cat = categorias.find((c) => c.id === data.categoria || c.nome === data.categoria)
-  const nome = cat?.nome ?? data.categoria
+  const nome = (cat?.nome ?? data.categoria) as CategoriaProdutoNome
+<<<<<<< HEAD
+
+  const codigo = data.codigo.trim()
+  const refFab = data.referencia_fabricante.trim()
+  const fabPar = data.fabricante_parceiro.trim()
+=======
+>>>>>>> origin/main
 
   const base: Record<string, unknown> = {
-    codigo: data.codigo.trim(),
+    codigo,
     descricao: data.descricao.trim(),
     categoria: data.categoria,
     unidade_medida: data.unidade_medida,
-    valor_unitario: num(data.valor_unitario),
+    preco_base: num(data.preco_base),
+    aliquota_ipi: decNullablePercent(data.aliquota_ipi),
+    fabricante_parceiro: fabPar || null,
     fabricante: data.fabricante.trim(),
-    referencia_fabricante: data.referencia_fabricante.trim(),
+    referencia_fabricante: refFab || codigo,
     largura_mm: dec(data.largura_mm),
     altura_mm: dec(data.altura_mm),
     profundidade_mm: dec(data.profundidade_mm),
@@ -73,18 +54,11 @@ export function produtoFormToApiPayload(
     ativo: data.ativo,
   }
 
-  if (nome === 'CONTATORA' && data.especificacao_contatora) {
-    base.especificacao_contatora = specContatora(data.especificacao_contatora)
-  }
-  if (nome === 'DISJUNTOR_MOTOR' && data.especificacao_disjuntor_motor) {
-    base.especificacao_disjuntor_motor = specDisjuntor(
-      data.especificacao_disjuntor_motor
-    )
-  }
-  if (nome === 'SECCIONADORA' && data.especificacao_seccionadora) {
-    base.especificacao_seccionadora = specSeccionadora(
-      data.especificacao_seccionadora
-    )
+  const specKey = getEspecApiKey(nome)
+  if (specKey) {
+    base[specKey] = data.especificacao
+      ? especFormParaPayload(data.especificacao, nome)
+      : {}
   }
 
   return base

@@ -1,8 +1,18 @@
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
+import { CATEGORIA_PARA_ESPEC_KEY } from '../constants/categoriaEspecKey'
 import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'
+import type { CategoriaProdutoNome } from '../types/categoria'
+<<<<<<< HEAD
+import type { ItemFiscalProduto } from '../types/produto'
+=======
+>>>>>>> origin/main
+import { labelCampoEspec, SPEC_FIELDS_BY_CATEGORIA } from '../utils/specFormHelpers'
 
-function SpecBlock({ title, children }: { title: string; children: ReactNode }) {
+function SpecBlock({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
     <div className="col-12">
       <h3 className="h6 text-muted border-bottom pb-2">{title}</h3>
@@ -16,7 +26,52 @@ function cell(v: unknown): string {
   return String(v)
 }
 
-function Row({ label, value }: { label: string; value: ReactNode }) {
+function ItemFiscalTable({ itens }: Readonly<{ itens: ItemFiscalProduto[] }>) {
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm table-bordered mb-0 align-middle">
+        <thead className="table-light">
+          <tr>
+            <th>Rótulo</th>
+            <th>CFOP</th>
+            <th>Orig.</th>
+            <th>CST ICMS</th>
+            <th>CSOSN</th>
+            <th>Grupo XML</th>
+            <th className="text-end">% ICMS</th>
+            <th className="text-end">R$ ICMS</th>
+            <th className="text-end">% IPI</th>
+            <th>Item NF-e</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map((it) => (
+            <tr key={it.id}>
+              <td>{cell(it.rotulo)}</td>
+              <td>
+                <code>{cell(it.cfop)}</code>
+              </td>
+              <td>{cell(it.origem_mercadoria)}</td>
+              <td>
+                <code>{cell(it.cst_icms)}</code>
+              </td>
+              <td>
+                <code>{cell(it.csosn)}</code>
+              </td>
+              <td className="small">{cell(it.icms_grupo_xml)}</td>
+              <td className="text-end">{cell(it.p_icms)}</td>
+              <td className="text-end">{cell(it.v_icms)}</td>
+              <td className="text-end">{cell(it.p_ipi)}</td>
+              <td>{it.n_item_nfe ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Row({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
   return (
     <div className="col-md-4">
       <strong className="d-block text-muted">{label}</strong>
@@ -25,13 +80,20 @@ function Row({ label, value }: { label: string; value: ReactNode }) {
   )
 }
 
+function tituloBlocoEspecificacao(apiKey: string): string {
+  const slug = apiKey.replace(/^especificacao_/, '').replace(/_/g, ' ')
+  return slug.charAt(0).toUpperCase() + slug.slice(1)
+}
+
 export default function ProdutoDetailPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const canEditProduto = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const { data: p, isPending, isError, error } = useProdutoDetailQuery(id)
 
-  const ec = p?.especificacao_contatora
-  const ed = p?.especificacao_disjuntor_motor
-  const es = p?.especificacao_seccionadora
+  const bag = p as Record<string, unknown> | undefined
+  const nomeCat = (p?.categoria_nome ?? p?.categoria) as CategoriaProdutoNome | undefined
 
   return (
     <div className="container-fluid">
@@ -40,11 +102,25 @@ export default function ProdutoDetailPage() {
           <h1 className="h3 mb-1">Detalhes do produto</h1>
           <p className="text-muted mb-0">Dados cadastrados no catálogo.</p>
         </div>
-        {id && (
-          <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
-            Editar
-          </Link>
-        )}
+        <div className="d-flex flex-wrap gap-2 align-items-center">
+          {canEditProduto ? (
+            <Link to="/catalogo/novo" className="btn btn-outline-primary">
+              Novo produto
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={() => navigate('/catalogo')}
+          >
+            Fechar
+          </button>
+          {id && canEditProduto ? (
+            <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
+              Editar
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <div className="card">
@@ -76,14 +152,46 @@ export default function ProdutoDetailPage() {
                   value={p.categoria_display ?? p.categoria_nome}
                 />
                 <Row label="Unidade" value={p.unidade_medida_display ?? p.unidade_medida} />
-                <Row label="Valor unitário" value={p.valor_unitario} />
+                <Row label="Preço base" value={p.preco_base} />
                 <Row label="Ativo" value={p.ativo ? 'Sim' : 'Não'} />
               </SpecBlock>
+
+              {p.informacao_comercial ? (
+                <SpecBlock title="Fiscal e logística (referência NF-e)">
+                  <Row label="GTIN / EAN" value={cell(p.informacao_comercial.gtin)} />
+                  <Row label="NCM" value={cell(p.informacao_comercial.ncm)} />
+                  <Row label="CEST" value={cell(p.informacao_comercial.cest)} />
+                  <Row label="Origem (ICMS)" value={cell(p.informacao_comercial.origem_mercadoria)} />
+                  <Row
+                    label="Unidade tributável"
+                    value={cell(p.informacao_comercial.unidade_tributavel)}
+                  />
+                  <Row
+                    label="Perfil fiscal"
+                    value={cell(p.informacao_comercial.codigo_perfil_fiscal)}
+                  />
+                  <Row
+                    label="Peso líq. / bruto (kg)"
+                    value={`${cell(p.informacao_comercial.peso_liquido_kg)} / ${cell(p.informacao_comercial.peso_bruto_kg)}`}
+                  />
+                </SpecBlock>
+              ) : null}
+
+              {p.itens_fiscais && p.itens_fiscais.length > 0 ? (
+                <SpecBlock title="Itens fiscais (referência)">
+                  <div className="col-12">
+                    <ItemFiscalTable itens={p.itens_fiscais} />
+                  </div>
+                </SpecBlock>
+              ) : null}
 
               <SpecBlock title="Fabricante e dimensões">
                 <Row label="Fabricante" value={p.fabricante} />
                 <Row label="Ref. fabricante" value={p.referencia_fabricante} />
-                <Row label="L × A × P (mm)" value={`${p.largura_mm ?? '—'} × ${p.altura_mm ?? '—'} × ${p.profundidade_mm ?? '—'}`} />
+                <Row
+                  label="L × A × P (mm)"
+                  value={`${p.largura_mm ?? '—'} × ${p.altura_mm ?? '—'} × ${p.profundidade_mm ?? '—'}`}
+                />
               </SpecBlock>
 
               {p.observacoes_tecnicas ? (
@@ -93,64 +201,37 @@ export default function ProdutoDetailPage() {
                 </div>
               ) : null}
 
-              {ec && (
-                <SpecBlock title="Especificação — contatora">
-                  <Row label="Corrente AC-3 (A)" value={String(ec.corrente_ac3_a ?? '—')} />
-                  <Row label="Corrente AC-1 (A)" value={String(ec.corrente_ac1_a ?? '—')} />
-                  <Row
-                    label="Bobina"
-                    value={
-                      cell(ec.tensao_bobina_display) !== '—'
-                        ? cell(ec.tensao_bobina_display)
-                        : ec.tensao_bobina_v != null
-                          ? `${ec.tensao_bobina_v} V`
-                          : '—'
-                    }
-                  />
-                  <Row
-                    label="Tipo corrente bobina"
-                    value={cell(ec.tipo_corrente_bobina_display ?? ec.tipo_corrente_bobina)}
-                  />
-                  <Row label="Contatos aux. NA" value={String(ec.contatos_aux_na ?? 0)} />
-                  <Row label="Contatos aux. NF" value={String(ec.contatos_aux_nf ?? 0)} />
-                  <Row
-                    label="Modo montagem"
-                    value={cell(ec.modo_montagem_display ?? ec.modo_montagem)}
-                  />
-                </SpecBlock>
-              )}
-
-              {ed && (
-                <SpecBlock title="Especificação — disjuntor motor">
-                  <Row label="Faixa mín. (A)" value={String(ed.faixa_ajuste_min_a ?? '—')} />
-                  <Row label="Faixa máx. (A)" value={String(ed.faixa_ajuste_max_a ?? '—')} />
-                  <Row label="Contatos aux. NA" value={String(ed.contatos_aux_na ?? 0)} />
-                  <Row label="Contatos aux. NF" value={String(ed.contatos_aux_nf ?? 0)} />
-                  <Row
-                    label="Modo montagem"
-                    value={cell(ed.modo_montagem_display ?? ed.modo_montagem)}
-                  />
-                </SpecBlock>
-              )}
-
-              {es && (
-                <SpecBlock title="Especificação — seccionadora">
-                  <Row label="Corrente AC-1 (A)" value={String(es.corrente_ac1_a ?? '—')} />
-                  <Row label="Corrente AC-3 (A)" value={String(es.corrente_ac3_a ?? '—')} />
-                  <Row
-                    label="Tipo montagem"
-                    value={cell(es.tipo_montagem_display ?? es.tipo_montagem)}
-                  />
-                  <Row
-                    label="Tipo fixação"
-                    value={cell(es.tipo_fixacao_display ?? es.tipo_fixacao)}
-                  />
-                  <Row
-                    label="Cor manopla"
-                    value={cell(es.cor_manopla_display ?? es.cor_manopla)}
-                  />
-                </SpecBlock>
-              )}
+              {nomeCat &&
+                (() => {
+                  const specKey = CATEGORIA_PARA_ESPEC_KEY[nomeCat]
+                  const row = specKey ? bag?.[specKey] : undefined
+                  if (!specKey || !row || typeof row !== 'object') return null
+                  const meta = SPEC_FIELDS_BY_CATEGORIA[nomeCat]
+                  const data = row as Record<string, unknown>
+                  return (
+                    <SpecBlock
+                      key={specKey}
+                      title={`Especificação — ${tituloBlocoEspecificacao(specKey)}`}
+                    >
+                      {meta?.map(({ name }) => {
+                        const dispKey = `${name}_display`
+                        const displayVal = data[dispKey]
+                        const rawVal = data[name]
+                        const show =
+                          displayVal !== undefined && displayVal !== null && displayVal !== ''
+                            ? cell(displayVal)
+                            : cell(rawVal)
+                        return (
+                          <Row key={name} label={labelCampoEspec(name)} value={show} />
+                        )
+                      }) ?? (
+                        <p className="small text-muted mb-0">
+                          Campos desta categoria não estão listados no registo do frontend.
+                        </p>
+                      )}
+                    </SpecBlock>
+                  )
+                })()}
 
               <div className="col-12">
                 <Link to="/catalogo" className="btn btn-outline-secondary btn-sm">

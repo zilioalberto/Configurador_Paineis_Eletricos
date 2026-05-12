@@ -16,6 +16,16 @@ export function parseErrorResponseBody(data: unknown): string {
 
   const o = data as Record<string, unknown>
 
+  function parseNested(value: unknown): string {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value)) return value.map(String).join(', ')
+    if (value !== null && typeof value === 'object') {
+      const nested = parseErrorResponseBody(value)
+      return nested || 'erro de validação'
+    }
+    return ''
+  }
+
   if ('detail' in o) {
     const detail = o.detail
     if (typeof detail === 'string') {
@@ -25,6 +35,12 @@ export function parseErrorResponseBody(data: unknown): string {
       const parts = detail.filter((x): x is string => typeof x === 'string')
       if (parts.length) {
         return parts.join(' | ')
+      }
+    }
+    if (detail !== null && typeof detail === 'object' && !Array.isArray(detail)) {
+      const nested = parseErrorResponseBody(detail)
+      if (nested.trim()) {
+        return nested
       }
     }
   }
@@ -42,16 +58,8 @@ export function parseErrorResponseBody(data: unknown): string {
   const fieldParts = Object.entries(o)
     .filter(([key]) => key !== 'detail' && key !== 'non_field_errors')
     .map(([campo, valor]) => {
-      if (Array.isArray(valor)) {
-        return `${campo}: ${valor.map(String).join(', ')}`
-      }
-      if (typeof valor === 'string') {
-        return `${campo}: ${valor}`
-      }
-      if (valor !== null && typeof valor === 'object') {
-        return `${campo}: erro de validação`
-      }
-      return ''
+      const parsed = parseNested(valor)
+      return parsed ? `${campo}: ${parsed}` : ''
     })
     .filter(Boolean)
 

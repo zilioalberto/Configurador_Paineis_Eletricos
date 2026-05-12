@@ -6,6 +6,42 @@ class TipoPainelChoices(models.TextChoices):
     DISTRIBUICAO = "DISTRIBUICAO", "Distribuição"
 
 
+class TipoPainelCatalogoChoices(models.TextChoices):
+    CAIXA_METALICA = "CAIXA_METALICA", "Caixa metálica"
+    CAIXA_PLASTICA = "CAIXA_PLASTICA", "Caixa plástica"
+    ARMARIO_METALICO = "ARMARIO_METALICO", "Armário metálico"
+    PAINEL_MODULAR = "PAINEL_MODULAR", "Painel modular"
+
+
+class TipoInstalacaoPainelChoices(models.TextChoices):
+    SOBREPOR = "SOBREPOR", "Sobrepor"
+    EMBUTIR = "EMBUTIR", "Embutir"
+    PISO = "PISO", "Piso"
+    AUTO_PORTANTE = "AUTO_PORTANTE", "Autoportante"
+
+
+class MaterialPainelChoices(models.TextChoices):
+    ACO_CARBONO = "ACO_CARBONO", "Aço carbono"
+    ACO_INOX = "ACO_INOX", "Aço inox"
+    ALUMINIO = "ALUMINIO", "Alumínio"
+    POLICARBONATO = "POLICARBONATO", "Policarbonato"
+    ABS = "ABS", "ABS"
+
+
+class AcabamentoPlacaPainelChoices(models.TextChoices):
+    """Acabamento da placa de montagem interna ao painel (catálogo)."""
+
+    GALVANIZADA = "GALVANIZADA", "Galvanizada"
+    PINTURA_LARANJA = "PINTURA_LARANJA", "Pintura laranja"
+
+
+class CorPainelChoices(models.TextChoices):
+    """Cor de pintura do invólucro (catálogo de painéis)."""
+
+    RAL7035 = "RAL7035", "RAL 7035 (cinza claro)"
+    RAL7032 = "RAL7032", "RAL 7032 (bege)"
+
+
 class TipoSeccionamentoChoices(models.TextChoices):
     NENHUM = "NENHUM", "Sem seccionamento"
     SECCIONADORA = "SECCIONADORA", "Seccionadora"

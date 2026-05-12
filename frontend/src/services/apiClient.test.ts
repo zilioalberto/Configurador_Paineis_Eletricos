@@ -50,4 +50,24 @@ describe('apiClient interceptors', () => {
     expect(tokenStorage.getAccess()).toBeNull()
     expect(tokenStorage.getRefresh()).toBeNull()
   })
+
+  it('não converte upload FormData em JSON', async () => {
+    const body = new FormData()
+    const file = new File(['<xml/>'], 'nf.xml', { type: 'application/xml' })
+    body.append('arquivo', file)
+
+    mock.onPost('/catalogo/importacoes/nfe/preview/').reply((config) => {
+      expect(config.data).toBe(body)
+      const contentType =
+        typeof config.headers?.get === 'function'
+          ? config.headers.get('Content-Type')
+          : undefined
+      expect(contentType ?? '').not.toContain('application/json')
+      return [200, { ok: true }]
+    })
+
+    await expect(apiClient.post('/catalogo/importacoes/nfe/preview/', body)).resolves.toMatchObject({
+      data: { ok: true },
+    })
+  })
 })

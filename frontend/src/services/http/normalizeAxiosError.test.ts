@@ -37,6 +37,19 @@ describe('normalizeAxiosError', () => {
     expect(n.message).toBe('Campo inválido')
   })
 
+  it('traduz mensagem conhecida em inglês do JWT (401)', () => {
+    const ax = new axios.AxiosError('fail')
+    ax.response = {
+      status: 401,
+      statusText: 'Unauthorized',
+      data: { detail: 'No active account found with the given credentials' },
+      headers: {},
+      config: {} as never,
+    }
+    const n = normalizeAxiosError(ax)
+    expect(n.message).toContain('E-mail ou senha incorretos')
+  })
+
   it('requisição sem resposta (rede)', () => {
     const ax = new axios.AxiosError('net')
     ax.request = {}

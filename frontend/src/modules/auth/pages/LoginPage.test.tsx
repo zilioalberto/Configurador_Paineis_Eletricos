@@ -34,7 +34,7 @@ describe('LoginPage', () => {
   it('submete credenciais e navega após login', async () => {
     render(<LoginPage />)
     fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: '  u@test.com  ' } })
-    fireEvent.change(screen.getByLabelText(/Palavra-passe/i), { target: { value: 'secret' } })
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: 'secret' } })
     fireEvent.click(screen.getByRole('button', { name: /Entrar/i }))
     await waitFor(() =>
       expect(mockLogin).toHaveBeenCalledWith('u@test.com', 'secret')
@@ -47,7 +47,7 @@ describe('LoginPage', () => {
     mockLogin.mockRejectedValueOnce(new ApiError('Credenciais inválidas.', { status: 401 }))
     render(<LoginPage />)
     fireEvent.change(screen.getByLabelText(/E-mail/i), { target: { value: 'a@b.com' } })
-    fireEvent.change(screen.getByLabelText(/Palavra-passe/i), { target: { value: 'bad' } })
+    fireEvent.change(screen.getByLabelText(/Senha/i), { target: { value: 'bad' } })
     fireEvent.click(screen.getByRole('button', { name: /Entrar/i }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Credenciais inválidas'))
   })

@@ -1,39 +1,67 @@
 import type { CategoriaProdutoNome } from './categoria'
+import type { UnidadeMedidaProduto } from '../constants/catalogoChoiceOptions'
 
+<<<<<<< HEAD
+/** Item fiscal persistido (`apps.fiscal.models.ItemFiscalProduto`) — detalhe/listagem, não editável neste formulário. */
+export type ItemFiscalProduto = {
+  id: string
+  criado_em?: string
+  atualizado_em?: string
+  ordem: number
+  rotulo: string
+  cfop: string
+  origem_mercadoria: string | null
+  cst_icms: string
+  csosn: string
+  icms_grupo_xml: string
+  mod_bc_icms: string
+  v_bc_icms: string | number | null
+  p_icms: string | number | null
+  v_icms: string | number | null
+  cst_ipi: string
+  v_bc_ipi: string | number | null
+  p_ipi: string | number | null
+  v_ipi: string | number | null
+  cst_pis: string
+  v_bc_pis: string | number | null
+  p_pis: string | number | null
+  v_pis: string | number | null
+  cst_cofins: string
+  v_bc_cofins: string | number | null
+  p_cofins: string | number | null
+  v_cofins: string | number | null
+  n_item_nfe: number | null
+}
+
+export type ProdutoInformacaoComercial = {
+  gtin?: string
+  ncm?: string
+  cest?: string
+  origem_mercadoria?: string
+  unidade_tributavel?: string
+  codigo_perfil_fiscal?: string
+  peso_liquido_kg?: string | null
+  peso_bruto_kg?: string | null
+  criado_em?: string
+  atualizado_em?: string
+}
+=======
 export type UnidadeMedidaProduto = 'UN' | 'MT' | 'CJ'
+>>>>>>> origin/main
 
-export type EspecificacaoContatoraForm = {
-  corrente_ac3_a: string
-  corrente_ac1_a: string
-  tensao_bobina_v: number
-  tipo_corrente_bobina: 'CA' | 'CC'
-  contatos_aux_na: number
-  contatos_aux_nf: number
-  modo_montagem: string
-}
-
-export type EspecificacaoDisjuntorMotorForm = {
-  faixa_ajuste_min_a: string
-  faixa_ajuste_max_a: string
-  contatos_aux_na: number
-  contatos_aux_nf: number
-  modo_montagem: string
-}
-
-export type EspecificacaoSeccionadoraForm = {
-  corrente_ac1_a: string
-  corrente_ac3_a: string
-  tipo_montagem: string
-  tipo_fixacao: string
-  cor_manopla: string
-}
+/** Estado editável da especificação da categoria atual (uma entrada por campo do modelo). */
+export type EspecificacaoFormState = Record<string, string | number | boolean>
 
 export type ProdutoFormData = {
   codigo: string
   descricao: string
   categoria: string
   unidade_medida: UnidadeMedidaProduto
-  valor_unitario: string
+  preco_base: string
+  /** Alíquota IPI (%) de referência, ao lado do preço base. */
+  aliquota_ipi: string
+  /** UUID do parceiro fornecedor (fabricante) ou vazio. */
+  fabricante_parceiro: string
   fabricante: string
   referencia_fabricante: string
   largura_mm: string
@@ -41,9 +69,8 @@ export type ProdutoFormData = {
   profundidade_mm: string
   observacoes_tecnicas: string
   ativo: boolean
-  especificacao_contatora: EspecificacaoContatoraForm | null
-  especificacao_disjuntor_motor: EspecificacaoDisjuntorMotorForm | null
-  especificacao_seccionadora: EspecificacaoSeccionadoraForm | null
+  /** Campos da especificação OneToOne correspondentes à categoria selecionada. */
+  especificacao: EspecificacaoFormState | null
 }
 
 export type ProdutoListItem = {
@@ -56,7 +83,12 @@ export type ProdutoListItem = {
   fabricante: string
   unidade_medida: string
   unidade_medida_display?: string
-  valor_unitario: string
+  preco_base: string
+  aliquota_ipi?: string | null
+  fabricante_parceiro?: string | null
+  fabricante_parceiro_nome?: string | null
+  fabricante_parceiro_documento?: string | null
+  informacao_comercial?: ProdutoInformacaoComercial | null
   ativo: boolean
   criado_em?: string
   atualizado_em?: string
@@ -68,7 +100,8 @@ export type ProdutoDetail = ProdutoListItem & {
   altura_mm?: string | null
   profundidade_mm?: string | null
   observacoes_tecnicas?: string
-  especificacao_contatora?: Record<string, unknown> | null
-  especificacao_disjuntor_motor?: Record<string, unknown> | null
-  especificacao_seccionadora?: Record<string, unknown> | null
+<<<<<<< HEAD
+  itens_fiscais?: ItemFiscalProduto[]
+=======
+>>>>>>> origin/main
 }

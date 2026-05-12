@@ -21,6 +21,17 @@ vi.mock('@/modules/auth/AuthContext', () => ({
 import Header from '@/components/layout/Header'
 
 describe('Header', () => {
+  it('nao exibe o botao de atalhos', () => {
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="*" element={<Header />} />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.queryByRole('button', { name: /Atalhos/i })).not.toBeInTheDocument()
+  })
+
   it('abre menu de utilizador e chama logout em Sair', async () => {
     render(
       <MemoryRouter>

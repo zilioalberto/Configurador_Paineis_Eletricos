@@ -1,0 +1,9 @@
+# pytest-cov executado dentro de backend/ (scripts locais e container backend).
+[run]
+omit =
+    */migrations/*
+
+[report]
+omit =
+    */migrations/*
+precision = 2

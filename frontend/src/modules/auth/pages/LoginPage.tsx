@@ -1,6 +1,9 @@
 import { useState, type SyntheticEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
+import { APP_PRODUCT_FULL_NAME } from '@/constants/appBranding'
+import { ZFW_LOGO_PNG_URL } from '@/constants/brandingAssets'
+import { ZFW_SITE_URL } from '@/constants/zfwSite'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { ApiError } from '@/services/http/ApiError'
 
@@ -26,7 +29,7 @@ export default function LoginPage() {
         aria-live="polite"
       >
         <output className="spinner-border text-primary" aria-live="polite">
-          <span className="visually-hidden">A carregar…</span>
+          <span className="visually-hidden">Carregando…</span>
         </output>
       </div>
     )
@@ -44,7 +47,9 @@ export default function LoginPage() {
       await login(email.trim(), password)
       navigate(from, { replace: true })
     } catch (err) {
-      const message = ApiError.isApiError(err) ? err.message : 'Não foi possível iniciar sessão.'
+      const message = ApiError.isApiError(err)
+        ? err.message
+        : 'Não foi possível entrar. Tente novamente.'
       setError(message)
     } finally {
       setSubmitting(false)
@@ -56,8 +61,31 @@ export default function LoginPage() {
       <div className="w-100" style={{ maxWidth: '420px' }}>
         <div className="card shadow-sm border-0">
           <div className="card-body p-4">
-            <h1 className="h4 mb-1">Iniciar sessão</h1>
-            <p className="text-muted small mb-4">Utilize o e-mail e a palavra-passe da sua conta.</p>
+            <div className="text-center mb-4">
+              <a
+                href={ZFW_SITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="d-inline-block text-decoration-none"
+                aria-label="ZFW Engenharia — site oficial (abre em nova aba)"
+              >
+                <img
+                  src={ZFW_LOGO_PNG_URL}
+                  alt="ZFW Engenharia"
+                  width={220}
+                  height={72}
+                  decoding="async"
+                  className="d-block mx-auto"
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              </a>
+              <p className="text-muted small mb-0 mt-3">{APP_PRODUCT_FULL_NAME}</p>
+            </div>
+
+            <h1 className="h5 mb-1 text-center">Entrar</h1>
+            <p className="text-muted small mb-4 text-center">
+              Use o e-mail e a senha da sua conta para acessar o sistema.
+            </p>
 
             <form onSubmit={onSubmit} noValidate>
               {error ? (
@@ -84,7 +112,7 @@ export default function LoginPage() {
 
               <div className="mb-4">
                 <label htmlFor="login-password" className="form-label">
-                  Palavra-passe
+                  Senha
                 </label>
                 <input
                   id="login-password"
@@ -104,9 +132,9 @@ export default function LoginPage() {
                     <output
                       className="spinner-border spinner-border-sm m-0"
                       aria-live="polite"
-                      aria-label="A iniciar sessão"
+                      aria-label="Entrando"
                     />
-                    <span>A entrar…</span>
+                    <span>Entrando…</span>
                   </span>
                 ) : (
                   'Entrar'
@@ -117,7 +145,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center small text-muted mt-3 mb-0">
-          Em caso de dúvidas sobre acesso, contacte o administrador.
+          Em caso de dúvidas sobre acesso, fale com o administrador.
         </p>
       </div>
     </div>
