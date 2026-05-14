@@ -2,13 +2,8 @@ from __future__ import annotations
 
 from django.db.models import QuerySet
 
-<<<<<<< HEAD:backend/apps/catalogo/selectors/modulos_comunicacao.py
 from apps.catalogo.models import Produto
 from apps.catalogo.selectors._base import filtrar_produtos_especificacao
-=======
-from catalogo.models import Produto
-from catalogo.selectors._base import filtrar_produtos_especificacao
->>>>>>> origin/main:backend/catalogo/selectors/modulos_comunicacao.py
 from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
 def selecionar_modulos_comunicacao(

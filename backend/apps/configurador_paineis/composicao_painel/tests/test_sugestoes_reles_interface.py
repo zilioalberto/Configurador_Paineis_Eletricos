@@ -2,15 +2,9 @@ from decimal import Decimal
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_reles_interface.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaValvula
 from apps.catalogo.models import EspecificacaoReleInterface, Produto
 from apps.configurador_paineis.composicao_painel.services.sugestoes.reles_interface import (
-=======
-from cargas.models import Carga, CargaResistencia, CargaValvula
-from catalogo.models import EspecificacaoReleInterface, Produto
-from composicao_painel.services.sugestoes.reles_interface import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_reles_interface.py
     gerar_sugestoes_reles_interface,
     processar_sugestao_rele_interface_para_carga,
 )

@@ -65,11 +65,7 @@ def _potencia_carga(carga) -> str:
     """Potência para exportação — alinhado ao `CargaComposicaoSerializer` (kW na composição)."""
     if carga is None:
         return ""
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/export_lista_completa.py
     from apps.configurador_paineis.composicao_painel.api.serializers import CargaComposicaoSerializer
-=======
-    from composicao_painel.api.serializers import CargaComposicaoSerializer
->>>>>>> origin/main:backend/composicao_painel/services/export_lista_completa.py
 
     data = CargaComposicaoSerializer(carga).data
     val = data.get("potencia_corrente_valor")

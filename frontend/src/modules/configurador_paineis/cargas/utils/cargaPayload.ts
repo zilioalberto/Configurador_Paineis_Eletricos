@@ -39,11 +39,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       ...merged,
       numero_fases: Number.isFinite(nf) ? nf : base.numero_fases,
       tensao_motor: Number.isFinite(tm) ? tm : base.tensao_motor,
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/utils/cargaPayload.ts
     })
-=======
-    } as Record<string, unknown>)
->>>>>>> origin/main:frontend/src/modules/cargas/utils/cargaPayload.ts
     body.motor = m
   }
   if (tipo === 'VALVULA' && valvula) {
@@ -58,11 +54,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
         : null,
       tensao_alimentacao: Number(valvula.tensao_alimentacao),
       corrente_consumida_ma: Number(valvula.corrente_consumida_ma || 0),
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/utils/cargaPayload.ts
     })
-=======
-    } as Record<string, unknown>)
->>>>>>> origin/main:frontend/src/modules/cargas/utils/cargaPayload.ts
   }
   if (tipo === 'RESISTENCIA' && resistencia) {
     body.resistencia = {
@@ -80,11 +72,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       corrente_consumida_ma: Number(sensor.corrente_consumida_ma || 0),
       quantidade_fios:
         sensor.quantidade_fios === '' ? null : Number(sensor.quantidade_fios),
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/utils/cargaPayload.ts
     })
-=======
-    } as Record<string, unknown>)
->>>>>>> origin/main:frontend/src/modules/cargas/utils/cargaPayload.ts
   }
   if (tipo === 'TRANSDUTOR' && transdutor) {
     body.transdutor = omitEmptyStrings({
@@ -94,11 +82,7 @@ export function cargaFormToApiPayload(data: CargaFormData): Record<string, unkno
       corrente_consumida_ma: Number(transdutor.corrente_consumida_ma || 0),
       quantidade_fios:
         transdutor.quantidade_fios === '' ? null : Number(transdutor.quantidade_fios),
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/cargas/utils/cargaPayload.ts
     })
-=======
-    } as Record<string, unknown>)
->>>>>>> origin/main:frontend/src/modules/cargas/utils/cargaPayload.ts
   }
 
   return body

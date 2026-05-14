@@ -33,11 +33,7 @@ vi.mock('@/modules/auth/AuthContext', () => ({
   }),
 }))
 
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/pages/ProjetoWizardPage.test.tsx
 vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoDetailQuery', () => ({
-=======
-vi.mock('@/modules/projetos/hooks/useProjetoDetailQuery', () => ({
->>>>>>> origin/main:frontend/src/modules/projetos/pages/ProjetoWizardPage.test.tsx
   useProjetoDetailQuery: () => useProjetoDetailQueryMock(),
 }))
 
@@ -60,19 +56,11 @@ vi.mock('@/modules/configurador_paineis/dimensionamento/hooks/useRecalcularDimen
   }),
 }))
 
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/pages/ProjetoWizardPage.test.tsx
 vi.mock('@/modules/configurador_paineis/dimensionamento/components/WizardCondutoresPanel', () => ({
   default: () => null,
 }))
 
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation', () => ({
-=======
-vi.mock('@/modules/dimensionamento/components/WizardCondutoresPanel', () => ({
-  default: () => null,
-}))
-
-vi.mock('@/modules/composicao/hooks/useGerarSugestoesMutation', () => ({
->>>>>>> origin/main:frontend/src/modules/projetos/pages/ProjetoWizardPage.test.tsx
   useGerarSugestoesMutation: () => ({
     mutateAsync: gerarMutateAsyncMock,
     isPending: false,

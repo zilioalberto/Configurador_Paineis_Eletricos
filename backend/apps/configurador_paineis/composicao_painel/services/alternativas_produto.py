@@ -3,7 +3,6 @@
 from django.core.exceptions import FieldError
 from django.db.models import QuerySet
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/alternativas_produto.py
 from apps.catalogo.models import Produto
 from apps.catalogo.selectors.contatoras import selecionar_contatoras
 from apps.catalogo.selectors.disjuntores_caixa_moldada import selecionar_disjuntores_caixa_moldada
@@ -11,15 +10,6 @@ from apps.catalogo.selectors.disjuntores_motor import selecionar_disjuntores_mot
 from apps.catalogo.selectors.fusiveis import selecionar_fusiveis
 from apps.catalogo.selectors.rele_sobrecarga import selecionar_reles_sobrecarga
 from apps.catalogo.selectors.seccionadoras import selecionar_seccionadoras
-=======
-from catalogo.models import Produto
-from catalogo.selectors.contatoras import selecionar_contatoras
-from catalogo.selectors.disjuntores_caixa_moldada import selecionar_disjuntores_caixa_moldada
-from catalogo.selectors.disjuntores_motor import selecionar_disjuntores_motor
-from catalogo.selectors.fusiveis import selecionar_fusiveis
-from catalogo.selectors.rele_sobrecarga import selecionar_reles_sobrecarga
-from catalogo.selectors.seccionadoras import selecionar_seccionadoras
->>>>>>> origin/main:backend/composicao_painel/services/alternativas_produto.py
 
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem
 from core.choices.cargas import TipoCargaChoices

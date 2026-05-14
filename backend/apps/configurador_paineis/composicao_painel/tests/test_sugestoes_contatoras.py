@@ -5,17 +5,10 @@ from unittest.mock import patch
 import pytest
 from django.core.exceptions import ValidationError
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, CargaValvula
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras import (
-=======
-from cargas.models import Carga, CargaResistencia, CargaValvula
-from catalogo.models import Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.contatoras import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
     _validar_projeto_contatora,
     gerar_sugestoes_contatoras,
     processar_sugestao_contatora_para_carga,
@@ -90,11 +83,7 @@ def test_contatora_valvula_contator_quantidade_solenoides(criar_projeto):
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)
@@ -232,11 +221,7 @@ def test_contatora_selector_vazio_pendencia(criar_projeto, criar_carga_motor):
     )
     criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_contatora_para_carga(projeto, carga) == []
@@ -263,11 +248,7 @@ def test_contatora_cria_sugestao_com_produto_do_selector(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)
@@ -317,11 +298,7 @@ def test_contatora_estrela_triangulo_tres_sugestoes(
         return Produto.objects.none()
 
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         side_effect=fake_selecionar,
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)
@@ -353,11 +330,7 @@ def test_reprocessar_contatora(criar_projeto, criar_carga_motor):
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         assert len(reprocessar_contatora_para_carga(projeto, carga)) == 1
@@ -383,11 +356,7 @@ def test_gerar_sugestoes_contatoras_remove_anteriores_e_itera(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_contatoras(projeto)
@@ -415,11 +384,7 @@ def test_gerar_sugestoes_contatoras_duas_cargas_motor(
         )
         criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_contatoras(projeto)
@@ -476,11 +441,7 @@ def test_contatora_estrela_triangulo_reversivel_quatro_correntes_distintas(
         return Produto.objects.none()
 
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         side_effect=fake_selecionar,
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)
@@ -519,11 +480,7 @@ def test_contatora_direta_reversivel_duas_sugestoes(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)
@@ -568,11 +525,7 @@ def test_contatora_freio_acrescenta_sugestao_6a(
         return Produto.objects.filter(pk=p_linha.pk)
 
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_contatoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
-=======
-        "composicao_painel.services.sugestoes.contatoras.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_contatoras.py
         side_effect=fake_selecionar,
     ):
         sugs = processar_sugestao_contatora_para_carga(projeto, carga)

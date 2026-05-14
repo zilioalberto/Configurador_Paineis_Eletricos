@@ -62,16 +62,11 @@ describe('produtoService', () => {
     expect(page.hasNext).toBe(false)
   })
 
-<<<<<<< HEAD
   it('buscarProdutosAutocomplete exige 2+ caracteres por defeito', async () => {
-=======
-  it('buscarProdutosAutocomplete exige 2+ caracteres', async () => {
->>>>>>> origin/main
     expect(await buscarProdutosAutocomplete(' a ')).toEqual([])
     expect(getMock).not.toHaveBeenCalled()
   })
 
-<<<<<<< HEAD
   it('buscarProdutosAutocomplete com minChars 1 chama a API', async () => {
     getMock.mockResolvedValueOnce({ data: { results: [{ id: 'x' }] } })
     await buscarProdutosAutocomplete('A', null, 1)
@@ -80,8 +75,6 @@ describe('produtoService', () => {
     })
   })
 
-=======
->>>>>>> origin/main
   it('buscarProdutosAutocomplete envia search e categoria opcional', async () => {
     getMock.mockResolvedValueOnce({ data: { results: [{ id: 'x' }] } })
     await buscarProdutosAutocomplete('ab', 'GATEWAY')

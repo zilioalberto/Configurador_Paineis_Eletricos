@@ -2,13 +2,8 @@ import { act, renderHook } from '@testing-library/react'
 import type { ChangeEvent, SyntheticEvent } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/components/projeto-form/useProjetoForm.test.ts
 import { projetoFormInitialState } from '@/modules/configurador_paineis/projetos/components/projeto-form/formOptions'
 import { useProjetoForm } from '@/modules/configurador_paineis/projetos/components/projeto-form/useProjetoForm'
-=======
-import { projetoFormInitialState } from '@/modules/projetos/components/projeto-form/formOptions'
-import { useProjetoForm } from '@/modules/projetos/components/projeto-form/useProjetoForm'
->>>>>>> origin/main:frontend/src/modules/projetos/components/projeto-form/useProjetoForm.test.ts
 import { ApiError } from '@/services/http/ApiError'
 
 describe('useProjetoForm', () => {

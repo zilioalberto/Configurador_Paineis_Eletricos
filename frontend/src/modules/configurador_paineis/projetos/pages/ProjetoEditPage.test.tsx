@@ -52,11 +52,7 @@ vi.mock('@/modules/catalogo/hooks/usePlcFamiliasQuery', () => ({
   }),
 }))
 
-<<<<<<< HEAD:frontend/src/modules/configurador_paineis/projetos/pages/ProjetoEditPage.test.tsx
 import ProjetoEditPage from '@/modules/configurador_paineis/projetos/pages/ProjetoEditPage'
-=======
-import ProjetoEditPage from '@/modules/projetos/pages/ProjetoEditPage'
->>>>>>> origin/main:frontend/src/modules/projetos/pages/ProjetoEditPage.test.tsx
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 

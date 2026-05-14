@@ -45,7 +45,6 @@ vi.mock('@/components/feedback', async () => {
 
 import ProdutoListPage from '@/modules/catalogo/pages/ProdutoListPage'
 
-<<<<<<< HEAD
 const categorias = [
   { id: 'cat-a', nome: 'A', nome_display: 'Categoria A' },
   { id: 'cat-b', nome: 'B', nome_display: 'Categoria B' },
@@ -55,23 +54,12 @@ function pageVazio(overrides: Record<string, unknown> = {}) {
   return {
     data: {
       items: [] as unknown[],
-=======
-function setupProdutoListPage() {
-  useAuthMock.mockReturnValue({ user: authUser() })
-  useCategoriaListQueryMock.mockReturnValue({ data: [], isPending: false })
-  useProdutoListQueryMock.mockReturnValue({
-    data: {
-      items: [],
->>>>>>> origin/main
       total: 0,
       page: 1,
       pageSize: 50,
       hasNext: false,
       hasPrevious: false,
-<<<<<<< HEAD
       ...overrides,
-=======
->>>>>>> origin/main
     },
     isPending: false,
     isError: false,
