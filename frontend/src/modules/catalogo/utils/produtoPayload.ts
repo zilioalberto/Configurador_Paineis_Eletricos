@@ -34,10 +34,6 @@ export function produtoFormToApiPayload(
   const refFab = data.referencia_fabricante.trim()
   const fabPar = data.fabricante_parceiro.trim()
 
-  const codigo = data.codigo.trim()
-  const refFab = data.referencia_fabricante.trim()
-  const fabPar = data.fabricante_parceiro.trim()
-
   const base: Record<string, unknown> = {
     codigo,
     descricao: data.descricao.trim(),
