@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
+    inputs:
+      reset_db:
+        description: "Resetar banco de dados? Use true apenas em ambiente não produtivo."
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 concurrency:
   group: deploy-production
@@ -24,9 +34,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
-          debug: true
+          debug: false
           command_timeout: 40m
           script: |
             set -e
+
+            RESET_DB="${{ github.event.inputs.reset_db || 'false' }}"
+
             echo "Iniciando deploy do commit: ${{ github.sha }}"
-            /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"
+            echo "RESET_DB=${RESET_DB}"
+
+            RESET_DB="${RESET_DB}" /opt/zfw/scripts/run_deploy.sh "${{ github.sha }}"

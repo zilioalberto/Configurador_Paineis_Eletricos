@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 #
-# Deploy a partir do diretório atual (clone). Backup DB → down stack anterior → up nova
-# → healthcheck → promove symlinks app/current e app/previous. Rollback automático no ERR.
+# Deploy a partir do diretório atual.
+# Fluxo:
+# backup DB → down stack anterior → up nova release → migrations → healthcheck
+# → promove symlinks app/current e app/previous.
 #
-# Ver scripts/deploy/README.md (downtime entre down e up; container_name fixos no compose).
+# RESET_DB=false por padrão.
+# RESET_DB=true remove volumes do Docker Compose e recria o banco.
 #
 set -Eeuo pipefail
 
@@ -14,10 +17,16 @@ SHARED_DIR="$APP_ROOT/shared"
 BACKUP_DIR="$SHARED_DIR/backups/db"
 
 TARGET_REF="${1:-main}"
+RESET_DB="${RESET_DB:-false}"
+
 CURRENT_WORKDIR="$(pwd)"
 NEW_RELEASE_DIR="$CURRENT_WORKDIR"
 CURRENT_LINK="${APP_DIR}/current"
 PREVIOUS_LINK="${APP_DIR}/previous"
+
+COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_ENV_FILE="$SHARED_DIR/.env"
+COMPOSE_DIR="$NEW_RELEASE_DIR/infra/docker"
 
 log() {
   echo
@@ -30,6 +39,10 @@ require_file() {
     echo "Arquivo obrigatório não encontrado: $path"
     exit 1
   fi
+}
+
+compose_new() {
+  docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
 check_health() {
@@ -49,8 +62,30 @@ check_health() {
   return 1
 }
 
+backup_database_if_possible() {
+  log "BACKUP DO BANCO"
+
+  # shellcheck disable=SC1091
+  source "$SHARED_DIR/.env"
+
+  TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+  SHORT_REF="$(echo "$TARGET_REF" | cut -c1-7)"
+  BACKUP_FILE="$BACKUP_DIR/${TIMESTAMP}-${SHORT_REF}.sql.gz"
+
+  if ! docker ps --format '{{.Names}}' | grep -q '^configurador_painel_db$'; then
+    echo "Container configurador_painel_db não está rodando. Pulando backup."
+    return 0
+  fi
+
+  echo "Gerando backup do banco atual..."
+
+  docker exec configurador_painel_db sh -c \
+    "PGPASSWORD='$DB_PASSWORD' pg_dump -U '$DB_USER' -d '$DB_NAME'" | gzip > "$BACKUP_FILE"
+
+  echo "Backup salvo em: $BACKUP_FILE"
+}
+
 rollback_on_error() {
-  # Evita reentrada do trap ERR e permite concluir limpeza mesmo com falhas pontuais
   trap - ERR
   set +e
 
@@ -62,8 +97,14 @@ rollback_on_error() {
 
   if [[ -d "$NEW_RELEASE_DIR/infra/docker" ]]; then
     echo "Derrubando release com falha..."
-    cd "$NEW_RELEASE_DIR/infra/docker"
+    cd "$NEW_RELEASE_DIR/infra/docker" || true
     docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down || true
+  fi
+
+  if [[ "$RESET_DB" == "true" ]]; then
+    echo "RESET_DB=true foi usado neste deploy."
+    echo "Rollback automático pode não restaurar o banco anterior, pois os volumes podem ter sido removidos."
+    echo "Se necessário, restaure manualmente um backup em: $BACKUP_DIR"
   fi
 
   if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
@@ -98,11 +139,7 @@ rollback_on_error() {
     docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
   else
     echo "Nenhuma release anterior encontrada para rollback."
-    echo "Motivo típico: não existe o symlink $CURRENT_LINK (primeiro deploy neste servidor)"
-    echo "ou o deploy anterior nunca chegou a promover 'current'."
-    echo "Neste caso não há stack antiga para religar: suba manualmente o compose a partir"
-    echo "de um clone válido em $RELEASES_DIR ou restaure o backup do banco se necessário."
-    echo "O volume do Postgres costuma persistir mesmo após 'docker compose down'."
+    echo "Motivo típico: primeiro deploy ou symlink current ainda não criado."
   fi
 
   if [[ -d "$NEW_RELEASE_DIR" ]]; then
@@ -123,22 +160,17 @@ else
   CURRENT_TARGET=""
 fi
 
+log "CONTEXTO DO DEPLOY"
+echo "Target ref: $TARGET_REF"
+echo "Reset DB: $RESET_DB"
+echo "Nova release: $NEW_RELEASE_DIR"
+
 log "CONTEXTO DE ROLLBACK"
 if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
-  echo "Release anterior (rollback disponível): $CURRENT_TARGET"
+  echo "Release anterior disponível para rollback: $CURRENT_TARGET"
 else
-  if [[ -L "$CURRENT_LINK" ]]; then
-    echo "AVISO: $CURRENT_LINK existe mas o destino não é um diretório válido: $(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-  elif [[ -e "$CURRENT_LINK" ]]; then
-    echo "AVISO: $CURRENT_LINK existe mas não é symlink; rollback automático não terá release anterior."
-  else
-    echo "Sem symlink $CURRENT_LINK — primeiro deploy neste APP_DIR ou current ainda não criado."
-  fi
-  echo "Rollback automático em caso de falha só poderá derrubar a nova release e remover o clone com erro."
+  echo "Sem release anterior válida para rollback automático."
 fi
-
-log "RELEASE ATUAL"
-echo "$NEW_RELEASE_DIR"
 
 log "VALIDANDO ARQUIVOS"
 require_file "infra/docker/docker-compose.prod.yml"
@@ -147,37 +179,40 @@ require_file "infra/docker/Dockerfile.frontend"
 require_file "backend/manage.py"
 require_file "$SHARED_DIR/.env"
 
-log "BACKUP DO BANCO"
-# shellcheck disable=SC1091
-source "$SHARED_DIR/.env"
+backup_database_if_possible
 
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-SHORT_REF="$(echo "$TARGET_REF" | cut -c1-7)"
-BACKUP_FILE="$BACKUP_DIR/${TIMESTAMP}-${SHORT_REF}.sql.gz"
-
-docker exec configurador_painel_db sh -c \
-  "PGPASSWORD='$DB_PASSWORD' pg_dump -U '$DB_USER' -d '$DB_NAME'" | gzip > "$BACKUP_FILE"
-
-echo "Backup salvo em: $BACKUP_FILE"
-
-log "PARANDO STACK ANTERIOR (libera container_name fixo no compose)"
+log "PARANDO STACK ANTERIOR"
 if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
   cd "$CURRENT_TARGET/infra/docker"
-  docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down
+
+  if [[ "$RESET_DB" == "true" ]]; then
+    echo "RESET_DB=true: derrubando stack anterior e removendo volumes..."
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down -v
+  else
+    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down
+  fi
+else
+  echo "Nenhuma stack anterior encontrada."
 fi
 
 log "SUBINDO NOVA RELEASE"
-cd "$NEW_RELEASE_DIR/infra/docker"
-docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml up -d --build
+cd "$COMPOSE_DIR"
+compose_new up -d --build
 
 log "AGUARDANDO SERVIÇOS"
 sleep 15
 
 log "STATUS DOS CONTAINERS"
-docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml ps
+compose_new ps
 
 log "LOGS INICIAIS DO BACKEND"
-docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
+compose_new logs backend --tail=120 || true
+
+log "APLICANDO MIGRATIONS"
+compose_new exec -T backend python manage.py migrate
+
+log "COLETANDO ARQUIVOS ESTÁTICOS"
+compose_new exec -T backend python manage.py collectstatic --noinput || true
 
 check_health || rollback_on_error "$LINENO" "healthcheck"
 
@@ -191,6 +226,7 @@ ln -sfn "$NEW_RELEASE_DIR" "$CURRENT_LINK"
 log "LIMPANDO RELEASES ANTIGAS"
 trap - ERR
 set +e
+
 cd "$RELEASES_DIR" || true
 ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
 
