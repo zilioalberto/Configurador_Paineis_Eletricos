@@ -5,15 +5,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras import (
-=======
-from catalogo.models import Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.seccionadoras import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
     _nucleo_gerar_seccionamento,
     gerar_sugestao_seccionamento,
     reprocessar_seccionamento_para_pendencia,
@@ -25,13 +19,8 @@ from core.choices import (
     TipoSeccionamentoChoices,
 )
 from core.choices.produtos import UnidadeMedidaChoices
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.projetos.models import Projeto
-=======
-from dimensionamento.models import ResumoDimensionamento
-from projetos.models import Projeto
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
 
 
 @pytest.mark.django_db
@@ -75,11 +64,7 @@ def test_nucleo_corrente_total_nula_cria_pendencia(criar_projeto):
     resumo_fake = Mock()
     resumo_fake.corrente_total_painel_a = None
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.ResumoDimensionamento.objects.get",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.ResumoDimensionamento.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=resumo_fake,
     ):
         assert _nucleo_gerar_seccionamento(projeto) is None
@@ -121,11 +106,7 @@ def test_nucleo_seccionadora_sem_produto_cria_pendencia(criar_projeto):
         corrente_total_painel_a=Decimal("200"),
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.none(),
     ):
         assert _nucleo_gerar_seccionamento(projeto) is None
@@ -156,11 +137,7 @@ def test_nucleo_seccionadora_com_produto_cria_sugestao(criar_projeto):
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sug = _nucleo_gerar_seccionamento(projeto)
@@ -183,11 +160,7 @@ def test_nucleo_disjuntor_cm_sem_produto_cria_pendencia(criar_projeto):
         corrente_total_painel_a=Decimal("120"),
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.none(),
     ):
         assert _nucleo_gerar_seccionamento(projeto) is None
@@ -218,11 +191,7 @@ def test_nucleo_disjuntor_cm_com_produto_cria_sugestao(criar_projeto):
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sug = _nucleo_gerar_seccionamento(projeto)
@@ -287,11 +256,7 @@ def test_gerar_sugestao_seccionamento_remove_sugestoes_anteriores(criar_projeto)
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.filter(pk=novo.pk),
     ):
         gerar_sugestao_seccionamento(projeto)
@@ -327,11 +292,7 @@ def test_reprocessar_seccionamento_para_pendencia_limpa_e_reexecuta(criar_projet
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_seccionadoras.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
-=======
-        "composicao_painel.services.sugestoes.seccionadoras.selecionar_seccionadoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_seccionadoras.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         reprocessar_seccionamento_para_pendencia(projeto, pend)

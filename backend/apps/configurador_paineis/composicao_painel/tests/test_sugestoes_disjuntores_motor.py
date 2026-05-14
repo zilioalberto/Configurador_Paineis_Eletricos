@@ -3,17 +3,10 @@ from unittest.mock import patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntores_motor import (
-=======
-from cargas.models import Carga, CargaMotor, CargaResistencia
-from catalogo.models import Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.disjuntores_motor import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
     gerar_sugestoes_disjuntores_motor,
     processar_sugestao_disjuntor_motor_para_carga,
     reprocessar_disjuntor_motor_para_carga,
@@ -122,11 +115,7 @@ def test_disjuntor_motor_selector_vazio_cria_pendencia(criar_projeto, criar_carg
     )
     criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
-=======
-        "composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_disjuntor_motor_para_carga(projeto, carga) is None
@@ -157,11 +146,7 @@ def test_disjuntor_motor_cria_sugestao_com_produto_do_selector(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
-=======
-        "composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sug = processar_sugestao_disjuntor_motor_para_carga(projeto, carga)
@@ -219,11 +204,7 @@ def test_reprocessar_disjuntor_motor_limpa_e_recalcula(criar_projeto, criar_carg
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
-=======
-        "composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         assert reprocessar_disjuntor_motor_para_carga(projeto, carga) is not None
@@ -262,11 +243,7 @@ def test_gerar_sugestoes_disjuntores_motor_duas_cargas_motor(
         )
         criar_carga_motor(carga=carga, tensao_motor=TensaoChoices.V380)
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
-=======
-        "composicao_painel.services.sugestoes.disjuntores_motor.selecionar_disjuntores_motor",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_disjuntores_motor.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_disjuntores_motor(projeto)

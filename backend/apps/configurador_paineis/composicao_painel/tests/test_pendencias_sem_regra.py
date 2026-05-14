@@ -4,23 +4,14 @@ from unittest.mock import patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
 from apps.configurador_paineis.cargas.models import (
-=======
-from cargas.models import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
     Carga,
     CargaResistencia,
     CargaSensor,
     CargaValvula,
 )
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra import (
-=======
-from composicao_painel.models import PendenciaItem
-from composicao_painel.services.sugestoes.pendencias_sem_regra import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
     sincronizar_pendencias_cargas_sem_regra_catalogo,
 )
 from core.choices import (
@@ -58,11 +49,7 @@ def test_resistencia_rele_estado_solido_nao_gera_pendencia_sem_regra(criar_proje
         tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-=======
-        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
         return_value=resistencia_mock,
     ):
         criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
@@ -85,11 +72,7 @@ def test_resistencia_contator_nao_gera_pendencia_sem_regra(criar_projeto):
         tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-=======
-        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
         return_value=resistencia_mock,
     ):
         criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)
@@ -131,20 +114,12 @@ def test_sincronizar_remove_pendencia_quando_carga_passa_a_ter_regra(criar_proje
         tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-=======
-        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
         return_value=sem_regra_catalogo,
     ):
         assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 1
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-=======
-        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
         return_value=com_contator,
     ):
         assert len(sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)) == 0
@@ -227,11 +202,7 @@ def test_resistencia_memoria_quando_cargaresistencia_some_antes_da_memoria(
         raise CargaResistencia.DoesNotExist
 
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_pendencias_sem_regra.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
-=======
-        "composicao_painel.services.sugestoes.pendencias_sem_regra.CargaResistencia.objects.get",
->>>>>>> origin/main:backend/composicao_painel/tests/test_pendencias_sem_regra.py
         side_effect=get_side_effect,
     ):
         criadas = sincronizar_pendencias_cargas_sem_regra_catalogo(projeto)

@@ -4,13 +4,8 @@ from decimal import Decimal
 
 from django.db.models import QuerySet
 
-<<<<<<< HEAD:backend/apps/catalogo/selectors/reles_interface.py
 from apps.catalogo.models import Produto
 from apps.catalogo.selectors._base import filtrar_produtos_especificacao
-=======
-from catalogo.models import Produto
-from catalogo.selectors._base import filtrar_produtos_especificacao
->>>>>>> origin/main:backend/catalogo/selectors/reles_interface.py
 from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
 

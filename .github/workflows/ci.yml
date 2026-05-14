@@ -35,7 +35,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/backend
           DJANGO_SETTINGS_MODULE: config.settings_ci
         run: |
-          pytest backend/configuracoes/tests backend/accounts/tests backend/projetos/tests \
+          pytest backend \
             --cov=backend \
             --cov-config=.coveragerc \
             --cov-report=xml:coverage.xml \

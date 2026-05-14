@@ -8,17 +8,10 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_composicao_api_views.py
 from apps.configurador_paineis.cargas.models import Carga, CargaSensor
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.api.views import _nome_usuario_auditoria
 from apps.configurador_paineis.composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
-=======
-from cargas.models import Carga, CargaSensor
-from catalogo.models import Produto
-from composicao_painel.api.views import _nome_usuario_auditoria
-from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
->>>>>>> origin/main:backend/composicao_painel/tests/test_composicao_api_views.py
 from core.choices import (
     CategoriaProdutoNomeChoices,
     PartesPainelChoices,

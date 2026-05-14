@@ -2,11 +2,7 @@ from django.db import models
 
 from core.models import BaseModel
 from core.choices import TipoCorrenteChoices
-<<<<<<< HEAD:backend/apps/configurador_paineis/dimensionamento/models/circuito_alimentacao_geral.py
 from apps.configurador_paineis.projetos.models import Projeto
-=======
-from projetos.models import Projeto
->>>>>>> origin/main:backend/dimensionamento/models/circuito_alimentacao_geral.py
 
 
 class DimensionamentoCircuitoAlimentacaoGeral(BaseModel):

@@ -2,11 +2,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from core.choices import TensaoChoices
-<<<<<<< HEAD:backend/apps/configurador_paineis/projetos/tests/test_projeto_familia_plc.py
 from apps.configurador_paineis.projetos.models import Projeto
-=======
-from projetos.models import Projeto
->>>>>>> origin/main:backend/projetos/tests/test_projeto_familia_plc.py
 
 
 @pytest.mark.django_db

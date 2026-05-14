@@ -3,11 +3,7 @@ from django.db import models
 
 from core.models import BaseModel
 from core.models.mixins import AtivacaoMixin
-<<<<<<< HEAD:backend/apps/configurador_paineis/cargas/models/base.py
 from apps.configurador_paineis.projetos.models.base import Projeto
-=======
-from projetos.models.base import Projeto
->>>>>>> origin/main:backend/cargas/models/base.py
 from core.choices import TipoCargaChoices
 
 

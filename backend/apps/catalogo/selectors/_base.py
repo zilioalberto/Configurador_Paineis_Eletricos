@@ -11,13 +11,8 @@ from typing import Any
 
 from django.db.models import QuerySet
 
-<<<<<<< HEAD:backend/apps/catalogo/selectors/_base.py
 from apps.catalogo.api.serializers import CATEGORIA_PARA_CAMPO
 from apps.catalogo.models import Produto
-=======
-from catalogo.api.serializers import CATEGORIA_PARA_CAMPO
-from catalogo.models import Produto
->>>>>>> origin/main:backend/catalogo/selectors/_base.py
 
 CATEGORIA_ESPEC_RELATED: dict[str, str] = dict(CATEGORIA_PARA_CAMPO)
 
