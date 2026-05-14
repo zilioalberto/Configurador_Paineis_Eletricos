@@ -9,11 +9,7 @@ from core.choices.produtos import (
     TipoExpansaoPLCChoices,
     TipoSinalDigitalChoices,
 )
-<<<<<<< HEAD:backend/apps/catalogo/models/especificacao_expansao_plc.py
 from apps.catalogo.utils.plc_familia import normalizar_chave_familia_plc
-=======
-from catalogo.utils.plc_familia import normalizar_chave_familia_plc
->>>>>>> origin/main:backend/catalogo/models/especificacao_expansao_plc.py
 from .base import Produto
 
 

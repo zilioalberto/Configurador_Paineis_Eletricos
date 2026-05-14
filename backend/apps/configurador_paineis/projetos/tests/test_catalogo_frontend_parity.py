@@ -4,19 +4,11 @@ import json
 import re
 from pathlib import Path
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/projetos/tests/test_catalogo_frontend_parity.py
 from apps.catalogo.api.serializers import CATEGORIA_PARA_CAMPO
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[5]
-=======
-from catalogo.api.serializers import CATEGORIA_PARA_CAMPO
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
->>>>>>> origin/main:backend/projetos/tests/test_catalogo_frontend_parity.py
 
 
 def _frontend_catalogo_dir() -> Path:
@@ -54,16 +46,11 @@ def _categorias_frontend_choice_options() -> set[str]:
 def test_paridade_categorias_catalogo_backend_frontend():
     categorias_backend = set(CATEGORIA_PARA_CAMPO.keys())
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/projetos/tests/test_catalogo_frontend_parity.py
     # Categorias comerciais sem especificação técnica não entram no mapa CATEGORIA_PARA_CAMPO.
     categorias_types_front = _categorias_frontend_types() - {
         "OUTROS",
         "SEM_REGRA_SUGESTAO_AUTOMATICA",
     }
-=======
-    # `SEM_REGRA_SUGESTAO_AUTOMATICA` existe no frontend, mas não possui especificação técnica.
-    categorias_types_front = _categorias_frontend_types() - {"SEM_REGRA_SUGESTAO_AUTOMATICA"}
->>>>>>> origin/main:backend/projetos/tests/test_catalogo_frontend_parity.py
     categorias_map_front = _categorias_frontend_categoria_espec_key()
     categorias_spec_front = _categorias_frontend_spec_field_list()
     categorias_choice_front = _categorias_frontend_choice_options()

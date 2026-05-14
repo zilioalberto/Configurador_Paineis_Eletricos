@@ -7,17 +7,12 @@ import {
   useState,
 } from 'react'
 import { useToast } from '@/components/feedback'
-<<<<<<< HEAD
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
 import { unidadeMedidaOptionsComValorAtual } from '../constants/catalogoChoiceOptions'
 import { useFornecedoresAtivosQuery } from '../hooks/useFornecedoresAtivosQuery'
-=======
-import { getEspecApiKey } from '../constants/categoriaEspecKey'
-import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
->>>>>>> origin/main
 import EspecificacaoCatalogoFields from './EspecificacaoCatalogoFields'
 import type { CategoriaProduto } from '../types/categoria'
 import type { CategoriaProdutoNome } from '../types/categoria'
@@ -58,7 +53,6 @@ export default function ProdutoForm({
 
   const temBlocoEspecificacao = Boolean(categoriaNome && getEspecApiKey(categoriaNome))
 
-<<<<<<< HEAD
   const opcoesUnidade = useMemo(
     () => unidadeMedidaOptionsComValorAtual(formData.unidade_medida),
     [formData.unidade_medida],
@@ -78,8 +72,6 @@ export default function ProdutoForm({
     ]
   }, [fornecedores, formData.fabricante_parceiro, formData.fabricante])
 
-=======
->>>>>>> origin/main
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const t = e.target
@@ -97,7 +89,6 @@ export default function ProdutoForm({
     [categorias],
   )
 
-<<<<<<< HEAD
   const onFabricanteParceiroChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       const id = e.target.value.trim()
@@ -125,20 +116,6 @@ export default function ProdutoForm({
       } as EspecificacaoFormState,
     }))
   }, [])
-=======
-  const patchEspecificacao = useCallback(
-    (patch: Partial<EspecificacaoFormState>) => {
-      setFormData((prev) => ({
-        ...prev,
-        especificacao: {
-          ...(prev.especificacao ?? {}),
-          ...patch,
-        } as EspecificacaoFormState,
-      }))
-    },
-    []
-  )
->>>>>>> origin/main
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()

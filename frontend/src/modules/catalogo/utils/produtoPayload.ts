@@ -29,13 +29,10 @@ export function produtoFormToApiPayload(
 ): Record<string, unknown> {
   const cat = categorias.find((c) => c.id === data.categoria || c.nome === data.categoria)
   const nome = (cat?.nome ?? data.categoria) as CategoriaProdutoNome
-<<<<<<< HEAD
 
   const codigo = data.codigo.trim()
   const refFab = data.referencia_fabricante.trim()
   const fabPar = data.fabricante_parceiro.trim()
-=======
->>>>>>> origin/main
 
   const base: Record<string, unknown> = {
     codigo,

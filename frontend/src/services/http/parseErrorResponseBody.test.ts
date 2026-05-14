@@ -18,7 +18,6 @@ describe('parseErrorResponseBody', () => {
     expect(parseErrorResponseBody({ detail: ['a', 'b'] })).toBe('a | b')
   })
 
-<<<<<<< HEAD
   it('usa detail como objeto (ex.: ValidationError do Django)', () => {
     expect(
       parseErrorResponseBody({
@@ -27,8 +26,6 @@ describe('parseErrorResponseBody', () => {
     ).toContain('snapshot:')
   })
 
-=======
->>>>>>> origin/main
   it('usa non_field_errors', () => {
     expect(parseErrorResponseBody({ non_field_errors: ['n1', 'n2'] })).toBe('n1 | n2')
   })

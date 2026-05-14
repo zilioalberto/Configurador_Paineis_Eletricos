@@ -1,10 +1,6 @@
 from django.urls import path
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/dimensionamento/api/urls.py
 from apps.configurador_paineis.dimensionamento.api.views import (
-=======
-from dimensionamento.api.views import (
->>>>>>> origin/main:backend/dimensionamento/api/urls.py
     DimensionamentoCondutoresPatchView,
     DimensionamentoPorProjetoView,
     DimensionamentoRecalcularView,

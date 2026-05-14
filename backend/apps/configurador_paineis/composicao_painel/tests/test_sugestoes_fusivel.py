@@ -3,17 +3,10 @@ from unittest.mock import patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel import (
-=======
-from cargas.models import Carga, CargaMotor, CargaResistencia
-from catalogo.models import Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.fusivel import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
     gerar_sugestoes_fusiveis,
     processar_sugestao_fusivel_para_carga,
     reprocessar_fusivel_para_carga,
@@ -134,11 +127,7 @@ def test_fusivel_selector_vazio_cria_pendencia(criar_projeto, criar_carga_motor)
         tipo_protecao=TipoProtecaoMotorChoices.FUSIVEL,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_fusivel_para_carga(projeto, carga) is None
@@ -173,11 +162,7 @@ def test_fusivel_cria_sugestao_com_produto_do_selector(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sug = processar_sugestao_fusivel_para_carga(projeto, carga)
@@ -207,11 +192,7 @@ def test_reprocessar_fusivel_limpa_e_recalcula(criar_projeto, criar_carga_motor)
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         assert reprocessar_fusivel_para_carga(projeto, carga) is not None
@@ -239,11 +220,7 @@ def test_gerar_sugestoes_fusiveis_duas_cargas_motor(criar_projeto, criar_carga_m
             tipo_protecao=TipoProtecaoMotorChoices.FUSIVEL,
         )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_fusiveis(projeto)
@@ -279,11 +256,7 @@ def test_fusivel_resistencia_ultrarrapido_usa_selector_ultrarrapido_e_corrente_g
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ) as mock_sel:
         sug = processar_sugestao_fusivel_para_carga(projeto, carga)
@@ -377,11 +350,7 @@ def test_gerar_sugestoes_fusiveis_motor_e_resistencia(criar_projeto, criar_carga
         tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_fusivel.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
-=======
-        "composicao_painel.services.sugestoes.fusivel.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_fusivel.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_fusiveis(projeto)

@@ -3,17 +3,10 @@ from unittest.mock import patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.rele_sobrecarga import (
-=======
-from cargas.models import Carga, CargaMotor
-from catalogo.models import Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.rele_sobrecarga import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
     gerar_sugestoes_reles_sobrecarga,
     processar_sugestao_rele_sobrecarga_para_carga,
     reprocessar_rele_sobrecarga_para_carga,
@@ -137,11 +130,7 @@ def test_rele_sobrecarga_selector_vazio_cria_pendencia(
         tipo_protecao=TipoProtecaoMotorChoices.RELE_SOBRECARGA,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
-=======
-        "composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_rele_sobrecarga_para_carga(projeto, carga) is None
@@ -176,11 +165,7 @@ def test_rele_sobrecarga_cria_sugestao_com_produto_do_selector(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
-=======
-        "composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         sug = processar_sugestao_rele_sobrecarga_para_carga(projeto, carga)
@@ -213,11 +198,7 @@ def test_reprocessar_rele_sobrecarga_limpa_e_recalcula(
         unidade_medida=UnidadeMedidaChoices.UN,
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
-=======
-        "composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         assert reprocessar_rele_sobrecarga_para_carga(projeto, carga) is not None
@@ -248,11 +229,7 @@ def test_gerar_sugestoes_reles_sobrecarga_duas_cargas_motor(
             tipo_protecao=TipoProtecaoMotorChoices.RELE_SOBRECARGA,
         )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
-=======
-        "composicao_painel.services.sugestoes.rele_sobrecarga.selecionar_reles_sobrecarga",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_rele_sobrecarga.py
         return_value=Produto.objects.filter(pk=produto.pk),
     ):
         out = gerar_sugestoes_reles_sobrecarga(projeto)

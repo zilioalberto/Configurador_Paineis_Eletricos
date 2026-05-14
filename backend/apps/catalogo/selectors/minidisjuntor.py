@@ -2,11 +2,7 @@ from decimal import Decimal
 
 from django.db.models import QuerySet
 
-<<<<<<< HEAD:backend/apps/catalogo/selectors/minidisjuntor.py
 from apps.catalogo.models import Produto
-=======
-from catalogo.models import Produto
->>>>>>> origin/main:backend/catalogo/selectors/minidisjuntor.py
 from core.choices.produtos import CategoriaProdutoNomeChoices
 
 

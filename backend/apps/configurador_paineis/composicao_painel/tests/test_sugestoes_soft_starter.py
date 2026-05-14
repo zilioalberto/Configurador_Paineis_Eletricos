@@ -3,17 +3,10 @@ from unittest.mock import patch
 
 import pytest
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_soft_starter.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor
 from apps.catalogo.models import EspecificacaoSoftStarter, Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.soft_starter import (
-=======
-from cargas.models import Carga, CargaMotor
-from catalogo.models import EspecificacaoSoftStarter, Produto
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.soft_starter import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_soft_starter.py
     gerar_sugestoes_soft_starters,
     processar_sugestao_soft_starter_para_carga,
     reprocessar_soft_starter_para_carga,
@@ -144,11 +137,7 @@ def test_soft_starter_selector_vazio_pendencia(criar_projeto, criar_carga_motor)
         potencia_corrente_valor=Decimal("50"),
     )
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_soft_starter.py
         "apps.configurador_paineis.composicao_painel.services.sugestoes.soft_starter.selecionar_soft_starters",
-=======
-        "composicao_painel.services.sugestoes.soft_starter.selecionar_soft_starters",
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_soft_starter.py
         return_value=Produto.objects.none(),
     ):
         assert processar_sugestao_soft_starter_para_carga(projeto, carga) is None
@@ -223,11 +212,7 @@ def test_gerar_sugestoes_soft_starters_itera(criar_projeto, criar_carga_motor):
 
 @pytest.mark.django_db
 def test_projeto_tem_motor_soft_starter_trifasico(criar_projeto, criar_carga_motor):
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_sugestoes_soft_starter.py
     from apps.configurador_paineis.composicao_painel.services.sugestoes.orquestrador import (
-=======
-    from composicao_painel.services.sugestoes.orquestrador import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_sugestoes_soft_starter.py
         projeto_tem_motor_soft_starter_trifasico,
     )
 

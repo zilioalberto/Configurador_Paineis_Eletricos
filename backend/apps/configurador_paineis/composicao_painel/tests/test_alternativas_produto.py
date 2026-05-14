@@ -5,17 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.exceptions import FieldError
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
 from apps.configurador_paineis.cargas.models import Carga, CargaResistencia
 from apps.catalogo.models import EspecificacaoDisjuntorCaixaMoldada, Produto
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.alternativas_produto import (
-=======
-from cargas.models import Carga, CargaResistencia
-from catalogo.models import EspecificacaoDisjuntorCaixaMoldada, Produto
-from composicao_painel.models import SugestaoItem
-from composicao_painel.services.alternativas_produto import (
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
     _corrente_referencia_sugestao,
     listar_alternativas_para_sugestao,
 )
@@ -445,11 +438,7 @@ def test_listar_alternativas_contatora_sem_corrente_retorna_vazio():
     s.projeto.tensao_comando = 24
     s.projeto.tipo_corrente_comando = "CC"
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=None,
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -460,11 +449,7 @@ def test_listar_alternativas_disjuntor_motor_sem_corrente_retorna_vazio():
     s = MagicMock()
     s.categoria_produto = CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=None,
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -475,11 +460,7 @@ def test_listar_alternativas_rele_sobrecarga_sem_corrente_retorna_vazio():
     s = MagicMock()
     s.categoria_produto = CategoriaProdutoNomeChoices.RELE_SOBRECARGA
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=None,
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -490,11 +471,7 @@ def test_listar_alternativas_fusivel_sem_corrente_retorna_vazio():
     s = MagicMock()
     s.categoria_produto = CategoriaProdutoNomeChoices.FUSIVEL
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=None,
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -506,11 +483,7 @@ def test_listar_alternativas_seccionadora_sem_corrente_retorna_vazio():
     s.categoria_produto = CategoriaProdutoNomeChoices.SECCIONADORA
     s.corrente_referencia_a = None
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=None,
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -532,11 +505,7 @@ def test_listar_alternativas_disjuntor_caixa_moldada_field_error_retorna_vazio()
     s.produto_id = None
     s.carga_id = None
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         side_effect=FieldError("test"),
     ):
         assert not listar_alternativas_para_sugestao(s).exists()
@@ -555,19 +524,11 @@ def test_listar_alternativas_contatora_delega_selecionar_contatoras():
     s.produto_id = None
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
         return_value=Decimal("7"),
     ):
         with patch(
             "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_contatoras",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-        return_value=Decimal("7"),
-    ):
-        with patch(
-            "composicao_painel.services.alternativas_produto.selecionar_contatoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
             return_value=fake_qs,
         ) as m_sel:
             assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -587,19 +548,11 @@ def test_listar_alternativas_disjuntor_motor_delega_selecionar():
     s.carga.tipo = TipoCargaChoices.MOTOR
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
         return_value=Decimal("12"),
     ):
         with patch(
             "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_disjuntores_motor",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-        return_value=Decimal("12"),
-    ):
-        with patch(
-            "composicao_painel.services.alternativas_produto.selecionar_disjuntores_motor",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
             return_value=fake_qs,
         ) as m_sel:
             assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -613,19 +566,11 @@ def test_listar_alternativas_rele_sobrecarga_delega_selecionar():
     s.produto_id = None
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
         return_value=Decimal("6"),
     ):
         with patch(
             "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_reles_sobrecarga",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-        return_value=Decimal("6"),
-    ):
-        with patch(
-            "composicao_painel.services.alternativas_produto.selecionar_reles_sobrecarga",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
             return_value=fake_qs,
         ) as m_sel:
             assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -641,19 +586,11 @@ def test_listar_alternativas_fusivel_delega_selecionar():
     s.categoria_produto = CategoriaProdutoNomeChoices.FUSIVEL
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
         return_value=Decimal("8"),
     ):
         with patch(
             "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_fusiveis",
-=======
-        "composicao_painel.services.alternativas_produto._corrente_referencia_sugestao",
-        return_value=Decimal("8"),
-    ):
-        with patch(
-            "composicao_painel.services.alternativas_produto.selecionar_fusiveis",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
             return_value=fake_qs,
         ) as m_sel:
             assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -670,11 +607,7 @@ def test_listar_alternativas_seccionadora_delega_selecionar():
     s.produto_id = None
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_seccionadoras",
-=======
-        "composicao_painel.services.alternativas_produto.selecionar_seccionadoras",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=fake_qs,
     ) as m_sel:
         assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -689,11 +622,7 @@ def test_listar_alternativas_disjuntor_cm_sucesso():
     s.produto_id = None
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=fake_qs,
     ) as m_sel:
         assert listar_alternativas_para_sugestao(s) is fake_qs
@@ -731,11 +660,7 @@ def test_listar_alternativas_disjuntor_cm_passa_modo_montagem_do_produto(criar_p
     )
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=fake_qs,
     ) as m_sel:
         assert listar_alternativas_para_sugestao(sugestao) is fake_qs
@@ -758,11 +683,7 @@ def test_listar_alternativas_disjuntor_cm_excecao_ao_ler_modo_montagem_ignora():
     s.produto = prod
     fake_qs = Produto.objects.none()
     with patch(
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/tests/test_alternativas_produto.py
         "apps.configurador_paineis.composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
-=======
-        "composicao_painel.services.alternativas_produto.selecionar_disjuntores_caixa_moldada",
->>>>>>> origin/main:backend/composicao_painel/tests/test_alternativas_produto.py
         return_value=fake_qs,
     ) as m_sel:
         assert listar_alternativas_para_sugestao(s) is fake_qs

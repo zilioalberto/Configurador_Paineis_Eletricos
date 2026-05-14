@@ -1,16 +1,9 @@
 from typing import Optional
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/composicao_painel/services/sugestoes/fusivel.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia
 from apps.catalogo.selectors.fusiveis import selecionar_fusiveis
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
-=======
-from cargas.models import Carga, CargaMotor, CargaResistencia
-from catalogo.selectors.fusiveis import selecionar_fusiveis
-from composicao_painel.models import PendenciaItem, SugestaoItem
-from composicao_painel.services.sugestoes.executar_por_carga import (
->>>>>>> origin/main:backend/composicao_painel/services/sugestoes/fusivel.py
     executar_com_savepoint_por_carga,
 )
 

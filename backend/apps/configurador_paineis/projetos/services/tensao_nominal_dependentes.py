@@ -8,25 +8,15 @@ from math import sqrt
 from django.db import transaction
 from django.utils import timezone
 
-<<<<<<< HEAD:backend/apps/configurador_paineis/projetos/services/tensao_nominal_dependentes.py
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor
 from apps.configurador_paineis.composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
-=======
-from cargas.models import Carga, CargaMotor
-from composicao_painel.models import ComposicaoItem, PendenciaItem, SugestaoItem
->>>>>>> origin/main:backend/projetos/services/tensao_nominal_dependentes.py
 from core.choices import (
     NumeroFasesChoices,
     TipoPartidaMotorChoices,
     UnidadePotenciaCorrenteChoices,
 )
-<<<<<<< HEAD:backend/apps/configurador_paineis/projetos/services/tensao_nominal_dependentes.py
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from apps.configurador_paineis.projetos.models import Projeto
-=======
-from dimensionamento.services import calcular_e_salvar_dimensionamento_basico
-from projetos.models import Projeto
->>>>>>> origin/main:backend/projetos/services/tensao_nominal_dependentes.py
 
 
 def _escalar_entrada_ampere_motores(
