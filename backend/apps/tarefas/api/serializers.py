@@ -135,25 +135,24 @@ class TarefaSerializer(serializers.ModelSerializer):
 
     def get_total_horas_apontadas(self, obj):
         total = getattr(obj, "total_horas_apontadas", None)
-        if total is not None:
-            return f"{total:.2f}"
-        request = self.context.get("request")
-        user = getattr(request, "user", None) if request else None
-        if user and user.is_authenticated:
-            agg = (
-                obj.apontamentos.filter(colaborador=user)
-                .exclude(
-                    status_aprovacao__in=(
-                        StatusAprovacaoHoraChoices.REJEITADO,
-                        StatusAprovacaoHoraChoices.CANCELADO,
-                        StatusAprovacaoHoraChoices.REPROVADO,
+        if total is None:
+            request = self.context.get("request")
+            user = getattr(request, "user", None) if request else None
+            if user and user.is_authenticated:
+                agg = (
+                    obj.apontamentos.filter(colaborador=user)
+                    .exclude(
+                        status_aprovacao__in=(
+                            StatusAprovacaoHoraChoices.REJEITADO,
+                            StatusAprovacaoHoraChoices.CANCELADO,
+                            StatusAprovacaoHoraChoices.REPROVADO,
+                        )
                     )
+                    .aggregate(s=Sum("horas"))["s"]
                 )
-                .aggregate(s=Sum("horas"))["s"]
-            )
-            total = agg if agg is not None else Decimal("0.00")
-        else:
-            total = Decimal("0.00")
+                total = agg if agg is not None else Decimal("0.00")
+            else:
+                total = Decimal("0.00")
         return f"{total:.2f}"
 
 

@@ -101,6 +101,12 @@ class EspecificacaoPLC(BaseModel):
 
     def clean(self):
         super().clean()
+        self._normalizar_familia()
+        self._validar_familia_unica()
+        self._validar_tipo_entradas_analogicas()
+        self._validar_tipo_saidas_analogicas()
+
+    def _normalizar_familia(self):
         if self.familia is not None:
             self.familia = self.familia.strip()
             if self.familia:
@@ -108,26 +114,31 @@ class EspecificacaoPLC(BaseModel):
             else:
                 self.familia = None
 
-        if self.familia:
-            chave = normalizar_chave_familia_plc(self.familia)
-            if chave:
-                qs = EspecificacaoPLC.objects.exclude(familia__isnull=True).exclude(
-                    familia=""
-                )
-                if self.pk:
-                    qs = qs.exclude(pk=self.pk)
+    def _validar_familia_unica(self):
+        if not self.familia:
+            return
+        chave = normalizar_chave_familia_plc(self.familia)
+        if not chave:
+            return
 
-                for other in qs.iterator():
-                    if normalizar_chave_familia_plc(other.familia) == chave:
-                        raise ValidationError(
-                            {
-                                "familia": (
-                                    f'Já existe a família «{other.familia}». '
-                                    "Use o mesmo texto para evitar duplicatas."
-                                )
-                            }
+        qs = EspecificacaoPLC.objects.exclude(familia__isnull=True).exclude(
+            familia=""
+        )
+        if self.pk:
+            qs = qs.exclude(pk=self.pk)
+
+        for other in qs.iterator():
+            if normalizar_chave_familia_plc(other.familia) == chave:
+                raise ValidationError(
+                    {
+                        "familia": (
+                            f'Já existe a família «{other.familia}». '
+                            "Use o mesmo texto para evitar duplicatas."
                         )
+                    }
+                )
 
+    def _validar_tipo_entradas_analogicas(self):
         if self.entradas_analogicas == 0:
             self.tipo_entradas_analogicas = None
         elif not self.tipo_entradas_analogicas:
@@ -140,6 +151,7 @@ class EspecificacaoPLC(BaseModel):
                 }
             )
 
+    def _validar_tipo_saidas_analogicas(self):
         if self.saidas_analogicas == 0:
             self.tipo_saidas_analogicas = None
         elif not self.tipo_saidas_analogicas:

@@ -124,10 +124,19 @@ class CargaMotor(models.Model):
 
     def clean(self):
         erros = {}
+        self._validar_tipo_carga(erros)
+        self._validar_fases_e_partida(erros)
+        self._validar_parametros_eletricos(erros)
+        self._validar_tensao_compativel_com_projeto(erros)
 
+        if erros:
+            raise ValidationError(erros)
+
+    def _validar_tipo_carga(self, erros):
         if self.carga and self.carga.tipo != TipoCargaChoices.MOTOR:
             erros["carga"] = "A carga vinculada deve ser do tipo MOTOR."
 
+    def _validar_fases_e_partida(self, erros):
         if self.numero_fases not in (
             NumeroFasesChoices.MONOFASICO,
             NumeroFasesChoices.TRIFASICO,
@@ -144,6 +153,7 @@ class CargaMotor(models.Model):
                     "para motor trifásico."
                 )
 
+    def _validar_parametros_eletricos(self, erros):
         if self.fator_potencia is not None and (
             self.fator_potencia <= 0 or self.fator_potencia > 1
         ):
@@ -158,39 +168,37 @@ class CargaMotor(models.Model):
                 "O rendimento percentual deve estar entre 0.01 e 100.00."
             )
 
+    def _validar_tensao_compativel_com_projeto(self, erros):
         projeto = self.carga.projeto if self.carga and self.carga.projeto else None
-
-        if projeto and projeto.tensao_nominal and self.tensao_motor:
-            partidas_com_tensao_do_projeto = (
-                TipoPartidaMotorChoices.DIRETA,
-                TipoPartidaMotorChoices.ESTRELA_TRIANGULO,
-                TipoPartidaMotorChoices.SOFT_STARTER,
+        if not (projeto and projeto.tensao_nominal and self.tensao_motor):
+            return
+        partidas_com_tensao_do_projeto = (
+            TipoPartidaMotorChoices.DIRETA,
+            TipoPartidaMotorChoices.ESTRELA_TRIANGULO,
+            TipoPartidaMotorChoices.SOFT_STARTER,
+        )
+        if self.tipo_partida not in partidas_com_tensao_do_projeto:
+            return
+        if self.numero_fases == NumeroFasesChoices.MONOFASICO:
+            self._validar_tensao_motor_monofasico(erros, projeto)
+        elif self.tensao_motor != projeto.tensao_nominal:
+            erros["tensao_motor"] = (
+                "A tensão do motor deve ser igual à tensão do projeto para "
+                "partida direta, estrela-triângulo e soft starter. "
+                f"Projeto: {projeto.tensao_nominal} V. "
+                f"Informado: {self.tensao_motor} V."
             )
-            if self.tipo_partida in partidas_com_tensao_do_projeto:
-                if self.numero_fases == NumeroFasesChoices.MONOFASICO:
-                    tensao_esperada = int(round(projeto.tensao_nominal / sqrt(3)))
-                    # Aceita pequena variação de arredondamento (ex.: 219V ~ 220V).
-                    if abs(int(self.tensao_motor) - int(tensao_esperada)) > 1:
-                        erros["tensao_motor"] = (
-                            (
-                                "A tensão do motor monofásico deve ser compatível com a "
-                                f"tensão do projeto ({projeto.tensao_nominal} V), "
-                                f"ficando próxima de {tensao_esperada} V "
-                                "(tolerância ±1 V)."
-                            )
-                        )
-                elif self.tensao_motor != projeto.tensao_nominal:
-                    erros["tensao_motor"] = (
-                        (
-                            "A tensão do motor deve ser igual à tensão do projeto para "
-                            "partida direta, estrela-triângulo e soft starter. "
-                            f"Projeto: {projeto.tensao_nominal} V. "
-                            f"Informado: {self.tensao_motor} V."
-                        )
-                    )
 
-        if erros:
-            raise ValidationError(erros)
+    def _validar_tensao_motor_monofasico(self, erros, projeto):
+        tensao_esperada = int(round(projeto.tensao_nominal / sqrt(3)))
+        # Aceita pequena variação de arredondamento (ex.: 219V ~ 220V).
+        if abs(int(self.tensao_motor) - int(tensao_esperada)) > 1:
+            erros["tensao_motor"] = (
+                "A tensão do motor monofásico deve ser compatível com a "
+                f"tensão do projeto ({projeto.tensao_nominal} V), "
+                f"ficando próxima de {tensao_esperada} V "
+                "(tolerância ±1 V)."
+            )
 
     def _obter_potencia_kw(self):
         if self.potencia_corrente_unidade == UnidadePotenciaCorrenteChoices.KW:

@@ -24,6 +24,8 @@ from core.choices import (
     StatusSugestaoChoices,
 )
 
+IDENTIFICACAO_FIELDSET_TITLE = "Identificação"
+
 
 @admin.action(description="Gerar sugestões de composição do painel (teste)")
 def gerar_sugestoes_painel_teste_action(modeladmin, request, queryset):
@@ -320,7 +322,7 @@ class SugestaoItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",
@@ -441,7 +443,7 @@ class ComposicaoItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",
@@ -551,7 +553,7 @@ class PendenciaItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",

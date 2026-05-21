@@ -31,122 +31,145 @@ def _corrente_referencia_sugestao(sugestao: SugestaoItem):
     return None
 
 
-def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produto]:
-    projeto = sugestao.projeto
-    cat = sugestao.categoria_produto
-    prod_ref = sugestao.produto
-
-    if cat == CategoriaProdutoNomeChoices.CONTATORA:
-        if not sugestao.carga_id:
-            return Produto.objects.none()
-        if not projeto.tensao_comando or not projeto.tipo_corrente_comando:
-            return Produto.objects.none()
-        corrente = _corrente_referencia_sugestao(sugestao)
-        if corrente is None:
-            return Produto.objects.none()
-        modo = None
-        if sugestao.produto_id:
-            try:
-                modo = prod_ref.especificacao_contatora.modo_montagem
-            except Exception:
-                modo = None
-        tipo_acionamento = None
-        if sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
-            r = getattr(sugestao.carga, "resistencia", None)
-            tipo_acionamento = getattr(r, "tipo_acionamento", None) if r else None
-        return selecionar_contatoras(
-            tipo_carga=sugestao.carga.tipo,
-            corrente_nominal=corrente,
-            tensao_comando=projeto.tensao_comando,
-            tipo_corrente_comando=projeto.tipo_corrente_comando,
-            modo_montagem=modo,
-            niveis=0,
-            tipo_acionamento=tipo_acionamento,
-        )
-
-    if cat == CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR:
-        corrente = _corrente_referencia_sugestao(sugestao)
-        if corrente is None:
-            return Produto.objects.none()
-        modo = None
-        if sugestao.produto_id:
-            try:
-                modo = prod_ref.especificacao_disjuntor_motor.modo_montagem
-            except Exception:
-                modo = None
-        tipo_carga = sugestao.carga.tipo if sugestao.carga_id else None
-        tipo_protecao = None
-        if sugestao.carga and sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
-            r = getattr(sugestao.carga, "resistencia", None)
-            tipo_protecao = getattr(r, "tipo_protecao", None) if r else None
-        return selecionar_disjuntores_motor(
-            corrente_nominal=corrente,
-            modo_montagem=modo,
-            niveis=0,
-            tipo_carga=tipo_carga,
-            tipo_protecao=tipo_protecao,
-        )
-
-    if cat == CategoriaProdutoNomeChoices.RELE_SOBRECARGA:
-        corrente = _corrente_referencia_sugestao(sugestao)
-        if corrente is None:
-            return Produto.objects.none()
-        modo = None
-        if sugestao.produto_id:
-            try:
-                modo = prod_ref.especificacao_rele_sobrecarga.modo_montagem
-            except Exception:
-                modo = None
-        return selecionar_reles_sobrecarga(
-            corrente_nominal=corrente,
-            modo_montagem=modo,
-            niveis=0,
-        )
-
-    if cat == CategoriaProdutoNomeChoices.FUSIVEL:
-        corrente = _corrente_referencia_sugestao(sugestao)
-        if corrente is None:
-            return Produto.objects.none()
-        return selecionar_fusiveis(
-            corrente_nominal_maior_que_a=corrente,
-            tipo_fusivel=TipoFusivelChoices.RETARDADO,
-        )
-
-    if cat == CategoriaProdutoNomeChoices.SECCIONADORA:
-        corrente = sugestao.corrente_referencia_a or _corrente_referencia_sugestao(sugestao)
-        if corrente is None:
-            return Produto.objects.none()
-        tipo_m = None
-        if sugestao.produto_id:
-            try:
-                tipo_m = prod_ref.especificacao_seccionadora.tipo_montagem
-            except Exception:
-                tipo_m = None
-        return selecionar_seccionadoras(
-            corrente_nominal=corrente,
-            tipo_montagem=tipo_m,
-            niveis=0,
-        )
-
-    if cat == CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA:
-        corrente = sugestao.corrente_referencia_a
-        if corrente is None:
-            return Produto.objects.none()
-        tipo_m = None
-        if sugestao.produto_id:
-            try:
-                spec = getattr(prod_ref, "especificacao_disjuntor_caixa_moldada", None)
-                if spec is not None:
-                    tipo_m = spec.modo_montagem
-            except Exception:
-                tipo_m = None
-        try:
-            return selecionar_disjuntores_caixa_moldada(
-                corrente_nominal=corrente,
-                modo_montagem=tipo_m,
-                niveis=0,
-            )
-        except FieldError:
-            return Produto.objects.none()
-
+def _produtos_vazios() -> QuerySet[Produto]:
     return Produto.objects.none()
+
+
+def _atributo_spec_produto(sugestao: SugestaoItem, spec_nome: str, atributo: str):
+    if not sugestao.produto_id:
+        return None
+    try:
+        return getattr(getattr(sugestao.produto, spec_nome), atributo)
+    except Exception:
+        return None
+
+
+def _alternativas_contatora(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    projeto = sugestao.projeto
+    if not sugestao.carga_id:
+        return _produtos_vazios()
+    if not projeto.tensao_comando or not projeto.tipo_corrente_comando:
+        return _produtos_vazios()
+    corrente = _corrente_referencia_sugestao(sugestao)
+    if corrente is None:
+        return _produtos_vazios()
+
+    tipo_acionamento = None
+    if sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
+        resistencia = getattr(sugestao.carga, "resistencia", None)
+        tipo_acionamento = getattr(resistencia, "tipo_acionamento", None)
+    return selecionar_contatoras(
+        tipo_carga=sugestao.carga.tipo,
+        corrente_nominal=corrente,
+        tensao_comando=projeto.tensao_comando,
+        tipo_corrente_comando=projeto.tipo_corrente_comando,
+        modo_montagem=_atributo_spec_produto(
+            sugestao,
+            "especificacao_contatora",
+            "modo_montagem",
+        ),
+        niveis=0,
+        tipo_acionamento=tipo_acionamento,
+    )
+
+
+def _alternativas_disjuntor_motor(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    corrente = _corrente_referencia_sugestao(sugestao)
+    if corrente is None:
+        return _produtos_vazios()
+
+    tipo_carga = sugestao.carga.tipo if sugestao.carga_id else None
+    tipo_protecao = None
+    if sugestao.carga and sugestao.carga.tipo == TipoCargaChoices.RESISTENCIA:
+        resistencia = getattr(sugestao.carga, "resistencia", None)
+        tipo_protecao = getattr(resistencia, "tipo_protecao", None)
+    return selecionar_disjuntores_motor(
+        corrente_nominal=corrente,
+        modo_montagem=_atributo_spec_produto(
+            sugestao,
+            "especificacao_disjuntor_motor",
+            "modo_montagem",
+        ),
+        niveis=0,
+        tipo_carga=tipo_carga,
+        tipo_protecao=tipo_protecao,
+    )
+
+
+def _alternativas_rele_sobrecarga(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    corrente = _corrente_referencia_sugestao(sugestao)
+    if corrente is None:
+        return _produtos_vazios()
+    return selecionar_reles_sobrecarga(
+        corrente_nominal=corrente,
+        modo_montagem=_atributo_spec_produto(
+            sugestao,
+            "especificacao_rele_sobrecarga",
+            "modo_montagem",
+        ),
+        niveis=0,
+    )
+
+
+def _alternativas_fusivel(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    corrente = _corrente_referencia_sugestao(sugestao)
+    if corrente is None:
+        return _produtos_vazios()
+    return selecionar_fusiveis(
+        corrente_nominal_maior_que_a=corrente,
+        tipo_fusivel=TipoFusivelChoices.RETARDADO,
+    )
+
+
+def _alternativas_seccionadora(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    corrente = sugestao.corrente_referencia_a or _corrente_referencia_sugestao(
+        sugestao
+    )
+    if corrente is None:
+        return _produtos_vazios()
+    return selecionar_seccionadoras(
+        corrente_nominal=corrente,
+        tipo_montagem=_atributo_spec_produto(
+            sugestao,
+            "especificacao_seccionadora",
+            "tipo_montagem",
+        ),
+        niveis=0,
+    )
+
+
+def _alternativas_disjuntor_caixa_moldada(
+    sugestao: SugestaoItem,
+) -> QuerySet[Produto]:
+    corrente = sugestao.corrente_referencia_a
+    if corrente is None:
+        return _produtos_vazios()
+    try:
+        return selecionar_disjuntores_caixa_moldada(
+            corrente_nominal=corrente,
+            modo_montagem=_atributo_spec_produto(
+                sugestao,
+                "especificacao_disjuntor_caixa_moldada",
+                "modo_montagem",
+            ),
+            niveis=0,
+        )
+    except FieldError:
+        return _produtos_vazios()
+
+
+ALTERNATIVAS_POR_CATEGORIA = {
+    CategoriaProdutoNomeChoices.CONTATORA: _alternativas_contatora,
+    CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR: _alternativas_disjuntor_motor,
+    CategoriaProdutoNomeChoices.RELE_SOBRECARGA: _alternativas_rele_sobrecarga,
+    CategoriaProdutoNomeChoices.FUSIVEL: _alternativas_fusivel,
+    CategoriaProdutoNomeChoices.SECCIONADORA: _alternativas_seccionadora,
+    CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA: (
+        _alternativas_disjuntor_caixa_moldada
+    ),
+}
+
+
+def listar_alternativas_para_sugestao(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    listar = ALTERNATIVAS_POR_CATEGORIA.get(sugestao.categoria_produto)
+    return listar(sugestao) if listar else _produtos_vazios()

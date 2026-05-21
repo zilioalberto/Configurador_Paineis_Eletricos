@@ -16,6 +16,8 @@ from apps.configurador_paineis.cargas.models import (
 from core.choices import TipoCargaChoices, TipoSinalChoices
 
 NESTED_KEYS = ("motor", "valvula", "resistencia", "sensor", "transdutor")
+PROJETO_CODIGO_SOURCE = "projeto.codigo"
+PROJETO_NOME_SOURCE = "projeto.nome"
 
 TIPO_TO_KEY = {
     TipoCargaChoices.MOTOR: "motor",
@@ -32,6 +34,26 @@ MODEL_BY_KEY = {
     "resistencia": CargaResistencia,
     "sensor": CargaSensor,
     "transdutor": CargaTransdutor,
+}
+
+TENSAO_CARGA_POR_TIPO = {
+    TipoCargaChoices.MOTOR: ("motor", "tensao_motor", CargaMotor.DoesNotExist),
+    TipoCargaChoices.VALVULA: (
+        "valvula",
+        "tensao_alimentacao",
+        CargaValvula.DoesNotExist,
+    ),
+    TipoCargaChoices.RESISTENCIA: (
+        "resistencia",
+        "tensao_resistencia",
+        CargaResistencia.DoesNotExist,
+    ),
+    TipoCargaChoices.SENSOR: ("sensor", "tensao_alimentacao", CargaSensor.DoesNotExist),
+    TipoCargaChoices.TRANSDUTOR: (
+        "transdutor",
+        "tensao_alimentacao",
+        CargaTransdutor.DoesNotExist,
+    ),
 }
 
 
@@ -153,8 +175,8 @@ class CargaTransdutorSerializer(serializers.ModelSerializer):
 
 class CargaListSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
-    projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
-    projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
+    projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
+    projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
     projeto_tensao_display = serializers.CharField(
         source="projeto.get_tensao_nominal_display", read_only=True
     )
@@ -300,36 +322,20 @@ class CargaListSerializer(serializers.ModelSerializer):
         return None
 
     def get_tensao_carga_display(self, obj):
-        tensao = None
-        if obj.tipo == TipoCargaChoices.MOTOR:
-            try:
-                tensao = obj.motor.tensao_motor
-            except CargaMotor.DoesNotExist:
-                tensao = None
-        elif obj.tipo == TipoCargaChoices.VALVULA:
-            try:
-                tensao = obj.valvula.tensao_alimentacao
-            except CargaValvula.DoesNotExist:
-                tensao = None
-        elif obj.tipo == TipoCargaChoices.RESISTENCIA:
-            try:
-                tensao = obj.resistencia.tensao_resistencia
-            except CargaResistencia.DoesNotExist:
-                tensao = None
-        elif obj.tipo == TipoCargaChoices.SENSOR:
-            try:
-                tensao = obj.sensor.tensao_alimentacao
-            except CargaSensor.DoesNotExist:
-                tensao = None
-        elif obj.tipo == TipoCargaChoices.TRANSDUTOR:
-            try:
-                tensao = obj.transdutor.tensao_alimentacao
-            except CargaTransdutor.DoesNotExist:
-                tensao = None
-
+        tensao = self._tensao_especifica_carga(obj)
         if tensao is None:
             tensao = getattr(obj.projeto, "tensao_nominal", None)
         return f"{tensao} V" if tensao else None
+
+    def _tensao_especifica_carga(self, obj):
+        config = TENSAO_CARGA_POR_TIPO.get(obj.tipo)
+        if config is None:
+            return None
+        relacao, campo, related_does_not_exist = config
+        try:
+            return getattr(getattr(obj, relacao), campo)
+        except related_does_not_exist:
+            return None
 
     def get_tipo_corrente_carga_display(self, obj):
         tipo_corrente = None
@@ -369,8 +375,8 @@ class CargaListSerializer(serializers.ModelSerializer):
 
 class CargaDetailSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
-    projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
-    projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
+    projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
+    projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
     motor = serializers.SerializerMethodField()
     valvula = serializers.SerializerMethodField()
     resistencia = serializers.SerializerMethodField()
@@ -451,8 +457,8 @@ class CargaDetailSerializer(serializers.ModelSerializer):
 
 
 class CargaWriteSerializer(serializers.ModelSerializer):
-    projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
-    projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
+    projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
+    projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
 
     class Meta:
         model = Carga

@@ -101,11 +101,18 @@ class EspecificacaoDisjuntorCaixaMoldada(BaseModel):
 
     def clean(self):
         super().clean()
+        self._validar_modo_montagem()
+        self._validar_capacidade_interrupcao()
+        self._validar_disparador_sobrecarga_ir()
+        self._validar_disparador_curto_ii()
+
+    def _validar_modo_montagem(self):
         if self.modo_montagem != ModoMontagemChoices.PLACA:
             raise ValidationError(
                 {"modo_montagem": "Disjuntor caixa moldada deve ser montado em placa."}
             )
 
+    def _validar_capacidade_interrupcao(self):
         capacidades = (
             self.capacidade_interrupcao_220v_ka,
             self.capacidade_interrupcao_380v_ka,
@@ -116,73 +123,80 @@ class EspecificacaoDisjuntorCaixaMoldada(BaseModel):
                 "Informe ao menos uma capacidade de interrupção para 220V, 380V ou 440V."
             )
 
+    def _validar_disparador_sobrecarga_ir(self):
         usa_ir_ajustavel = self.configuracao_disparador == (
             ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_IR_AJUSTAVEL_II_FIXO
         )
+        if usa_ir_ajustavel:
+            self._validar_sobrecarga_ir_ajustavel()
+            return
+        self._validar_sobrecarga_ir_fixa()
+
+    def _validar_sobrecarga_ir_ajustavel(self):
+        if (
+            self.disparador_sobrecarga_ir_ajuste_min_a is None
+            or self.disparador_sobrecarga_ir_ajuste_max_a is None
+        ):
+            raise ValidationError(
+                "Informe faixa ajustável de sobrecarga Ir para esta configuração."
+            )
+        if (
+            self.disparador_sobrecarga_ir_ajuste_min_a
+            > self.disparador_sobrecarga_ir_ajuste_max_a
+        ):
+            raise ValidationError("Ir mínimo não pode ser maior que Ir máximo.")
+        if self.disparador_sobrecarga_ir_fixo_a is not None:
+            raise ValidationError(
+                "Ir fixo não deve ser informado quando sobrecarga é ajustável."
+            )
+
+    def _validar_sobrecarga_ir_fixa(self):
+        if self.disparador_sobrecarga_ir_fixo_a is None:
+            raise ValidationError("Informe Ir fixo para configurações com sobrecarga fixa.")
+        if (
+            self.disparador_sobrecarga_ir_ajuste_min_a is not None
+            or self.disparador_sobrecarga_ir_ajuste_max_a is not None
+        ):
+            raise ValidationError(
+                "Faixa de Ir ajustável só deve ser informada para sobrecarga ajustável."
+            )
+
+    def _validar_disparador_curto_ii(self):
         usa_ii_ajustavel = self.configuracao_disparador == (
             ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_II_AJUSTAVEL
         )
-
-        if usa_ir_ajustavel:
-            if (
-                self.disparador_sobrecarga_ir_ajuste_min_a is None
-                or self.disparador_sobrecarga_ir_ajuste_max_a is None
-            ):
-                raise ValidationError(
-                    "Informe faixa ajustável de sobrecarga Ir para esta configuração."
-                )
-            if (
-                self.disparador_sobrecarga_ir_ajuste_min_a
-                > self.disparador_sobrecarga_ir_ajuste_max_a
-            ):
-                raise ValidationError(
-                    "Ir mínimo não pode ser maior que Ir máximo."
-                )
-            if self.disparador_sobrecarga_ir_fixo_a is not None:
-                raise ValidationError(
-                    "Ir fixo não deve ser informado quando sobrecarga é ajustável."
-                )
-        else:
-            if self.disparador_sobrecarga_ir_fixo_a is None:
-                raise ValidationError(
-                    "Informe Ir fixo para configurações com sobrecarga fixa."
-                )
-            if (
-                self.disparador_sobrecarga_ir_ajuste_min_a is not None
-                or self.disparador_sobrecarga_ir_ajuste_max_a is not None
-            ):
-                raise ValidationError(
-                    "Faixa de Ir ajustável só deve ser informada para sobrecarga ajustável."
-                )
-
         if usa_ii_ajustavel:
-            if (
-                self.disparador_curto_ii_ajuste_min_a is None
-                or self.disparador_curto_ii_ajuste_max_a is None
-            ):
-                raise ValidationError(
-                    "Informe faixa ajustável de curto-circuito Ii para esta configuração."
-                )
-            if self.disparador_curto_ii_ajuste_min_a > self.disparador_curto_ii_ajuste_max_a:
-                raise ValidationError(
-                    "Ii mínimo não pode ser maior que Ii máximo."
-                )
-            if self.disparador_curto_ii_fixo_a is not None:
-                raise ValidationError(
-                    "Ii fixo não deve ser informado quando curto-circuito é ajustável."
-                )
-        else:
-            if self.disparador_curto_ii_fixo_a is None:
-                raise ValidationError(
-                    "Informe Ii fixo para configurações com curto-circuito fixo."
-                )
-            if (
-                self.disparador_curto_ii_ajuste_min_a is not None
-                or self.disparador_curto_ii_ajuste_max_a is not None
-            ):
-                raise ValidationError(
-                    "Faixa de Ii ajustável só deve ser informada para curto-circuito ajustável."
-                )
+            self._validar_curto_ii_ajustavel()
+            return
+        self._validar_curto_ii_fixo()
+
+    def _validar_curto_ii_ajustavel(self):
+        if (
+            self.disparador_curto_ii_ajuste_min_a is None
+            or self.disparador_curto_ii_ajuste_max_a is None
+        ):
+            raise ValidationError(
+                "Informe faixa ajustável de curto-circuito Ii para esta configuração."
+            )
+        if self.disparador_curto_ii_ajuste_min_a > self.disparador_curto_ii_ajuste_max_a:
+            raise ValidationError("Ii mínimo não pode ser maior que Ii máximo.")
+        if self.disparador_curto_ii_fixo_a is not None:
+            raise ValidationError(
+                "Ii fixo não deve ser informado quando curto-circuito é ajustável."
+            )
+
+    def _validar_curto_ii_fixo(self):
+        if self.disparador_curto_ii_fixo_a is None:
+            raise ValidationError(
+                "Informe Ii fixo para configurações com curto-circuito fixo."
+            )
+        if (
+            self.disparador_curto_ii_ajuste_min_a is not None
+            or self.disparador_curto_ii_ajuste_max_a is not None
+        ):
+            raise ValidationError(
+                "Faixa de Ii ajustável só deve ser informada para curto-circuito ajustável."
+            )
 
     def __str__(self):
         return f"Disjuntor CM - {self.produto} - {self.corrente_nominal_a} A"

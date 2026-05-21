@@ -97,7 +97,14 @@ class CargaResistencia(models.Model):
 
     def clean(self):
         erros = {}
+        CargaResistencia._validar_campos_basicos(self, erros)
+        CargaResistencia._validar_tensao_compativel_com_projeto(self, erros)
+        CargaResistencia._validar_rele_interface(self, erros)
 
+        if erros:
+            raise ValidationError(erros)
+
+    def _validar_campos_basicos(self, erros):
         if self.carga and self.carga.tipo != TipoCargaChoices.RESISTENCIA:
             erros["carga"] = "A carga vinculada deve ser do tipo RESISTENCIA."
 
@@ -115,42 +122,45 @@ class CargaResistencia(models.Model):
         if not self.tensao_resistencia:
             erros["tensao_resistencia"] = "Informe a tensão da resistência."
 
+    def _validar_tensao_compativel_com_projeto(self, erros):
         projeto = self.carga.projeto if self.carga and self.carga.projeto else None
-        if projeto and projeto.tensao_nominal and self.tensao_resistencia:
-            projeto_trifasico = (
-                getattr(projeto, "numero_fases", None) == NumeroFasesChoices.TRIFASICO
+        if not (projeto and projeto.tensao_nominal and self.tensao_resistencia):
+            return
+        if CargaResistencia._usa_tensao_fase_do_projeto(self, projeto):
+            CargaResistencia._validar_tensao_resistencia_monofasica(
+                self,
+                erros,
+                projeto,
             )
-            resistencia_monofasica = (
-                self.numero_fases == NumeroFasesChoices.MONOFASICO
+        elif self.tensao_resistencia != projeto.tensao_nominal:
+            erros["tensao_resistencia"] = (
+                "A tensão da resistência deve ser igual à tensão do projeto. "
+                f"Projeto: {projeto.tensao_nominal} V. "
+                f"Informado: {self.tensao_resistencia} V."
             )
 
-            if projeto_trifasico and resistencia_monofasica:
-                tensao_esperada = Decimal(str(projeto.tensao_nominal)) / Decimal(
-                    str(sqrt(3))
-                )
-                tolerancia = tensao_esperada * Decimal("0.02")
-                tensao_minima = tensao_esperada - tolerancia
-                tensao_maxima = tensao_esperada + tolerancia
-                tensao_informada = Decimal(str(self.tensao_resistencia))
+    def _usa_tensao_fase_do_projeto(self, projeto):
+        projeto_trifasico = (
+            getattr(projeto, "numero_fases", None) == NumeroFasesChoices.TRIFASICO
+        )
+        resistencia_monofasica = self.numero_fases == NumeroFasesChoices.MONOFASICO
+        return projeto_trifasico and resistencia_monofasica
 
-                if not (tensao_minima <= tensao_informada <= tensao_maxima):
-                    erros["tensao_resistencia"] = (
-                        (
-                            "A tensão da resistência monofásica deve ser compatível com a "
-                            f"tensão do projeto ({projeto.tensao_nominal} V), "
-                            f"ficando próxima de {tensao_esperada:.2f} V "
-                            "(tolerância de 2%)."
-                        )
-                    )
-            elif self.tensao_resistencia != projeto.tensao_nominal:
-                erros["tensao_resistencia"] = (
-                    (
-                        "A tensão da resistência deve ser igual à tensão do projeto. "
-                        f"Projeto: {projeto.tensao_nominal} V. "
-                        f"Informado: {self.tensao_resistencia} V."
-                    )
-                )
+    def _validar_tensao_resistencia_monofasica(self, erros, projeto):
+        tensao_esperada = Decimal(str(projeto.tensao_nominal)) / Decimal(str(sqrt(3)))
+        tolerancia = tensao_esperada * Decimal("0.02")
+        tensao_minima = tensao_esperada - tolerancia
+        tensao_maxima = tensao_esperada + tolerancia
+        tensao_informada = Decimal(str(self.tensao_resistencia))
+        if not (tensao_minima <= tensao_informada <= tensao_maxima):
+            erros["tensao_resistencia"] = (
+                "A tensão da resistência monofásica deve ser compatível com a "
+                f"tensão do projeto ({projeto.tensao_nominal} V), "
+                f"ficando próxima de {tensao_esperada:.2f} V "
+                "(tolerância de 2%)."
+            )
 
+    def _validar_rele_interface(self, erros):
         if self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
             if not self.tipo_rele_interface:
                 erros["tipo_rele_interface"] = (
@@ -161,9 +171,6 @@ class CargaResistencia(models.Model):
                 "O tipo de relé de interface só se aplica ao acionamento "
                 "\"Relé de interface\"."
             )
-
-        if erros:
-            raise ValidationError(erros)
 
     def _calcular_corrente(self):
         if self.potencia_kw is None or self.tensao_resistencia is None:
