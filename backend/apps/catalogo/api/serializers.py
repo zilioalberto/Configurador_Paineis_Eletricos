@@ -64,6 +64,7 @@ from core.choices.produtos import (
     NumeroPolosChoices,
     CorBotaoChoices,
     CorCaboChoices,
+    CorManoplaChoices,
     MaterialCondutorChoices,
     TipoBarramentoChoices,
     TipoBorneChoices,
@@ -81,6 +82,7 @@ from core.choices.produtos import (
     TipoCanaletaChoices,
     MaterialCanaletaChoices,
     CorCanaletaChoices,
+    TipoFixacaoSeccionadoraChoices,
     TipoChaveSeletoraChoices,
     TipoAcionamentoChaveSeletoraChoices,
     CorManoplaChaveSeletoraChoices,
@@ -218,34 +220,25 @@ def _merge_spec(defaults: dict, incoming: dict | None) -> dict:
     return out
 
 
-def _defaults_para_categoria(nome: str) -> dict:
-    if nome == CategoriaProdutoNomeChoices.CONTATORA:
-        return {
+DEFAULTS_POR_CATEGORIA = {
+    CategoriaProdutoNomeChoices.CONTATORA: {
             "tensao_bobina_v": TensaoChoices.V24,
             "tipo_corrente_bobina": TipoCorrenteChoices.CC,
             "contatos_aux_na": 0,
             "contatos_aux_nf": 0,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR:
-        return {
+    },
+    CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR: {
             "contatos_aux_na": 0,
             "contatos_aux_nf": 0,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.SECCIONADORA:
-        from core.choices.produtos import (
-            CorManoplaChoices,
-            TipoFixacaoSeccionadoraChoices,
-        )
-
-        return {
+    },
+    CategoriaProdutoNomeChoices.SECCIONADORA: {
             "tipo_montagem": ModoMontagemChoices.TRILHO_DIN,
             "tipo_fixacao": TipoFixacaoSeccionadoraChoices.FURO_CENTRAL_M22_5,
             "cor_manopla": CorManoplaChoices.PUNHO_PRETO,
-        }
-    if nome == CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA: {
             "corrente_nominal_a": "100.00",
             "numero_polos": NumeroPolosChoices.P3,
             "configuracao_disparador": (
@@ -258,24 +251,21 @@ def _defaults_para_categoria(nome: str) -> dict:
             "disparador_sobrecarga_ir_ajuste_max_a": "100.00",
             "disparador_curto_ii_fixo_a": "1000.00",
             "modo_montagem": ModoMontagemChoices.PLACA,
-        }
-    if nome == CategoriaProdutoNomeChoices.RELE_SOBRECARGA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.RELE_SOBRECARGA: {
             "faixa_ajuste_min_a": "1.00",
             "faixa_ajuste_max_a": "100.00",
             "contatos_aux_na": 0,
             "contatos_aux_nf": 0,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.MINIDISJUNTOR:
-        return {
+    },
+    CategoriaProdutoNomeChoices.MINIDISJUNTOR: {
             "corrente_nominal_a": "10.00",
             "curva_disparo": CurvaDisparoMiniDisjuntorChoices.C,
             "numero_polos": NumeroPolosChoices.P1,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.RELE_ESTADO_SOLIDO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.RELE_ESTADO_SOLIDO: {
             "corrente_nominal_a": "25.00",
             "possui_dissipador": False,
             "tipo_dissipador": None,
@@ -284,26 +274,23 @@ def _defaults_para_categoria(nome: str) -> dict:
             "potencia_dissipada_w": None,
             "numero_fases": NumeroFasesReleEstadoSolidoChoices.F3,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.FUSIVEL:
-        return {
+    },
+    CategoriaProdutoNomeChoices.FUSIVEL: {
             "tipo_fusivel": TipoFusivelChoices.RAPIDO,
             "formato": FormatoFusivelChoices.NH,
             "tamanho": FusivelNHTamanhoChoices.NH00,
             "corrente_nominal_a": "10.00",
             "indicador_queima": False,
-        }
-    if nome == CategoriaProdutoNomeChoices.FONTE_CHAVEADA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.FONTE_CHAVEADA: {
             "tensao_entrada_v": TensaoChoices.V220,
             "tipo_corrente_entrada": TipoCorrenteChoices.CA,
             "tensao_saida_v": TensaoChoices.V24,
             "tipo_corrente_saida": TipoCorrenteChoices.CC,
             "corrente_saida_a": "5.00",
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.PLC:
-        return {
+    },
+    CategoriaProdutoNomeChoices.PLC: {
             "tensao_alimentacao_v": TensaoChoices.V24,
             "entradas_digitais": 0,
             "saidas_digitais": 0,
@@ -313,9 +300,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "possui_serial": False,
             "protocolo_principal": ProtocoloComunicacaoChoices.PROFINET,
             "suporta_expansao": True,
-        }
-    if nome == CategoriaProdutoNomeChoices.EXPANSAO_PLC:
-        return {
+    },
+    CategoriaProdutoNomeChoices.EXPANSAO_PLC: {
             "tipo_expansao": TipoExpansaoPLCChoices.ENTRADA_DIGITAL,
             "entradas_digitais": 8,
             "saidas_digitais": 0,
@@ -324,17 +310,15 @@ def _defaults_para_categoria(nome: str) -> dict:
             "tensao_alimentacao_v": TensaoChoices.V24,
             "tipo_corrente_alimentacao": TipoCorrenteChoices.CC,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.BORNE:
-        return {
+    },
+    CategoriaProdutoNomeChoices.BORNE: {
             "tipo_borne": TipoBorneChoices.PASSAGEM,
             "tipo_conexao": TipoConexaoBorneChoices.PARAFUSO,
             "secao_max_mm2": "4.00",
             "numero_niveis": 1,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.CABO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.CABO: {
             "tipo_cabo": TipoCaboChoices.POTENCIA,
             "secao_mm2": "2.50",
             "numero_condutores": 1,
@@ -343,18 +327,16 @@ def _defaults_para_categoria(nome: str) -> dict:
             "cor": CorCaboChoices.PRETO,
             "blindado": False,
             "flexivel": False,
-        }
-    if nome == CategoriaProdutoNomeChoices.CANALETA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.CANALETA: {
             "tipo_canaleta": TipoCanaletaChoices.FECHADA,
             "largura_mm": "40.00",
             "altura_mm": "25.00",
             "material": MaterialCanaletaChoices.PVC,
             "cor": CorCanaletaChoices.CINZA,
             "modo_montagem": ModoMontagemChoices.PLACA,
-        }
-    if nome == CategoriaProdutoNomeChoices.PAINEL:
-        return {
+    },
+    CategoriaProdutoNomeChoices.PAINEL: {
             "tipo_painel": TipoPainelCatalogoChoices.CAIXA_METALICA,
             "tipo_instalacao": TipoInstalacaoPainelChoices.SOBREPOR,
             "material": MaterialPainelChoices.ACO_CARBONO,
@@ -364,42 +346,37 @@ def _defaults_para_categoria(nome: str) -> dict:
             "placa_acabamento": AcabamentoPlacaPainelChoices.GALVANIZADA,
             "cor": CorPainelChoices.RAL7035,
             "possui_flange": False,
-        }
-    if nome == CategoriaProdutoNomeChoices.CLIMATIZACAO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.CLIMATIZACAO: {
             "tipo_climatizacao": TipoClimatizacaoChoices.VENTILACAO,
             "tensao_alimentacao_v": TensaoChoices.V220,
             "potencia_consumida_w": "50.00",
             "vazao_m3_h": "100.00",
             "modo_montagem": ModoMontagemChoices.PORTA,
-        }
-    if nome == CategoriaProdutoNomeChoices.INVERSOR_FREQUENCIA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.INVERSOR_FREQUENCIA: {
             "potencia_nominal_kw": "1.000",
             "tensao_entrada_v": TensaoChoices.V220,
             "tensao_saida_v": TensaoChoices.V220,
             "numero_fases_entrada": NumeroFasesInversorFrequenciaChoices.F1,
             "protocolo_comunicacao": "",
-        }
-    if nome == CategoriaProdutoNomeChoices.SOFT_STARTER:
-        return {
+    },
+    CategoriaProdutoNomeChoices.SOFT_STARTER: {
             "corrente_nominal_a": "10.00",
             "tensao_nominal_v": TensaoChoices.V220,
             "numero_fase_controle": NumeroFaseControleSoftStarterChoices.F3,
             "protocolo_comunicacao": "",
             "tipo_montagem": ModoMontagemChoices.PLACA,
-        }
-    if nome == CategoriaProdutoNomeChoices.RELE_INTERFACE:
-        return {
+    },
+    CategoriaProdutoNomeChoices.RELE_INTERFACE: {
             "tipo_rele": TipoReleInterfaceChoices.ELETROMECANICO,
             "tensao_bobina_v": TensaoIluminacaoBotaoChoices.V24,
             "corrente_contato_a": "10.00",
             "quantidade_contatos": 1,
             "tipo_contato": TipoContatoChoices.NA,
             "tipo_montagem": TipoMontagemReleChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.IHM:
-        return {
+    },
+    CategoriaProdutoNomeChoices.IHM: {
             "tamanho_tela_pol": "7.00",
             "tipo_tela": TipoTelaIHMChoices.TOUCH,
             "protocolo_comunicacao": ProtocoloIHMChoices.MODBUS_TCP,
@@ -408,9 +385,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "possui_usb": False,
             "tensao_alimentacao_v": TensaoIluminacaoBotaoChoices.V24,
             "modo_montagem": ModoMontagemChoices.PORTA,
-        }
-    if nome == CategoriaProdutoNomeChoices.SWITCH_REDE:
-        return {
+    },
+    CategoriaProdutoNomeChoices.SWITCH_REDE: {
             "tipo_switch": TipoSwitchRedeChoices.INDUSTRIAL,
             "quantidade_portas": 5,
             "quantidade_portas_rj45": 5,
@@ -418,9 +394,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "velocidade_porta": VelocidadePortaRedeChoices.MBPS_1000,
             "possui_poe": False,
             "tipo_montagem": TipoMontagemSwitchChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.MODULO_COMUNICACAO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.MODULO_COMUNICACAO: {
             "tipo_modulo": TipoModuloComunicacaoChoices.INTERFACE_REDE,
             "protocolo": ProtocoloIndustrialChoices.MODBUS_RTU,
             "interface_fisica": InterfaceFisicaGatewayChoices.RS485,
@@ -430,9 +405,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "suporta_client": False,
             "suporta_server": False,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.BOTAO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.BOTAO: {
             "tipo_botao": TipoBotaoChoices.PULSADOR,
             "tipo_acionamento": TipoAcionamentoBotaoModoChoices.MOMENTANEO,
             "cor": CorBotaoChoices.VERDE,
@@ -441,9 +415,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "contatos_nf": 0,
             "iluminado": False,
             "modo_montagem": ModoMontagemChoices.PORTA,
-        }
-    if nome == CategoriaProdutoNomeChoices.CHAVE_SELETORA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.CHAVE_SELETORA: {
             "tipo_seletor": TipoChaveSeletoraChoices.MANOPLA,
             "numero_posicoes": 3,
             "tipo_acionamento": TipoAcionamentoChaveSeletoraChoices.RETENTIVO,
@@ -453,38 +426,33 @@ def _defaults_para_categoria(nome: str) -> dict:
             "cor_manopla": CorManoplaChaveSeletoraChoices.PRETO,
             "iluminado": False,
             "modo_montagem": ModoMontagemChoices.PORTA,
-        }
-    if nome == CategoriaProdutoNomeChoices.SINALIZADOR:
-        return {
+    },
+    CategoriaProdutoNomeChoices.SINALIZADOR: {
             "tensao_comando_v": TensaoIluminacaoBotaoChoices.V24,
             "cor": CorSinalizadorChoices.VERDE,
-        }
-    if nome == CategoriaProdutoNomeChoices.TEMPORIZADOR:
-        return {
+    },
+    CategoriaProdutoNomeChoices.TEMPORIZADOR: {
             "tipo_temporizador": TipoTemporizadorChoices.ELETRONICO,
             "tipo_funcao": TipoFuncaoTemporizadorChoices.ATRASO_ENERGIZACAO,
             "tensao_alimentacao_v": TensaoIluminacaoBotaoChoices.V24,
             "corrente_contato_a": "10.00",
             "tipo_montagem": TipoMontagemTemporizadorChoices.TRILHO_DIN,
-        }
-    if nome == CategoriaProdutoNomeChoices.CONTROLADOR_TEMPERATURA:
-        return {
+    },
+    CategoriaProdutoNomeChoices.CONTROLADOR_TEMPERATURA: {
             "tipo_sensor": TipoSensorTemperaturaChoices.PT100,
             "tipo_controle": TipoControleTemperaturaChoices.PID,
             "tipo_saida_controle": TipoSaidaControleChoices.RELE,
             "quantidade_saidas": 1,
             "tensao_alimentacao_v": TensaoIluminacaoBotaoChoices.V24,
             "modo_montagem": ModoMontagemChoices.PORTA,
-        }
-    if nome == CategoriaProdutoNomeChoices.TRILHO_DIN:
-        return {
+    },
+    CategoriaProdutoNomeChoices.TRILHO_DIN: {
             "tipo_trilho": TipoTrilhoDINChoices.TS35,
             "comprimento_mm": 1000,
             "material": MaterialTrilhoDINChoices.ACO_GALVANIZADO,
             "perfurado": True,
-        }
-    if nome == CategoriaProdutoNomeChoices.BARRAMENTO:
-        return {
+    },
+    CategoriaProdutoNomeChoices.BARRAMENTO: {
             "corrente_nominal_a": "100.00",
             "material": MaterialBarramentoChoices.COBRE,
             "tipo_barramento": TipoBarramentoChoices.BARRA_CHATA,
@@ -493,9 +461,8 @@ def _defaults_para_categoria(nome: str) -> dict:
             "capacidade_curto_circuito_ka": "50.00",
             "modo_montagem": ModoMontagemChoices.PLACA,
             "isolado": False,
-        }
-    if nome == CategoriaProdutoNomeChoices.GATEWAY:
-        return {
+    },
+    CategoriaProdutoNomeChoices.GATEWAY: {
             "protocolo_entrada": ProtocoloIndustrialChoices.MODBUS_RTU,
             "protocolo_saida": ProtocoloIndustrialChoices.MODBUS_TCP,
             "interface_entrada": InterfaceFisicaGatewayChoices.RS485,
@@ -505,8 +472,12 @@ def _defaults_para_categoria(nome: str) -> dict:
             "tensao_alimentacao_v": TensaoChoices.V24,
             "tipo_corrente_alimentacao": TipoCorrenteChoices.CC,
             "modo_montagem": ModoMontagemChoices.TRILHO_DIN,
-        }
-    return {}
+    },
+}
+
+
+def _defaults_para_categoria(nome: str) -> dict:
+    return dict(DEFAULTS_POR_CATEGORIA.get(nome, {}))
 
 
 def _clear_specs(produto: Produto) -> None:
@@ -529,64 +500,100 @@ def _salvar_especificacao(produto: Produto, nome_categoria: str, payload: dict |
         _raise_erro_especificacao_amigavel(campo, exc)
 
 
-def _ajustar_payload_regras_categoria(nome_categoria: str, merged: dict) -> dict:
-    if nome_categoria == CategoriaProdutoNomeChoices.MINIDISJUNTOR:
-        merged["modo_montagem"] = ModoMontagemChoices.TRILHO_DIN
-    if nome_categoria == CategoriaProdutoNomeChoices.FUSIVEL:
-        formato = merged.get("formato")
-        if formato == FormatoFusivelChoices.NH:
-            if not merged.get("tamanho"):
-                merged["tamanho"] = FusivelNHTamanhoChoices.NH00
-        elif formato == FormatoFusivelChoices.CARTUCHO:
-            if not merged.get("tamanho"):
-                merged["tamanho"] = FusivelCartuchoTamanhoChoices.CART_10X38
-    if nome_categoria == CategoriaProdutoNomeChoices.RELE_ESTADO_SOLIDO:
-        if not bool(merged.get("possui_dissipador", False)):
-            merged["tipo_dissipador"] = None
-        if not bool(merged.get("possui_ventilacao", False)):
-            merged["tensao_ventilacao_v"] = None
-        if merged.get("modo_montagem") not in {
-            ModoMontagemChoices.TRILHO_DIN,
-            ModoMontagemChoices.PLACA,
-        }:
-            merged["modo_montagem"] = ModoMontagemChoices.TRILHO_DIN
-    if nome_categoria == CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA:
-        cfg = merged.get("configuracao_disparador")
-        merged["modo_montagem"] = ModoMontagemChoices.PLACA
-        if cfg == ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_IR_AJUSTAVEL_II_FIXO:
-            merged["disparador_sobrecarga_ir_fixo_a"] = None
-        else:
-            merged["disparador_sobrecarga_ir_ajuste_min_a"] = None
-            merged["disparador_sobrecarga_ir_ajuste_max_a"] = None
+def _ajustar_payload_minidisjuntor(merged: dict) -> None:
+    merged["modo_montagem"] = ModoMontagemChoices.TRILHO_DIN
 
-        if cfg == ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_II_AJUSTAVEL:
-            merged["disparador_curto_ii_fixo_a"] = None
-        else:
-            merged["disparador_curto_ii_ajuste_min_a"] = None
-            merged["disparador_curto_ii_ajuste_max_a"] = None
-    if nome_categoria == CategoriaProdutoNomeChoices.PAINEL:
-        if merged.get("material") == MaterialPainelChoices.ACO_INOX:
-            merged["cor"] = None
-        elif not merged.get("cor"):
-            merged["cor"] = CorPainelChoices.RAL7035
-    if nome_categoria == CategoriaProdutoNomeChoices.CLIMATIZACAO:
-        if merged.get("tensao_alimentacao_v") not in {
-            TensaoChoices.V24,
-            TensaoChoices.V110,
-            TensaoChoices.V220,
-            TensaoChoices.V380,
-        }:
-            merged["tensao_alimentacao_v"] = TensaoChoices.V220
-        if merged.get("modo_montagem") not in {
-            ModoMontagemChoices.TRILHO_DIN,
-            ModoMontagemChoices.PLACA,
-            ModoMontagemChoices.PORTA,
-        }:
-            merged["modo_montagem"] = ModoMontagemChoices.PORTA
-    if nome_categoria == CategoriaProdutoNomeChoices.SOFT_STARTER:
-        merged["tipo_montagem"] = ModoMontagemChoices.PLACA
-        if merged.get("protocolo_comunicacao") is None:
-            merged["protocolo_comunicacao"] = ""
+
+def _ajustar_payload_fusivel(merged: dict) -> None:
+    tamanho_por_formato = {
+        FormatoFusivelChoices.NH: FusivelNHTamanhoChoices.NH00,
+        FormatoFusivelChoices.CARTUCHO: FusivelCartuchoTamanhoChoices.CART_10X38,
+    }
+    tamanho_padrao = tamanho_por_formato.get(merged.get("formato"))
+    if tamanho_padrao and not merged.get("tamanho"):
+        merged["tamanho"] = tamanho_padrao
+
+
+def _ajustar_payload_rele_estado_solido(merged: dict) -> None:
+    if not bool(merged.get("possui_dissipador", False)):
+        merged["tipo_dissipador"] = None
+    if not bool(merged.get("possui_ventilacao", False)):
+        merged["tensao_ventilacao_v"] = None
+    if merged.get("modo_montagem") not in {
+        ModoMontagemChoices.TRILHO_DIN,
+        ModoMontagemChoices.PLACA,
+    }:
+        merged["modo_montagem"] = ModoMontagemChoices.TRILHO_DIN
+
+
+def _ajustar_payload_disjuntor_caixa_moldada(merged: dict) -> None:
+    cfg = merged.get("configuracao_disparador")
+    merged["modo_montagem"] = ModoMontagemChoices.PLACA
+    if (
+        cfg
+        == ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_IR_AJUSTAVEL_II_FIXO
+    ):
+        merged["disparador_sobrecarga_ir_fixo_a"] = None
+    else:
+        merged["disparador_sobrecarga_ir_ajuste_min_a"] = None
+        merged["disparador_sobrecarga_ir_ajuste_max_a"] = None
+
+    if (
+        cfg
+        == ConfiguracaoDisparadorDisjuntorCMChoices.TERMOMAGNETICO_LI_II_AJUSTAVEL
+    ):
+        merged["disparador_curto_ii_fixo_a"] = None
+    else:
+        merged["disparador_curto_ii_ajuste_min_a"] = None
+        merged["disparador_curto_ii_ajuste_max_a"] = None
+
+
+def _ajustar_payload_painel(merged: dict) -> None:
+    if merged.get("material") == MaterialPainelChoices.ACO_INOX:
+        merged["cor"] = None
+    elif not merged.get("cor"):
+        merged["cor"] = CorPainelChoices.RAL7035
+
+
+def _ajustar_payload_climatizacao(merged: dict) -> None:
+    if merged.get("tensao_alimentacao_v") not in {
+        TensaoChoices.V24,
+        TensaoChoices.V110,
+        TensaoChoices.V220,
+        TensaoChoices.V380,
+    }:
+        merged["tensao_alimentacao_v"] = TensaoChoices.V220
+    if merged.get("modo_montagem") not in {
+        ModoMontagemChoices.TRILHO_DIN,
+        ModoMontagemChoices.PLACA,
+        ModoMontagemChoices.PORTA,
+    }:
+        merged["modo_montagem"] = ModoMontagemChoices.PORTA
+
+
+def _ajustar_payload_soft_starter(merged: dict) -> None:
+    merged["tipo_montagem"] = ModoMontagemChoices.PLACA
+    if merged.get("protocolo_comunicacao") is None:
+        merged["protocolo_comunicacao"] = ""
+
+
+AJUSTE_PAYLOAD_POR_CATEGORIA = {
+    CategoriaProdutoNomeChoices.MINIDISJUNTOR: _ajustar_payload_minidisjuntor,
+    CategoriaProdutoNomeChoices.FUSIVEL: _ajustar_payload_fusivel,
+    CategoriaProdutoNomeChoices.RELE_ESTADO_SOLIDO: _ajustar_payload_rele_estado_solido,
+    CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA: (
+        _ajustar_payload_disjuntor_caixa_moldada
+    ),
+    CategoriaProdutoNomeChoices.PAINEL: _ajustar_payload_painel,
+    CategoriaProdutoNomeChoices.CLIMATIZACAO: _ajustar_payload_climatizacao,
+    CategoriaProdutoNomeChoices.SOFT_STARTER: _ajustar_payload_soft_starter,
+}
+
+
+def _ajustar_payload_regras_categoria(nome_categoria: str, merged: dict) -> dict:
+    ajustar_payload = AJUSTE_PAYLOAD_POR_CATEGORIA.get(nome_categoria)
+    if ajustar_payload:
+        ajustar_payload(merged)
     return merged
 
 

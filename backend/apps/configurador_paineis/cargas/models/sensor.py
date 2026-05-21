@@ -92,10 +92,18 @@ class CargaSensor(models.Model):
 
     def clean(self):
         erros = {}
+        CargaSensor._validar_tipo_carga(self, erros)
+        CargaSensor._validar_flags_digitais(self, erros)
+        CargaSensor._validar_tipo_sinal(self, erros)
 
+        if erros:
+            raise ValidationError(erros)
+
+    def _validar_tipo_carga(self, erros):
         if self.carga and self.carga.tipo != TipoCargaChoices.SENSOR:
             erros["carga"] = "A carga vinculada deve ser do tipo SENSOR."
 
+    def _validar_flags_digitais(self, erros):
         if self.pnp and self.npn:
             erros["pnp"] = "O sensor não pode ser PNP e NPN ao mesmo tempo."
             erros["npn"] = "O sensor não pode ser PNP e NPN ao mesmo tempo."
@@ -104,33 +112,35 @@ class CargaSensor(models.Model):
             erros["normalmente_aberto"] = "O sensor não pode ser NA e NF ao mesmo tempo."
             erros["normalmente_fechado"] = "O sensor não pode ser NA e NF ao mesmo tempo."
 
-        # DIGITAL
+    def _validar_tipo_sinal(self, erros):
         if self.tipo_sinal == TipoSinalChoices.DIGITAL:
-            if self.tipo_sinal_analogico:
-                erros["tipo_sinal_analogico"] = (
-                    "Sensores digitais não devem ter tipo de sinal analógico preenchido."
-                )
-
-        # ANALOGICO
+            CargaSensor._validar_sinal_digital(self, erros)
         elif self.tipo_sinal == TipoSinalChoices.ANALOGICO:
-            if not self.tipo_sinal_analogico:
-                erros["tipo_sinal_analogico"] = (
-                    "Informe o tipo de sinal analógico para sensores analógicos."
-                )
-
-            if self.pnp or self.npn:
-                erros["pnp"] = "Sensores analógicos não devem usar PNP/NPN."
-                erros["npn"] = "Sensores analógicos não devem usar PNP/NPN."
-
-        # ANALOGICO_DIGITAL
+            CargaSensor._validar_sinal_analogico(self, erros)
         elif self.tipo_sinal == TipoSinalChoices.ANALOGICO_DIGITAL:
-            if not self.tipo_sinal_analogico:
-                erros["tipo_sinal_analogico"] = (
-                    "Informe o tipo de sinal analógico para sensores analógico-digitais."
-                )
+            CargaSensor._validar_sinal_analogico_digital(self, erros)
 
-        if erros:
-            raise ValidationError(erros)
+    def _validar_sinal_digital(self, erros):
+        if self.tipo_sinal_analogico:
+            erros["tipo_sinal_analogico"] = (
+                "Sensores digitais não devem ter tipo de sinal analógico preenchido."
+            )
+
+    def _validar_sinal_analogico(self, erros):
+        if not self.tipo_sinal_analogico:
+            erros["tipo_sinal_analogico"] = (
+                "Informe o tipo de sinal analógico para sensores analógicos."
+            )
+
+        if self.pnp or self.npn:
+            erros["pnp"] = "Sensores analógicos não devem usar PNP/NPN."
+            erros["npn"] = "Sensores analógicos não devem usar PNP/NPN."
+
+    def _validar_sinal_analogico_digital(self, erros):
+        if not self.tipo_sinal_analogico:
+            erros["tipo_sinal_analogico"] = (
+                "Informe o tipo de sinal analógico para sensores analógico-digitais."
+            )
 
     def sincronizar_quantidades_carga(self):
         """

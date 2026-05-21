@@ -130,13 +130,17 @@ def _status_sugestao_export(sugestao: SugestaoItem) -> str:
     return sugestao.get_status_display()
 
 
-def montar_linhas_export(
-    projeto: Projeto, *, incluir_memoria_calculo: bool = True
-) -> tuple[list[str], list[list[str]]]:
-    """Retorna (cabeçalhos, linhas) com strings para planilha/PDF."""
-    linhas: list[list[str]] = []
+def _linha_carga(carga) -> list[str]:
+    return [
+        _txt(carga.tag) if carga else "",
+        _txt(carga.descricao) if carga else "",
+        carga.get_tipo_display() if carga else "",
+        _potencia_carga(carga),
+    ]
 
-    qs_comp = (
+
+def _linhas_composicao_export(projeto: Projeto) -> list[list[str]]:
+    qs = (
         ComposicaoItem.objects.filter(projeto=projeto)
         .select_related(
             "produto",
@@ -146,29 +150,27 @@ def montar_linhas_export(
         )
         .order_by("ordem", "id")
     )
-    for item in qs_comp:
-        carga = item.carga
-        linhas.append(
-            [
-                "Composição aprovada",
-                item.get_parte_painel_display(),
-                item.get_categoria_produto_display(),
-                _txt(carga.tag) if carga else "",
-                _txt(carga.descricao) if carga else "",
-                carga.get_tipo_display() if carga else "",
-                _potencia_carga(carga),
-                _corrente_ref_item(item),
-                _txt(item.produto.codigo),
-                _txt(item.produto.descricao),
-                _txt(item.produto.fabricante),
-                _txt(item.quantidade),
-                _txt(item.observacoes),
-                _txt(item.memoria_calculo),
-                _status_composicao_export(item),
-            ]
-        )
+    return [
+        [
+            "Composição aprovada",
+            item.get_parte_painel_display(),
+            item.get_categoria_produto_display(),
+            *_linha_carga(item.carga),
+            _corrente_ref_item(item),
+            _txt(item.produto.codigo),
+            _txt(item.produto.descricao),
+            _txt(item.produto.fabricante),
+            _txt(item.quantidade),
+            _txt(item.observacoes),
+            _txt(item.memoria_calculo),
+            _status_composicao_export(item),
+        ]
+        for item in qs
+    ]
 
-    qs_sug = (
+
+def _linhas_sugestao_export(projeto: Projeto) -> list[list[str]]:
+    qs = (
         SugestaoItem.objects.filter(projeto=projeto)
         .select_related(
             "produto",
@@ -178,56 +180,55 @@ def montar_linhas_export(
         )
         .order_by("ordem", "id")
     )
-    for sug in qs_sug:
-        carga = sug.carga
-        linhas.append(
-            [
-                "Sugestão de item",
-                sug.get_parte_painel_display(),
-                sug.get_categoria_produto_display(),
-                _txt(carga.tag) if carga else "",
-                _txt(carga.descricao) if carga else "",
-                carga.get_tipo_display() if carga else "",
-                _potencia_carga(carga),
-                _corrente_para_carga(sug.corrente_referencia_a, carga),
-                _txt(sug.produto.codigo),
-                _txt(sug.produto.descricao),
-                _txt(sug.produto.fabricante),
-                _txt(sug.quantidade),
-                _txt(sug.observacoes),
-                _txt(sug.memoria_calculo),
-                _status_sugestao_export(sug),
-            ]
-        )
+    return [
+        [
+            "Sugestão de item",
+            sugestao.get_parte_painel_display(),
+            sugestao.get_categoria_produto_display(),
+            *_linha_carga(sugestao.carga),
+            _corrente_para_carga(sugestao.corrente_referencia_a, sugestao.carga),
+            _txt(sugestao.produto.codigo),
+            _txt(sugestao.produto.descricao),
+            _txt(sugestao.produto.fabricante),
+            _txt(sugestao.quantidade),
+            _txt(sugestao.observacoes),
+            _txt(sugestao.memoria_calculo),
+            _status_sugestao_export(sugestao),
+        ]
+        for sugestao in qs
+    ]
 
-    qs_inc = (
+
+def _linhas_inclusao_manual_export(projeto: Projeto) -> list[list[str]]:
+    qs = (
         ComposicaoInclusaoManual.objects.filter(projeto=projeto)
         .select_related("produto")
         .order_by("ordem", "id")
     )
-    for inc in qs_inc:
-        p = inc.produto
-        linhas.append(
-            [
-                "Inclusão manual (catálogo)",
-                "—",
-                p.get_categoria_display(),
-                "",
-                "",
-                "",
-                "",
-                "",
-                _txt(p.codigo),
-                _txt(p.descricao),
-                _txt(p.fabricante),
-                _txt(inc.quantidade),
-                _txt(inc.observacoes),
-                "",
-                "Aprovado",
-            ]
-        )
+    return [
+        [
+            "Inclusão manual (catálogo)",
+            "—",
+            inclusao.produto.get_categoria_display(),
+            "",
+            "",
+            "",
+            "",
+            "",
+            _txt(inclusao.produto.codigo),
+            _txt(inclusao.produto.descricao),
+            _txt(inclusao.produto.fabricante),
+            _txt(inclusao.quantidade),
+            _txt(inclusao.observacoes),
+            "",
+            "Aprovado",
+        ]
+        for inclusao in qs
+    ]
 
-    qs_pend = (
+
+def _linhas_pendencia_export(projeto: Projeto) -> list[list[str]]:
+    qs = (
         PendenciaItem.objects.filter(projeto=projeto)
         .select_related(
             "carga",
@@ -236,33 +237,51 @@ def montar_linhas_export(
         )
         .order_by("ordem", "id")
     )
-    for pend in qs_pend:
-        carga = pend.carga
-        linhas.append(
-            [
-                "Pendência (catálogo)",
-                pend.get_parte_painel_display(),
-                pend.get_categoria_produto_display(),
-                _txt(carga.tag) if carga else "",
-                _txt(carga.descricao) if carga else "",
-                carga.get_tipo_display() if carga else "",
-                _potencia_carga(carga),
-                _corrente_para_carga(pend.corrente_referencia_a, carga),
-                "",
-                _txt(pend.descricao),
-                "",
-                "",
-                _txt(pend.observacoes),
-                _txt(pend.memoria_calculo),
-                pend.get_status_display(),
-            ]
-        )
+    return [
+        [
+            "Pendência (catálogo)",
+            pendencia.get_parte_painel_display(),
+            pendencia.get_categoria_produto_display(),
+            *_linha_carga(pendencia.carga),
+            _corrente_para_carga(
+                pendencia.corrente_referencia_a,
+                pendencia.carga,
+            ),
+            "",
+            _txt(pendencia.descricao),
+            "",
+            "",
+            _txt(pendencia.observacoes),
+            _txt(pendencia.memoria_calculo),
+            pendencia.get_status_display(),
+        ]
+        for pendencia in qs
+    ]
 
+
+def _remover_coluna_memoria_calculo(
+    header: list[str],
+    linhas: list[list[str]],
+) -> tuple[list[str], list[list[str]]]:
+    memoria_idx = header.index("Memória de cálculo")
+    header = [col for i, col in enumerate(header) if i != memoria_idx]
+    linhas = [[cel for i, cel in enumerate(row) if i != memoria_idx] for row in linhas]
+    return header, linhas
+
+
+def montar_linhas_export(
+    projeto: Projeto, *, incluir_memoria_calculo: bool = True
+) -> tuple[list[str], list[list[str]]]:
+    """Retorna (cabeçalhos, linhas) com strings para planilha/PDF."""
     header = list(COLUNAS)
+    linhas = [
+        *_linhas_composicao_export(projeto),
+        *_linhas_sugestao_export(projeto),
+        *_linhas_inclusao_manual_export(projeto),
+        *_linhas_pendencia_export(projeto),
+    ]
     if not incluir_memoria_calculo:
-        memoria_idx = header.index("Memória de cálculo")
-        header = [col for i, col in enumerate(header) if i != memoria_idx]
-        linhas = [[cel for i, cel in enumerate(row) if i != memoria_idx] for row in linhas]
+        header, linhas = _remover_coluna_memoria_calculo(header, linhas)
 
     return header, linhas
 

@@ -78,41 +78,47 @@ def _parse_icms_de_bloco(icms_parent: ET.Element | None) -> dict[str, str]:
     return {}
 
 
-def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
-    imposto = None
-    for sub in det:
-        if _local(sub.tag) == "imposto":
-            imposto = sub
-            break
-    if imposto is None:
-        return {}
+def _filho_por_tag_local(parent: ET.Element, tag_local: str) -> ET.Element | None:
+    return next((child for child in parent if _local(child.tag) == tag_local), None)
 
-    icms_flat: dict[str, str] = {}
-    pis_flat: dict[str, str] = {}
-    cofins_flat: dict[str, str] = {}
-    ipi_flat: dict[str, str] = {}
 
-    for ch in imposto:
-        loc = _local(ch.tag)
+def _flatten_primeiro_grupo_por_prefixo(
+    parent: ET.Element,
+    prefixos: tuple[str, ...],
+) -> dict[str, str]:
+    for group in parent:
+        if _local(group.tag).startswith(prefixos):
+            return _flatten_xml_group(group)
+    return {}
+
+
+def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
+    blocos = {
+        "icms": {},
+        "pis": {},
+        "cofins": {},
+        "ipi": {},
+    }
+    for child in imposto:
+        loc = _local(child.tag)
         if loc == "ICMS":
-            icms_flat = _parse_icms_de_bloco(ch)
+            blocos["icms"] = _parse_icms_de_bloco(child)
         elif loc == "PIS":
-            for pis_grp in ch:
-                if _local(pis_grp.tag).startswith("PIS"):
-                    pis_flat = _flatten_xml_group(pis_grp)
-                    break
+            blocos["pis"] = _flatten_primeiro_grupo_por_prefixo(child, ("PIS",))
         elif loc == "COFINS":
-            for cof_grp in ch:
-                if _local(cof_grp.tag).startswith("COFINS"):
-                    cofins_flat = _flatten_xml_group(cof_grp)
-                    break
+            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(child, ("COFINS",))
         elif loc == "IPI":
-            for ipi_grp in ch:
-                l2 = _local(ipi_grp.tag)
-                if l2.startswith("IPINT") or l2.startswith("IPITrib"):
-                    ipi_flat = _flatten_xml_group(ipi_grp)
-                    break
+            blocos["ipi"] = _flatten_primeiro_grupo_por_prefixo(child, ("IPINT", "IPITrib"))
+    return blocos
 
+
+def _montar_snapshot_imposto(
+    *,
+    icms_flat: dict[str, str],
+    ipi_flat: dict[str, str],
+    pis_flat: dict[str, str],
+    cofins_flat: dict[str, str],
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
     if icms_flat:
         out["icms_grupo_xml"] = icms_flat.get("icms_grupo_xml", "")
@@ -143,6 +149,20 @@ def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
         out["v_cofins"] = cofins_flat.get("vCOFINS", "")
 
     return out
+
+
+def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
+    imposto = _filho_por_tag_local(det, "imposto")
+    if imposto is None:
+        return {}
+
+    blocos = _parse_blocos_imposto(imposto)
+    return _montar_snapshot_imposto(
+        icms_flat=blocos["icms"],
+        ipi_flat=blocos["ipi"],
+        pis_flat=blocos["pis"],
+        cofins_flat=blocos["cofins"],
+    )
 
 
 def _normalizar_token_unidade_comercial(raw: str) -> str:
