@@ -1,11 +1,4 @@
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -20,6 +13,7 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
 import { useDeleteCargaMutation } from '../hooks/useCargaMutations'
+import { useCargaListAutoRecalc } from '../hooks/useCargaListAutoRecalc'
 import {
   filtrarProjetosComEdicaoCargas,
   projetoPermiteEdicaoCargas,
@@ -33,10 +27,6 @@ export default function CargaListPage() {
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
-  const [autoRecalcFeedback, setAutoRecalcFeedback] = useState('')
-  const autoRecalcKeyRef = useRef<string>('')
-  const autoRecalcPendingRef = useRef(false)
-  const autoRecalcFeedbackTimerRef = useRef<number | null>(null)
   const canManageCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
   const canEditarProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
@@ -76,6 +66,15 @@ export default function CargaListPage() {
     () => cargas.map((c) => `${c.id}:${c.atualizado_em ?? ''}`).join('|'),
     [cargas]
   )
+
+  const autoRecalcFeedback = useCargaListAutoRecalc({
+    projetoIdListagem,
+    podeRecalcular: podeRecalcularDimensionamento,
+    loadingCargas,
+    isError,
+    cargasSignature,
+    recalcMutation,
+  })
 
   useEffect(() => {
     if (!projetoId || loadingProjetos || projetos.length === 0) return
@@ -148,53 +147,6 @@ export default function CargaListPage() {
       })
     }
   }, [projetoIdListagem, podeRecalcularDimensionamento, recalcMutation, showToast])
-
-  useEffect(() => {
-    if (!projetoIdListagem || !podeRecalcularDimensionamento) return
-    if (loadingCargas || isError) return
-
-    const key = `${projetoIdListagem}|${cargasSignature}`
-    if (!cargasSignature || autoRecalcKeyRef.current === key || autoRecalcPendingRef.current) {
-      return
-    }
-
-    autoRecalcPendingRef.current = true
-    setAutoRecalcFeedback('Atualizando resumo automaticamente...')
-    void (async () => {
-      try {
-        await recalcMutation.mutateAsync()
-        autoRecalcKeyRef.current = key
-        setAutoRecalcFeedback('Resumo atualizado automaticamente.')
-        if (autoRecalcFeedbackTimerRef.current) {
-          window.clearTimeout(autoRecalcFeedbackTimerRef.current)
-        }
-        autoRecalcFeedbackTimerRef.current = window.setTimeout(() => {
-          setAutoRecalcFeedback('')
-          autoRecalcFeedbackTimerRef.current = null
-        }, 2200)
-      } catch (err) {
-        console.error(err)
-        setAutoRecalcFeedback('')
-      } finally {
-        autoRecalcPendingRef.current = false
-      }
-    })()
-  }, [
-    projetoIdListagem,
-    podeRecalcularDimensionamento,
-    loadingCargas,
-    isError,
-    cargasSignature,
-    recalcMutation,
-  ])
-
-  useEffect(() => {
-    return () => {
-      if (autoRecalcFeedbackTimerRef.current) {
-        window.clearTimeout(autoRecalcFeedbackTimerRef.current)
-      }
-    }
-  }, [])
 
   return (
     <div className="container-fluid">

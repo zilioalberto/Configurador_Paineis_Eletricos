@@ -232,19 +232,27 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             )
         return data
 
+    def _mesclar_campos_item_existente(self, orcamento, raw_in: dict) -> dict:
+        raw = dict(raw_in)
+        item_id = raw.get("id")
+        if not item_id:
+            return raw
+
+        existing = OrcamentoItem.objects.filter(
+            pk=item_id, orcamento=orcamento
+        ).first()
+        if not existing:
+            return raw
+
+        for field in _ORCAMENTO_ITEM_MERGE_FIELDS:
+            if field not in raw_in:
+                raw[field] = getattr(existing, field)
+        return raw
+
     def _normalize_itens_list(self, orcamento, itens_data):
         normalized = []
         for idx, raw_in in enumerate(itens_data):
-            raw = dict(raw_in)
-            item_id = raw.get("id")
-            if item_id:
-                existing = OrcamentoItem.objects.filter(
-                    pk=item_id, orcamento=orcamento
-                ).first()
-                if existing:
-                    for field in _ORCAMENTO_ITEM_MERGE_FIELDS:
-                        if field not in raw_in:
-                            raw[field] = getattr(existing, field)
+            raw = self._mesclar_campos_item_existente(orcamento, raw_in)
             rehydrate = "produto" in raw_in and raw_in.get("produto") is not None
             clear_prod = "produto" in raw_in and raw_in.get("produto") is None
             normalized.append(

@@ -68,11 +68,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { ...input, id }])
 
     if (durationMs > 0) {
-      window.setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, durationMs)
+      window.setTimeout(() => dismissToast(id), durationMs)
     }
-  }, [])
+  }, [dismissToast])
 
   const value = useMemo(
     () => ({ showToast, dismissToast }),

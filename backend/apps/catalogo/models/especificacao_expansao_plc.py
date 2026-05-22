@@ -9,7 +9,10 @@ from core.choices.produtos import (
     TipoExpansaoPLCChoices,
     TipoSinalDigitalChoices,
 )
-from apps.catalogo.utils.plc_familia import normalizar_chave_familia_plc
+from apps.catalogo.utils.plc_familia import (
+    buscar_registro_familia_plc_duplicada,
+    normalizar_chave_familia_plc,
+)
 from .base import Produto
 
 
@@ -112,7 +115,11 @@ class EspecificacaoExpansaoPLC(BaseModel):
         if not chave:
             return
 
-        familia_duplicada = self._buscar_familia_plc_duplicada(chave)
+        familia_duplicada = buscar_registro_familia_plc_duplicada(
+            EspecificacaoExpansaoPLC.objects.all(),
+            chave,
+            pk_excluir=self.pk,
+        )
 
         if familia_duplicada:
             raise ValidationError(
@@ -123,26 +130,6 @@ class EspecificacaoExpansaoPLC(BaseModel):
                     )
                 }
             )
-
-    def _buscar_familia_plc_duplicada(self, chave):
-        qs = EspecificacaoExpansaoPLC.objects.exclude(
-            familia_plc__isnull=True
-        ).exclude(
-            familia_plc=""
-        )
-
-        if self.pk:
-            qs = qs.exclude(pk=self.pk)
-
-        for especificacao in qs.iterator():
-            chave_existente = normalizar_chave_familia_plc(
-                especificacao.familia_plc
-            )
-
-            if chave_existente == chave:
-                return especificacao
-
-        return None
 
     def _validar_tipo_sinal_analogico(self):
         if self._total_analogico == 0:

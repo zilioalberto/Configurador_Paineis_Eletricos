@@ -6,6 +6,7 @@ import { APP_PRODUCT_FULL_NAME } from '@/constants/appBranding'
 import { ZFW_LOGO_PNG_URL } from '@/constants/brandingAssets'
 import { ZFW_SITE_URL } from '@/constants/zfwSite'
 import { useAuth } from '@/modules/auth/AuthContext'
+import type { AuthUser } from '@/modules/auth/types'
 import { isAppAdmin } from '@/modules/auth/appAdmin'
 import { hasPermission } from '@/modules/auth/permissions'
 import { SidebarMenuGroup } from './SidebarMenuGroup'
@@ -24,42 +25,45 @@ type SidebarProps = {
   onNavigate?: () => void
 }
 
+type MenuAccessRule = {
+  requiresAppAdmin?: boolean
+  requiresPermission?: string
+}
+
+function menuItemVisible(user: AuthUser | null, item: MenuAccessRule): boolean {
+  if (item.requiresAppAdmin && !isAppAdmin(user)) return false
+  if (item.requiresPermission && !hasPermission(user, item.requiresPermission)) {
+    return false
+  }
+  return true
+}
+
+function filterAppMenuItems(user: AuthUser | null, items: AppMenuItem[]): AppMenuItem[] {
+  const out: AppMenuItem[] = []
+
+  for (const item of items) {
+    if (!menuItemVisible(user, item)) continue
+
+    if (isAppMenuGroup(item)) {
+      const children = item.children.filter((child) => menuItemVisible(user, child))
+      if (children.length === 0) continue
+      out.push({ ...item, children })
+      continue
+    }
+
+    out.push(item)
+  }
+
+  return out
+}
+
 export default function Sidebar({
   mobileOpen = false,
   onNavigate,
 }: SidebarProps) {
   const mode = import.meta.env.MODE
   const { user } = useAuth()
-  const menuItems = useMemo(() => {
-    const out: AppMenuItem[] = []
-    for (const item of appMenuItems) {
-      if (isAppMenuGroup(item)) {
-        if (item.requiresAppAdmin && !isAppAdmin(user)) continue
-        if (
-          item.requiresPermission &&
-          !hasPermission(user, item.requiresPermission)
-        )
-          continue
-        const children = item.children.filter((c) => {
-          if (c.requiresAppAdmin && !isAppAdmin(user)) return false
-          if (c.requiresPermission && !hasPermission(user, c.requiresPermission))
-            return false
-          return true
-        })
-        if (children.length === 0) continue
-        out.push({ ...item, children })
-      } else {
-        if (item.requiresAppAdmin && !isAppAdmin(user)) continue
-        if (
-          item.requiresPermission &&
-          !hasPermission(user, item.requiresPermission)
-        )
-          continue
-        out.push(item)
-      }
-    }
-    return out
-  }, [user])
+  const menuItems = useMemo(() => filterAppMenuItems(user, appMenuItems), [user])
 
   return (
     <aside

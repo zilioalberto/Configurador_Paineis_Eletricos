@@ -1,18 +1,9 @@
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type ChangeEvent, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useToast } from '@/components/feedback'
 import { useListboxKeyboardNavigation } from '@/hooks/useListboxKeyboardNavigation'
 import { useCategoriaListQuery } from '@/modules/catalogo/hooks/useCategoriaListQuery'
-import { buscarProdutosAutocomplete } from '@/modules/catalogo/services/produtoService'
-import type { ProdutoListItem } from '@/modules/catalogo/types/produto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { useInclusaoManualProdutoBusca } from '../hooks/useInclusaoManualProdutoBusca'
 import {
   useAdicionarInclusaoManualMutation,
   useRemoverInclusaoManualMutation,
@@ -30,11 +21,6 @@ function em(v: string | null | undefined) {
   return v
 }
 
-const BUSCA_DEBOUNCE_MS = 320
-const BUSCA_MIN_CHARS = 2
-
-const EMPTY_PRODUTOS: ProdutoListItem[] = []
-
 export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
   const { showToast } = useToast()
   const baseId = useId()
@@ -47,55 +33,29 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
   const [filtroCategoria, setFiltroCategoria] = useState('')
   const { data: categoriasCatalogo = [], isPending: loadingCategoriasCatalogo } =
     useCategoriaListQuery()
-  const [termoBusca, setTermoBusca] = useState('')
-  const [debounced, setDebounced] = useState('')
-  const [aberto, setAberto] = useState(false)
-  const [carregandoBusca, setCarregandoBusca] = useState(false)
-  const [resultados, setResultados] = useState<ProdutoListItem[]>([])
-  const [selecionado, setSelecionado] = useState<ProdutoListItem | null>(null)
   const [quantidade, setQuantidade] = useState('1')
   const [observacoes, setObservacoes] = useState('')
+
+  const busca = useInclusaoManualProdutoBusca(filtroCategoria)
+  const {
+    BUSCA_MIN_CHARS,
+    termoBusca,
+    setTermoBusca,
+    aberto,
+    setAberto,
+    carregandoBusca,
+    selecionado,
+    itensLista,
+    navigableItems,
+    listaTecladoAtiva,
+    keyboardResetKey,
+    onEscolherProduto,
+    onLimparSelecao,
+  } = busca
 
   const adicionarMutation = useAdicionarInclusaoManualMutation(projetoId)
   const removerMutation = useRemoverInclusaoManualMutation(projetoId)
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(termoBusca.trim()), BUSCA_DEBOUNCE_MS)
-    return () => clearTimeout(t)
-  }, [termoBusca])
-
-  useEffect(() => {
-    if (selecionado || debounced.length < BUSCA_MIN_CHARS) {
-      return
-    }
-    let cancel = false
-    void (async () => {
-      setCarregandoBusca(true)
-      try {
-        const lista = await buscarProdutosAutocomplete(debounced, filtroCategoria || null)
-        if (!cancel) setResultados(lista)
-      } catch {
-        if (!cancel) setResultados([])
-      } finally {
-        if (!cancel) setCarregandoBusca(false)
-      }
-    })()
-    return () => {
-      cancel = true
-    }
-  }, [debounced, selecionado, filtroCategoria])
-
-  const itensLista = useMemo(() => {
-    if (selecionado || debounced.length < BUSCA_MIN_CHARS) return EMPTY_PRODUTOS
-    return resultados
-  }, [selecionado, debounced, resultados])
-
-  const navigableItems = carregandoBusca ? EMPTY_PRODUTOS : itensLista
-  const listaTecladoAtiva =
-    Boolean(aberto && !selecionado && debounced.length >= BUSCA_MIN_CHARS) &&
-    navigableItems.length > 0
-
-  const keyboardResetKey = `${debounced}|${filtroCategoria}|${resultados.map((p) => p.id).join(',')}`
   const { activeIndex: highlightIndex, handleKeyDown: handleListboxKeyDown } =
     useListboxKeyboardNavigation(navigableItems, {
       isActive: listaTecladoAtiva,
@@ -116,21 +76,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
     }
     document.addEventListener('mousedown', onDocMouseDown)
     return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [])
-
-  const onEscolherProduto = useCallback((p: ProdutoListItem) => {
-    setSelecionado(p)
-    setTermoBusca('')
-    setDebounced('')
-    setAberto(false)
-    setResultados([])
-  }, [])
-
-  const onLimparSelecao = useCallback(() => {
-    setSelecionado(null)
-    setQuantidade('1')
-    setObservacoes('')
-  }, [])
+  }, [setAberto])
 
   const onAdicionar = useCallback(async () => {
     if (!selecionado || !podeEditar) return
@@ -143,6 +89,8 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
       })
       showToast({ variant: 'success', message: 'Produto incluído na composição.' })
       onLimparSelecao()
+      setQuantidade('1')
+      setObservacoes('')
     } catch (err) {
       console.error(err)
       showToast({
@@ -331,7 +279,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                   type="button"
                   className="btn btn-primary"
                   disabled={!selecionado || busy}
-                  onClick={() => void onAdicionar()}
+                  onClick={onAdicionar}
                 >
                   {adicionarMutation.isPending ? 'Incluindo…' : 'Incluir na composição'}
                 </button>
@@ -378,7 +326,7 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
                             type="button"
                             className="btn btn-sm btn-outline-danger"
                             disabled={busy}
-                            onClick={() => void onRemover(row.id)}
+                            onClick={() => onRemover(row.id)}
                           >
                             Remover
                           </button>

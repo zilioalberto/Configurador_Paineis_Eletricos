@@ -9,10 +9,12 @@ from core.choices import (
     StatusPendenciaChoices,
 )
 
+MSG_PROJETO_NAO_INFORMADO = "Projeto não informado."
+
 
 def validar_projeto_editavel(projeto: Projeto) -> None:
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status == StatusProjetoChoices.FINALIZADO:
         raise ValidationError(
@@ -22,7 +24,7 @@ def validar_projeto_editavel(projeto: Projeto) -> None:
 
 def validar_projeto_pode_ser_finalizado(projeto: Projeto) -> None:
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status == StatusProjetoChoices.FINALIZADO:
         raise ValidationError("O projeto já está finalizado.")
@@ -66,7 +68,7 @@ def finalizar_projeto(projeto: Projeto) -> Projeto:
 
 def validar_projeto_pode_ser_reaberto(projeto: Projeto) -> None:
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status != StatusProjetoChoices.FINALIZADO:
         raise ValidationError(

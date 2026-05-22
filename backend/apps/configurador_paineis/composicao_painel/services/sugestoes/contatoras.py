@@ -1,5 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
-from typing import List
+from typing import List, NamedTuple, Optional
 
 from django.core.exceptions import ValidationError
 
@@ -387,183 +387,167 @@ def _anexar_freio_se_necessario(
     return sugestoes_base + extra
 
 
-def processar_sugestao_contatora_para_carga(projeto, carga) -> List[SugestaoItem]:
-    """
-    Gera ou atualiza sugestão(ões) / pendência de contatora para uma única carga.
+class _ParamsContatoraCatalogo(NamedTuple):
+    corrente_referencia: Decimal
+    campo_catalogo: str
+    tipo_acionamento_para_selector: str
+    quantidade_contatora: Decimal
+    memoria_linha_corrente_valvula: str
 
-    - MOTOR DIRETA: uma ou duas contatoras (reversível: linha + reversão), AC-3 ≥ In.
-    - MOTOR ESTRELA_TRIANGULO: três contatoras (K1/K2 0,58 In; K3 0,33 In) ou,
-      se reversível, quatro (K1 e K1" com In; K2 tri 0,58 In; K3 estrela 0,33 In).
-    - MOTOR com freio_motor: mais uma contatora AC-3 ≥ 6 A.
-    - RESISTENCIA: só se tipo_acionamento CONTATOR (AC-1), índice de escopo 0.
-    - VALVULA: só se tipo_acionamento CONTATOR; catálogo AC-3 ≥ corrente
-      consumida (mA→A); quantidade = ``quantidade_solenoides``.
-    """
-    _validar_projeto_contatora(projeto)
 
-    print("-" * 100)
-    print(f"[CONTATORAS] Processando carga: id={carga.id} | carga={carga}")
-    print(f"[CONTATORAS] Tipo da carga: {carga.tipo}")
+def _processar_contatora_motor(projeto, carga) -> List[SugestaoItem]:
+    print("[CONTATORAS] Carga do tipo MOTOR")
 
-    corrente_referencia = None
-    campo_catalogo = None
-    tipo_acionamento_para_selector = None
-    quantidade_contatora = Decimal("1")
-    memoria_linha_corrente_valvula = ""
-
-    if carga.tipo == TipoCargaChoices.MOTOR:
-        print("[CONTATORAS] Carga do tipo MOTOR")
-
-        try:
-            carga_motor = CargaMotor.objects.get(carga_id=carga.pk)
-            carga_motor.refresh_from_db()
-            print(f"[CONTATORAS] CargaMotor encontrada: id={carga_motor.id}")
-        except CargaMotor.DoesNotExist:
-            descricao = (
+    try:
+        carga_motor = CargaMotor.objects.get(carga_id=carga.pk)
+        carga_motor.refresh_from_db()
+        print(f"[CONTATORAS] CargaMotor encontrada: id={carga_motor.id}")
+    except CargaMotor.DoesNotExist:
+        _pendencia_contatora(
+            projeto,
+            carga,
+            descricao=(
                 "Carga do tipo MOTOR sem registro correspondente em CargaMotor."
-            )
-
-            _pendencia_contatora(
-                projeto,
-                carga,
-                descricao=descricao,
-                memoria_calculo=(
-                    f"[CONTATORA]\n"
-                    f"Carga: {carga}\n"
-                    f"Tipo de carga: {carga.tipo}\n"
-                    f"Motivo: registro CargaMotor não encontrado."
-                ),
-                corrente_referencia_a=None,
-                indice_escopo=0,
-            )
-            print("[CONTATORAS] Pendência criada: CargaMotor não encontrada.")
-            return []
-
-        if not _motor_exige_contatoras(carga_motor):
-            _limpar_escopo_contatora_carga(projeto, carga)
-            print(
-                "[CONTATORAS] Partida do motor não exige contatoras "
-                f"({carga_motor.tipo_partida}). Pulando."
-            )
-            return []
-
-        if carga_motor.tipo_partida == TipoPartidaMotorChoices.ESTRELA_TRIANGULO:
-            print("[CONTATORAS] Partida estrela-triângulo.")
-            sugs = _processar_contatoras_estrela_triangulo(
-                projeto, carga, carga_motor
-            )
-            if not sugs:
-                return []
-            return _anexar_freio_se_necessario(
-                projeto, carga, carga_motor, sugs
-            )
-
-        if carga_motor.tipo_partida == TipoPartidaMotorChoices.DIRETA:
-            print("[CONTATORAS] Partida direta.")
-            sugs = _processar_contatoras_partida_direta(projeto, carga, carga_motor)
-            if not sugs:
-                return []
-            return _anexar_freio_se_necessario(
-                projeto, carga, carga_motor, sugs
-            )
-
+            ),
+            memoria_calculo=(
+                f"[CONTATORA]\n"
+                f"Carga: {carga}\n"
+                f"Tipo de carga: {carga.tipo}\n"
+                f"Motivo: registro CargaMotor não encontrado."
+            ),
+            corrente_referencia_a=None,
+            indice_escopo=0,
+        )
+        print("[CONTATORAS] Pendência criada: CargaMotor não encontrada.")
         return []
 
-    elif carga.tipo == TipoCargaChoices.RESISTENCIA:
-        print("[CONTATORAS] Carga do tipo RESISTENCIA")
+    if not _motor_exige_contatoras(carga_motor):
+        _limpar_escopo_contatora_carga(projeto, carga)
+        print(
+            "[CONTATORAS] Partida do motor não exige contatoras "
+            f"({carga_motor.tipo_partida}). Pulando."
+        )
+        return []
 
-        try:
-            carga_resistencia = CargaResistencia.objects.get(carga=carga)
-            print(
-                f"[CONTATORAS] CargaResistencia encontrada: id={carga_resistencia.id}"
-            )
-        except CargaResistencia.DoesNotExist:
-            descricao = (
+    if carga_motor.tipo_partida == TipoPartidaMotorChoices.ESTRELA_TRIANGULO:
+        print("[CONTATORAS] Partida estrela-triângulo.")
+        sugs = _processar_contatoras_estrela_triangulo(projeto, carga, carga_motor)
+        if not sugs:
+            return []
+        return _anexar_freio_se_necessario(projeto, carga, carga_motor, sugs)
+
+    if carga_motor.tipo_partida == TipoPartidaMotorChoices.DIRETA:
+        print("[CONTATORAS] Partida direta.")
+        sugs = _processar_contatoras_partida_direta(projeto, carga, carga_motor)
+        if not sugs:
+            return []
+        return _anexar_freio_se_necessario(projeto, carga, carga_motor, sugs)
+
+    return []
+
+
+def _params_contatora_resistencia(
+    projeto, carga
+) -> Optional[_ParamsContatoraCatalogo]:
+    print("[CONTATORAS] Carga do tipo RESISTENCIA")
+
+    try:
+        carga_resistencia = CargaResistencia.objects.get(carga=carga)
+        print(
+            f"[CONTATORAS] CargaResistencia encontrada: id={carga_resistencia.id}"
+        )
+    except CargaResistencia.DoesNotExist:
+        _pendencia_contatora(
+            projeto,
+            carga,
+            descricao=(
                 "Carga do tipo RESISTENCIA sem registro correspondente em CargaResistencia."
-            )
+            ),
+            memoria_calculo=(
+                f"[CONTATORA]\n"
+                f"Carga: {carga}\n"
+                f"Tipo de carga: {carga.tipo}\n"
+                f"Motivo: registro CargaResistencia não encontrado."
+            ),
+            corrente_referencia_a=None,
+            indice_escopo=0,
+        )
+        print("[CONTATORAS] Pendência criada: CargaResistencia não encontrada.")
+        return None
 
-            _pendencia_contatora(
-                projeto,
-                carga,
-                descricao=descricao,
-                memoria_calculo=(
-                    f"[CONTATORA]\n"
-                    f"Carga: {carga}\n"
-                    f"Tipo de carga: {carga.tipo}\n"
-                    f"Motivo: registro CargaResistencia não encontrado."
-                ),
-                corrente_referencia_a=None,
-                indice_escopo=0,
-            )
-            print("[CONTATORAS] Pendência criada: CargaResistencia não encontrada.")
-            return []
+    if carga_resistencia.tipo_acionamento != TipoAcionamentoResistenciaChoices.CONTATOR:
+        _limpar_escopo_contatora_carga(projeto, carga)
+        print(
+            "[CONTATORAS] Resistência sem acionamento por contator; "
+            "não gera sugestão de contatora."
+        )
+        return None
 
-        corrente_referencia = carga_resistencia.corrente_calculada_a
-        campo_catalogo = "corrente_ac1_a"
-        tipo_acionamento_para_selector = carga_resistencia.tipo_acionamento
-        if (
-            tipo_acionamento_para_selector
-            != TipoAcionamentoResistenciaChoices.CONTATOR
-        ):
-            _limpar_escopo_contatora_carga(projeto, carga)
-            print(
-                "[CONTATORAS] Resistência sem acionamento por contator; "
-                "não gera sugestão de contatora."
-            )
-            return []
+    return _ParamsContatoraCatalogo(
+        corrente_referencia=carga_resistencia.corrente_calculada_a,
+        campo_catalogo="corrente_ac1_a",
+        tipo_acionamento_para_selector=carga_resistencia.tipo_acionamento,
+        quantidade_contatora=Decimal("1"),
+        memoria_linha_corrente_valvula="",
+    )
 
-    elif carga.tipo == TipoCargaChoices.VALVULA:
-        print("[CONTATORAS] Carga do tipo VALVULA")
 
-        try:
-            carga_valvula = CargaValvula.objects.get(carga=carga)
-            print(
-                f"[CONTATORAS] CargaValvula encontrada: id={carga_valvula.id}"
-            )
-        except CargaValvula.DoesNotExist:
-            descricao = (
+def _params_contatora_valvula(projeto, carga) -> Optional[_ParamsContatoraCatalogo]:
+    print("[CONTATORAS] Carga do tipo VALVULA")
+
+    try:
+        carga_valvula = CargaValvula.objects.get(carga=carga)
+        print(f"[CONTATORAS] CargaValvula encontrada: id={carga_valvula.id}")
+    except CargaValvula.DoesNotExist:
+        _pendencia_contatora(
+            projeto,
+            carga,
+            descricao=(
                 "Carga do tipo VALVULA sem registro correspondente em CargaValvula."
-            )
-            _pendencia_contatora(
-                projeto,
-                carga,
-                descricao=descricao,
-                memoria_calculo=(
-                    f"[CONTATORA]\n"
-                    f"Carga: {carga}\n"
-                    f"Tipo de carga: {carga.tipo}\n"
-                    f"Motivo: registro CargaValvula não encontrado."
-                ),
-                corrente_referencia_a=None,
-                indice_escopo=0,
-            )
-            print("[CONTATORAS] Pendência criada: CargaValvula não encontrada.")
-            return []
+            ),
+            memoria_calculo=(
+                f"[CONTATORA]\n"
+                f"Carga: {carga}\n"
+                f"Tipo de carga: {carga.tipo}\n"
+                f"Motivo: registro CargaValvula não encontrado."
+            ),
+            corrente_referencia_a=None,
+            indice_escopo=0,
+        )
+        print("[CONTATORAS] Pendência criada: CargaValvula não encontrada.")
+        return None
 
-        if carga_valvula.tipo_acionamento != TipoAcionamentoValvulaChoices.CONTATOR:
-            _limpar_escopo_contatora_carga(projeto, carga)
-            print(
-                "[CONTATORAS] Válvula sem acionamento por contator; "
-                "não gera sugestão de contatora."
-            )
-            return []
+    if carga_valvula.tipo_acionamento != TipoAcionamentoValvulaChoices.CONTATOR:
+        _limpar_escopo_contatora_carga(projeto, carga)
+        print(
+            "[CONTATORAS] Válvula sem acionamento por contator; "
+            "não gera sugestão de contatora."
+        )
+        return None
 
-        corrente_referencia = (
-            Decimal(carga_valvula.corrente_consumida_ma) / Decimal("1000")
-        ).quantize(Decimal("0.0001"))
-        campo_catalogo = "corrente_ac3_a"
-        tipo_acionamento_para_selector = carga_valvula.tipo_acionamento
-        quantidade_contatora = Decimal(carga_valvula.quantidade_solenoides)
-        memoria_linha_corrente_valvula = (
+    corrente_referencia = (
+        Decimal(carga_valvula.corrente_consumida_ma) / Decimal("1000")
+    ).quantize(Decimal("0.0001"))
+    return _ParamsContatoraCatalogo(
+        corrente_referencia=corrente_referencia,
+        campo_catalogo="corrente_ac3_a",
+        tipo_acionamento_para_selector=carga_valvula.tipo_acionamento,
+        quantidade_contatora=Decimal(carga_valvula.quantidade_solenoides),
+        memoria_linha_corrente_valvula=(
             f"Corrente consumida (válvula): {carga_valvula.corrente_consumida_ma} mA "
             f"→ referência AC-3: {corrente_referencia} A\n"
-        )
+        ),
+    )
 
-    else:
-        print(
-            f"[CONTATORAS] Tipo de carga {carga.tipo} não tratado para contatora. Pulando."
-        )
-        return []
+
+def _criar_sugestao_contatora_catalogo(
+    projeto, carga, params: _ParamsContatoraCatalogo
+) -> List[SugestaoItem]:
+    corrente_referencia = params.corrente_referencia
+    campo_catalogo = params.campo_catalogo
+    tipo_acionamento_para_selector = params.tipo_acionamento_para_selector
+    quantidade_contatora = params.quantidade_contatora
+    memoria_linha_corrente_valvula = params.memoria_linha_corrente_valvula
 
     print(f"[CONTATORAS] Corrente de referência: {corrente_referencia}")
     print(f"[CONTATORAS] Campo do catálogo: {campo_catalogo}")
@@ -573,12 +557,10 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> List[SugestaoItem
     )
 
     if corrente_referencia is None:
-        descricao = "Corrente de referência não calculada para seleção da contatora."
-
         _pendencia_contatora(
             projeto,
             carga,
-            descricao=descricao,
+            descricao="Corrente de referência não calculada para seleção da contatora.",
             memoria_calculo=(
                 f"[CONTATORA]\n"
                 f"Carga: {carga}\n"
@@ -631,19 +613,17 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> List[SugestaoItem
     )
 
     if not opcoes_lista:
-        descricao = (
-            f"Nenhuma contatora compatível encontrada para a carga {carga}."
-        )
         observacoes = (
             f"Corrente requerida: {corrente_referencia} A | "
             f"Critério catálogo: {campo_catalogo} | "
             f"Bobina: {projeto.tensao_comando} / {projeto.tipo_corrente_comando}"
         )
-
         _pendencia_contatora(
             projeto,
             carga,
-            descricao=descricao,
+            descricao=(
+                f"Nenhuma contatora compatível encontrada para a carga {carga}."
+            ),
             memoria_calculo=memoria_calculo,
             corrente_referencia_a=corrente_referencia,
             observacoes=observacoes,
@@ -672,9 +652,48 @@ def processar_sugestao_contatora_para_carga(projeto, carga) -> List[SugestaoItem
     )
 
     print(
-        f"[CONTATORAS] Sugestão salva: id={sugestao.id} | created={created} | produto={sugestao.produto}"
+        f"[CONTATORAS] Sugestão salva: id={sugestao.id} | created={created} | "
+        f"produto={sugestao.produto}"
     )
     return [sugestao]
+
+
+def processar_sugestao_contatora_para_carga(projeto, carga) -> List[SugestaoItem]:
+    """
+    Gera ou atualiza sugestão(ões) / pendência de contatora para uma única carga.
+
+    - MOTOR DIRETA: uma ou duas contatoras (reversível: linha + reversão), AC-3 ≥ In.
+    - MOTOR ESTRELA_TRIANGULO: três contatoras (K1/K2 0,58 In; K3 0,33 In) ou,
+      se reversível, quatro (K1 e K1" com In; K2 tri 0,58 In; K3 estrela 0,33 In).
+    - MOTOR com freio_motor: mais uma contatora AC-3 ≥ 6 A.
+    - RESISTENCIA: só se tipo_acionamento CONTATOR (AC-1), índice de escopo 0.
+    - VALVULA: só se tipo_acionamento CONTATOR; catálogo AC-3 ≥ corrente
+      consumida (mA→A); quantidade = ``quantidade_solenoides``.
+    """
+    _validar_projeto_contatora(projeto)
+
+    print("-" * 100)
+    print(f"[CONTATORAS] Processando carga: id={carga.id} | carga={carga}")
+    print(f"[CONTATORAS] Tipo da carga: {carga.tipo}")
+
+    if carga.tipo == TipoCargaChoices.MOTOR:
+        return _processar_contatora_motor(projeto, carga)
+
+    params: Optional[_ParamsContatoraCatalogo] = None
+    if carga.tipo == TipoCargaChoices.RESISTENCIA:
+        params = _params_contatora_resistencia(projeto, carga)
+    elif carga.tipo == TipoCargaChoices.VALVULA:
+        params = _params_contatora_valvula(projeto, carga)
+    else:
+        print(
+            f"[CONTATORAS] Tipo de carga {carga.tipo} não tratado para contatora. Pulando."
+        )
+        return []
+
+    if params is None:
+        return []
+
+    return _criar_sugestao_contatora_catalogo(projeto, carga, params)
 
 
 def reprocessar_contatora_para_carga(projeto, carga) -> List[SugestaoItem]:

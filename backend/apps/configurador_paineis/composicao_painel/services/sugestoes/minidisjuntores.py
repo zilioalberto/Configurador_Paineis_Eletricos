@@ -32,6 +32,92 @@ def _numero_polos_para_fases(numero_fases: int) -> Optional[str]:
     return m.get(int(numero_fases))
 
 
+def _registrar_pendencia_minidisjuntor(
+    projeto,
+    carga,
+    *,
+    descricao: str,
+    memoria_calculo: str,
+    corrente_referencia_a=None,
+) -> None:
+    PendenciaItem.objects.update_or_create(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        carga=carga,
+        defaults={
+            "descricao": descricao,
+            "corrente_referencia_a": corrente_referencia_a,
+            "memoria_calculo": memoria_calculo,
+            "status": StatusPendenciaChoices.ABERTA,
+            "ordem": 30,
+        },
+    )
+
+
+def _dados_minidisjuntor_motor(projeto, carga):
+    try:
+        carga_motor = CargaMotor.objects.get(carga=carga)
+    except CargaMotor.DoesNotExist:
+        _registrar_pendencia_minidisjuntor(
+            projeto,
+            carga,
+            descricao=(
+                "Carga do tipo MOTOR sem registro correspondente em CargaMotor."
+            ),
+            memoria_calculo=(
+                f"[MINIDISJUNTOR]\n"
+                f"Carga: {carga}\n"
+                f"Motivo: registro CargaMotor não encontrado."
+            ),
+        )
+        return None
+
+    if carga_motor.tipo_protecao != TipoProtecaoMotorChoices.MINIDISJUNTOR:
+        _limpar_escopo_minidisjuntores_carga(projeto, carga)
+        print(
+            "[MINIDISJUNTOR] Proteção do motor diferente de MINIDISJUNTOR. Pulando."
+        )
+        return None
+
+    memoria = f"Tipo de proteção do motor: {carga_motor.tipo_protecao}\n"
+    return carga_motor.corrente_calculada_a, carga_motor.numero_fases, memoria
+
+
+def _dados_minidisjuntor_resistencia(projeto, carga):
+    try:
+        carga_resistencia = CargaResistencia.objects.get(carga=carga)
+    except CargaResistencia.DoesNotExist:
+        _registrar_pendencia_minidisjuntor(
+            projeto,
+            carga,
+            descricao="Carga do tipo RESISTENCIA sem registro em CargaResistencia.",
+            memoria_calculo=(
+                f"[MINIDISJUNTOR]\n"
+                f"Carga: {carga}\n"
+                f"Motivo: registro CargaResistencia não encontrado."
+            ),
+        )
+        return None
+
+    if carga_resistencia.tipo_protecao != TipoProtecaoResistenciaChoices.MINIDISJUNTOR:
+        _limpar_escopo_minidisjuntores_carga(projeto, carga)
+        print(
+            "[MINIDISJUNTOR] Proteção da resistência diferente de "
+            "MINIDISJUNTOR. Pulando."
+        )
+        return None
+
+    memoria = (
+        f"Tipo de proteção da resistência: {carga_resistencia.tipo_protecao}\n"
+    )
+    return (
+        carga_resistencia.corrente_calculada_a,
+        carga_resistencia.numero_fases,
+        memoria,
+    )
+
+
 def _limpar_escopo_minidisjuntores_carga(projeto, carga) -> None:
     SugestaoItem.objects.filter(
         projeto=projeto,
@@ -61,95 +147,18 @@ def processar_sugestao_minidisjuntores_para_carga(
     print("-" * 100)
     print(f"[MINIDISJUNTOR] Processando carga: id={carga.id} | carga={carga}")
 
-    corrente_referencia = None
-    numero_fases = None
-    memoria_tipo = ""
-
     if carga.tipo == TipoCargaChoices.MOTOR:
-        try:
-            carga_motor = CargaMotor.objects.get(carga=carga)
-        except CargaMotor.DoesNotExist:
-            descricao = (
-                "Carga do tipo MOTOR sem registro correspondente em CargaMotor."
-            )
-            memoria_calculo = (
-                f"[MINIDISJUNTOR]\n"
-                f"Carga: {carga}\n"
-                f"Motivo: registro CargaMotor não encontrado."
-            )
-            PendenciaItem.objects.update_or_create(
-                projeto=projeto,
-                parte_painel=PartesPainelChoices.PROTECAO_CARGA,
-                categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
-                carga=carga,
-                defaults={
-                    "descricao": descricao,
-                    "corrente_referencia_a": None,
-                    "memoria_calculo": memoria_calculo,
-                    "status": StatusPendenciaChoices.ABERTA,
-                    "ordem": 30,
-                },
-            )
-            return None
-
-        if carga_motor.tipo_protecao != TipoProtecaoMotorChoices.MINIDISJUNTOR:
-            _limpar_escopo_minidisjuntores_carga(projeto, carga)
-            print(
-                "[MINIDISJUNTOR] Proteção do motor diferente de MINIDISJUNTOR. Pulando."
-            )
-            return None
-
-        corrente_referencia = carga_motor.corrente_calculada_a
-        numero_fases = carga_motor.numero_fases
-        memoria_tipo = f"Tipo de proteção do motor: {carga_motor.tipo_protecao}\n"
-
+        dados = _dados_minidisjuntor_motor(projeto, carga)
     elif carga.tipo == TipoCargaChoices.RESISTENCIA:
-        try:
-            carga_resistencia = CargaResistencia.objects.get(carga=carga)
-        except CargaResistencia.DoesNotExist:
-            descricao = (
-                "Carga do tipo RESISTENCIA sem registro em CargaResistencia."
-            )
-            memoria_calculo = (
-                f"[MINIDISJUNTOR]\n"
-                f"Carga: {carga}\n"
-                f"Motivo: registro CargaResistencia não encontrado."
-            )
-            PendenciaItem.objects.update_or_create(
-                projeto=projeto,
-                parte_painel=PartesPainelChoices.PROTECAO_CARGA,
-                categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
-                carga=carga,
-                defaults={
-                    "descricao": descricao,
-                    "corrente_referencia_a": None,
-                    "memoria_calculo": memoria_calculo,
-                    "status": StatusPendenciaChoices.ABERTA,
-                    "ordem": 30,
-                },
-            )
-            return None
-
-        if (
-            carga_resistencia.tipo_protecao
-            != TipoProtecaoResistenciaChoices.MINIDISJUNTOR
-        ):
-            _limpar_escopo_minidisjuntores_carga(projeto, carga)
-            print(
-                "[MINIDISJUNTOR] Proteção da resistência diferente de "
-                "MINIDISJUNTOR. Pulando."
-            )
-            return None
-
-        corrente_referencia = carga_resistencia.corrente_calculada_a
-        numero_fases = carga_resistencia.numero_fases
-        memoria_tipo = (
-            f"Tipo de proteção da resistência: {carga_resistencia.tipo_protecao}\n"
-        )
-
+        dados = _dados_minidisjuntor_resistencia(projeto, carga)
     else:
         print("[MINIDISJUNTOR] Tipo de carga não tratado. Pulando.")
         return None
+
+    if dados is None:
+        return None
+
+    corrente_referencia, numero_fases, memoria_tipo = dados
 
     numero_polos = (
         _numero_polos_para_fases(numero_fases) if numero_fases is not None else None
@@ -164,43 +173,28 @@ def processar_sugestao_minidisjuntores_para_carga(
             f"{memoria_tipo}"
             f"numero_fases informado: {numero_fases}\n"
         )
-        PendenciaItem.objects.update_or_create(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
-            categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
-            carga=carga,
-            defaults={
-                "descricao": descricao,
-                "corrente_referencia_a": corrente_referencia,
-                "memoria_calculo": memoria_calculo,
-                "status": StatusPendenciaChoices.ABERTA,
-                "ordem": 30,
-            },
+        _registrar_pendencia_minidisjuntor(
+            projeto,
+            carga,
+            descricao=descricao,
+            memoria_calculo=memoria_calculo,
+            corrente_referencia_a=corrente_referencia,
         )
         return None
 
     if corrente_referencia is None:
-        descricao = (
-            "Corrente calculada não encontrada para seleção do minidisjuntor."
-        )
-        memoria_calculo = (
-            f"[MINIDISJUNTOR]\n"
-            f"Carga: {carga}\n"
-            f"{memoria_tipo}"
-            f"Motivo: corrente_calculada_a ausente."
-        )
-        PendenciaItem.objects.update_or_create(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
-            categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
-            carga=carga,
-            defaults={
-                "descricao": descricao,
-                "corrente_referencia_a": None,
-                "memoria_calculo": memoria_calculo,
-                "status": StatusPendenciaChoices.ABERTA,
-                "ordem": 30,
-            },
+        _registrar_pendencia_minidisjuntor(
+            projeto,
+            carga,
+            descricao=(
+                "Corrente calculada não encontrada para seleção do minidisjuntor."
+            ),
+            memoria_calculo=(
+                f"[MINIDISJUNTOR]\n"
+                f"Carga: {carga}\n"
+                f"{memoria_tipo}"
+                f"Motivo: corrente_calculada_a ausente."
+            ),
         )
         return None
 
@@ -240,18 +234,12 @@ def processar_sugestao_minidisjuntores_para_carga(
         descricao = (
             f"Nenhum minidisjuntor compatível encontrado para a carga {carga}."
         )
-        PendenciaItem.objects.update_or_create(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.PROTECAO_CARGA,
-            categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
-            carga=carga,
-            defaults={
-                "descricao": descricao,
-                "corrente_referencia_a": corrente_referencia,
-                "memoria_calculo": memoria_calculo,
-                "status": StatusPendenciaChoices.ABERTA,
-                "ordem": 30,
-            },
+        _registrar_pendencia_minidisjuntor(
+            projeto,
+            carga,
+            descricao=descricao,
+            memoria_calculo=memoria_calculo,
+            corrente_referencia_a=corrente_referencia,
         )
         return None
 

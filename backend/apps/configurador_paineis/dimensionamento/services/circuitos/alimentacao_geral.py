@@ -99,6 +99,79 @@ def _alimentacao_cc(
     }
 
 
+def _build_resultado_alimentacao_ca(
+    ib: Decimal,
+    nf: int,
+    possui_n: bool,
+    possui_t: bool,
+    linhas: list[str],
+    projeto,
+    *,
+    q_fase: int,
+) -> dict:
+    secao_f = _secao_ib(ib, projeto)
+    secao_n = secao_f if possui_n else None
+    pe = secao_pe_mm2_a_partir_da_fase(secao_f) if possui_t else None
+    return {
+        "corrente_total_painel_a": ib,
+        "tipo_corrente": TipoCorrenteChoices.CA,
+        "numero_fases": nf,
+        "possui_neutro": possui_n,
+        "possui_terra": possui_t,
+        "quantidade_condutores_fase": q_fase,
+        "quantidade_condutores_neutro": 1 if possui_n else 0,
+        "secao_condutor_fase_mm2": secao_f,
+        "secao_condutor_neutro_mm2": secao_n,
+        "secao_condutor_pe_mm2": pe,
+        "observacoes": "",
+        "memoria_calculo": "\n".join(linhas),
+    }
+
+
+def _alimentacao_ca_trifasica(
+    ib: Decimal,
+    nf: int,
+    possui_n: bool,
+    possui_t: bool,
+    linhas: list[str],
+    projeto,
+) -> dict:
+    linhas.append(
+        "CA trifásica: 3 condutores de fase dimensionados pela corrente total "
+        "(valor já consolidado no resumo)."
+    )
+    if possui_n:
+        linhas.append("Neutro: mesma seção da fase (referência simplificada).")
+    if possui_t:
+        pe = secao_pe_mm2_a_partir_da_fase(_secao_ib(ib, projeto))
+        linhas.append(f"PE: {pe} mm² (relação com a seção de fase).")
+    return _build_resultado_alimentacao_ca(
+        ib, nf, possui_n, possui_t, linhas, projeto, q_fase=3
+    )
+
+
+def _alimentacao_ca_monofasica(
+    ib: Decimal,
+    nf: int,
+    possui_n: bool,
+    possui_t: bool,
+    linhas: list[str],
+    projeto,
+) -> dict:
+    linhas.append(
+        "CA monofásica: 1 condutor de fase + neutro (se previsto) + PE (se previsto)."
+    )
+    if possui_n:
+        linhas.append("Neutro: mesma seção da fase.")
+    if possui_t:
+        pe = secao_pe_mm2_a_partir_da_fase(_secao_ib(ib, projeto))
+        if pe is not None:
+            linhas.append(f"PE: {pe} mm².")
+    return _build_resultado_alimentacao_ca(
+        ib, nf, possui_n, possui_t, linhas, projeto, q_fase=1
+    )
+
+
 def _alimentacao_ca(
     ib: Decimal,
     nf: int | None,
@@ -107,61 +180,12 @@ def _alimentacao_ca(
     linhas: list[str],
     projeto,
 ) -> dict:
-    secao_f = _secao_ib(ib, projeto)
-
     if nf == NumeroFasesChoices.TRIFASICO:
-        q_fase = 3
-        linhas.append(
-            "CA trifásica: 3 condutores de fase dimensionados pela corrente total "
-            "(valor já consolidado no resumo)."
-        )
-        secao_n = secao_f if possui_n else None
-        if possui_n:
-            linhas.append("Neutro: mesma seção da fase (referência simplificada).")
-        pe = secao_pe_mm2_a_partir_da_fase(secao_f) if possui_t else None
-        if possui_t:
-            linhas.append(f"PE: {pe} mm² (relação com a seção de fase).")
-        return {
-            "corrente_total_painel_a": ib,
-            "tipo_corrente": TipoCorrenteChoices.CA,
-            "numero_fases": nf,
-            "possui_neutro": possui_n,
-            "possui_terra": possui_t,
-            "quantidade_condutores_fase": q_fase,
-            "quantidade_condutores_neutro": 1 if possui_n else 0,
-            "secao_condutor_fase_mm2": secao_f,
-            "secao_condutor_neutro_mm2": secao_n,
-            "secao_condutor_pe_mm2": pe,
-            "observacoes": "",
-            "memoria_calculo": "\n".join(linhas),
-        }
+        return _alimentacao_ca_trifasica(ib, nf, possui_n, possui_t, linhas, projeto)
 
     if nf == NumeroFasesChoices.MONOFASICO:
-        linhas.append(
-            "CA monofásica: 1 condutor de fase + neutro (se previsto) + PE (se previsto)."
-        )
-        secao_n = secao_f if possui_n else None
-        if possui_n:
-            linhas.append("Neutro: mesma seção da fase.")
-        pe = secao_pe_mm2_a_partir_da_fase(secao_f) if possui_t else None
-        if possui_t and pe is not None:
-            linhas.append(f"PE: {pe} mm².")
-        return {
-            "corrente_total_painel_a": ib,
-            "tipo_corrente": TipoCorrenteChoices.CA,
-            "numero_fases": nf,
-            "possui_neutro": possui_n,
-            "possui_terra": possui_t,
-            "quantidade_condutores_fase": 1,
-            "quantidade_condutores_neutro": 1 if possui_n else 0,
-            "secao_condutor_fase_mm2": secao_f,
-            "secao_condutor_neutro_mm2": secao_n,
-            "secao_condutor_pe_mm2": pe,
-            "observacoes": "",
-            "memoria_calculo": "\n".join(linhas),
-        }
+        return _alimentacao_ca_monofasica(ib, nf, possui_n, possui_t, linhas, projeto)
 
-    # CA sem número de fases coerente: assumir trifásico (comum em painéis industriais)
     linhas.append(
         f"Número de fases ({nf}) não tratado explicitamente; adotada regra trifásica."
     )

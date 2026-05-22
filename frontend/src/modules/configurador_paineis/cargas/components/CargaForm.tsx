@@ -27,6 +27,10 @@ import {
   unidadePotenciaCorrenteOptions,
 } from '../constants/cargaChoiceOptions'
 import { applyTipoChange, tipoCargaOptions } from '../utils/cargaFormDefaults'
+import {
+  calcularOcupacaoIoCarga,
+  calcularSaidasDigitaisMotor,
+} from '../utils/calcularIoCargaForm'
 import type { CargaFormData, TipoCarga } from '../types/carga'
 import { renderCargaSelectOptions } from './renderCargaSelectOptions'
 
@@ -82,28 +86,6 @@ export default function CargaForm({
       formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
   const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !formData.exige_comando
 
-  const calcularSaidasDigitaisMotor = useCallback(
-    (partida: string, reversivel: boolean, freioMotor: boolean): number => {
-      let saidas = 1
-
-      if (partida === 'ESTRELA_TRIANGULO') {
-        saidas = 3
-      } else if (
-        partida === 'DIRETA' ||
-        partida === 'SOFT_STARTER' ||
-        partida === 'INVERSOR' ||
-        partida === 'SERVO_DRIVE'
-      ) {
-        saidas = 1
-      }
-
-      if (reversivel) saidas += 1
-      if (freioMotor) saidas += 1
-      return saidas
-    },
-    []
-  )
-
   useEffect(() => {
     if (!formData.projeto) return
     const p = projetos.find((x) => x.id === formData.projeto)
@@ -120,83 +102,25 @@ export default function CargaForm({
   }, [formData.projeto, projetos])
 
   useEffect(() => {
-    if (!mostrarOcupacaoIo || !formData.exige_comando) {
+    if (!mostrarOcupacaoIo) {
       setFormData((prev) => ({
         ...prev,
-        quantidade_entradas_digitais: 0,
-        quantidade_entradas_analogicas: 0,
-        quantidade_saidas_digitais: 0,
-        quantidade_saidas_analogicas: 0,
-        quantidade_entradas_rapidas: 0,
+        ...calcularOcupacaoIoCarga({ ...prev, exige_comando: false }),
       }))
       return
     }
 
-    let entradasDigitais = 0
-    let entradasAnalogicas = 0
-    let saidasDigitais = 0
-    let saidasAnalogicas = 0
-    let entradasRapidas = 0
-
-    if (formData.tipo === 'MOTOR' && formData.motor) {
-      const partida = formData.motor.tipo_partida
-      if (
-        partida === 'DIRETA' ||
-        partida === 'ESTRELA_TRIANGULO' ||
-        partida === 'SOFT_STARTER' ||
-        partida === 'INVERSOR' ||
-        partida === 'SERVO_DRIVE'
-      ) {
-        entradasDigitais = 1
-        saidasDigitais = calcularSaidasDigitaisMotor(
-          partida,
-          Boolean(formData.motor.reversivel),
-          Boolean(formData.motor.freio_motor)
-        )
-      }
-      if (partida === 'ESTRELA_TRIANGULO') {
-        entradasAnalogicas = 0
-        saidasAnalogicas = 0
-      }
-    } else if (formData.tipo === 'VALVULA' && formData.valvula) {
-      entradasDigitais = formData.valvula.possui_feedback ? 1 : 0
-      saidasDigitais = Math.max(1, Number(formData.valvula.quantidade_solenoides) || 1)
-    } else if (formData.tipo === 'RESISTENCIA' && formData.resistencia) {
-      saidasDigitais = 1
-    } else if (formData.tipo === 'SENSOR' && formData.sensor) {
-      const sinal = formData.sensor.tipo_sinal
-      if (sinal === 'DIGITAL') entradasDigitais = 1
-      if (sinal === 'ANALOGICO') entradasAnalogicas = 1
-      if (sinal === 'ANALOGICO_DIGITAL') {
-        entradasDigitais = 1
-        entradasAnalogicas = 1
-      }
-      if (formData.sensor.tipo_sensor === 'ENCODER') entradasRapidas = 1
-    } else if (formData.tipo === 'TRANSDUTOR') {
-      entradasAnalogicas = 1
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      quantidade_entradas_digitais: entradasDigitais,
-      quantidade_entradas_analogicas: entradasAnalogicas,
-      quantidade_saidas_digitais: saidasDigitais,
-      quantidade_saidas_analogicas: saidasAnalogicas,
-      quantidade_entradas_rapidas: entradasRapidas,
-    }))
+    const io = calcularOcupacaoIoCarga(formData, calcularSaidasDigitaisMotor)
+    setFormData((prev) => ({ ...prev, ...io }))
   }, [
     mostrarOcupacaoIo,
     formData.exige_comando,
     formData.tipo,
-    formData.motor?.tipo_partida,
-    formData.motor?.reversivel,
-    formData.motor?.freio_motor,
-    formData.valvula?.quantidade_solenoides,
-    formData.valvula?.possui_feedback,
-    formData.resistencia?.tipo_acionamento,
-    formData.sensor?.tipo_sinal,
-    formData.sensor?.tipo_sensor,
-    calcularSaidasDigitaisMotor,
+    formData.motor,
+    formData.valvula,
+    formData.resistencia,
+    formData.sensor,
+    formData.transdutor,
   ])
 
   const handleBaseChange = useCallback(

@@ -13,6 +13,49 @@ from typing import Any
 
 from core.choices.produtos import UnidadeMedidaChoices
 
+_SINONIMOS_UNIDADE_COMERCIAL: dict[str, str] = {
+    "UNID": UnidadeMedidaChoices.UN,
+    "UNIDS": UnidadeMedidaChoices.UN,
+    "UND": UnidadeMedidaChoices.UN,
+    "UNIT": UnidadeMedidaChoices.UN,
+    "UNIDADE": UnidadeMedidaChoices.UN,
+    "UNIDADES": UnidadeMedidaChoices.UN,
+    "PEC": UnidadeMedidaChoices.PC,
+    "PECA": UnidadeMedidaChoices.PC,
+    "PECAS": UnidadeMedidaChoices.PC,
+    "PCT": UnidadeMedidaChoices.PC,
+    "PACOTE": UnidadeMedidaChoices.PC,
+    "PACOTES": UnidadeMedidaChoices.PC,
+    "CJ": UnidadeMedidaChoices.CJ,
+    "CONJ": UnidadeMedidaChoices.CJ,
+    "CONJUNTO": UnidadeMedidaChoices.CJ,
+    "CONJUNTOS": UnidadeMedidaChoices.CJ,
+    "M": UnidadeMedidaChoices.MT,
+    "MTR": UnidadeMedidaChoices.MT,
+    "METRO": UnidadeMedidaChoices.MT,
+    "METROS": UnidadeMedidaChoices.MT,
+    "MTS": UnidadeMedidaChoices.MT,
+    "MT2": UnidadeMedidaChoices.M2,
+    "MT3": UnidadeMedidaChoices.M3,
+    "KGS": UnidadeMedidaChoices.KG,
+    "KILO": UnidadeMedidaChoices.KG,
+    "KILOS": UnidadeMedidaChoices.KG,
+    "KILOGRAMA": UnidadeMedidaChoices.KG,
+    "KILOGRAMAS": UnidadeMedidaChoices.KG,
+    "GR": UnidadeMedidaChoices.G,
+    "GRS": UnidadeMedidaChoices.G,
+    "GRAMA": UnidadeMedidaChoices.G,
+    "GRAMAS": UnidadeMedidaChoices.G,
+    "LT": UnidadeMedidaChoices.L,
+    "LTR": UnidadeMedidaChoices.L,
+    "LTS": UnidadeMedidaChoices.L,
+    "LITRO": UnidadeMedidaChoices.L,
+    "LITROS": UnidadeMedidaChoices.L,
+    "KMS": UnidadeMedidaChoices.KM,
+    "QUILOMETRO": UnidadeMedidaChoices.KM,
+    "QUILOMETROS": UnidadeMedidaChoices.KM,
+}
+
 
 def _local(tag: str) -> str:
     if not tag:
@@ -226,58 +269,7 @@ def _map_unidade_comercial(ucom: str) -> str:
     if token in codigos_catalogo:
         return token
 
-    mapping: dict[str, str] = {
-        # Unidade
-        "UNID": UnidadeMedidaChoices.UN,
-        "UNIDS": UnidadeMedidaChoices.UN,
-        "UND": UnidadeMedidaChoices.UN,
-        "UNIT": UnidadeMedidaChoices.UN,
-        "UNIDADE": UnidadeMedidaChoices.UN,
-        "UNIDADES": UnidadeMedidaChoices.UN,
-        # Peça
-        "PEC": UnidadeMedidaChoices.PC,
-        "PECA": UnidadeMedidaChoices.PC,
-        "PECAS": UnidadeMedidaChoices.PC,
-        "PCT": UnidadeMedidaChoices.PC,
-        "PACOTE": UnidadeMedidaChoices.PC,
-        "PACOTES": UnidadeMedidaChoices.PC,
-        # Conjunto
-        "CJ": UnidadeMedidaChoices.CJ,
-        "CONJ": UnidadeMedidaChoices.CJ,
-        "CONJUNTO": UnidadeMedidaChoices.CJ,
-        "CONJUNTOS": UnidadeMedidaChoices.CJ,
-        # Metro linear
-        "M": UnidadeMedidaChoices.MT,
-        "MTR": UnidadeMedidaChoices.MT,
-        "METRO": UnidadeMedidaChoices.MT,
-        "METROS": UnidadeMedidaChoices.MT,
-        "MTS": UnidadeMedidaChoices.MT,
-        # Quadrado / cubo
-        "MT2": UnidadeMedidaChoices.M2,
-        "MT3": UnidadeMedidaChoices.M3,
-        # Massa
-        "KGS": UnidadeMedidaChoices.KG,
-        "KILO": UnidadeMedidaChoices.KG,
-        "KILOS": UnidadeMedidaChoices.KG,
-        "KILOGRAMA": UnidadeMedidaChoices.KG,
-        "KILOGRAMAS": UnidadeMedidaChoices.KG,
-        "GR": UnidadeMedidaChoices.G,
-        "GRS": UnidadeMedidaChoices.G,
-        "GRAMA": UnidadeMedidaChoices.G,
-        "GRAMAS": UnidadeMedidaChoices.G,
-        # Volume
-        "LT": UnidadeMedidaChoices.L,
-        "LTR": UnidadeMedidaChoices.L,
-        "LTS": UnidadeMedidaChoices.L,
-        "LITRO": UnidadeMedidaChoices.L,
-        "LITROS": UnidadeMedidaChoices.L,
-        # Comprimento rodoviário
-        "KMS": UnidadeMedidaChoices.KM,
-        "QUILOMETRO": UnidadeMedidaChoices.KM,
-        "QUILOMETROS": UnidadeMedidaChoices.KM,
-    }
-
-    return mapping.get(token, UnidadeMedidaChoices.UN)
+    return _SINONIMOS_UNIDADE_COMERCIAL.get(token, UnidadeMedidaChoices.UN)
 
 
 def _validar_conteudo_xml(content: bytes) -> None:
