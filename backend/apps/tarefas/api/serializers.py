@@ -7,10 +7,10 @@ from rest_framework import serializers
 
 from core.choices import TipoUsuarioChoices
 from core.permissions import PermissionKeys
-from apps.tarefas.services.jornada_apontamento import (
-    intervalo_horario_cabe_em_jornada,
-    obter_jornada_do_usuario,
-    segmentos_trabalho_no_dia,
+from apps.tarefas.api.apontamento_validacao import (
+    resolver_colaborador_apontamento,
+    usuario_ignora_validacao_jornada,
+    validar_jornada_apontamento,
 )
 from apps.tarefas.models import (
     ApontamentoHora,
@@ -354,61 +354,14 @@ class ApontamentoHoraSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None)
 
-        if user and (
-            getattr(user, "is_superuser", False)
-            or getattr(user, "tipo_usuario", None) == TipoUsuarioChoices.ADMIN
-        ):
+        if usuario_ignora_validacao_jornada(user):
             return attrs
 
-        permissoes = set(getattr(user, "permissoes_efetivas", []) or [])
-        if PermissionKeys.TAREFA_APONTAR_HORAS_TODAS in permissoes:
-            return attrs
-
-        colaborador = attrs.get("colaborador")
-        if self.instance:
-            colaborador = attrs.get("colaborador", self.instance.colaborador)
-        elif colaborador is None:
-            colaborador = user
-
+        colaborador = resolver_colaborador_apontamento(attrs, self.instance, user)
         if colaborador is None:
             return attrs
 
-        hi = attrs.get("hora_inicio")
-        hf = attrs.get("hora_fim")
-        if self.instance:
-            if hi is None:
-                hi = self.instance.hora_inicio
-            if hf is None:
-                hf = self.instance.hora_fim
-
-        data_ap = attrs.get("data")
-        if self.instance and data_ap is None:
-            data_ap = self.instance.data
-
-        j = obter_jornada_do_usuario(colaborador)
-        if not j or not j.hora_inicio:
-            return attrs
-
-        if hi and hf:
-            if not intervalo_horario_cabe_em_jornada(j, hi, hf):
-                raise serializers.ValidationError(
-                    {
-                        "hora_fim": (
-                            "Horario fora da jornada de trabalho cadastrada para este colaborador."
-                        )
-                    }
-                )
-        elif data_ap:
-            segs = segmentos_trabalho_no_dia(j, data_ap)
-            if segs == []:
-                raise serializers.ValidationError(
-                    {
-                        "data": (
-                            "Data fora dos dias da jornada de trabalho deste colaborador."
-                        )
-                    }
-                )
-
+        validar_jornada_apontamento(colaborador, attrs, self.instance)
         return attrs
 
 

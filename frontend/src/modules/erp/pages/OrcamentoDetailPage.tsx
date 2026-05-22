@@ -15,9 +15,12 @@ import { hasPermission } from '@/modules/auth/permissions'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
 import {
+  contatoIdValidoParaLista,
+  useOrcamentoContatosCliente,
+} from '../hooks/useOrcamentoContatosCliente'
+import {
   atualizarOrcamento,
   listarClientesOrcamento,
-  listarContatosCliente,
   obterOrcamento,
 } from '../services/erpApi'
 import type {
@@ -86,7 +89,6 @@ export default function OrcamentoDetailPage() {
   const [salvando, setSalvando] = useState(false)
   const [salvandoItens, setSalvandoItens] = useState(false)
   const [clientes, setClientes] = useState<ParceiroClienteDto[]>([])
-  const [contatos, setContatos] = useState<ContatoClienteDto[]>([])
 
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -145,37 +147,22 @@ export default function OrcamentoDetailPage() {
     }
   }, [showToast])
 
-  useEffect(() => {
-    let ativo = true
-    if (!clienteId) {
-      setContatos([])
-      setContatoId('')
-      return () => {
-        ativo = false
+  const sincronizarContatoAposContatos = useCallback(
+    (dados: ContatoClienteDto[]) => {
+      if (dados.length === 0) {
+        setContatoId('')
+        return
       }
-    }
-    listarContatosCliente(clienteId)
-      .then((dados) => {
-        if (ativo) {
-          setContatos(dados)
-          setContatoId((atual) =>
-            atual && dados.some((contato) => contato.id === atual) ? atual : ''
-          )
-        }
-      })
-      .catch(() => {
-        if (ativo) {
-          showToast({
-            variant: 'warning',
-            title: 'Contatos',
-            message: 'Não foi possível carregar os contatos do cliente.',
-          })
-        }
-      })
-    return () => {
-      ativo = false
-    }
-  }, [clienteId, showToast])
+      setContatoId((atual) => contatoIdValidoParaLista(atual, dados))
+    },
+    []
+  )
+
+  const contatos = useOrcamentoContatosCliente(
+    clienteId,
+    showToast,
+    sincronizarContatoAposContatos
+  )
 
   const totalOrcamento = useMemo(() => {
     let soma = 0

@@ -256,47 +256,50 @@ class Projeto(BaseModel, AtivacaoMixin):
     def eh_cc(self) -> bool:
         return self.tipo_corrente == TipoCorrenteChoices.CC
 
-    def clean(self):
-        errors = {}
-
-        # Alimentação principal
+    def _validar_alimentacao_principal(self, errors: dict) -> None:
         if self.eh_ca():
             if not self.numero_fases:
                 errors["numero_fases"] = "Para alimentação CA, informe o número de fases."
-
             if not self.frequencia:
                 errors["frequencia"] = "Para alimentação CA, informe a frequência."
-
-            if self.tensao_nominal in [
+            if self.tensao_nominal in (
                 TensaoChoices.V12,
                 TensaoChoices.V24,
                 TensaoChoices.V48,
-            ]:
-                errors["tensao_nominal"] = "Para alimentação CA, selecione uma tensão compatível com CA."
-
-        if self.eh_cc():
-            self.numero_fases = None
-            self.frequencia = None
-
-            if self.tensao_nominal in [
-                TensaoChoices.V110,
-                TensaoChoices.V127,
-                TensaoChoices.V220,
-                TensaoChoices.V380,
-                TensaoChoices.V440,
-            ]:
-                errors["tensao_nominal"] = "Para alimentação CC, selecione uma tensão compatível com CC."
-
-         # Seccionamento
-        if not self.possui_seccionamento:
-            self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
-        else:
-            if not self.tipo_seccionamento or self.tipo_seccionamento == TipoSeccionamentoChoices.NENHUM:
-                errors["tipo_seccionamento"] = (
-                    "Informe o tipo de seccionamento quando o projeto possuir seccionamento geral."
+            ):
+                errors["tensao_nominal"] = (
+                    "Para alimentação CA, selecione uma tensão compatível com CA."
                 )
 
-        # Conexões da alimentação
+        if not self.eh_cc():
+            return
+
+        self.numero_fases = None
+        self.frequencia = None
+        if self.tensao_nominal in (
+            TensaoChoices.V110,
+            TensaoChoices.V127,
+            TensaoChoices.V220,
+            TensaoChoices.V380,
+            TensaoChoices.V440,
+        ):
+            errors["tensao_nominal"] = (
+                "Para alimentação CC, selecione uma tensão compatível com CC."
+            )
+
+    def _validar_seccionamento(self, errors: dict) -> None:
+        if not self.possui_seccionamento:
+            self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
+            return
+        if (
+            not self.tipo_seccionamento
+            or self.tipo_seccionamento == TipoSeccionamentoChoices.NENHUM
+        ):
+            errors["tipo_seccionamento"] = (
+                "Informe o tipo de seccionamento quando o projeto possuir seccionamento geral."
+            )
+
+    def _validar_conexoes_alimentacao(self, errors: dict) -> None:
         if not self.tipo_conexao_alimentacao_potencia:
             errors["tipo_conexao_alimentacao_potencia"] = (
                 "Informe o tipo de conexão da alimentação de potência."
@@ -304,37 +307,39 @@ class Projeto(BaseModel, AtivacaoMixin):
 
         if not self.possui_neutro:
             self.tipo_conexao_alimentacao_neutro = None
-        else:
-            if not self.tipo_conexao_alimentacao_neutro:
-                errors["tipo_conexao_alimentacao_neutro"] = (
-                    "Informe o tipo de conexão do neutro, pois o painel possui neutro."
-                )
+        elif not self.tipo_conexao_alimentacao_neutro:
+            errors["tipo_conexao_alimentacao_neutro"] = (
+                "Informe o tipo de conexão do neutro, pois o painel possui neutro."
+            )
 
         if not self.possui_terra:
             self.tipo_conexao_alimentacao_terra = None
-        else:
-            if not self.tipo_conexao_alimentacao_terra:
-                errors["tipo_conexao_alimentacao_terra"] = (
-                    "Informe o tipo de conexão do terra, pois o painel possui terra."
-                )
-                
-        # Climatização
-        if not self.possui_climatizacao:    
-            self.tipo_climatizacao = None       
-        else:
-            if not self.tipo_climatizacao:
-                errors["tipo_climatizacao"] = (
-                    "Informe o tipo de climatização, pois o painel possui climatização."
-                )
+        elif not self.tipo_conexao_alimentacao_terra:
+            errors["tipo_conexao_alimentacao_terra"] = (
+                "Informe o tipo de conexão do terra, pois o painel possui terra."
+            )
 
-        # PLC
+    def _validar_climatizacao_e_plc(self, errors: dict) -> None:
+        if not self.possui_climatizacao:
+            self.tipo_climatizacao = None
+        elif not self.tipo_climatizacao:
+            errors["tipo_climatizacao"] = (
+                "Informe o tipo de climatização, pois o painel possui climatização."
+            )
+
         if not self.possui_plc:
             self.familia_plc = None
-        else:
-            if not (self.familia_plc and str(self.familia_plc).strip()):
-                errors["familia_plc"] = (
-                    "Informe a família do PLC, pois o painel possui PLC."
-                )
+        elif not (self.familia_plc and str(self.familia_plc).strip()):
+            errors["familia_plc"] = (
+                "Informe a família do PLC, pois o painel possui PLC."
+            )
+
+    def clean(self):
+        errors: dict = {}
+        self._validar_alimentacao_principal(errors)
+        self._validar_seccionamento(errors)
+        self._validar_conexoes_alimentacao(errors)
+        self._validar_climatizacao_e_plc(errors)
 
         if errors:
             raise ValidationError(errors)

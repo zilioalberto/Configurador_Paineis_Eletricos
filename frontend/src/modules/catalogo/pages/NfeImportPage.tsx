@@ -1,12 +1,12 @@
-import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
+import { useNfeExistentePorItem } from '../hooks/useNfeExistentePorItem'
 import {
   aplicarImportacaoNfe,
-  buscarProdutoResumoImportacaoNfe,
   listarFornecedoresNfe,
   previewNfeXml,
 } from '../services/nfeImportService'
@@ -401,13 +401,10 @@ export default function NfeImportPage() {
     useState<FornecedorSelecao>(FORNECEDOR_NENHUM)
   const [selecoes, setSelecoes] = useState<Record<number, ItemSelecaoImportacao>>({})
   const [resultadoImportacao, setResultadoImportacao] = useState<NfeAplicarResponse | null>(null)
-  const [existentePorNItem, setExistentePorNItem] = useState<
-    Record<number, NfeProdutoExistenteResumo | null>
-  >({})
   const [detalheAberto, setDetalheAberto] = useState<Record<number, boolean>>({})
-  const debounceResumoRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
 
   const snapshot = preview?.snapshot ?? null
+  const existentePorNItem = useNfeExistentePorItem(snapshot, selecoes)
 
   useEffect(() => {
     let ativo = true
@@ -456,7 +453,6 @@ export default function NfeImportPage() {
       setArquivo(f)
       setPreview(null)
       setSelecoes({})
-      setExistentePorNItem({})
       setDetalheAberto({})
       setCategoriaGlobal('')
       setFornecedorGlobal(FORNECEDOR_NENHUM)
@@ -527,53 +523,6 @@ export default function NfeImportPage() {
   const todosItensMarcados = useMemo(() => {
     if (!snapshot?.itens.length) return false
     return snapshot.itens.every((it) => selecoes[it.n_item]?.importar)
-  }, [snapshot, selecoes])
-
-  useEffect(() => {
-    if (!snapshot?.itens?.length) {
-      setExistentePorNItem({})
-      return
-    }
-    const init: Record<number, NfeProdutoExistenteResumo | null> = {}
-    for (const it of snapshot.itens) {
-      init[it.n_item] = it.produto_existente ?? null
-    }
-    setExistentePorNItem(init)
-  }, [snapshot])
-
-  useEffect(() => {
-    if (!snapshot?.itens?.length) return
-    let cancelled = false
-    if (debounceResumoRef.current) globalThis.clearTimeout(debounceResumoRef.current)
-    debounceResumoRef.current = globalThis.setTimeout(() => {
-      void (async () => {
-        for (const it of snapshot.itens) {
-          if (cancelled) return
-          const sel = selecoes[it.n_item]
-          const cod = (sel?.codigo ?? it.c_prod).trim()
-          if (!cod) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: null }))
-            continue
-          }
-          const same = cod.toUpperCase() === it.c_prod.trim().toUpperCase()
-          if (same) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: it.produto_existente ?? null }))
-            continue
-          }
-          const resumo = await buscarProdutoResumoImportacaoNfe(cod)
-          if (!cancelled) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: resumo }))
-          }
-        }
-      })()
-    }, 450)
-    return () => {
-      cancelled = true
-      if (debounceResumoRef.current) {
-        globalThis.clearTimeout(debounceResumoRef.current)
-        debounceResumoRef.current = null
-      }
-    }
   }, [snapshot, selecoes])
 
   const categoriaLabel = useCallback(

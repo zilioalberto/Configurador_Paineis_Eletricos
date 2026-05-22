@@ -150,31 +150,46 @@ class Tarefa(BaseModel):
             StatusTarefaChoices.EM_ANDAMENTO,
         )
 
-    def validar_classificacao(self):
-        proposta = (self.proposta_referencia or "").strip()
-        ordem_producao = (self.ordem_producao_referencia or "").strip()
-        erros = {}
-
+    def _erros_classificacao_por_etapa(self, proposta: str, ordem_producao: str) -> dict:
         if self.tipo_etapa == TipoTarefaChoices.NAO_CLASSIFICADA:
             if proposta or ordem_producao:
-                erros["tipo_etapa"] = (
-                    "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
-                )
-        elif self.tipo_etapa == TipoTarefaChoices.PROPOSTA:
+                return {
+                    "tipo_etapa": (
+                        "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
+                    )
+                }
+            return {}
+
+        if self.tipo_etapa == TipoTarefaChoices.PROPOSTA:
+            erros = {}
             if not proposta:
                 erros["proposta_referencia"] = "Informe a PROP vinculada a tarefa."
             if ordem_producao:
                 erros["ordem_producao_referencia"] = (
                     "Tarefa de proposta nao deve possuir vinculo com OP."
                 )
-        elif self.tipo_etapa == TipoTarefaChoices.PRODUCAO:
+            return erros
+
+        if self.tipo_etapa == TipoTarefaChoices.PRODUCAO:
             if not ordem_producao:
-                erros["ordem_producao_referencia"] = "Informe a OP vinculada a tarefa."
-        elif self.tipo_etapa == TipoTarefaChoices.INTERNA:
+                return {
+                    "ordem_producao_referencia": "Informe a OP vinculada a tarefa."
+                }
+            return {}
+
+        if self.tipo_etapa == TipoTarefaChoices.INTERNA:
             if proposta or ordem_producao:
-                erros["tipo_etapa"] = (
-                    "Tarefa interna nao deve possuir vinculo com PROP ou OP."
-                )
+                return {
+                    "tipo_etapa": (
+                        "Tarefa interna nao deve possuir vinculo com PROP ou OP."
+                    )
+                }
+        return {}
+
+    def validar_classificacao(self):
+        proposta = (self.proposta_referencia or "").strip()
+        ordem_producao = (self.ordem_producao_referencia or "").strip()
+        erros = self._erros_classificacao_por_etapa(proposta, ordem_producao)
 
         if self.status in (
             StatusTarefaChoices.INICIADA,

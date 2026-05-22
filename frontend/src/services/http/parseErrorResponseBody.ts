@@ -16,49 +16,62 @@ export function parseErrorResponseBody(data: unknown): string {
 
   const o = data as Record<string, unknown>
 
-  function parseNested(value: unknown): string {
-    if (typeof value === 'string') return value
-    if (Array.isArray(value)) return value.map(String).join(', ')
-    if (value !== null && typeof value === 'object') {
-      const nested = parseErrorResponseBody(value)
-      return nested || 'erro de validação'
-    }
-    return ''
-  }
+  const detail = parseDetailField(o)
+  if (detail) return detail
 
-  if ('detail' in o) {
-    const detail = o.detail
-    if (typeof detail === 'string') {
-      return detail.trim()
-    }
-    if (Array.isArray(detail)) {
-      const parts = detail.filter((x): x is string => typeof x === 'string')
-      if (parts.length) {
-        return parts.join(' | ')
-      }
-    }
-    if (detail !== null && typeof detail === 'object' && !Array.isArray(detail)) {
-      const nested = parseErrorResponseBody(detail)
-      if (nested.trim()) {
-        return nested
-      }
-    }
-  }
+  const nonField = parseNonFieldErrors(o)
+  if (nonField) return nonField
 
-  if ('non_field_errors' in o) {
-    const v = o.non_field_errors
-    if (Array.isArray(v)) {
-      const parts = v.filter((x): x is string => typeof x === 'string')
-      if (parts.length) {
-        return parts.join(' | ')
-      }
+  return parseFieldErrors(o)
+}
+
+function parseNestedValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  if (value !== null && typeof value === 'object') {
+    const nested = parseErrorResponseBody(value)
+    return nested || 'erro de validação'
+  }
+  return ''
+}
+
+function parseDetailField(o: Record<string, unknown>): string {
+  if (!('detail' in o)) return ''
+
+  const detail = o.detail
+  if (typeof detail === 'string') {
+    return detail.trim()
+  }
+  if (Array.isArray(detail)) {
+    const parts = detail.filter((x): x is string => typeof x === 'string')
+    if (parts.length) {
+      return parts.join(' | ')
     }
   }
+  if (detail !== null && typeof detail === 'object' && !Array.isArray(detail)) {
+    const nested = parseErrorResponseBody(detail)
+    if (nested.trim()) {
+      return nested
+    }
+  }
+  return ''
+}
 
+function parseNonFieldErrors(o: Record<string, unknown>): string {
+  if (!('non_field_errors' in o)) return ''
+
+  const v = o.non_field_errors
+  if (!Array.isArray(v)) return ''
+
+  const parts = v.filter((x): x is string => typeof x === 'string')
+  return parts.length ? parts.join(' | ') : ''
+}
+
+function parseFieldErrors(o: Record<string, unknown>): string {
   const fieldParts = Object.entries(o)
     .filter(([key]) => key !== 'detail' && key !== 'non_field_errors')
     .map(([campo, valor]) => {
-      const parsed = parseNested(valor)
+      const parsed = parseNestedValue(valor)
       return parsed ? `${campo}: ${parsed}` : ''
     })
     .filter(Boolean)

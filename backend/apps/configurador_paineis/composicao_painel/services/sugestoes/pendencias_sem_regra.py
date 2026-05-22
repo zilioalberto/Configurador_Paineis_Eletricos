@@ -19,56 +19,56 @@ from core.choices.cargas import (
     TipoProtecaoValvulaChoices,
 )
 
+_ACIONAMENTOS_RESISTENCIA_COM_REGRA = frozenset({
+    TipoAcionamentoResistenciaChoices.CONTATOR,
+    TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+    TipoAcionamentoResistenciaChoices.RELE_INTERFACE,
+})
+
+_PROTECOES_VALVULA_COM_REGRA = frozenset({
+    TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
+    TipoProtecaoValvulaChoices.SEM_PROTECAO,
+    TipoProtecaoValvulaChoices.MINIDISJUNTOR,
+})
+
+
+def _resistencia_tem_regra_gerador_catalogo(carga: Carga) -> bool:
+    try:
+        r = CargaResistencia.objects.get(carga=carga)
+    except CargaResistencia.DoesNotExist:
+        return True
+
+    if r.tipo_acionamento in _ACIONAMENTOS_RESISTENCIA_COM_REGRA:
+        return True
+    return r.tipo_protecao == TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR
+
+
+def _valvula_tem_regra_gerador_catalogo(carga: Carga) -> bool:
+    try:
+        v = CargaValvula.objects.get(carga=carga)
+    except CargaValvula.DoesNotExist:
+        return False
+
+    if v.tipo_acionamento in (
+        TipoAcionamentoValvulaChoices.RELE_INTERFACE,
+        TipoAcionamentoValvulaChoices.CONTATOR,
+    ):
+        return True
+    return v.tipo_protecao in _PROTECOES_VALVULA_COM_REGRA
+
 
 def _carga_tem_alguma_regra_gerador_catalogo(carga: Carga) -> bool:
     """
     True se alguma etapa atual de sugestão cobre a carga com regra de catálogo.
-
-    - MOTOR: sempre há fluxo de contatora (AC3).
-    - RESISTENCIA: há regra se tipo_acionamento for CONTATOR (contatora AC1),
-      RELE_ESTADO_SOLIDO (relé estado sólido), RELE_INTERFACE (relé de interface),
-      ou tipo_protecao for DISJUNTOR_MOTOR (disjuntor motor). Sem CargaResistencia,
-      outras etapas já geram pendência específica — não duplicar aqui.
-    - VALVULA: há regra se tipo_acionamento for RELE_INTERFACE ou CONTATOR,
-      ou tipo_protecao for BORNE_FUSIVEL, SEM_PROTECAO ou MINIDISJUNTOR (bornes).
-    - SENSOR: há regra de borne PASSAGEM (catálogo) quando existe CargaSensor
-      (a etapa gera sugestão ou pendência específica de bornes).
     """
     if carga.tipo == TipoCargaChoices.MOTOR:
         return True
 
     if carga.tipo == TipoCargaChoices.RESISTENCIA:
-        try:
-            r = CargaResistencia.objects.get(carga=carga)
-        except CargaResistencia.DoesNotExist:
-            return True
-
-        if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.CONTATOR:
-            return True
-        if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO:
-            return True
-        if r.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
-            return True
-        if r.tipo_protecao == TipoProtecaoResistenciaChoices.DISJUNTOR_MOTOR:
-            return True
-        return False
+        return _resistencia_tem_regra_gerador_catalogo(carga)
 
     if carga.tipo == TipoCargaChoices.VALVULA:
-        try:
-            v = CargaValvula.objects.get(carga=carga)
-        except CargaValvula.DoesNotExist:
-            return False
-        if v.tipo_acionamento == TipoAcionamentoValvulaChoices.RELE_INTERFACE:
-            return True
-        if v.tipo_acionamento == TipoAcionamentoValvulaChoices.CONTATOR:
-            return True
-        if v.tipo_protecao in (
-            TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
-            TipoProtecaoValvulaChoices.SEM_PROTECAO,
-            TipoProtecaoValvulaChoices.MINIDISJUNTOR,
-        ):
-            return True
-        return False
+        return _valvula_tem_regra_gerador_catalogo(carga)
 
     if carga.tipo == TipoCargaChoices.SENSOR:
         return CargaSensor.objects.filter(carga=carga).exists()

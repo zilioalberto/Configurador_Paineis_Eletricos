@@ -1,5 +1,12 @@
 from django.db import models
 
+_LABEL_TRILHO_DIN = "Trilho DIN"
+_LABEL_ALUMINIO = "Alumínio"
+_LABEL_MODBUS_TCP = "Modbus TCP"
+_LABEL_MODBUS_RTU = "Modbus RTU"
+_LABEL_OPC_UA = "OPC UA"
+_LABEL_MOMENTANEO = "Momentâneo"
+
 
 class CategoriaProdutoNomeChoices(models.TextChoices):
 
@@ -43,7 +50,7 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
 
     CABO = "CABO", "Cabo"
     CANALETA = "CANALETA", "Canaleta"
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
 
     PAINEL = "PAINEL", "Painel"
     CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
@@ -89,13 +96,13 @@ class FusivelCartuchoTamanhoChoices(models.TextChoices):
 class ModoMontagemChoices(models.TextChoices):
     """Modos de montagem admitidos no catálogo (painel / trilho / porta)."""
 
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     PLACA = "PLACA", "Placa de montagem"
     PORTA = "PORTA", "Porta"
 
 
 class ModoMontagemReleSobrecargaChoices(models.TextChoices):
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     ACOPLADO_CONTATOR = "ACOPLADO_CONTATOR", "Acoplado ao contator"
 
 
@@ -144,7 +151,7 @@ class MaterialPlacaMontagemChoices(models.TextChoices):
     ACO_CARBONO = "ACO_CARBONO", "Aço carbono"
     ACO_GALVANIZADO = "ACO_GALVANIZADO", "Aço galvanizado"
     ACO_INOX = "ACO_INOX", "Aço inox"
-    ALUMINIO = "ALUMINIO", "Alumínio"
+    ALUMINIO = "ALUMINIO", _LABEL_ALUMINIO
     FIBRA_VIDRO = "FIBRA_VIDRO", "Fibra de vidro (GRP)"
     OUTRO = "OUTRO", "Outro"
 
@@ -186,16 +193,16 @@ class FamiliaPLCChoices(models.TextChoices):
 class ProtocoloComunicacaoChoices(models.TextChoices):
     PROFINET = "PROFINET", "Profinet"
     PROFIBUS = "PROFIBUS", "Profibus"
-    MODBUS_TCP = "MODBUS_TCP", "Modbus TCP"
-    MODBUS_RTU = "MODBUS_RTU", "Modbus RTU"
+    MODBUS_TCP = "MODBUS_TCP", _LABEL_MODBUS_TCP
+    MODBUS_RTU = "MODBUS_RTU", _LABEL_MODBUS_RTU
     ETHERNET_IP = "ETHERNET_IP", "Ethernet/IP"
-    OPC_UA = "OPC_UA", "OPC UA"
+    OPC_UA = "OPC_UA", _LABEL_OPC_UA
     SERIAL = "SERIAL", "Serial"
     OUTRO = "OUTRO", "Outro"
 
 
 class TipoMontagemReleChoices(models.TextChoices):
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     PLACA = "PLACA", "Placa"
     OUTRO = "OUTRO", "Outro"
 
@@ -219,7 +226,7 @@ class TipoResistenciaAquecimentoChoices(models.TextChoices):
 
 
 class TipoMontagemResistenciaChoices(models.TextChoices):
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     PARAFUSADA = "PARAFUSADA", "Parafusada"
     OUTRO = "OUTRO", "Outro"
 
@@ -273,7 +280,7 @@ class VelocidadePortaRedeChoices(models.TextChoices):
 
 
 class TipoMontagemSwitchChoices(models.TextChoices):
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     PAINEL = "PAINEL", "Painel"
     RACK = "RACK", "Rack"
     OUTRO = "OUTRO", "Outro"
@@ -300,7 +307,7 @@ class UnidadeTempoChoices(models.TextChoices):
 
 
 class TipoMontagemTemporizadorChoices(models.TextChoices):
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     PORTA = "PORTA", "Porta"
     PLACA = "PLACA", "Placa"
     OUTRO = "OUTRO", "Outro"
@@ -323,7 +330,7 @@ class FormatoTrilhoDINChoices(models.TextChoices):
 class MaterialTrilhoDINChoices(models.TextChoices):
     ACO_GALVANIZADO = "ACO_GALVANIZADO", "Aço galvanizado"
     ACO_INOX = "ACO_INOX", "Aço inox"
-    ALUMINIO = "ALUMINIO", "Alumínio"
+    ALUMINIO = "ALUMINIO", _LABEL_ALUMINIO
     OUTRO = "OUTRO", "Outro"
 
 
@@ -342,12 +349,12 @@ class TipoMontagemVentiladorChoices(models.TextChoices):
     TETO = "TETO", "Teto"
     PORTA = "PORTA", "Porta"
     CHASSI = "CHASSI", "Chassi"
-    TRILHO_DIN = "TRILHO_DIN", "Trilho DIN"
+    TRILHO_DIN = "TRILHO_DIN", _LABEL_TRILHO_DIN
     OUTRO = "OUTRO", "Outro"
 
 
 class TipoAcionamentoBotaoChoices(models.TextChoices):
-    MOMENTANEO = "MOMENTANEO", "Momentâneo"
+    MOMENTANEO = "MOMENTANEO", _LABEL_MOMENTANEO
     MANTIDO = "MANTIDO", "Mantido"
 
 
@@ -427,7 +434,7 @@ class TipoCargaReleEstadoSolidoChoices(models.TextChoices):
 
 class MaterialBarramentoChoices(models.TextChoices):
     COBRE = "COBRE", "Cobre"
-    ALUMINIO = "ALUMINIO", "Alumínio"
+    ALUMINIO = "ALUMINIO", _LABEL_ALUMINIO
 
 
 class TipoBarramentoChoices(models.TextChoices):
@@ -464,7 +471,7 @@ class TipoBotaoChoices(models.TextChoices):
 
 
 class TipoAcionamentoBotaoModoChoices(models.TextChoices):
-    MOMENTANEO = "MOMENTANEO", "Momentâneo"
+    MOMENTANEO = "MOMENTANEO", _LABEL_MOMENTANEO
     RETENCAO = "RETENCAO", "Com retenção"
 
 
@@ -487,7 +494,7 @@ class TipoCaboChoices(models.TextChoices):
 
 class MaterialCondutorChoices(models.TextChoices):
     COBRE = "COBRE", "Cobre"
-    ALUMINIO = "ALUMINIO", "Alumínio"
+    ALUMINIO = "ALUMINIO", _LABEL_ALUMINIO
 
 
 class TipoIsolacaoCaboChoices(models.TextChoices):
@@ -533,7 +540,7 @@ class TipoChaveSeletoraChoices(models.TextChoices):
 
 class TipoAcionamentoChaveSeletoraChoices(models.TextChoices):
     RETENTIVO = "RETENTIVO", "Retentivo"
-    MOMENTANEO = "MOMENTANEO", "Momentâneo"
+    MOMENTANEO = "MOMENTANEO", _LABEL_MOMENTANEO
 
 
 class CorManoplaChaveSeletoraChoices(models.TextChoices):
@@ -619,13 +626,13 @@ class MaterialFiltroArChoices(models.TextChoices):
 
 
 class ProtocoloIndustrialChoices(models.TextChoices):
-    MODBUS_TCP = "MODBUS_TCP", "Modbus TCP"
-    MODBUS_RTU = "MODBUS_RTU", "Modbus RTU"
+    MODBUS_TCP = "MODBUS_TCP", _LABEL_MODBUS_TCP
+    MODBUS_RTU = "MODBUS_RTU", _LABEL_MODBUS_RTU
     PROFINET = "PROFINET", "Profinet"
     ETHERNET_IP = "ETHERNET_IP", "EtherNet/IP"
     PROFIBUS = "PROFIBUS", "Profibus"
     CANOPEN = "CANOPEN", "CANopen"
-    OPC_UA = "OPC_UA", "OPC UA"
+    OPC_UA = "OPC_UA", _LABEL_OPC_UA
     MQTT = "MQTT", "MQTT"
     OUTRO = "OUTRO", "Outro"
 
@@ -652,9 +659,9 @@ class TipoDisplayIHMChoices(models.TextChoices):
 
 class ProtocoloIHMChoices(models.TextChoices):
     PROFINET = "PROFINET", "Profinet"
-    MODBUS_TCP = "MODBUS_TCP", "Modbus TCP"
-    MODBUS_RTU = "MODBUS_RTU", "Modbus RTU"
+    MODBUS_TCP = "MODBUS_TCP", _LABEL_MODBUS_TCP
+    MODBUS_RTU = "MODBUS_RTU", _LABEL_MODBUS_RTU
     ETHERNET_IP = "ETHERNET_IP", "EtherNet/IP"
-    OPC_UA = "OPC_UA", "OPC UA"
+    OPC_UA = "OPC_UA", _LABEL_OPC_UA
     SERIAL = "SERIAL", "Serial"
     OUTRO = "OUTRO", "Outro"

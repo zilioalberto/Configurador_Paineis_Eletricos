@@ -17,6 +17,9 @@ class ErpModuleMeta(TypedDict):
     notes: str
 
 
+AREA_POS_VENDA = "Pós-venda"
+
+
 ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     "configurador-paineis": {
         "id": "configurador-paineis",
@@ -140,7 +143,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     },
     "expedicao": {
         "id": "expedicao",
-        "area": "Pós-venda",
+        "area": AREA_POS_VENDA,
         "title": "Expedição",
         "summary": "Remessas, volumes, transportadoras e comprovantes de entrega.",
         "backend_package": "apps.expedicao",
@@ -148,7 +151,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     },
     "pos-venda": {
         "id": "pos-venda",
-        "area": "Pós-venda",
+        "area": AREA_POS_VENDA,
         "title": "Pós-venda",
         "summary": "Chamados, garantia, assistência técnica e histórico de atendimento.",
         "backend_package": "apps.pos_venda",

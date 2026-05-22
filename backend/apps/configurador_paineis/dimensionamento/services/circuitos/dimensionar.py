@@ -345,33 +345,44 @@ def dimensionar_transmissor(projeto, carga) -> dict:
     }
 
 
+def _dimensionar_com_especificacao(carga, projeto, attr: str, dimensionar_fn):
+    espec = getattr(carga, attr, None)
+    if not espec:
+        return None
+    return dimensionar_fn(espec, projeto, carga)
+
+
+_DIMENSIONADORES_POR_TIPO = {
+    TipoCargaChoices.MOTOR: (
+        "motor",
+        dimensionar_motor,
+    ),
+    TipoCargaChoices.RESISTENCIA: (
+        "resistencia",
+        dimensionar_resistencia,
+    ),
+    TipoCargaChoices.VALVULA: (
+        "valvula",
+        dimensionar_valvula,
+    ),
+    TipoCargaChoices.SENSOR: (
+        "sensor",
+        dimensionar_sensor,
+    ),
+    TipoCargaChoices.TRANSDUTOR: (
+        "transdutor",
+        dimensionar_transdutor,
+    ),
+}
+
+
 def dimensionar_circuito_para_carga(carga, projeto) -> dict | None:
-    tipo = carga.tipo
-    if tipo == TipoCargaChoices.MOTOR:
-        espec = getattr(carga, "motor", None)
-        if not espec:
-            return None
-        return dimensionar_motor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.RESISTENCIA:
-        espec = getattr(carga, "resistencia", None)
-        if not espec:
-            return None
-        return dimensionar_resistencia(espec, projeto, carga)
-    if tipo == TipoCargaChoices.VALVULA:
-        espec = getattr(carga, "valvula", None)
-        if not espec:
-            return None
-        return dimensionar_valvula(espec, projeto, carga)
-    if tipo == TipoCargaChoices.SENSOR:
-        espec = getattr(carga, "sensor", None)
-        if not espec:
-            return None
-        return dimensionar_sensor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.TRANSDUTOR:
-        espec = getattr(carga, "transdutor", None)
-        if not espec:
-            return None
-        return dimensionar_transdutor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.TRANSMISSOR:
+    if carga.tipo == TipoCargaChoices.TRANSMISSOR:
         return dimensionar_transmissor(projeto, carga)
-    return None
+
+    config = _DIMENSIONADORES_POR_TIPO.get(carga.tipo)
+    if not config:
+        return None
+
+    attr, dimensionar_fn = config
+    return _dimensionar_com_especificacao(carga, projeto, attr, dimensionar_fn)
