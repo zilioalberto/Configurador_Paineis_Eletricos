@@ -262,16 +262,9 @@ def _limpar_borne_terra_motor(projeto, carga) -> None:
     ).delete()
 
 
-def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
-    """
-    Motor com conexão a bornes: sugere vários bornes de passagem (1 nível cada) —
-    quantidade 2 se monofásico, 3 se trifásico (2 se bifásico), todos filtrados por
-    corrente e ``seccao_max_mm2`` ≥ seção de fase.
-
-    Com ``CONEXAO_BORNES_COM_PE``: acrescenta 1 borne ``TERRA`` (PE) compatível com a seção PE.
-    """
+def _obter_motor_para_bornes(projeto, carga) -> CargaMotor | None:
     try:
-        m = CargaMotor.objects.get(carga=carga)
+        return CargaMotor.objects.get(carga=carga)
     except CargaMotor.DoesNotExist:
         PendenciaItem.objects.update_or_create(
             projeto=projeto,
@@ -289,14 +282,12 @@ def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
         )
         return None
 
-    if m.tipo_conexao_painel not in (
-        TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
-        TipoConexaoCargaPainelChoices.CONEXAO_BORNES_SEM_PE,
-    ):
-        return None
 
+def _obter_dimensionamento_motor_para_bornes(
+    projeto, carga
+) -> DimensionamentoCircuitoCarga | None:
     try:
-        dim = carga.dimensionamento_circuito
+        return carga.dimensionamento_circuito
     except DimensionamentoCircuitoCarga.DoesNotExist:
         PendenciaItem.objects.update_or_create(
             projeto=projeto,
@@ -315,6 +306,29 @@ def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
                 "ordem": 43,
             },
         )
+        return None
+
+
+def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
+    """
+    Motor com conexão a bornes: sugere vários bornes de passagem (1 nível cada) —
+    quantidade 2 se monofásico, 3 se trifásico (2 se bifásico), todos filtrados por
+    corrente e ``seccao_max_mm2`` ≥ seção de fase.
+
+    Com ``CONEXAO_BORNES_COM_PE``: acrescenta 1 borne ``TERRA`` (PE) compatível com a seção PE.
+    """
+    m = _obter_motor_para_bornes(projeto, carga)
+    if m is None:
+        return None
+
+    if m.tipo_conexao_painel not in (
+        TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE,
+        TipoConexaoCargaPainelChoices.CONEXAO_BORNES_SEM_PE,
+    ):
+        return None
+
+    dim = _obter_dimensionamento_motor_para_bornes(projeto, carga)
+    if dim is None:
         return None
 
     mm2_fase = _mm2_efetivo_dim(

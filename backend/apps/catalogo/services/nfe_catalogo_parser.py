@@ -135,6 +135,7 @@ def _parse_icms_de_bloco(icms_parent: ET.Element | None) -> dict[str, str]:
     return {}
 
 
+<<<<<<< HEAD
 def _filho_por_tag_local(
     parent: ET.Element | None,
     tag_local: str,
@@ -170,11 +171,37 @@ def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
     for child in imposto:
         loc = _local(child.tag)
 
+=======
+def _filho_por_tag_local(parent: ET.Element, tag_local: str) -> ET.Element | None:
+    return next((child for child in parent if _local(child.tag) == tag_local), None)
+
+
+def _flatten_primeiro_grupo_por_prefixo(
+    parent: ET.Element,
+    prefixos: tuple[str, ...],
+) -> dict[str, str]:
+    for group in parent:
+        if _local(group.tag).startswith(prefixos):
+            return _flatten_xml_group(group)
+    return {}
+
+
+def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
+    blocos = {
+        "icms": {},
+        "pis": {},
+        "cofins": {},
+        "ipi": {},
+    }
+    for child in imposto:
+        loc = _local(child.tag)
+>>>>>>> origin/dev
         if loc == "ICMS":
             blocos["icms"] = _parse_icms_de_bloco(child)
         elif loc == "PIS":
             blocos["pis"] = _flatten_primeiro_grupo_por_prefixo(child, ("PIS",))
         elif loc == "COFINS":
+<<<<<<< HEAD
             blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(
                 child,
                 ("COFINS",),
@@ -187,6 +214,13 @@ def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
 
     return blocos
 
+=======
+            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(child, ("COFINS",))
+        elif loc == "IPI":
+            blocos["ipi"] = _flatten_primeiro_grupo_por_prefixo(child, ("IPINT", "IPITrib"))
+    return blocos
+
+>>>>>>> origin/dev
 
 def _montar_snapshot_imposto(
     *,
@@ -230,12 +264,18 @@ def _montar_snapshot_imposto(
 
 def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
     imposto = _filho_por_tag_local(det, "imposto")
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/dev
     if imposto is None:
         return {}
 
     blocos = _parse_blocos_imposto(imposto)
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/dev
     return _montar_snapshot_imposto(
         icms_flat=blocos["icms"],
         ipi_flat=blocos["ipi"],
