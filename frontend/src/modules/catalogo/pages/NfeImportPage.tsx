@@ -386,7 +386,9 @@ function NfeItensTableRows({
   )
 }
 
-function NfeResultadoImportacao({ resultado }: { resultado: NfeAplicarResponse | null }) {
+function NfeResultadoImportacao({
+  resultado,
+}: Readonly<{ resultado: NfeAplicarResponse | null }>) {
   if (!resultado) return null
 
   return (

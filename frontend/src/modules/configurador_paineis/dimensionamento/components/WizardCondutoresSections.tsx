@@ -410,12 +410,12 @@ function AlimentacaoGeralAprovada({
   canEditar,
   patchPending,
   onRevisar,
-}: {
+}: Readonly<{
   ag: AlimentacaoGeralCondutores
   canEditar: boolean
   patchPending: boolean
   onRevisar: () => void
-}) {
+}>) {
   return (
     <div className="table-responsive app-data-table">
       <table className="table table-sm align-middle">

@@ -345,16 +345,27 @@ function renderCampoTextoLongo(
   )
 }
 
-function renderCampoInput(
-  categoria: CategoriaProdutoNome,
-  name: string,
-  django: string,
-  label: string,
-  current: string | number | boolean | undefined,
-  value: Record<string, string | number | boolean>,
-  onPatch: (patch: Record<string, string | number | boolean>) => void,
+type RenderCampoInputParams = Readonly<{
+  categoria: CategoriaProdutoNome
+  name: string
+  django: string
+  label: string
+  current: string | number | boolean | undefined
+  value: Record<string, string | number | boolean>
+  onPatch: (patch: Record<string, string | number | boolean>) => void
   patch: (k: string, v: string | number | boolean) => void
-) {
+}>
+
+function renderCampoInput({
+  categoria,
+  name,
+  django,
+  label,
+  current,
+  value,
+  onPatch,
+  patch,
+}: RenderCampoInputParams) {
   const isInt =
     django === 'IntegerField' ||
     django === 'PositiveIntegerField' ||
@@ -415,5 +426,14 @@ export function renderCampoEspecificacao(
     return renderCampoTextoLongo(name, label, current, patch)
   }
 
-  return renderCampoInput(categoria, name, django, label, current, value, onPatch, patch)
+  return renderCampoInput({
+    categoria,
+    name,
+    django,
+    label,
+    current,
+    value,
+    onPatch,
+    patch,
+  })
 }

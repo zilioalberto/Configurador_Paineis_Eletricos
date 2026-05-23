@@ -31,7 +31,7 @@ function ProjetoFiltroCard({
   projetosNoFiltro,
   canCreateProjeto,
   onProjetoFilterChange,
-}: {
+}: Readonly<{
   projetoId: string
   projetoFinalizado: boolean
   loadingProjetos: boolean
@@ -39,7 +39,7 @@ function ProjetoFiltroCard({
   projetosNoFiltro: Projeto[]
   canCreateProjeto: boolean
   onProjetoFilterChange: (e: ChangeEvent<HTMLSelectElement>) => void
-}) {
+}>) {
   if (projetoId) return null
 
   return (
@@ -90,7 +90,7 @@ function CargasCard({
   cargas,
   onDeleteRequest,
   canManageCargas,
-}: {
+}: Readonly<{
   projetoIdListagem: string | null
   projetoFinalizado: boolean
   projetoSelecionado: Projeto | undefined
@@ -100,7 +100,7 @@ function CargasCard({
   cargas: CargaListItem[]
   onDeleteRequest: (id: string) => void
   canManageCargas: boolean
-}) {
+}>) {
   return (
     <div className="card">
       <div className="card-body">

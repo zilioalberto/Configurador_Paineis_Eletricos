@@ -26,12 +26,12 @@ function InclusoesManuaisTable({
   podeEditar,
   busy,
   onRemover,
-}: {
+}: Readonly<{
   inclusoes: InclusaoManualItem[]
   podeEditar: boolean
   busy: boolean
   onRemover: (id: string) => void
-}) {
+}>) {
   if (inclusoes.length === 0) {
     return <p className="text-muted small mb-0">Nenhuma inclusão manual registrada.</p>
   }
@@ -81,7 +81,11 @@ function InclusoesManuaisTable({
   )
 }
 
-export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
+export function InclusaoManualCatalogoSection({
+  projetoId,
+  podeEditar,
+  inclusoes,
+}: Readonly<Props>) {
   const { showToast } = useToast()
   const baseId = useId()
   const buscaId = `${baseId}-busca`

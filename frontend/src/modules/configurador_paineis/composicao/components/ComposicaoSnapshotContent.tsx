@@ -51,7 +51,7 @@ function SnapshotResumo({
   projetoId,
   snapshot,
   projetoSelecionado,
-}: Pick<Props, 'projetoId' | 'snapshot' | 'projetoSelecionado'>) {
+}: Readonly<Pick<Props, 'projetoId' | 'snapshot' | 'projetoSelecionado'>>) {
   const totais = snapshot.totais
 
   return (
@@ -66,12 +66,12 @@ function SnapshotResumo({
         {totais ? (
           <>
             {totais.sugestoes} sugestão(ões) · {totais.pendencias} pendência(s)
-            {totais.composicao_itens != null ? (
+            {totais.composicao_itens == null ? null : (
               <> · {totais.composicao_itens} item(ns) na composição</>
-            ) : null}
-            {totais.inclusoes_manuais != null ? (
+            )}
+            {totais.inclusoes_manuais == null ? null : (
               <> · {totais.inclusoes_manuais} inclusão(ões) manual(is)</>
-            ) : null}
+            )}
           </>
         ) : (
           'Sem totais de composição.'
@@ -211,7 +211,7 @@ export function ComposicaoSnapshotContent({
   onAlterar,
   onAprovarTodas,
   onReavaliarPendencias,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="row g-4">
       <SnapshotResumo

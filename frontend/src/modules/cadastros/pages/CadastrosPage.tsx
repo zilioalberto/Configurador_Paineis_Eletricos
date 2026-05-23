@@ -1,6 +1,6 @@
 import {
+  type ComponentProps,
   type Dispatch,
-  type FormEvent,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -82,7 +82,7 @@ type DeleteTarget = {
   label: string
 }
 
-type FormSubmitHandler = (event: FormEvent<HTMLFormElement>) => void
+type FormSubmitHandler = NonNullable<ComponentProps<'form'>['onSubmit']>
 
 const parceiroFormVazio: ParceiroFormState = {
   tipo_pessoa: 'PJ',

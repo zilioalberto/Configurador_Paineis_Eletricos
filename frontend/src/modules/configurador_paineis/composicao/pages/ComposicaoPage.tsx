@@ -17,6 +17,8 @@ import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import type { ComposicaoItem, SugestaoItem } from '../types/composicao'
 import { agruparPorTagCarga } from '../utils/composicaoDisplay'
 
+type ComposicaoExportFormat = 'pdf' | 'xlsx'
+
 type ModalComposicaoState =
   | {
       title: string
@@ -28,8 +30,8 @@ type ModalComposicaoState =
   | null
 
 function modalComposicaoState(
-  confirmExportFmt: 'pdf' | 'xlsx' | null,
-  exportando: 'pdf' | 'xlsx' | null,
+  confirmExportFmt: ComposicaoExportFormat | null,
+  exportando: ComposicaoExportFormat | null,
   itemReabrir: ComposicaoItem | null,
   reabrirPending: boolean
 ): ModalComposicaoState {
@@ -62,8 +64,8 @@ export default function ComposicaoPage() {
 
   const [alterarSugestao, setAlterarSugestao] = useState<SugestaoItem | null>(null)
   const [alternativaSelecionadaId, setAlternativaSelecionadaId] = useState<string | null>(null)
-  const [exportando, setExportando] = useState<'pdf' | 'xlsx' | null>(null)
-  const [confirmExportFmt, setConfirmExportFmt] = useState<'pdf' | 'xlsx' | null>(null)
+  const [exportando, setExportando] = useState<ComposicaoExportFormat | null>(null)
+  const [confirmExportFmt, setConfirmExportFmt] = useState<ComposicaoExportFormat | null>(null)
   const [aprovandoTodas, setAprovandoTodas] = useState(false)
   const [itemReabrir, setItemReabrir] = useState<ComposicaoItem | null>(null)
 

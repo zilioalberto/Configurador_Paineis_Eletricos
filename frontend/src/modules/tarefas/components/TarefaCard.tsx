@@ -66,11 +66,11 @@ function TimerActionButton({
     )
   }
 
-  const title = !jornadaPermiteIniciarTimer
-    ? 'Fora da jornada de trabalho (cadastro em RH).'
-    : podeIniciarTimer
+  const title = jornadaPermiteIniciarTimer
+    ? podeIniciarTimer
       ? 'Iniciar horas'
       : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
+    : 'Fora da jornada de trabalho (cadastro em RH).'
 
   return (
     <button
