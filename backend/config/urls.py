@@ -25,6 +25,7 @@ from config.health_views import healthcheck
 API_V1_PREFIX = "api/v1/"
 
 urlpatterns = [
+    path("", include("django_prometheus.urls")),
 
     path("admin/", admin.site.urls),
 

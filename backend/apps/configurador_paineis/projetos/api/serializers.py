@@ -50,6 +50,11 @@ class ProjetoSerializer(serializers.ModelSerializer):
             "criado_por",
             "atualizado_por",
         )
+        extra_kwargs = {
+            "familia_plc": {"allow_null": True, "required": False},
+            "tipo_climatizacao": {"allow_null": True, "required": False},
+            "tipo_seccionamento": {"allow_null": True, "required": False},
+        }
 
     def validate_codigo(self, value):
         if value is None or (isinstance(value, str) and not value.strip()):
@@ -67,6 +72,26 @@ class ProjetoSerializer(serializers.ModelSerializer):
             if qs.exists():
                 raise serializers.ValidationError("Este código já está em uso.")
         return v
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if attrs.get("possui_plc") is False and attrs.get("familia_plc") is None:
+            attrs["familia_plc"] = ""
+
+        if (
+            attrs.get("possui_climatizacao") is False
+            and attrs.get("tipo_climatizacao") is None
+        ):
+            attrs["tipo_climatizacao"] = ""
+
+        if (
+            attrs.get("possui_seccionamento") is False
+            and attrs.get("tipo_seccionamento") is None
+        ):
+            attrs["tipo_seccionamento"] = ""
+
+        return attrs
 
     def get_criado_por_nome(self, obj):
         user = obj.criado_por

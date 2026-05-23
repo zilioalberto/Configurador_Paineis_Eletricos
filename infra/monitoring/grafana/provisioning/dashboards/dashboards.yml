@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: configurador_painel
+    orgId: 1
+    folder: Configurador Painel
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
