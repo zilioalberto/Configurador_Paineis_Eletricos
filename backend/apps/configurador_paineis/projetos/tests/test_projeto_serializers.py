@@ -51,6 +51,28 @@ def test_serializer_init_codigo_editavel_em_criacao():
 
 
 @pytest.mark.django_db
+def test_serializer_aceita_campos_condicionais_nulos_quando_recursos_desmarcados(
+    projeto_ca_minimo_kwargs,
+):
+    payload = {
+        "nome": "Projeto sem recursos opcionais",
+        **projeto_ca_minimo_kwargs,
+        "possui_plc": False,
+        "familia_plc": None,
+        "possui_climatizacao": False,
+        "tipo_climatizacao": None,
+        "possui_seccionamento": False,
+        "tipo_seccionamento": None,
+    }
+    ser = ProjetoSerializer(data=payload)
+
+    assert ser.is_valid(), ser.errors
+    assert ser.validated_data["familia_plc"] == ""
+    assert ser.validated_data["tipo_climatizacao"] == ""
+    assert ser.validated_data["tipo_seccionamento"] == ""
+
+
+@pytest.mark.django_db
 def test_projeto_evento_serializer_usuario_nome_e_model_str(criar_projeto):
     User = get_user_model()
     user = User.objects.create_user(
