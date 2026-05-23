@@ -128,12 +128,12 @@ Cenário típico de painel BT trifásico **380 V**, alimentação com neutro/ter
 
 ## Roteiro para reproduzir na demo (M7)
 
-1. Subir ambiente: [setup-local.md](../desenvolvimento/setup-local.md)  
+1. Subir ambiente: [setup-local.md](../../desenvolvimento/setup-local.md)  
 2. Login → criar projeto `21001-26`  
 3. Cadastrar cargas → dimensionar → confirmar condutores no wizard  
 4. Gerar sugestões → aprovar → exportar PDF/XLSX  
 5. Atualizar este arquivo com UUID real do projeto e totais do snapshot  
 
-**Checklist de testes:** [checklist-testes.md](../checklist-testes.md)  
+**Checklist de testes:** [checklist-testes.md](../../checklist-testes.md)  
 **Roteiro de demo:** [roteiro-demo.md](../roteiro-demo.md)  
 **API:** [mapa-api-wizard.md](../mapa-api-wizard.md)
