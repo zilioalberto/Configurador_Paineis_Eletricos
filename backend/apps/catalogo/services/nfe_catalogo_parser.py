@@ -182,6 +182,52 @@ def _normalizar_token_unidade_comercial(raw: str) -> str:
     return t
 
 
+_SINONIMOS_UNIDADE_COMERCIAL = {
+    "UNIDADE": UnidadeMedidaChoices.UN,
+    "UND": UnidadeMedidaChoices.UN,
+    "UNID": UnidadeMedidaChoices.UN,
+    "PECA": UnidadeMedidaChoices.PC,
+    "PECAS": UnidadeMedidaChoices.PC,
+    "PC": UnidadeMedidaChoices.PC,
+    "PCA": UnidadeMedidaChoices.PC,
+    "PÇ": UnidadeMedidaChoices.PC,
+    "PÇS": UnidadeMedidaChoices.PC,
+    "METRO": UnidadeMedidaChoices.MT,
+    "METROS": UnidadeMedidaChoices.MT,
+    "M": UnidadeMedidaChoices.MT,
+    "MT": UnidadeMedidaChoices.MT,
+    "METROQUADRADO": UnidadeMedidaChoices.M2,
+    "METROSQUADRADOS": UnidadeMedidaChoices.M2,
+    "M2": UnidadeMedidaChoices.M2,
+    "MT2": UnidadeMedidaChoices.M2,
+    "METROCUBICO": UnidadeMedidaChoices.M3,
+    "METROSCUBICOS": UnidadeMedidaChoices.M3,
+    "M3": UnidadeMedidaChoices.M3,
+    "MT3": UnidadeMedidaChoices.M3,
+    "KILOGRAMA": UnidadeMedidaChoices.KG,
+    "KILOGRAMAS": UnidadeMedidaChoices.KG,
+    "QUILOGRAMA": UnidadeMedidaChoices.KG,
+    "QUILOGRAMAS": UnidadeMedidaChoices.KG,
+    "KILO": UnidadeMedidaChoices.KG,
+    "KG": UnidadeMedidaChoices.KG,
+    "GRAMA": UnidadeMedidaChoices.G,
+    "GRAMAS": UnidadeMedidaChoices.G,
+    "G": UnidadeMedidaChoices.G,
+    "LITRO": UnidadeMedidaChoices.L,
+    "LITROS": UnidadeMedidaChoices.L,
+    "LT": UnidadeMedidaChoices.L,
+    "L": UnidadeMedidaChoices.L,
+    "CONJUNTO": UnidadeMedidaChoices.CJ,
+    "CONJ": UnidadeMedidaChoices.CJ,
+    "CJ": UnidadeMedidaChoices.CJ,
+    "KILOMETRO": UnidadeMedidaChoices.KM,
+    "KILOMETROS": UnidadeMedidaChoices.KM,
+    "QUILOMETRO": UnidadeMedidaChoices.KM,
+    "QUILOMETROS": UnidadeMedidaChoices.KM,
+    "KM": UnidadeMedidaChoices.KM,
+}
+
+
 def _map_unidade_comercial(ucom: str) -> str:
     """
     Converte ``uCom`` ou ``uTrib`` da NF-e para ``UnidadeMedidaChoices`` do catálogo.
