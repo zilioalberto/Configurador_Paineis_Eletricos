@@ -309,6 +309,129 @@ def _obter_dimensionamento_motor_para_bornes(
         return None
 
 
+def _criar_ou_atualizar_pendencia_borne_motor(
+    projeto,
+    carga,
+    indice_escopo: str,
+    descricao: str,
+    corrente_referencia_a,
+    memoria_calculo: str,
+) -> None:
+    SugestaoItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        carga=carga,
+        indice_escopo=indice_escopo,
+    ).delete()
+    PendenciaItem.objects.update_or_create(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        carga=carga,
+        indice_escopo=indice_escopo,
+        defaults={
+            "descricao": descricao,
+            "corrente_referencia_a": corrente_referencia_a,
+            "memoria_calculo": memoria_calculo,
+            "status": StatusPendenciaChoices.ABERTA,
+            "ordem": 43,
+        },
+    )
+
+
+def _salvar_sugestao_borne_motor(
+    projeto,
+    carga,
+    indice_escopo: str,
+    produto,
+    quantidade: Decimal,
+    corrente_referencia_a,
+    memoria_calculo: str,
+) -> SugestaoItem:
+    PendenciaItem.objects.filter(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        carga=carga,
+        indice_escopo=indice_escopo,
+    ).delete()
+    sugestao, _ = SugestaoItem.objects.update_or_create(
+        projeto=projeto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        carga=carga,
+        indice_escopo=indice_escopo,
+        defaults={
+            "produto": produto,
+            "quantidade": quantidade,
+            "corrente_referencia_a": corrente_referencia_a,
+            "memoria_calculo": memoria_calculo,
+            "status": StatusSugestaoChoices.PENDENTE,
+            "ordem": 43,
+        },
+    )
+    return sugestao
+
+
+def _memoria_borne_terra_motor(carga, corrente_min_a, mm2_pe) -> str:
+    return (
+        "[BORNE TERRA — MOTOR (PE)]\n"
+        f"Carga: {carga}\n"
+        f"Corrente referência (dimensionamento): {corrente_min_a} A\n"
+        f"Seção condutor PE (efetiva): {mm2_pe} mm²\n"
+        f"Tipo borne: {TipoBorneChoices.TERRA}\n"
+        f"Categoria: {CategoriaProdutoNomeChoices.BORNE}\n"
+    )
+
+
+def _processar_borne_terra_motor(projeto, carga, dim, corrente_min_a) -> None:
+    mm2_pe = _mm2_efetivo_dim(
+        dim.secao_condutor_pe_escolhida_mm2,
+        dim.secao_condutor_pe_mm2,
+    )
+    memoria_terra = _memoria_borne_terra_motor(carga, corrente_min_a, mm2_pe)
+
+    if mm2_pe is None:
+        _criar_ou_atualizar_pendencia_borne_motor(
+            projeto,
+            carga,
+            _INDICE_ESCOPO_BORNE_MOTOR_TERRA,
+            f"Seção do condutor PE ausente no dimensionamento para {carga}.",
+            corrente_min_a,
+            memoria_terra,
+        )
+        return
+
+    lista_terra = list(
+        selecionar_bornes(
+            tipo_borne=TipoBorneChoices.TERRA,
+            corrente_nominal_min_a=corrente_min_a,
+            secao_max_mm2_min=mm2_pe,
+        )
+    )
+    if not lista_terra:
+        _criar_ou_atualizar_pendencia_borne_motor(
+            projeto,
+            carga,
+            _INDICE_ESCOPO_BORNE_MOTOR_TERRA,
+            f"Nenhum borne terra compatível com corrente e seção PE para {carga}.",
+            corrente_min_a,
+            memoria_terra,
+        )
+        return
+
+    _salvar_sugestao_borne_motor(
+        projeto,
+        carga,
+        _INDICE_ESCOPO_BORNE_MOTOR_TERRA,
+        lista_terra[0],
+        Decimal("1"),
+        corrente_min_a,
+        memoria_terra,
+    )
+
+
 def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
     """
     Motor com conexão a bornes: sugere vários bornes de passagem (1 nível cada) —
@@ -401,148 +524,31 @@ def _processar_bornes_motor(projeto, carga) -> Optional[SugestaoItem]:
     )
 
     if not opcoes_lista:
-        SugestaoItem.objects.filter(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.BORNES,
-            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-            carga=carga,
-            indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
-        ).delete()
-        PendenciaItem.objects.update_or_create(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.BORNES,
-            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-            carga=carga,
-            indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
-            defaults={
-                "descricao": (
-                    f"Nenhum borne de passagem (1 nível) compatível com corrente "
-                    f"e seção para {carga}."
-                ),
-                "corrente_referencia_a": corrente_min_a,
-                "memoria_calculo": memoria_passagem,
-                "status": StatusPendenciaChoices.ABERTA,
-                "ordem": 43,
-            },
+        _criar_ou_atualizar_pendencia_borne_motor(
+            projeto,
+            carga,
+            _INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
+            (
+                f"Nenhum borne de passagem (1 nível) compatível com corrente "
+                f"e seção para {carga}."
+            ),
+            corrente_min_a,
+            memoria_passagem,
         )
         sugestao_passagem = None
     else:
-        PendenciaItem.objects.filter(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.BORNES,
-            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-            carga=carga,
-            indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
-        ).delete()
-        produto = opcoes_lista[0]
-        sugestao_passagem, _ = SugestaoItem.objects.update_or_create(
-            projeto=projeto,
-            parte_painel=PartesPainelChoices.BORNES,
-            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-            carga=carga,
-            indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
-            defaults={
-                "produto": produto,
-                "quantidade": Decimal(qtd_passagem),
-                "corrente_referencia_a": corrente_min_a,
-                "memoria_calculo": memoria_passagem,
-                "status": StatusSugestaoChoices.PENDENTE,
-                "ordem": 43,
-            },
+        sugestao_passagem = _salvar_sugestao_borne_motor(
+            projeto,
+            carga,
+            _INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM,
+            opcoes_lista[0],
+            Decimal(qtd_passagem),
+            corrente_min_a,
+            memoria_passagem,
         )
 
     if m.tipo_conexao_painel == TipoConexaoCargaPainelChoices.CONEXAO_BORNES_COM_PE:
-        mm2_pe = _mm2_efetivo_dim(
-            dim.secao_condutor_pe_escolhida_mm2,
-            dim.secao_condutor_pe_mm2,
-        )
-        memoria_terra = (
-            "[BORNE TERRA — MOTOR (PE)]\n"
-            f"Carga: {carga}\n"
-            f"Corrente referência (dimensionamento): {corrente_min_a} A\n"
-            f"Seção condutor PE (efetiva): {mm2_pe} mm²\n"
-            f"Tipo borne: {TipoBorneChoices.TERRA}\n"
-            f"Categoria: {CategoriaProdutoNomeChoices.BORNE}\n"
-        )
-        if mm2_pe is None:
-            SugestaoItem.objects.filter(
-                projeto=projeto,
-                parte_painel=PartesPainelChoices.BORNES,
-                categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                carga=carga,
-                indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-            ).delete()
-            PendenciaItem.objects.update_or_create(
-                projeto=projeto,
-                parte_painel=PartesPainelChoices.BORNES,
-                categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                carga=carga,
-                indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-                defaults={
-                    "descricao": (
-                        f"Seção do condutor PE ausente no dimensionamento para {carga}."
-                    ),
-                    "corrente_referencia_a": corrente_min_a,
-                    "memoria_calculo": memoria_terra,
-                    "status": StatusPendenciaChoices.ABERTA,
-                    "ordem": 43,
-                },
-            )
-        else:
-            opcoes_terra = selecionar_bornes(
-                tipo_borne=TipoBorneChoices.TERRA,
-                corrente_nominal_min_a=corrente_min_a,
-                secao_max_mm2_min=mm2_pe,
-            )
-            lista_terra = list(opcoes_terra)
-            if not lista_terra:
-                SugestaoItem.objects.filter(
-                    projeto=projeto,
-                    parte_painel=PartesPainelChoices.BORNES,
-                    categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                    carga=carga,
-                    indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-                ).delete()
-                PendenciaItem.objects.update_or_create(
-                    projeto=projeto,
-                    parte_painel=PartesPainelChoices.BORNES,
-                    categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                    carga=carga,
-                    indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-                    defaults={
-                        "descricao": (
-                            f"Nenhum borne terra compatível com corrente e seção PE para {carga}."
-                        ),
-                        "corrente_referencia_a": corrente_min_a,
-                        "memoria_calculo": memoria_terra,
-                        "status": StatusPendenciaChoices.ABERTA,
-                        "ordem": 43,
-                    },
-                )
-            else:
-                PendenciaItem.objects.filter(
-                    projeto=projeto,
-                    parte_painel=PartesPainelChoices.BORNES,
-                    categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                    carga=carga,
-                    indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-                ).delete()
-                produto_terra = lista_terra[0]
-                SugestaoItem.objects.update_or_create(
-                    projeto=projeto,
-                    parte_painel=PartesPainelChoices.BORNES,
-                    categoria_produto=CategoriaProdutoNomeChoices.BORNE,
-                    carga=carga,
-                    indice_escopo=_INDICE_ESCOPO_BORNE_MOTOR_TERRA,
-                    defaults={
-                        "produto": produto_terra,
-                        "quantidade": Decimal("1"),
-                        "corrente_referencia_a": corrente_min_a,
-                        "memoria_calculo": memoria_terra,
-                        "status": StatusSugestaoChoices.PENDENTE,
-                        "ordem": 43,
-                    },
-                )
+        _processar_borne_terra_motor(projeto, carga, dim, corrente_min_a)
     else:
         _limpar_borne_terra_motor(projeto, carga)
 

@@ -2,7 +2,7 @@ import { DEVELOPER, getWhatsAppUrl } from '@/constants/developer'
 import { ZFW_SITE_URL } from '@/constants/zfwSite'
 import { APP_PRODUCT_FULL_NAME } from '@/constants/appBranding'
 
-function WhatsAppGlyph({ className }: { className?: string }) {
+function WhatsAppGlyph({ className }: Readonly<{ className?: string }>) {
   return (
     <svg
       className={className}
@@ -34,7 +34,7 @@ export default function AppFooter() {
           >
             ZFW Engenharia
           </a>
-          . Todos os direitos reservados.
+          <span>. Todos os direitos reservados.</span>
         </p>
         <p className="app-footer-line mb-0 mt-1">
           {APP_PRODUCT_FULL_NAME} · Interface desenvolvida por <strong>{DEVELOPER.name}</strong>.

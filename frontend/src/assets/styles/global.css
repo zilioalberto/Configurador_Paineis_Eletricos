@@ -2191,8 +2191,23 @@ h3,
   margin: 0;
 }
 
+.tarefa-hours-log__title {
+  color: #0f172a;
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin: 0;
+}
+
 .tarefa-hours-log__header p {
   color: #667085;
+  font-size: 0.82rem;
+  margin: 0.15rem 0 0;
+}
+
+.tarefa-hours-log__description {
+  color: #667085;
+  display: block;
   font-size: 0.82rem;
   margin: 0.15rem 0 0;
 }
@@ -2286,6 +2301,10 @@ h3,
   display: flex;
   flex-shrink: 0;
   gap: 0.45rem;
+}
+
+.tarefa-hours-log__accordion-copy {
+  min-width: 0;
 }
 
 .tarefa-hours-log__accordion-meta > span:first-child {
@@ -2634,4 +2653,3 @@ h3,
     --cp-page-pb: 1.5rem;
   }
 }
-

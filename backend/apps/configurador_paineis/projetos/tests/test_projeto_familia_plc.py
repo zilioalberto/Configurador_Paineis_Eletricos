@@ -32,4 +32,4 @@ def test_save_limpa_familia_plc_quando_nao_possui_plc(criar_projeto):
     p.possui_plc = False
     p.save()
     p.refresh_from_db()
-    assert p.familia_plc is None
+    assert p.familia_plc == ""

@@ -386,6 +386,81 @@ function NfeItensTableRows({
   )
 }
 
+function NfeResultadoImportacao({
+  resultado,
+}: Readonly<{ resultado: NfeAplicarResponse | null }>) {
+  if (!resultado) return null
+
+  return (
+    <div className="mt-4 border-top pt-3">
+      <h3 className="h6">Resultado da última importação</h3>
+      <ul className="small mb-2">
+        {resultado.fornecedor_id ? (
+          <li>
+            Fornecedor (ID interno): <code>{resultado.fornecedor_id}</code>
+            {resultado.fornecedor_criado ? ' — registo novo.' : ' — já existia.'}
+          </li>
+        ) : (
+          <li>Nenhum fornecedor associado nesta execução.</li>
+        )}
+        {resultado.fornecedores_associados?.length ? (
+          <li>
+            Fornecedores usados nos produtos:{' '}
+            {resultado.fornecedores_associados
+              .map((fornecedor) => fornecedor.razao_social)
+              .join(', ')}
+          </li>
+        ) : null}
+        {resultado.produtos_criados.length ? (
+          <li>
+            Produtos criados ({resultado.produtos_criados.length}):{' '}
+            <code>{resultado.produtos_criados.join(', ')}</code>
+          </li>
+        ) : null}
+        {resultado.produtos_atualizados?.length ? (
+          <li>
+            Produtos atualizados com dados do XML ({resultado.produtos_atualizados.length}):{' '}
+            <code>{resultado.produtos_atualizados.join(', ')}</code>
+          </li>
+        ) : null}
+      </ul>
+      {resultado.avisos.length ? (
+        <div className="alert alert-warning py-2 small mb-2">
+          <strong>Avisos</strong>
+          <ul className="mb-0 mt-1">
+            {resultado.avisos.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {resultado.produtos_ignorados.length ? (
+        <div className="table-responsive">
+          <table className="table table-sm table-bordered mb-0">
+            <caption className="small text-muted">Linhas não importadas</caption>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Código</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resultado.produtos_ignorados.map((row, idx) => (
+                <tr key={`${row.n_item}-${idx}`}>
+                  <td>{row.n_item}</td>
+                  <td>{row.codigo ?? '—'}</td>
+                  <td>{row.motivo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function NfeImportPage() {
   const { showToast } = useToast()
   const { data: categorias = [], isPending: catPending } = useCategoriaListQuery()
@@ -897,75 +972,7 @@ export default function NfeImportPage() {
                 {aplicando ? 'A importar…' : 'Aplicar importação'}
               </button>
 
-              {resultadoImportacao ? (
-                <div className="mt-4 border-top pt-3">
-                  <h3 className="h6">Resultado da última importação</h3>
-                  <ul className="small mb-2">
-                    {resultadoImportacao.fornecedor_id ? (
-                      <li>
-                        Fornecedor (ID interno): <code>{resultadoImportacao.fornecedor_id}</code>
-                        {resultadoImportacao.fornecedor_criado ? ' — registo novo.' : ' — já existia.'}
-                      </li>
-                    ) : (
-                      <li>Nenhum fornecedor associado nesta execução.</li>
-                    )}
-                    {resultadoImportacao.fornecedores_associados?.length ? (
-                      <li>
-                        Fornecedores usados nos produtos:{' '}
-                        {resultadoImportacao.fornecedores_associados
-                          .map((fornecedor) => fornecedor.razao_social)
-                          .join(', ')}
-                      </li>
-                    ) : null}
-                    {resultadoImportacao.produtos_criados.length ? (
-                      <li>
-                        Produtos criados ({resultadoImportacao.produtos_criados.length}):{' '}
-                        <code>{resultadoImportacao.produtos_criados.join(', ')}</code>
-                      </li>
-                    ) : null}
-                    {resultadoImportacao.produtos_atualizados?.length ? (
-                      <li>
-                        Produtos atualizados com dados do XML (
-                        {resultadoImportacao.produtos_atualizados.length}):{' '}
-                        <code>{resultadoImportacao.produtos_atualizados.join(', ')}</code>
-                      </li>
-                    ) : null}
-                  </ul>
-                  {resultadoImportacao.avisos.length ? (
-                    <div className="alert alert-warning py-2 small mb-2">
-                      <strong>Avisos</strong>
-                      <ul className="mb-0 mt-1">
-                        {resultadoImportacao.avisos.map((a) => (
-                          <li key={a}>{a}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {resultadoImportacao.produtos_ignorados.length ? (
-                    <div className="table-responsive">
-                      <table className="table table-sm table-bordered mb-0">
-                        <caption className="small text-muted">Linhas não importadas</caption>
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Código</th>
-                            <th>Motivo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {resultadoImportacao.produtos_ignorados.map((row, idx) => (
-                            <tr key={`${row.n_item}-${idx}`}>
-                              <td>{row.n_item}</td>
-                              <td>{row.codigo ?? '—'}</td>
-                              <td>{row.motivo}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              <NfeResultadoImportacao resultado={resultadoImportacao} />
             </div>
           </div>
         </>

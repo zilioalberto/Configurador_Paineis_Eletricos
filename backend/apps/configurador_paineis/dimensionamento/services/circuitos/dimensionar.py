@@ -322,7 +322,7 @@ def dimensionar_transdutor(espec, projeto, carga) -> dict:
     }
 
 
-def dimensionar_transmissor(projeto, carga) -> dict:
+def dimensionar_transmissor() -> dict:
     secao = fixo_um_mm2()
     linhas = [
         "Transmissor (sem especificação detalhada): 2 condutores + PE; 1 mm² — evoluir por tipo de sinal.",
@@ -378,7 +378,7 @@ _DIMENSIONADORES_POR_TIPO = {
 
 def dimensionar_circuito_para_carga(carga, projeto) -> dict | None:
     if carga.tipo == TipoCargaChoices.TRANSMISSOR:
-        return dimensionar_transmissor(projeto, carga)
+        return dimensionar_transmissor()
 
     config = _DIMENSIONADORES_POR_TIPO.get(carga.tipo)
     if not config:

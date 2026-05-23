@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { buscarProdutoResumoImportacaoNfe } from '../services/nfeImportService'
 import type { NfeProdutoExistenteResumo, NfeSnapshot } from '../types/nfeImport'
 
@@ -6,6 +6,16 @@ type ItemSelecaoImportacao = {
   importar: boolean
   codigo: string
   categoria: string
+}
+
+type ExistentePorNItem = Record<number, NfeProdutoExistenteResumo | null>
+
+function atualizarItemExistente(
+  setExistentePorNItem: Dispatch<SetStateAction<ExistentePorNItem>>,
+  nItem: number,
+  resumo: NfeProdutoExistenteResumo | null
+) {
+  setExistentePorNItem((p) => ({ ...p, [nItem]: resumo }))
 }
 
 async function atualizarResumosExistentes(
@@ -40,10 +50,8 @@ async function atualizarResumosExistentes(
 export function useNfeExistentePorItem(
   snapshot: NfeSnapshot | null,
   selecoes: Record<number, ItemSelecaoImportacao>
-): Record<number, NfeProdutoExistenteResumo | null> {
-  const [existentePorNItem, setExistentePorNItem] = useState<
-    Record<number, NfeProdutoExistenteResumo | null>
-  >({})
+): ExistentePorNItem {
+  const [existentePorNItem, setExistentePorNItem] = useState<ExistentePorNItem>({})
   const debounceRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
 
   useEffect(() => {
@@ -68,9 +76,7 @@ export function useNfeExistentePorItem(
       atualizarResumosExistentes(
         snapshot.itens,
         selecoes,
-        (nItem, resumo) => {
-          setExistentePorNItem((p) => ({ ...p, [nItem]: resumo }))
-        },
+        (nItem, resumo) => atualizarItemExistente(setExistentePorNItem, nItem, resumo),
         () => cancelled
       ).catch(console.error)
     }, 450)

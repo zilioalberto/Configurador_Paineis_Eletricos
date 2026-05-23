@@ -21,7 +21,71 @@ function em(v: string | null | undefined) {
   return v
 }
 
-export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
+function InclusoesManuaisTable({
+  inclusoes,
+  podeEditar,
+  busy,
+  onRemover,
+}: Readonly<{
+  inclusoes: InclusaoManualItem[]
+  podeEditar: boolean
+  busy: boolean
+  onRemover: (id: string) => void
+}>) {
+  if (inclusoes.length === 0) {
+    return <p className="text-muted small mb-0">Nenhuma inclusão manual registrada.</p>
+  }
+
+  return (
+    <div className="table-responsive app-data-table">
+      <table className="table table-sm table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Código</th>
+            <th>Descrição</th>
+            <th>Qtd.</th>
+            <th>Obs.</th>
+            {podeEditar ? <th className="text-end">Ações</th> : null}
+          </tr>
+        </thead>
+        <tbody>
+          {inclusoes.map((row) => (
+            <tr key={row.id}>
+              <td>
+                <span className="badge text-bg-secondary">
+                  {row.categoria_produto_display ?? row.categoria_produto}
+                </span>
+              </td>
+              <td className="font-monospace fw-semibold">{row.produto?.codigo ?? '—'}</td>
+              <td className="small">{em(row.produto?.descricao)}</td>
+              <td>{row.quantidade}</td>
+              <td className="small">{em(row.observacoes)}</td>
+              {podeEditar ? (
+                <td className="text-end">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger"
+                    disabled={busy}
+                    onClick={() => onRemover(row.id)}
+                  >
+                    Remover
+                  </button>
+                </td>
+              ) : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function InclusaoManualCatalogoSection({
+  projetoId,
+  podeEditar,
+  inclusoes,
+}: Readonly<Props>) {
   const { showToast } = useToast()
   const baseId = useId()
   const buscaId = `${baseId}-busca`
@@ -291,53 +355,12 @@ export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes
             </p>
           )}
 
-          {inclusoes.length === 0 ? (
-            <p className="text-muted small mb-0">Nenhuma inclusão manual registrada.</p>
-          ) : (
-            <div className="table-responsive app-data-table">
-              <table className="table table-sm table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Categoria</th>
-                    <th>Código</th>
-                    <th>Descrição</th>
-                    <th>Qtd.</th>
-                    <th>Obs.</th>
-                    {podeEditar ? <th className="text-end">Ações</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {inclusoes.map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <span className="badge text-bg-secondary">
-                          {row.categoria_produto_display ?? row.categoria_produto}
-                        </span>
-                      </td>
-                      <td className="font-monospace fw-semibold">
-                        {row.produto?.codigo ?? '—'}
-                      </td>
-                      <td className="small">{em(row.produto?.descricao)}</td>
-                      <td>{row.quantidade}</td>
-                      <td className="small">{em(row.observacoes)}</td>
-                      {podeEditar ? (
-                        <td className="text-end">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger"
-                            disabled={busy}
-                            onClick={() => onRemover(row.id)}
-                          >
-                            Remover
-                          </button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <InclusoesManuaisTable
+            inclusoes={inclusoes}
+            podeEditar={podeEditar}
+            busy={busy}
+            onRemover={onRemover}
+          />
         </div>
       </div>
     </div>

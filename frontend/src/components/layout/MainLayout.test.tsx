@@ -61,13 +61,13 @@ describe('MainLayout', () => {
 
   it('realça seção quando a rota tem hash', () => {
     const rafSpy = vi
-      .spyOn(window, 'requestAnimationFrame')
+      .spyOn(globalThis, 'requestAnimationFrame')
       .mockImplementation((cb: FrameRequestCallback) => {
         cb(0)
         return 1
       })
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'scrollTo').mockImplementation(() => {})
 
     render(
       <MemoryRouter initialEntries={['/#secao-a']}>
@@ -82,5 +82,29 @@ describe('MainLayout', () => {
     expect(screen.getByText('Destino')).toBeInTheDocument()
     expect(screen.getByText(/Navegacao concluida/i)).toBeInTheDocument()
     expect(rafSpy).toHaveBeenCalled()
+  })
+
+  it('não quebra quando a rota tem hash com escape inválido', () => {
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(
+      (cb: FrameRequestCallback) => {
+        cb(0)
+        return 1
+      }
+    )
+    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'scrollTo').mockImplementation(() => {})
+
+    render(
+      <MemoryRouter initialEntries={['/#secao%ZZ']}>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<div id="secao%ZZ">Destino inválido</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Destino inválido')).toBeInTheDocument()
+    expect(screen.getByText(/Navegacao concluida/i)).toBeInTheDocument()
   })
 })

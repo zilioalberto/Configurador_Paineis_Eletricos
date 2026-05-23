@@ -17,18 +17,29 @@ function RouteFallback() {
   )
 }
 
+function decodeHashId(hash: string): string | null {
+  const rawId = hash.trim().slice(1)
+  if (!rawId) return null
+
+  try {
+    return decodeURIComponent(rawId)
+  } catch {
+    return rawId
+  }
+}
+
 export default function MainLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [sectionHighlighted, setSectionHighlighted] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
-    const id = window.setTimeout(() => setMobileNavOpen(false), 0)
-    return () => window.clearTimeout(id)
+    const id = globalThis.setTimeout(() => setMobileNavOpen(false), 0)
+    return () => globalThis.clearTimeout(id)
   }, [location.pathname])
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 992px)')
+    const mq = globalThis.matchMedia('(min-width: 992px)')
     function onChange() {
       if (mq.matches) {
         setMobileNavOpen(false)
@@ -40,16 +51,28 @@ export default function MainLayout() {
 
   useEffect(() => {
     const hash = location.hash?.trim()
-    if (!hash || hash === '#') return
+    if (!hash || hash === '#') {
+      setSectionHighlighted(false)
+      return
+    }
 
-    const id = decodeURIComponent(hash.slice(1))
+    const id = decodeHashId(hash)
+    if (!id) {
+      setSectionHighlighted(false)
+      return
+    }
+
+    let highlightTimeoutId: ReturnType<typeof globalThis.setTimeout> | undefined
+    let highlightedTarget: HTMLElement | null = null
+
     const scrollToHashTarget = () => {
       const target = document.getElementById(id)
       if (!target) return
 
+      highlightedTarget = target
       const topOffset = 96
-      const targetTop = target.getBoundingClientRect().top + window.scrollY - topOffset
-      window.scrollTo({
+      const targetTop = target.getBoundingClientRect().top + globalThis.scrollY - topOffset
+      globalThis.scrollTo({
         top: Math.max(0, targetTop),
         behavior: 'smooth',
       })
@@ -57,22 +80,32 @@ export default function MainLayout() {
       target.classList.remove('app-hash-target-highlight')
       target.classList.add('app-hash-target-highlight')
       setSectionHighlighted(true)
-      window.setTimeout(() => {
+      highlightTimeoutId = globalThis.setTimeout(() => {
         target.classList.remove('app-hash-target-highlight')
         setSectionHighlighted(false)
       }, 1800)
     }
 
-    const raf = window.requestAnimationFrame(scrollToHashTarget)
-    return () => window.cancelAnimationFrame(raf)
+    const raf = globalThis.requestAnimationFrame(scrollToHashTarget)
+    return () => {
+      globalThis.cancelAnimationFrame(raf)
+      if (highlightTimeoutId !== undefined) {
+        globalThis.clearTimeout(highlightTimeoutId)
+      }
+      highlightedTarget?.classList.remove('app-hash-target-highlight')
+      setSectionHighlighted(false)
+    }
   }, [location.hash, location.pathname])
 
   return (
     <div className="d-flex app-shell" style={{ minHeight: '100vh' }}>
-      <div
+      <button
+        type="button"
         className={`app-sidebar-backdrop ${mobileNavOpen ? 'is-visible' : ''}`}
         onClick={() => setMobileNavOpen(false)}
-        aria-hidden={!mobileNavOpen}
+        aria-label="Fechar navegação lateral"
+        disabled={!mobileNavOpen}
+        tabIndex={mobileNavOpen ? 0 : -1}
       />
 
       <Sidebar

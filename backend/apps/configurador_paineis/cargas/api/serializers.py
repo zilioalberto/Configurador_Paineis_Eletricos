@@ -568,9 +568,9 @@ class CargaWriteSerializer(serializers.ModelSerializer):
             _clear_specs(instance)
             self._create_spec(instance, tipo_novo, payloads)
         elif key_novo and key_novo in payloads and payloads[key_novo] is not None:
-            Model = MODEL_BY_KEY[key_novo]
+            model = MODEL_BY_KEY[key_novo]
             incoming = payloads[key_novo]
-            obj, created = Model.objects.get_or_create(
+            obj, created = model.objects.get_or_create(
                 carga=instance,
                 defaults=_merge_spec(_default_spec_payload(tipo_novo), incoming),
             )

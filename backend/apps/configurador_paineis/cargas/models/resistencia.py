@@ -59,8 +59,8 @@ class CargaResistencia(models.Model):
     tipo_rele_interface = models.CharField(
         max_length=30,
         choices=TipoReleInterfaceValvulaChoices.choices,
-        null=True,
         blank=True,
+        default="",
         help_text=(
             "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
         ),
@@ -208,21 +208,23 @@ class CargaResistencia(models.Model):
 
         reset_io_flags(self.carga)
 
-        if projeto and getattr(projeto, "possui_plc", False):
-            if self.tipo_acionamento == TipoAcionamentoResistenciaChoices.CONTATOR:
-                self.carga.quantidade_saidas_digitais = 1
-
-            elif self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO:
-                self.carga.quantidade_saidas_digitais = 1
-
-            elif self.tipo_acionamento == TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
-                self.carga.quantidade_saidas_digitais = 1
+        acionamentos_com_saida_digital = (
+            TipoAcionamentoResistenciaChoices.CONTATOR,
+            TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+            TipoAcionamentoResistenciaChoices.RELE_INTERFACE,
+        )
+        if (
+            projeto
+            and getattr(projeto, "possui_plc", False)
+            and self.tipo_acionamento in acionamentos_com_saida_digital
+        ):
+            self.carga.quantidade_saidas_digitais = 1
 
         save_io_flags(self.carga)
 
     def save(self, *args, **kwargs):
         if self.tipo_acionamento != TipoAcionamentoResistenciaChoices.RELE_INTERFACE:
-            self.tipo_rele_interface = None
+            self.tipo_rele_interface = ""
         self.full_clean()
         self.corrente_calculada_a = self._calcular_corrente()
         super().save(*args, **kwargs)

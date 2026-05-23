@@ -89,8 +89,8 @@ class CargaValvula(models.Model):
     tipo_rele_interface = models.CharField(
         max_length=30,
         choices=TipoReleInterfaceValvulaChoices.choices,
-        null=True,
         blank=True,
+        default="",
         help_text=(
             "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
         ),
@@ -156,7 +156,7 @@ class CargaValvula(models.Model):
 
     def save(self, *args, **kwargs):
         if self.tipo_acionamento != TipoAcionamentoValvulaChoices.RELE_INTERFACE:
-            self.tipo_rele_interface = None
+            self.tipo_rele_interface = ""
         self.full_clean()
         super().save(*args, **kwargs)
         self.sincronizar_quantidades_carga()

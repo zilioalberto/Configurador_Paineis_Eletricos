@@ -96,6 +96,11 @@ export function formatCorrenteCarga(c: CargaDetalhe | null | undefined) {
   return '—'
 }
 
+function textoPreenchido(valor: string | number | null | undefined): string {
+  if (valor == null) return ''
+  return String(valor).trim()
+}
+
 function parseNumeroFasesPainel(
   pa: ProjetoAlimentacaoSnapshot | null | undefined,
   projeto: Projeto | undefined
@@ -110,13 +115,9 @@ function parseCorrentePainelA(
   dimensionamento: { corrente_total_painel_a?: string | null } | null | undefined,
   correnteRefItem?: string | null
 ): number | null {
-  const ib = dimensionamento?.corrente_total_painel_a
-  const s =
-    ib != null && String(ib).trim() !== ''
-      ? String(ib).trim()
-      : correnteRefItem != null && String(correnteRefItem).trim() !== ''
-        ? String(correnteRefItem).trim()
-        : ''
+  const correnteDimensionada = textoPreenchido(dimensionamento?.corrente_total_painel_a)
+  const correnteReferencia = textoPreenchido(correnteRefItem)
+  const s = correnteDimensionada || correnteReferencia
   if (!s) return null
   const n = Number.parseFloat(s.replace(',', '.'))
   return Number.isFinite(n) && n > 0 ? n : null
@@ -219,9 +220,9 @@ export type GrupoItensPorTag<T> = {
 }
 
 function tituloGrupoPainelGeral(opts?: AgruparPorTagCargaOpts): string {
-  const raw = opts?.correnteTotalPainelA
-  if (raw != null && String(raw).trim() !== '') {
-    return `GDBT — ${String(raw).trim()} A`
+  const correnteTotalPainelA = textoPreenchido(opts?.correnteTotalPainelA)
+  if (correnteTotalPainelA) {
+    return `GDBT — ${correnteTotalPainelA} A`
   }
   return 'GDBT'
 }

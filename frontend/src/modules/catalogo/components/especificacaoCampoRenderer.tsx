@@ -309,57 +309,63 @@ function renderCampoSelect(
   )
 }
 
-export function renderCampoEspecificacao(
+function opcoesEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,
-  django: string,
-  value: Record<string, string | number | boolean>,
-  onPatch: (patch: Record<string, string | number | boolean>) => void
-): ReactNode | null {
-  const configuracaoDcm = String(value.configuracao_disparador ?? '')
-  if (deveOcultarCampoDcm(categoria, name, configuracaoDcm)) return null
-  if (deveOcultarCampoReleEstadoSolido(categoria, name, value)) return null
-  if (deveOcultarCampoPainel(categoria, name, value)) return null
-  if (deveOcultarCampoAnalogico(categoria, name, value)) return null
-
-  const label = labelCampoEspec(name)
-  let opts = selectOptionsParaCampo(categoria, name)
-  const current = value[name]
-  const patch = (k: string, v: string | number | boolean) => onPatch({ [k]: v })
-
-  const plc = renderCampoPlcFamilia(categoria, name, label, current, (k, v) => patch(k, v))
-  if (plc) return plc
-
+  value: Record<string, string | number | boolean>
+) {
   if (categoria === 'FUSIVEL' && name === 'tamanho') {
     const formato = String(value.formato ?? '')
-    if (formato === 'NH') opts = FUSIVEL_TAMANHOS_NH
-    else if (formato === 'CARTUCHO') opts = FUSIVEL_TAMANHOS_CARTUCHO
-    else opts = undefined
+    if (formato === 'NH') return FUSIVEL_TAMANHOS_NH
+    if (formato === 'CARTUCHO') return FUSIVEL_TAMANHOS_CARTUCHO
+    return undefined
   }
+  return selectOptionsParaCampo(categoria, name)
+}
 
-  if (django === 'BooleanField') {
-    return renderCampoBoolean(name, label, categoria, current, patch, onPatch)
-  }
-  if (opts?.length) {
-    return renderCampoSelect(name, label, django, categoria, current, opts, patch, onPatch)
-  }
-  if (django === 'TextField') {
-    return (
-      <div key={name} className="col-12">
-        <label className="form-label" htmlFor={`spec-${name}`}>
-          {label}
-        </label>
-        <textarea
-          id={`spec-${name}`}
-          className="form-control"
-          rows={2}
-          value={String(current ?? '')}
-          onChange={(e) => patch(name, e.target.value)}
-        />
-      </div>
-    )
-  }
+function renderCampoTextoLongo(
+  name: string,
+  label: string,
+  current: string | number | boolean | undefined,
+  patch: (k: string, v: string | number | boolean) => void
+) {
+  return (
+    <div key={name} className="col-12">
+      <label className="form-label" htmlFor={`spec-${name}`}>
+        {label}
+      </label>
+      <textarea
+        id={`spec-${name}`}
+        className="form-control"
+        rows={2}
+        value={String(current ?? '')}
+        onChange={(e) => patch(name, e.target.value)}
+      />
+    </div>
+  )
+}
 
+type RenderCampoInputParams = Readonly<{
+  categoria: CategoriaProdutoNome
+  name: string
+  django: string
+  label: string
+  current: string | number | boolean | undefined
+  value: Record<string, string | number | boolean>
+  onPatch: (patch: Record<string, string | number | boolean>) => void
+  patch: (k: string, v: string | number | boolean) => void
+}>
+
+function renderCampoInput({
+  categoria,
+  name,
+  django,
+  label,
+  current,
+  value,
+  onPatch,
+  patch,
+}: RenderCampoInputParams) {
   const isInt =
     django === 'IntegerField' ||
     django === 'PositiveIntegerField' ||
@@ -387,4 +393,47 @@ export function renderCampoEspecificacao(
       />
     </div>
   )
+}
+
+export function renderCampoEspecificacao(
+  categoria: CategoriaProdutoNome,
+  name: string,
+  django: string,
+  value: Record<string, string | number | boolean>,
+  onPatch: (patch: Record<string, string | number | boolean>) => void
+): ReactNode | null {
+  const configuracaoDcm = String(value.configuracao_disparador ?? '')
+  if (deveOcultarCampoDcm(categoria, name, configuracaoDcm)) return null
+  if (deveOcultarCampoReleEstadoSolido(categoria, name, value)) return null
+  if (deveOcultarCampoPainel(categoria, name, value)) return null
+  if (deveOcultarCampoAnalogico(categoria, name, value)) return null
+
+  const label = labelCampoEspec(name)
+  const opts = opcoesEspecificacao(categoria, name, value)
+  const current = value[name]
+  const patch = (k: string, v: string | number | boolean) => onPatch({ [k]: v })
+
+  const plc = renderCampoPlcFamilia(categoria, name, label, current, (k, v) => patch(k, v))
+  if (plc) return plc
+
+  if (django === 'BooleanField') {
+    return renderCampoBoolean(name, label, categoria, current, patch, onPatch)
+  }
+  if (opts?.length) {
+    return renderCampoSelect(name, label, django, categoria, current, opts, patch, onPatch)
+  }
+  if (django === 'TextField') {
+    return renderCampoTextoLongo(name, label, current, patch)
+  }
+
+  return renderCampoInput({
+    categoria,
+    name,
+    django,
+    label,
+    current,
+    value,
+    onPatch,
+    patch,
+  })
 }

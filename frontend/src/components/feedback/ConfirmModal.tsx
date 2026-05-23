@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-export type ConfirmModalProps = {
+export type ConfirmModalProps = Readonly<{
   show: boolean
   title: string
   message: string
@@ -10,7 +10,7 @@ export type ConfirmModalProps = {
   isConfirming?: boolean
   onConfirm: () => void
   onCancel: () => void
-}
+}>
 
 export function ConfirmModal({
   show,
@@ -35,10 +35,10 @@ export function ConfirmModal({
       }
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKeyDown)
+      globalThis.removeEventListener('keydown', onKeyDown)
     }
   }, [show, isConfirming, onCancel])
 
@@ -48,10 +48,10 @@ export function ConfirmModal({
 
   return (
     <>
-      <div
+      <dialog
+        open
         className="modal fade show d-block"
         tabIndex={-1}
-        role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
       >
@@ -92,7 +92,7 @@ export function ConfirmModal({
             </div>
           </div>
         </div>
-      </div>
+      </dialog>
       <div className="modal-backdrop fade show" aria-hidden="true" />
     </>
   )

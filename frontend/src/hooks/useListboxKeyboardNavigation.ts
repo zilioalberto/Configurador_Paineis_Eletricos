@@ -41,7 +41,7 @@ export function useListboxKeyboardNavigation<T>(
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault()
-        setActiveIndex((prev) => (prev > 0 ? prev - 1 : len - 1))
+        setActiveIndex((prev) => (prev > 0 ? Math.max(0, prev - 1) : len - 1))
         return
       }
       if (event.key === 'Enter') {

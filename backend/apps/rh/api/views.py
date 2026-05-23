@@ -22,7 +22,7 @@ User = get_user_model()
 class RhPermissionMixin:
     permission_classes = [HasEffectivePermission]
 
-    def required_permission(self, request, view):
+    def required_permission(self, _request, _view):
         if self.action in ("list", "retrieve"):
             return PermissionKeys.RH_VISUALIZAR
         return PermissionKeys.RH_EDITAR

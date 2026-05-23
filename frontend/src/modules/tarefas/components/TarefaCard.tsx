@@ -12,6 +12,81 @@ import {
   tarefaVencida,
 } from '../utils/tarefasKanbanUtils'
 
+function cardClassName(podeMover: boolean, arrastando: boolean, timerAtivo: boolean, prioridade: string) {
+  return [
+    'kanban-task-card',
+    prioridadeAccentClass(prioridade),
+    podeMover ? 'is-draggable' : '',
+    arrastando ? 'is-dragging' : '',
+    timerAtivo ? 'is-timing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function TimerActionButton({
+  tarefa,
+  timerAtivo,
+  isSavingTime,
+  podeIniciarTimer,
+  jornadaPermiteIniciarTimer,
+  onStartTimer,
+  onStopTimer,
+}: Readonly<{
+  tarefa: TarefaKanbanItem
+  timerAtivo: boolean
+  isSavingTime: boolean
+  podeIniciarTimer: boolean
+  jornadaPermiteIniciarTimer: boolean
+  onStartTimer: (tarefa: TarefaKanbanItem) => Promise<void>
+  onStopTimer: () => Promise<void>
+}>) {
+  const handleTimerButtonClick = (
+    event: MouseEvent<HTMLButtonElement>,
+    action: () => Promise<void>
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+    action().catch(() => undefined)
+  }
+
+  if (timerAtivo) {
+    return (
+      <button
+        type="button"
+        className="kanban-task-card__time-button kanban-task-card__time-button--stop"
+        aria-label={`Parar horas de ${tarefa.titulo}`}
+        title="Parar horas"
+        disabled={isSavingTime}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => handleTimerButtonClick(event, onStopTimer)}
+      >
+        <span aria-hidden="true" />
+      </button>
+    )
+  }
+
+  const title = jornadaPermiteIniciarTimer
+    ? podeIniciarTimer
+      ? 'Iniciar horas'
+      : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
+    : 'Fora da jornada de trabalho (cadastro em RH).'
+
+  return (
+    <button
+      type="button"
+      className="kanban-task-card__time-button kanban-task-card__time-button--play"
+      aria-label={`Iniciar horas de ${tarefa.titulo}`}
+      title={title}
+      disabled={isSavingTime || !podeIniciarTimer}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => handleTimerButtonClick(event, () => onStartTimer(tarefa))}
+    >
+      <span aria-hidden="true" />
+    </button>
+  )
+}
+
 export function TarefaCard({
   tarefa,
   podeMover,
@@ -56,24 +131,9 @@ export function TarefaCard({
   const mostrarTipoEtapa =
     Boolean(tarefa.tipo_etapa && tarefa.tipo_etapa !== 'NAO_CLASSIFICADA') && Boolean(rotuloTipoEtapa)
 
-  function handleTimerButtonClick(
-    event: MouseEvent<HTMLButtonElement>,
-    action: () => Promise<void>
-  ) {
-    event.preventDefault()
-    event.stopPropagation()
-    action().catch(() => undefined)
-  }
-
   return (
     <article
-      className={`kanban-task-card ${prioridadeAccentClass(tarefa.prioridade)} ${
-        podeMover ? 'is-draggable' : ''
-      } ${
-        arrastando ? 'is-dragging' : ''
-      } ${
-        timerAtivo ? 'is-timing' : ''
-      }`}
+      className={cardClassName(podeMover, arrastando, timerAtivo, tarefa.prioridade)}
       draggable={podeMover}
       data-testid={`kanban-card-${tarefa.id}`}
       role="button"
@@ -141,37 +201,15 @@ export function TarefaCard({
         </div>
         {podeControlarTimer ? (
           <div className="kanban-task-card__time-actions">
-            {timerAtivo ? (
-              <button
-                type="button"
-                className="kanban-task-card__time-button kanban-task-card__time-button--stop"
-                aria-label={`Parar horas de ${tarefa.titulo}`}
-                title="Parar horas"
-                disabled={isSavingTime}
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => handleTimerButtonClick(event, onStopTimer)}
-              >
-                <span aria-hidden="true" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="kanban-task-card__time-button kanban-task-card__time-button--play"
-                aria-label={`Iniciar horas de ${tarefa.titulo}`}
-                title={
-                  !jornadaPermiteIniciarTimer
-                    ? 'Fora da jornada de trabalho (cadastro em RH).'
-                    : podeIniciarTimer
-                      ? 'Iniciar horas'
-                      : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
-                }
-                disabled={isSavingTime || !podeIniciarTimer}
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => handleTimerButtonClick(event, () => onStartTimer(tarefa))}
-              >
-                <span aria-hidden="true" />
-              </button>
-            )}
+            <TimerActionButton
+              tarefa={tarefa}
+              timerAtivo={timerAtivo}
+              isSavingTime={isSavingTime}
+              podeIniciarTimer={podeIniciarTimer}
+              jornadaPermiteIniciarTimer={jornadaPermiteIniciarTimer}
+              onStartTimer={onStartTimer}
+              onStopTimer={onStopTimer}
+            />
           </div>
         ) : null}
       </div>

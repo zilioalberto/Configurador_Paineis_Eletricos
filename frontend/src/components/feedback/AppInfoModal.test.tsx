@@ -35,7 +35,7 @@ describe('AppInfoModal', () => {
     expect(onClose).toHaveBeenCalled()
 
     onClose.mockClear()
-    fireEvent.keyDown(window, { key: 'Escape' })
+    globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(onClose).toHaveBeenCalled()
   })
 })

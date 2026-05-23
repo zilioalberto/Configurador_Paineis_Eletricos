@@ -362,10 +362,10 @@ class ProdutoAdmin(admin.ModelAdmin):
     def get_inline_instances(self, request, obj=None):
         if not obj or not obj.categoria:
             return []
-        Inline = INLINE_POR_CATEGORIA.get(obj.categoria)
-        if not Inline:
+        inline = INLINE_POR_CATEGORIA.get(obj.categoria)
+        if not inline:
             return []
-        return [Inline(self.model, self.admin_site)]
+        return [inline(self.model, self.admin_site)]
 
 
 @admin.register(EspecificacaoContatora)

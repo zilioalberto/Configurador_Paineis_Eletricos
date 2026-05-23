@@ -126,7 +126,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoConexaoAlimetacaoChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de conexão do neutro da alimentação.",
     )
 
@@ -134,7 +134,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoConexaoAlimetacaoChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de conexão do terra da alimentação.",
     )
 
@@ -159,7 +159,7 @@ class Projeto(BaseModel, AtivacaoMixin):
     familia_plc = models.CharField(
         max_length=100,
         blank=True,
-        null=True,
+        default="",
         help_text="Família do PLC (catálogo EspecificacaoPLC.familia), quando o projeto possui PLC.",
     )
     
@@ -202,7 +202,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoClimatizacaoPainelChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de climatização do painel, caso possua.",
     )
     
@@ -233,7 +233,6 @@ class Projeto(BaseModel, AtivacaoMixin):
         choices=TipoSeccionamentoChoices.choices,
         default=TipoSeccionamentoChoices.SECCIONADORA,
         blank=True,
-        null=True,
         help_text="Tipo de seccionamento geral.",
     )
 
@@ -306,14 +305,14 @@ class Projeto(BaseModel, AtivacaoMixin):
             )
 
         if not self.possui_neutro:
-            self.tipo_conexao_alimentacao_neutro = None
+            self.tipo_conexao_alimentacao_neutro = ""
         elif not self.tipo_conexao_alimentacao_neutro:
             errors["tipo_conexao_alimentacao_neutro"] = (
                 "Informe o tipo de conexão do neutro, pois o painel possui neutro."
             )
 
         if not self.possui_terra:
-            self.tipo_conexao_alimentacao_terra = None
+            self.tipo_conexao_alimentacao_terra = ""
         elif not self.tipo_conexao_alimentacao_terra:
             errors["tipo_conexao_alimentacao_terra"] = (
                 "Informe o tipo de conexão do terra, pois o painel possui terra."
@@ -321,14 +320,14 @@ class Projeto(BaseModel, AtivacaoMixin):
 
     def _validar_climatizacao_e_plc(self, errors: dict) -> None:
         if not self.possui_climatizacao:
-            self.tipo_climatizacao = None
+            self.tipo_climatizacao = ""
         elif not self.tipo_climatizacao:
             errors["tipo_climatizacao"] = (
                 "Informe o tipo de climatização, pois o painel possui climatização."
             )
 
         if not self.possui_plc:
-            self.familia_plc = None
+            self.familia_plc = ""
         elif not (self.familia_plc and str(self.familia_plc).strip()):
             errors["familia_plc"] = (
                 "Informe a família do PLC, pois o painel possui PLC."
@@ -365,17 +364,17 @@ class Projeto(BaseModel, AtivacaoMixin):
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
         if not self.possui_neutro:
-            self.tipo_conexao_alimentacao_neutro = None
+            self.tipo_conexao_alimentacao_neutro = ""
         if not self.possui_terra:
-            self.tipo_conexao_alimentacao_terra = None
+            self.tipo_conexao_alimentacao_terra = ""
         if not self.possui_climatizacao:
-            self.tipo_climatizacao = None
+            self.tipo_climatizacao = ""
         if not self.possui_plc:
-            self.familia_plc = None
+            self.familia_plc = ""
         elif self.familia_plc:
             self.familia_plc = self.familia_plc.strip()
             if not self.familia_plc:
-                self.familia_plc = None
+                self.familia_plc = ""
 
     def _guardar_com_retry_duplicidade_codigo(self, is_new: bool, *args, **kwargs) -> None:
         from apps.configurador_paineis.projetos.services.codigo_projeto import (

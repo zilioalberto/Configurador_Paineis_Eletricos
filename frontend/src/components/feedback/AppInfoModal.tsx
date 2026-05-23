@@ -1,12 +1,12 @@
 import { useEffect, type ReactNode } from 'react'
 
-export type AppInfoModalProps = {
+export type AppInfoModalProps = Readonly<{
   show: boolean
   title: string
   titleId?: string
   children: ReactNode
   onClose: () => void
-}
+}>
 
 export function AppInfoModal({
   show,
@@ -27,10 +27,10 @@ export function AppInfoModal({
       }
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKeyDown)
+      globalThis.removeEventListener('keydown', onKeyDown)
     }
   }, [show, onClose])
 
@@ -40,11 +40,10 @@ export function AppInfoModal({
 
   return (
     <>
-      <div
+      <dialog
+        open
         className="modal fade show d-block"
         style={{ zIndex: 1060 }}
-        tabIndex={-1}
-        role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
@@ -73,11 +72,12 @@ export function AppInfoModal({
             </div>
           </div>
         </div>
-      </div>
-      <div
+      </dialog>
+      <button
+        type="button"
         className="modal-backdrop fade show"
         style={{ zIndex: 1055 }}
-        aria-hidden="true"
+        aria-label="Fechar"
         onClick={onClose}
       />
     </>
