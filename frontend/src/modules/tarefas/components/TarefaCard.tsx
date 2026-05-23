@@ -12,6 +12,19 @@ import {
   tarefaVencida,
 } from '../utils/tarefasKanbanUtils'
 
+function tituloBotaoPlayTimer(
+  jornadaPermiteIniciarTimer: boolean,
+  podeIniciarTimer: boolean
+): string {
+  if (!jornadaPermiteIniciarTimer) {
+    return 'Fora da jornada de trabalho (cadastro em RH).'
+  }
+  if (podeIniciarTimer) {
+    return 'Iniciar horas'
+  }
+  return 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
+}
+
 function cardClassName(podeMover: boolean, arrastando: boolean, timerAtivo: boolean, prioridade: string) {
   return [
     'kanban-task-card',
@@ -66,11 +79,7 @@ function TimerActionButton({
     )
   }
 
-  const title = jornadaPermiteIniciarTimer
-    ? podeIniciarTimer
-      ? 'Iniciar horas'
-      : 'Classifique a tarefa (orçamento/OP) antes de iniciar o cronômetro.'
-    : 'Fora da jornada de trabalho (cadastro em RH).'
+  const title = tituloBotaoPlayTimer(jornadaPermiteIniciarTimer, podeIniciarTimer)
 
   return (
     <button
