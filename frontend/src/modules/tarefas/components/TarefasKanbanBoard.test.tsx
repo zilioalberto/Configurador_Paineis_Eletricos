@@ -68,6 +68,7 @@ describe('TarefasKanbanBoard', () => {
         jornadaPermiteIniciarTimer
         draggingTaskId={null}
         dragOverColumnId={null}
+        sessaoTarefaAtivaId={undefined}
         timerAtivoSegundos={0}
         isSavingTime={false}
         onDragOverColumn={vi.fn()}
@@ -102,6 +103,7 @@ describe('TarefasKanbanBoard', () => {
         jornadaPermiteIniciarTimer
         draggingTaskId={null}
         dragOverColumnId={null}
+        sessaoTarefaAtivaId={undefined}
         timerAtivoSegundos={0}
         isSavingTime={false}
         onDragOverColumn={vi.fn()}

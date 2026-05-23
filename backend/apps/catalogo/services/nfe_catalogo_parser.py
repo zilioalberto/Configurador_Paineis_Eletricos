@@ -13,49 +13,6 @@ from typing import Any
 
 from core.choices.produtos import UnidadeMedidaChoices
 
-_SINONIMOS_UNIDADE_COMERCIAL: dict[str, str] = {
-    "UNID": UnidadeMedidaChoices.UN,
-    "UNIDS": UnidadeMedidaChoices.UN,
-    "UND": UnidadeMedidaChoices.UN,
-    "UNIT": UnidadeMedidaChoices.UN,
-    "UNIDADE": UnidadeMedidaChoices.UN,
-    "UNIDADES": UnidadeMedidaChoices.UN,
-    "PEC": UnidadeMedidaChoices.PC,
-    "PECA": UnidadeMedidaChoices.PC,
-    "PECAS": UnidadeMedidaChoices.PC,
-    "PCT": UnidadeMedidaChoices.PC,
-    "PACOTE": UnidadeMedidaChoices.PC,
-    "PACOTES": UnidadeMedidaChoices.PC,
-    "CJ": UnidadeMedidaChoices.CJ,
-    "CONJ": UnidadeMedidaChoices.CJ,
-    "CONJUNTO": UnidadeMedidaChoices.CJ,
-    "CONJUNTOS": UnidadeMedidaChoices.CJ,
-    "M": UnidadeMedidaChoices.MT,
-    "MTR": UnidadeMedidaChoices.MT,
-    "METRO": UnidadeMedidaChoices.MT,
-    "METROS": UnidadeMedidaChoices.MT,
-    "MTS": UnidadeMedidaChoices.MT,
-    "MT2": UnidadeMedidaChoices.M2,
-    "MT3": UnidadeMedidaChoices.M3,
-    "KGS": UnidadeMedidaChoices.KG,
-    "KILO": UnidadeMedidaChoices.KG,
-    "KILOS": UnidadeMedidaChoices.KG,
-    "KILOGRAMA": UnidadeMedidaChoices.KG,
-    "KILOGRAMAS": UnidadeMedidaChoices.KG,
-    "GR": UnidadeMedidaChoices.G,
-    "GRS": UnidadeMedidaChoices.G,
-    "GRAMA": UnidadeMedidaChoices.G,
-    "GRAMAS": UnidadeMedidaChoices.G,
-    "LT": UnidadeMedidaChoices.L,
-    "LTR": UnidadeMedidaChoices.L,
-    "LTS": UnidadeMedidaChoices.L,
-    "LITRO": UnidadeMedidaChoices.L,
-    "LITROS": UnidadeMedidaChoices.L,
-    "KMS": UnidadeMedidaChoices.KM,
-    "QUILOMETRO": UnidadeMedidaChoices.KM,
-    "QUILOMETROS": UnidadeMedidaChoices.KM,
-}
-
 
 def _local(tag: str) -> str:
     if not tag:
@@ -66,17 +23,14 @@ def _local(tag: str) -> str:
 def _text(parent: ET.Element | None, tag_local: str) -> str:
     if parent is None:
         return ""
-
     for child in parent:
         if _local(child.tag) == tag_local:
             return (child.text or "").strip()
-
     return ""
 
 
 def _attr_nitem(det: ET.Element) -> int:
     raw = det.attrib.get("nItem") or det.attrib.get("nitem") or "0"
-
     try:
         return int(raw)
     except ValueError:
@@ -85,93 +39,45 @@ def _attr_nitem(det: ET.Element) -> int:
 
 def _somente_digitos(valor: str, max_len: int | None = None) -> str:
     d = re.sub(r"\D", "", valor or "")
-
     if max_len is not None:
         return d[:max_len]
-
     return d
 
 
 def _tipo_documento_emitente(cnpj: str, cpf: str) -> str:
     if len(cnpj) == 14:
         return "CNPJ"
-
     if len(cpf) == 11:
         return "CPF"
-
     return ""
 
 
 def _normalizar_cean(raw: str) -> str:
     t = (raw or "").strip().upper()
-
     if not t or t in ("SEM GTIN", "SEM GTIN."):
         return ""
-
     d = _somente_digitos(t)
-
     return d if 8 <= len(d) <= 14 else ""
 
 
 def _flatten_xml_group(element: ET.Element | None) -> dict[str, str]:
     if element is None:
         return {}
-
     return {_local(el.tag): (el.text or "").strip() for el in element}
 
 
 def _parse_icms_de_bloco(icms_parent: ET.Element | None) -> dict[str, str]:
     if icms_parent is None:
         return {}
-
     for grp in icms_parent:
         loc = _local(grp.tag)
-
         if loc.startswith("ICMS"):
             flat = _flatten_xml_group(grp)
             flat["icms_grupo_xml"] = loc
             return flat
-
     return {}
 
 
-<<<<<<< HEAD
-def _filho_por_tag_local(
-    parent: ET.Element | None,
-    tag_local: str,
-) -> ET.Element | None:
-    if parent is None:
-        return None
-
-    return next(
-        (child for child in parent if _local(child.tag) == tag_local),
-        None,
-    )
-
-
-def _flatten_primeiro_grupo_por_prefixo(
-    parent: ET.Element,
-    prefixos: tuple[str, ...],
-) -> dict[str, str]:
-    for group in parent:
-        if _local(group.tag).startswith(prefixos):
-            return _flatten_xml_group(group)
-
-    return {}
-
-
-def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
-    blocos = {
-        "icms": {},
-        "pis": {},
-        "cofins": {},
-        "ipi": {},
-    }
-
-    for child in imposto:
-        loc = _local(child.tag)
-
-=======
 def _filho_por_tag_local(parent: ET.Element, tag_local: str) -> ET.Element | None:
     return next((child for child in parent if _local(child.tag) == tag_local), None)
 
@@ -183,6 +89,7 @@ def _flatten_primeiro_grupo_por_prefixo(
     for group in parent:
         if _local(group.tag).startswith(prefixos):
             return _flatten_xml_group(group)
+
     return {}
 
 
@@ -193,19 +100,15 @@ def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
         "cofins": {},
         "ipi": {},
     }
+
     for child in imposto:
         loc = _local(child.tag)
->>>>>>> origin/dev
         if loc == "ICMS":
             blocos["icms"] = _parse_icms_de_bloco(child)
         elif loc == "PIS":
             blocos["pis"] = _flatten_primeiro_grupo_por_prefixo(child, ("PIS",))
         elif loc == "COFINS":
-<<<<<<< HEAD
-            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(
-                child,
-                ("COFINS",),
-            )
+            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(child, ("COFINS",))
         elif loc == "IPI":
             blocos["ipi"] = _flatten_primeiro_grupo_por_prefixo(
                 child,
@@ -214,13 +117,7 @@ def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
 
     return blocos
 
-=======
-            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(child, ("COFINS",))
-        elif loc == "IPI":
-            blocos["ipi"] = _flatten_primeiro_grupo_por_prefixo(child, ("IPINT", "IPITrib"))
-    return blocos
 
->>>>>>> origin/dev
 
 def _montar_snapshot_imposto(
     *,
@@ -264,18 +161,10 @@ def _montar_snapshot_imposto(
 
 def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
     imposto = _filho_por_tag_local(det, "imposto")
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/dev
     if imposto is None:
         return {}
 
     blocos = _parse_blocos_imposto(imposto)
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/dev
     return _montar_snapshot_imposto(
         icms_flat=blocos["icms"],
         ipi_flat=blocos["ipi"],
@@ -291,6 +180,52 @@ def _normalizar_token_unidade_comercial(raw: str) -> str:
     t = re.sub(r"[\s.\-_/]+", "", t)
 
     return t
+
+
+_SINONIMOS_UNIDADE_COMERCIAL = {
+    "UNIDADE": UnidadeMedidaChoices.UN,
+    "UND": UnidadeMedidaChoices.UN,
+    "UNID": UnidadeMedidaChoices.UN,
+    "PECA": UnidadeMedidaChoices.PC,
+    "PECAS": UnidadeMedidaChoices.PC,
+    "PC": UnidadeMedidaChoices.PC,
+    "PCA": UnidadeMedidaChoices.PC,
+    "PÇ": UnidadeMedidaChoices.PC,
+    "PÇS": UnidadeMedidaChoices.PC,
+    "METRO": UnidadeMedidaChoices.MT,
+    "METROS": UnidadeMedidaChoices.MT,
+    "M": UnidadeMedidaChoices.MT,
+    "MT": UnidadeMedidaChoices.MT,
+    "METROQUADRADO": UnidadeMedidaChoices.M2,
+    "METROSQUADRADOS": UnidadeMedidaChoices.M2,
+    "M2": UnidadeMedidaChoices.M2,
+    "MT2": UnidadeMedidaChoices.M2,
+    "METROCUBICO": UnidadeMedidaChoices.M3,
+    "METROSCUBICOS": UnidadeMedidaChoices.M3,
+    "M3": UnidadeMedidaChoices.M3,
+    "MT3": UnidadeMedidaChoices.M3,
+    "KILOGRAMA": UnidadeMedidaChoices.KG,
+    "KILOGRAMAS": UnidadeMedidaChoices.KG,
+    "QUILOGRAMA": UnidadeMedidaChoices.KG,
+    "QUILOGRAMAS": UnidadeMedidaChoices.KG,
+    "KILO": UnidadeMedidaChoices.KG,
+    "KG": UnidadeMedidaChoices.KG,
+    "GRAMA": UnidadeMedidaChoices.G,
+    "GRAMAS": UnidadeMedidaChoices.G,
+    "G": UnidadeMedidaChoices.G,
+    "LITRO": UnidadeMedidaChoices.L,
+    "LITROS": UnidadeMedidaChoices.L,
+    "LT": UnidadeMedidaChoices.L,
+    "L": UnidadeMedidaChoices.L,
+    "CONJUNTO": UnidadeMedidaChoices.CJ,
+    "CONJ": UnidadeMedidaChoices.CJ,
+    "CJ": UnidadeMedidaChoices.CJ,
+    "KILOMETRO": UnidadeMedidaChoices.KM,
+    "KILOMETROS": UnidadeMedidaChoices.KM,
+    "QUILOMETRO": UnidadeMedidaChoices.KM,
+    "QUILOMETROS": UnidadeMedidaChoices.KM,
+    "KM": UnidadeMedidaChoices.KM,
+}
 
 
 def _map_unidade_comercial(ucom: str) -> str:
