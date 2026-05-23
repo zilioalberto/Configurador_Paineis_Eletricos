@@ -15,6 +15,7 @@ def preencher_strings_vazias(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("cargas", "0001_initial"),

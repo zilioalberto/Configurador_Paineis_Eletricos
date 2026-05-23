@@ -18,7 +18,7 @@ function startsWithAny(pathname: string, prefixes: string[]): boolean {
 }
 
 export function getPortalModuleContext(path = '/'): PortalModuleContext {
-  if (path === '/') return { title: 'Central de módulos' }
+  if (path === '/' || path === '') return { title: 'Central de módulos' }
   if (startsWithAny(path, CONFIGURADOR_PAINEIS_PATH_PREFIXES)) {
     return { title: 'Configurador de painéis' }
   }

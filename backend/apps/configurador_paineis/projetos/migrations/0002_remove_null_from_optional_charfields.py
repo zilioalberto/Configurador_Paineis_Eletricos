@@ -16,6 +16,9 @@ def preencher_strings_vazias(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # RunPython (UPDATE) + AlterField na mesma transação dispara
+    # "pending trigger events" no PostgreSQL; cada operação em transação própria.
+    atomic = False
 
     dependencies = [
         ("projetos", "0001_initial"),

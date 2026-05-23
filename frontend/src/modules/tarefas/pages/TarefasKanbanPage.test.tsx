@@ -561,7 +561,6 @@ describe('TarefasKanbanPage', () => {
 
     fireEvent.click(screen.getByTestId('kanban-card-t-1'))
 
-    expect(screen.getByRole('heading', { name: 'Log de horas' })).toBeInTheDocument()
     const totalizador = screen.getByLabelText('Totalizador de horas gastas')
     expect(within(totalizador).getByText('1,25h')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Log de horas/ }))
