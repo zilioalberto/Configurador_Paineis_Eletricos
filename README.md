@@ -82,6 +82,7 @@ pytest backend -q
 # Frontend
 cd frontend
 npm install
+npm run dev
 npm test
 npm run build
 ```
