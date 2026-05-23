@@ -44,8 +44,5 @@ def calcular_corrente_monofasica(
     potencia_w = potencia_kw * Decimal("1000")
     denominador = tensao_v * fator_potencia * rendimento
 
-    if denominador == 0:
-        return Decimal("0")
-
     corrente = potencia_w / denominador
     return arredondar_decimal(corrente, 2)

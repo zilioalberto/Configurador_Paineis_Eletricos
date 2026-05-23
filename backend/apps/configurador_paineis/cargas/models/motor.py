@@ -146,12 +146,11 @@ class CargaMotor(models.Model):
         if self.tipo_partida in (
             TipoPartidaMotorChoices.INVERSOR,
             TipoPartidaMotorChoices.SOFT_STARTER,
-        ):
-            if self.numero_fases != NumeroFasesChoices.TRIFASICO:
-                erros["tipo_partida"] = (
-                    "Partida com inversor de frequência ou soft starter só é permitida "
-                    "para motor trifásico."
-                )
+        ) and self.numero_fases != NumeroFasesChoices.TRIFASICO:
+            erros["tipo_partida"] = (
+                "Partida com inversor de frequência ou soft starter só é permitida "
+                "para motor trifásico."
+            )
 
     def _validar_parametros_eletricos(self, erros):
         if self.fator_potencia is not None and (

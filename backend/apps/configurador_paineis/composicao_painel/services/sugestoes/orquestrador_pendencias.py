@@ -72,6 +72,35 @@ def _reprocessar_com_carga(projeto, pendencia, resultado, config: _ConfigReproce
     return True
 
 
+def _label_pendencia(pendencia) -> str:
+    label = f"{pendencia.parte_painel}/{pendencia.categoria_produto}"
+    if pendencia.carga_id:
+        label += f"/carga={pendencia.carga_id}"
+    return label
+
+
+def _chave_pendencia(pendencia) -> tuple[str, str, str]:
+    carga_id = str(pendencia.carga_id) if pendencia.carga_id else ""
+    return pendencia.parte_painel, pendencia.categoria_produto, carga_id
+
+
+def _reprocessar_pendencia(projeto, pendencia, resultado) -> bool:
+    config = _REPROCESSADORES.get(
+        (pendencia.parte_painel, pendencia.categoria_produto)
+    )
+    if config is not None:
+        return _reprocessar_com_carga(projeto, pendencia, resultado, config)
+
+    if pendencia.parte_painel == PartesPainelChoices.SECCIONAMENTO:
+        reprocessar_seccionamento_para_pendencia(projeto, pendencia)
+        return True
+
+    resultado["categorias_nao_mapeadas"].append(
+        f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
+    )
+    return False
+
+
 _REPROCESSADORES: dict[tuple[str, str], _ConfigReprocessamento] = {
     (
         PartesPainelChoices.ACIONAMENTO_CARGA,
@@ -192,37 +221,17 @@ def reavaliar_pendencias_projeto(projeto):
     categorias_ok = set()
 
     for pendencia in pendencias_lista:
-        carga_id = str(pendencia.carga_id) if pendencia.carga_id else ""
-        chave = (
-            pendencia.parte_painel,
-            pendencia.categoria_produto,
-            carga_id,
-        )
+        chave = _chave_pendencia(pendencia)
         if chave in vistos:
             continue
         vistos.add(chave)
 
-        label = f"{pendencia.parte_painel}/{pendencia.categoria_produto}"
-        if pendencia.carga_id:
-            label += f"/carga={pendencia.carga_id}"
-
         try:
-            config = _REPROCESSADORES.get(
-                (pendencia.parte_painel, pendencia.categoria_produto)
-            )
-            if config is not None:
-                if not _reprocessar_com_carga(projeto, pendencia, resultado, config):
-                    continue
-            elif pendencia.parte_painel == PartesPainelChoices.SECCIONAMENTO:
-                reprocessar_seccionamento_para_pendencia(projeto, pendencia)
-            else:
-                resultado["categorias_nao_mapeadas"].append(
-                    f"{pendencia.parte_painel}:{pendencia.categoria_produto}"
-                )
+            if not _reprocessar_pendencia(projeto, pendencia, resultado):
                 continue
 
             categorias_ok.add(pendencia.categoria_produto)
-            resultado["escopos_reprocessados"].append(label)
+            resultado["escopos_reprocessados"].append(_label_pendencia(pendencia))
 
         except Exception as exc:
             resultado["erros"].append(

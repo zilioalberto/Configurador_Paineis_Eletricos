@@ -28,7 +28,7 @@ function MenuIcon() {
   )
 }
 
-function ChevronDown({ open }: { open: boolean }) {
+function ChevronDown({ open }: Readonly<{ open: boolean }>) {
   return (
     <svg
       width={14}
@@ -45,10 +45,10 @@ function ChevronDown({ open }: { open: boolean }) {
   )
 }
 
-type HeaderProps = {
+type HeaderProps = Readonly<{
   mobileNavOpen?: boolean
   onOpenMobileNav?: () => void
-}
+}>
 
 export default function Header({
   mobileNavOpen = false,
@@ -204,17 +204,17 @@ export default function Header({
                 <BellIcon />
               </button>
               {notifOpen ? (
-                <div
+                <dialog
+                  open
                   className="app-header-dropdown app-header-notif-panel shadow-sm"
                   id={notifId}
-                  role="dialog"
                   aria-label="Notificações"
                 >
                   <p className="small text-muted mb-0 px-1">
                     Sem alertas no momento. Avisos de pendências e exportações poderão aparecer
                     aqui no futuro.
                   </p>
-                </div>
+                </dialog>
               ) : null}
             </div>
           </div>

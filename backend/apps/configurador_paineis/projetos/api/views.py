@@ -96,14 +96,14 @@ class ProjetoResponsavelOptionsView(APIView):
     def get(self, request):
         from django.contrib.auth import get_user_model
 
-        User = get_user_model()
+        user_model = get_user_model()
         if request.user.is_superuser or request.user.tipo_usuario in (
             TipoUsuarioChoices.ADMIN,
             TipoUsuarioChoices.ALMOXARIFADO,
         ):
-            users = User.objects.filter(is_active=True).order_by("first_name", "email")
+            users = user_model.objects.filter(is_active=True).order_by("first_name", "email")
         else:
-            users = User.objects.filter(pk=request.user.pk)
+            users = user_model.objects.filter(pk=request.user.pk)
 
         data = [
             {

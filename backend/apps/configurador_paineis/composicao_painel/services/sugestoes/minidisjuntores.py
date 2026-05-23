@@ -198,13 +198,13 @@ def processar_sugestao_minidisjuntores_para_carga(
         )
         return None
 
-    sel_kwargs = dict(
-        corrente_nominal=corrente_referencia,
-        modo_montagem=None,
-        numero_polos=numero_polos,
-        niveis=1,
-        superior_a_corrente=True,
-    )
+    sel_kwargs = {
+        "corrente_nominal": corrente_referencia,
+        "modo_montagem": None,
+        "numero_polos": numero_polos,
+        "niveis": 1,
+        "superior_a_corrente": True,
+    }
     if carga.tipo == TipoCargaChoices.MOTOR:
         sel_kwargs["curva_disparo"] = CurvaDisparoMiniDisjuntorChoices.C
 

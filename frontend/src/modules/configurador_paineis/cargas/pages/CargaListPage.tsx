@@ -9,6 +9,7 @@ import { useRecalcularDimensionamentoMutation } from '@/modules/configurador_pai
 import { ProjetoIdentificacaoFluxo } from '@/modules/configurador_paineis/projetos/components/ProjetoIdentificacaoFluxo'
 import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
@@ -18,8 +19,136 @@ import {
   filtrarProjetosComEdicaoCargas,
   projetoPermiteEdicaoCargas,
 } from '../utils/projetoEdicaoCargas'
+import type { CargaListItem } from '../types/carga'
 
 type DeleteTarget = { id: string; label: string }
+
+function ProjetoFiltroCard({
+  projetoId,
+  projetoFinalizado,
+  loadingProjetos,
+  projetos,
+  projetosNoFiltro,
+  canCreateProjeto,
+  onProjetoFilterChange,
+}: {
+  projetoId: string
+  projetoFinalizado: boolean
+  loadingProjetos: boolean
+  projetos: Projeto[]
+  projetosNoFiltro: Projeto[]
+  canCreateProjeto: boolean
+  onProjetoFilterChange: (e: ChangeEvent<HTMLSelectElement>) => void
+}) {
+  if (projetoId) return null
+
+  return (
+    <div className="card mb-3">
+      <div className="card-body">
+        <label className="form-label fw-semibold" htmlFor="filtro-projeto-cargas">
+          Projeto
+        </label>
+        <select
+          id="filtro-projeto-cargas"
+          className="form-select"
+          style={{ maxWidth: '28rem' }}
+          value={projetoFinalizado ? '' : projetoId}
+          onChange={onProjetoFilterChange}
+          disabled={loadingProjetos}
+        >
+          <option value="">Selecione um projeto para listar as cargas</option>
+          {projetosNoFiltro.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.codigo} — {p.nome}
+            </option>
+          ))}
+        </select>
+        {!loadingProjetos && projetos.length === 0 ? (
+          <p className="text-muted small mt-2 mb-0">
+            Não há projetos cadastrados.{' '}
+            {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
+          </p>
+        ) : null}
+        {!loadingProjetos && projetos.length > 0 && projetosNoFiltro.length === 0 ? (
+          <p className="text-muted small mt-2 mb-0">
+            Não há projetos em andamento. Projetos finalizados não aparecem aqui para edição de
+            cargas.
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function CargasCard({
+  projetoIdListagem,
+  projetoFinalizado,
+  projetoSelecionado,
+  loadingCargas,
+  isError,
+  loadError,
+  cargas,
+  onDeleteRequest,
+  canManageCargas,
+}: {
+  projetoIdListagem: string | null
+  projetoFinalizado: boolean
+  projetoSelecionado: Projeto | undefined
+  loadingCargas: boolean
+  isError: boolean
+  loadError: unknown
+  cargas: CargaListItem[]
+  onDeleteRequest: (id: string) => void
+  canManageCargas: boolean
+}) {
+  return (
+    <div className="card">
+      <div className="card-body">
+        {!projetoIdListagem && !projetoFinalizado ? (
+          <p className="text-muted mb-0">
+            Escolha um projeto na lista acima para visualizar e gerenciar as cargas.
+          </p>
+        ) : null}
+
+        {projetoFinalizado ? (
+          <div className="alert alert-secondary mb-0" role="status">
+            Este projeto está finalizado. A lista de cargas deste projeto não está disponível para
+            gestão nesta tela.
+          </div>
+        ) : null}
+
+        {projetoIdListagem ? (
+          <ProjetoIdentificacaoFluxo
+            embedded
+            projetoCodigo={projetoSelecionado?.codigo}
+            projetoNome={projetoSelecionado?.nome}
+            fallbackId={projetoIdListagem}
+            htmlId="carga-lista-projeto"
+          />
+        ) : null}
+
+        {projetoIdListagem && loadingCargas ? (
+          <p className="mb-0 text-muted">Carregando cargas...</p>
+        ) : null}
+
+        {projetoIdListagem && !loadingCargas && isError ? (
+          <div className="alert alert-danger mb-0" role="alert">
+            {loadError instanceof Error ? loadError.message : 'Não foi possível carregar as cargas.'}
+          </div>
+        ) : null}
+
+        {projetoIdListagem && !loadingCargas && !isError ? (
+          <CargaTable
+            cargas={cargas}
+            projetoId={projetoIdListagem}
+            onDeleteRequest={onDeleteRequest}
+            canManage={canManageCargas}
+          />
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 export default function CargaListPage() {
   const { user } = useAuth()
@@ -198,98 +327,27 @@ export default function CargaListPage() {
         </div>
       </div>
 
-      {!projetoId ? (
-        <div className="card mb-3">
-          <div className="card-body">
-            <label className="form-label fw-semibold" htmlFor="filtro-projeto-cargas">
-              Projeto
-            </label>
-            <select
-              id="filtro-projeto-cargas"
-              className="form-select"
-              style={{ maxWidth: '28rem' }}
-              value={projetoFinalizado ? '' : projetoId}
-              onChange={onProjetoFilterChange}
-              disabled={loadingProjetos}
-            >
-              <option value="">Selecione um projeto para listar as cargas</option>
-              {projetosNoFiltro.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.codigo} — {p.nome}
-                </option>
-              ))}
-            </select>
-            {!loadingProjetos && projetos.length === 0 && (
-              <p className="text-muted small mt-2 mb-0">
-                Não há projetos cadastrados.{' '}
-                {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
-              </p>
-            )}
-            {!loadingProjetos &&
-              projetos.length > 0 &&
-              projetosNoFiltro.length === 0 && (
-                <p className="text-muted small mt-2 mb-0">
-                  Não há projetos em andamento. Projetos finalizados não aparecem
-                  aqui para edição de cargas.
-                </p>
-              )}
-          </div>
-        </div>
-      ) : null}
+      <ProjetoFiltroCard
+        projetoId={projetoId}
+        projetoFinalizado={projetoFinalizado}
+        loadingProjetos={loadingProjetos}
+        projetos={projetos}
+        projetosNoFiltro={projetosNoFiltro}
+        canCreateProjeto={canCreateProjeto}
+        onProjetoFilterChange={onProjetoFilterChange}
+      />
 
-      <div className="card">
-        <div className="card-body">
-          {!projetoIdListagem && !projetoFinalizado && (
-            <p className="text-muted mb-0">
-              Escolha um projeto na lista acima para visualizar e gerenciar as cargas.
-            </p>
-          )}
-
-          {projetoFinalizado && (
-            <div className="alert alert-secondary mb-0" role="status">
-              Este projeto está finalizado. A lista de cargas deste projeto não
-              está disponível para gestão nesta tela.
-            </div>
-          )}
-
-          {projetoIdListagem && projetoSelecionado ? (
-            <ProjetoIdentificacaoFluxo
-              embedded
-              projetoCodigo={projetoSelecionado.codigo}
-              projetoNome={projetoSelecionado.nome}
-              fallbackId={projetoIdListagem}
-              htmlId="carga-lista-projeto"
-            />
-          ) : projetoIdListagem ? (
-            <ProjetoIdentificacaoFluxo
-              embedded
-              fallbackId={projetoIdListagem}
-              htmlId="carga-lista-projeto"
-            />
-          ) : null}
-
-          {projetoIdListagem && loadingCargas && (
-            <p className="mb-0 text-muted">Carregando cargas...</p>
-          )}
-
-          {projetoIdListagem && !loadingCargas && isError && (
-            <div className="alert alert-danger mb-0" role="alert">
-              {loadError instanceof Error
-                ? loadError.message
-                : 'Não foi possível carregar as cargas.'}
-            </div>
-          )}
-
-          {projetoIdListagem && !loadingCargas && !isError && (
-            <CargaTable
-              cargas={cargas}
-              projetoId={projetoIdListagem}
-              onDeleteRequest={onDeleteRequest}
-              canManage={canManageCargas}
-            />
-          )}
-        </div>
-      </div>
+      <CargasCard
+        projetoIdListagem={projetoIdListagem}
+        projetoFinalizado={projetoFinalizado}
+        projetoSelecionado={projetoSelecionado}
+        loadingCargas={loadingCargas}
+        isError={isError}
+        loadError={loadError}
+        cargas={cargas}
+        onDeleteRequest={onDeleteRequest}
+        canManageCargas={canManageCargas}
+      />
 
       {projetoIdListagem ? (
         <div className="card mt-3" id="dimensionamento-resumo">

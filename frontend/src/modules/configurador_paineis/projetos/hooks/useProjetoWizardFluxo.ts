@@ -33,6 +33,22 @@ export const ETAPAS_VALIDAS: WizardStepId[] = [
   'composicao',
 ]
 
+function statusDependente(
+  bloqueado: boolean,
+  concluido: boolean
+): ChecklistStatus {
+  if (bloqueado) return 'blocked'
+  return concluido ? 'done' : 'pending'
+}
+
+function statusHistorico(
+  possuiHistorico: boolean,
+  usuarioIdentificado: boolean
+): ChecklistStatus {
+  if (!possuiHistorico) return 'pending'
+  return usuarioIdentificado ? 'done' : 'pending'
+}
+
 export function useProjetoWizardFluxo(projetoId: string) {
   const { data: projeto, isPending: loadingProjeto } = useProjetoDetailQuery(
     projetoId || undefined
@@ -95,36 +111,27 @@ export function useProjetoWizardFluxo(projetoId: string) {
       {
         key: 'dimensionamento',
         label: 'Dimensionamento calculado',
-        status: temCargas ? (dimensionado ? 'done' : 'pending') : 'blocked',
+        status: statusDependente(!temCargas, dimensionado),
       },
       {
         key: 'condutores-confirmados',
         label: 'Bitolas de condutores confirmadas no wizard',
-        status: !temCargas ? 'blocked' : condutoresRevisaoOk ? 'done' : 'pending',
+        status: statusDependente(!temCargas, condutoresRevisaoOk),
       },
       {
         key: 'dimensionamento-recente',
         label: 'Dimensionamento atualizado após última alteração de cargas',
-        status: !temCargas ? 'blocked' : dimensionamentoAposUltimaCarga ? 'done' : 'pending',
+        status: statusDependente(!temCargas, dimensionamentoAposUltimaCarga),
       },
       {
         key: 'composicao',
         label: 'Composição gerada',
-        status: !dimensionamentoEtapaConcluida
-          ? 'blocked'
-          : composicaoGerada
-            ? 'done'
-            : 'pending',
+        status: statusDependente(!dimensionamentoEtapaConcluida, composicaoGerada),
       },
       {
         key: 'rastreabilidade-usuario',
         label: 'Última ação executada por usuário identificado',
-        status:
-          historico.length === 0
-            ? 'pending'
-            : ultimaAcaoComUsuarioIdentificado
-              ? 'done'
-              : 'pending',
+        status: statusHistorico(historico.length > 0, ultimaAcaoComUsuarioIdentificado),
       },
     ],
     [

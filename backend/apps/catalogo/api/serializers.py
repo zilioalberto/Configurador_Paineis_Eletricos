@@ -481,18 +481,18 @@ def _defaults_para_categoria(nome: str) -> dict:
 
 
 def _clear_specs(produto: Produto) -> None:
-    for Model in MODEL_BY_CAMPO.values():
-        Model.objects.filter(produto=produto).delete()
+    for model in MODEL_BY_CAMPO.values():
+        model.objects.filter(produto=produto).delete()
 
 
 def _salvar_especificacao(produto: Produto, nome_categoria: str, payload: dict | None) -> None:
     campo = CATEGORIA_PARA_CAMPO.get(nome_categoria)
     if not campo:
         return
-    Model = MODEL_BY_CAMPO[campo]
+    model = MODEL_BY_CAMPO[campo]
     merged = _merge_spec(_defaults_para_categoria(nome_categoria), payload)
     merged = _ajustar_payload_regras_categoria(nome_categoria, merged)
-    obj = Model(produto=produto, **merged)
+    obj = model(produto=produto, **merged)
     try:
         obj.full_clean()
         obj.save()
@@ -613,14 +613,14 @@ def _raise_erro_especificacao_amigavel(campo: str, exc: DjangoValidationError) -
     ) from exc
 
 
-def _spec_detail(obj: Produto, cat: str, Model, SerializerCls):
+def _spec_detail(obj: Produto, cat: str, model, serializer_cls):
     if obj.categoria != cat:
         return None
     try:
-        inst = Model.objects.get(produto=obj)
-    except Model.DoesNotExist:
+        inst = model.objects.get(produto=obj)
+    except model.DoesNotExist:
         return None
-    return SerializerCls(inst).data
+    return serializer_cls(inst).data
 
 
 class EspecificacaoContatoraSerializer(serializers.ModelSerializer):
@@ -1703,8 +1703,8 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        for field_name, cat, Model, Ser in _DETALHE_FIELDS:
-            data[field_name] = _spec_detail(instance, cat, Model, Ser)
+        for field_name, cat, model, serializer_cls in _DETALHE_FIELDS:
+            data[field_name] = _spec_detail(instance, cat, model, serializer_cls)
         return data
 
 
@@ -1874,9 +1874,8 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         campo = CATEGORIA_PARA_CAMPO.get(categoria)
         if campo is None:
             return attrs
-        if instance is None:
-            if attrs.get(campo) is None:
-                attrs[campo] = {}
+        if instance is None and attrs.get(campo) is None:
+            attrs[campo] = {}
         return attrs
 
     @transaction.atomic
@@ -1938,16 +1937,16 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         campo = CATEGORIA_PARA_CAMPO.get(nome_novo)
         if not campo or campo not in payloads or payloads[campo] is None:
             return
-        Model = MODEL_BY_CAMPO[campo]
+        model = MODEL_BY_CAMPO[campo]
         merged = _merge_spec(
             _defaults_para_categoria(nome_novo),
             payloads[campo],
         )
         merged = _ajustar_payload_regras_categoria(nome_novo, merged)
         try:
-            spec = Model.objects.get(produto=instance)
-        except Model.DoesNotExist:
-            spec = Model(produto=instance, **merged)
+            spec = model.objects.get(produto=instance)
+        except model.DoesNotExist:
+            spec = model(produto=instance, **merged)
         else:
             for k, v in merged.items():
                 setattr(spec, k, v)

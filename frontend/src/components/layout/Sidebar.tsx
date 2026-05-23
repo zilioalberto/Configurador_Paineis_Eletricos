@@ -20,10 +20,10 @@ function envShort(mode: string): string {
   return mode
 }
 
-type SidebarProps = {
+type SidebarProps = Readonly<{
   mobileOpen?: boolean
   onNavigate?: () => void
-}
+}>
 
 type MenuAccessRule = {
   requiresAppAdmin?: boolean

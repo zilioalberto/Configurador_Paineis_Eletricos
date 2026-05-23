@@ -221,7 +221,7 @@ def test_dimensionar_comando_sensores_transdutor_e_transmissor():
         projeto,
         carga,
     )
-    transmissor = dimensionar_transmissor(projeto, carga)
+    transmissor = dimensionar_transmissor()
 
     assert valvula_ca["possui_neutro"] is True
     assert valvula_cc["possui_neutro"] is False

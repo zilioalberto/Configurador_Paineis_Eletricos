@@ -17,6 +17,43 @@ import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import type { ComposicaoItem, SugestaoItem } from '../types/composicao'
 import { agruparPorTagCarga } from '../utils/composicaoDisplay'
 
+type ModalComposicaoState =
+  | {
+      title: string
+      message: string
+      confirmLabel: string
+      isConfirming: boolean
+      tipo: 'export' | 'reabrir'
+    }
+  | null
+
+function modalComposicaoState(
+  confirmExportFmt: 'pdf' | 'xlsx' | null,
+  exportando: 'pdf' | 'xlsx' | null,
+  itemReabrir: ComposicaoItem | null,
+  reabrirPending: boolean
+): ModalComposicaoState {
+  if (confirmExportFmt !== null) {
+    return {
+      title: 'Existem pendências na composição',
+      message:
+        'Há pendências em aberto. O ideal é resolver todas antes de exportar. Deseja exportar mesmo assim?',
+      confirmLabel: 'Exportar mesmo assim',
+      isConfirming: exportando !== null,
+      tipo: 'export',
+    }
+  }
+  if (itemReabrir === null) return null
+  return {
+    title: 'Reabrir item aprovado?',
+    message:
+      'Este item sairá da composição aprovada e voltará para sugestões de itens, para você aprovar novamente ou alterar.',
+    confirmLabel: 'Reabrir item',
+    isConfirming: reabrirPending,
+    tipo: 'reabrir',
+  }
+}
+
 export default function ComposicaoPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -118,29 +155,28 @@ export default function ComposicaoPage() {
     return agruparPorTagCarga(comMemoria, optsAgrupamento)
   }, [snapshot?.sugestoes, optsAgrupamento])
 
-  const modalComposicao = useMemo(() => {
-    if (confirmExportFmt !== null) {
-      return {
-        title: 'Existem pendências na composição',
-        message:
-          'Há pendências em aberto. O ideal é resolver todas antes de exportar. Deseja exportar mesmo assim?',
-        confirmLabel: 'Exportar mesmo assim',
-        isConfirming: exportando !== null,
-        tipo: 'export' as const,
-      }
+  const modalComposicao = useMemo(
+    () =>
+      modalComposicaoState(
+        confirmExportFmt,
+        exportando,
+        itemReabrir,
+        reabrirComposicaoItemMutation.isPending
+      ),
+    [confirmExportFmt, exportando, itemReabrir, reabrirComposicaoItemMutation.isPending]
+  )
+
+  const confirmarModalComposicao = useCallback(() => {
+    if (!modalComposicao) return
+    if (modalComposicao.tipo === 'reabrir') {
+      onReabrirItemAprovado().catch(() => undefined)
+      return
     }
-    if (itemReabrir !== null) {
-      return {
-        title: 'Reabrir item aprovado?',
-        message:
-          'Este item sairá da composição aprovada e voltará para sugestões de itens, para você aprovar novamente ou alterar.',
-        confirmLabel: 'Reabrir item',
-        isConfirming: reabrirComposicaoItemMutation.isPending,
-        tipo: 'reabrir' as const,
-      }
-    }
-    return null
-  }, [confirmExportFmt, exportando, itemReabrir, reabrirComposicaoItemMutation.isPending])
+    if (!confirmExportFmt) return
+    const fmt = confirmExportFmt
+    setConfirmExportFmt(null)
+    executarExportacao(fmt).catch(() => undefined)
+  }, [confirmExportFmt, executarExportacao, modalComposicao, onReabrirItemAprovado])
 
   if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
     return <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
@@ -168,17 +204,7 @@ export default function ComposicaoPage() {
           setConfirmExportFmt(null)
           setItemReabrir(null)
         }}
-        onConfirm={() => {
-          if (!modalComposicao) return
-          if (modalComposicao.tipo === 'export') {
-            if (!confirmExportFmt) return
-            const fmt = confirmExportFmt
-            setConfirmExportFmt(null)
-            executarExportacao(fmt).catch(() => undefined)
-            return
-          }
-          onReabrirItemAprovado().catch(() => undefined)
-        }}
+        onConfirm={confirmarModalComposicao}
       />
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>

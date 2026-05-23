@@ -15,7 +15,7 @@ export function BellIcon() {
   )
 }
 
-export function UserAvatarPlaceholder({ label }: { label: string }) {
+export function UserAvatarPlaceholder({ label }: Readonly<{ label: string }>) {
   const initials =
     label
       .split(/\s+/)
@@ -30,7 +30,7 @@ export function UserAvatarPlaceholder({ label }: { label: string }) {
   )
 }
 
-export function ListaProjetosLink({ onNavigate }: { onNavigate?: () => void }) {
+export function ListaProjetosLink({ onNavigate }: Readonly<{ onNavigate?: () => void }>) {
   return (
     <Link to="/projetos" className="app-header-atalhos-footer-link" onClick={onNavigate}>
       Lista de projetos

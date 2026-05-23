@@ -1,6 +1,6 @@
 import {
   type Dispatch,
-  type FormEventHandler,
+  type FormEvent,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -81,6 +81,8 @@ type DeleteTarget = {
   id: string
   label: string
 }
+
+type FormSubmitHandler = (event: FormEvent<HTMLFormElement>) => void
 
 const parceiroFormVazio: ParceiroFormState = {
   tipo_pessoa: 'PJ',
@@ -331,7 +333,7 @@ export default function CadastrosPage() {
     setEnderecoForm(enderecoFormVazio)
   }
 
-  const handleFiltroSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+  const handleFiltroSubmit: FormSubmitHandler = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
   }
@@ -349,7 +351,7 @@ export default function CadastrosPage() {
     [form]
   )
 
-  const salvarParceiro: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarParceiro: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarParceiroAsync()
   }
@@ -379,7 +381,7 @@ export default function CadastrosPage() {
     }
   }
 
-  const salvarContato: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarContato: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarContatoAsync()
   }
@@ -409,7 +411,7 @@ export default function CadastrosPage() {
     }
   }
 
-  const salvarEndereco: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarEndereco: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarEnderecoAsync()
   }
@@ -628,7 +630,7 @@ function CadastrosListaPanel({
   selecionadoId: string | null
   tipoFiltro: ParceiroTipoFiltro
   limparBusca: () => void
-  onFiltroSubmit: FormEventHandler<HTMLFormElement>
+  onFiltroSubmit: FormSubmitHandler
   onSelecionar: (id: string) => void | Promise<void>
   setAtivoFiltro: Dispatch<SetStateAction<ParceiroAtivoFiltro>>
   setBusca: Dispatch<SetStateAction<string>>
@@ -821,9 +823,9 @@ type CadastroDetalhePanelProps = {
   editarContato: (contato: ContatoParceiroDto) => void
   editarEndereco: (endereco: EnderecoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmitContato: FormEventHandler<HTMLFormElement>
-  onSubmitEndereco: FormEventHandler<HTMLFormElement>
-  onSubmitParceiro: FormEventHandler<HTMLFormElement>
+  onSubmitContato: FormSubmitHandler
+  onSubmitEndereco: FormSubmitHandler
+  onSubmitParceiro: FormSubmitHandler
   setContatoEditId: Dispatch<SetStateAction<string | null>>
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
   setEnderecoEditId: Dispatch<SetStateAction<string | null>>
@@ -971,7 +973,7 @@ function ParceiroForm({
   parceiroFormValido: boolean
   salvandoParceiro: boolean
   cancelarEdicaoParceiro: () => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setForm: Dispatch<SetStateAction<ParceiroFormState>>
 }>) {
   const salvarLabel = salvandoParceiro ? 'Salvando…' : 'Salvar cadastro'
@@ -1179,7 +1181,7 @@ function ContatosSection({
   salvandoContato: boolean
   editarContato: (contato: ContatoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setContatoEditId: Dispatch<SetStateAction<string | null>>
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
 }>) {
@@ -1229,7 +1231,7 @@ function ContatoForm({
   contatoEditId: string | null
   contatoForm: ContatoFormState
   salvandoContato: boolean
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
 }>) {
   const submitLabel = contatoSubmitLabel(salvandoContato, contatoEditId)
@@ -1423,7 +1425,7 @@ function EnderecosSection({
   salvandoEndereco: boolean
   editarEndereco: (endereco: EnderecoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setEnderecoEditId: Dispatch<SetStateAction<string | null>>
   setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
 }>) {
@@ -1473,7 +1475,7 @@ function EnderecoForm({
   enderecoEditId: string | null
   enderecoForm: EnderecoFormState
   salvandoEndereco: boolean
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
 }>) {
   const submitLabel = enderecoSubmitLabel(salvandoEndereco, enderecoEditId)

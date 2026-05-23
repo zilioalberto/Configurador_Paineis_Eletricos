@@ -29,18 +29,18 @@ export function TarefaPainelExpansivel({
         aria-controls={panelId}
         onClick={onAlternar}
       >
-        <div className="tarefa-hours-log__header tarefa-hours-log__header--accordion mb-0">
-          <div>
-            <h3>{titulo}</h3>
-            <p>{descricao}</p>
-          </div>
+        <span className="tarefa-hours-log__header tarefa-hours-log__header--accordion mb-0">
+          <span className="tarefa-hours-log__accordion-copy">
+            <span className="tarefa-hours-log__title">{titulo}</span>
+            <span className="tarefa-hours-log__description">{descricao}</span>
+          </span>
           <span className="tarefa-hours-log__accordion-meta">
             {badge}
             <span className="tarefa-hours-log__accordion-chevron" aria-hidden>
               {aberto ? '▾' : '▸'}
             </span>
           </span>
-        </div>
+        </span>
       </button>
       {aberto ? (
         <div

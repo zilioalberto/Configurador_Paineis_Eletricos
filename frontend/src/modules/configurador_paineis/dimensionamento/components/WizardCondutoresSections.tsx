@@ -392,6 +392,79 @@ export function WizardCondutoresCircuitosBlock({
   )
 }
 
+type AlimentacaoGeralSectionProps = {
+  ag: AlimentacaoGeralCondutores
+  agOv: OverridesAg
+  setAgOv: React.Dispatch<React.SetStateAction<OverridesAg | null>>
+  agAprovado: boolean
+  tabela: TabelaReferenciaCondutor[]
+  ibPainel: number
+  panel: PanelSlice
+  onRevisar: () => void
+  onUsarSugestao: () => void
+  onAprovar: () => void
+}
+
+function AlimentacaoGeralAprovada({
+  ag,
+  canEditar,
+  patchPending,
+  onRevisar,
+}: {
+  ag: AlimentacaoGeralCondutores
+  canEditar: boolean
+  patchPending: boolean
+  onRevisar: () => void
+}) {
+  return (
+    <div className="table-responsive app-data-table">
+      <table className="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>I total painel (A)</th>
+            <th>Fase (efetiva)</th>
+            <th>Neutro</th>
+            <th>PE</th>
+            {canEditar ? <th className="text-end">Ações</th> : null}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{ag.corrente_total_painel_a}</td>
+            <td>{ag.secao_condutor_fase_efetiva_mm2 ?? '—'} mm²</td>
+            <td>
+              {!ag.possui_neutro ? (
+                <span className="text-muted">—</span>
+              ) : (
+                <>{ag.secao_condutor_neutro_efetiva_mm2 ?? '—'} mm²</>
+              )}
+            </td>
+            <td>
+              {!ag.possui_terra ? (
+                <span className="text-muted">—</span>
+              ) : (
+                <>{ag.secao_condutor_pe_efetiva_mm2 ?? '—'} mm²</>
+              )}
+            </td>
+            {canEditar ? (
+              <td className="text-end">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-warning"
+                  disabled={patchPending}
+                  onClick={onRevisar}
+                >
+                  Revisar
+                </button>
+              </td>
+            ) : null}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function AlimentacaoGeralSection({
   ag,
   agOv,
@@ -403,69 +476,19 @@ export function AlimentacaoGeralSection({
   onRevisar,
   onUsarSugestao,
   onAprovar,
-}: {
-  ag: AlimentacaoGeralCondutores
-  agOv: OverridesAg
-  setAgOv: React.Dispatch<React.SetStateAction<OverridesAg | null>>
-  agAprovado: boolean
-  tabela: TabelaReferenciaCondutor[]
-  ibPainel: number
-  panel: PanelSlice
-  onRevisar: () => void
-  onUsarSugestao: () => void
-  onAprovar: () => void
-}) {
+}: AlimentacaoGeralSectionProps) {
   const { canEditar, patchPending, bloquearEdicao } = panel
 
   return (
     <div className="mb-4">
       <h2 className="h5 mb-3">Alimentação geral do painel</h2>
       {agAprovado ? (
-        <div className="table-responsive app-data-table">
-          <table className="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>I total painel (A)</th>
-                <th>Fase (efetiva)</th>
-                <th>Neutro</th>
-                <th>PE</th>
-                {canEditar ? <th className="text-end">Ações</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{ag.corrente_total_painel_a}</td>
-                <td>{ag.secao_condutor_fase_efetiva_mm2 ?? '—'} mm²</td>
-                <td>
-                  {!ag.possui_neutro ? (
-                    <span className="text-muted">—</span>
-                  ) : (
-                    <>{ag.secao_condutor_neutro_efetiva_mm2 ?? '—'} mm²</>
-                  )}
-                </td>
-                <td>
-                  {!ag.possui_terra ? (
-                    <span className="text-muted">—</span>
-                  ) : (
-                    <>{ag.secao_condutor_pe_efetiva_mm2 ?? '—'} mm²</>
-                  )}
-                </td>
-                {canEditar ? (
-                  <td className="text-end">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-warning"
-                      disabled={patchPending}
-                      onClick={onRevisar}
-                    >
-                      Revisar
-                    </button>
-                  </td>
-                ) : null}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <AlimentacaoGeralAprovada
+          ag={ag}
+          canEditar={canEditar}
+          patchPending={patchPending}
+          onRevisar={onRevisar}
+        />
       ) : (
         <div className="table-responsive app-data-table">
           <table className="table table-sm align-middle">

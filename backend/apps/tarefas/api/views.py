@@ -226,8 +226,8 @@ class TarefaResponsavelOptionsView(APIView):
     required_permission = PermissionKeys.TAREFA_VISUALIZAR_PROPRIAS
 
     def get(self, request):
-        User = get_user_model()
-        usuarios = User.objects.filter(is_active=True).order_by("first_name", "last_name", "email")
+        user_model = get_user_model()
+        usuarios = user_model.objects.filter(is_active=True).order_by("first_name", "last_name", "email")
         data = [
             {
                 "id": usuario.id,

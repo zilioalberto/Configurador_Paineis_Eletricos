@@ -20,11 +20,12 @@ function renderMenu(initialEntry = '/cadastros/clientes') {
       <SidebarMenuGroup
         id="cadastros"
         label="Cadastros"
-        children={[
+      >
+        {[
           { label: 'Clientes', to: '/cadastros/clientes' },
           { label: 'Fornecedores', to: '/cadastros/fornecedores' },
         ]}
-      />
+      </SidebarMenuGroup>
     </MemoryRouter>
   )
 }

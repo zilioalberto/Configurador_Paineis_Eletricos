@@ -11,14 +11,13 @@ const CONFIGURADOR_PAINEIS_PATH_PREFIXES = [
   '/dimensionamento',
   '/composicao',
 ]
+const ERP_SHELL_RE = /^\/erp\/m\/([^/]+)/
 
 function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 
-export function getPortalModuleContext(pathname: string): PortalModuleContext {
-  const path = pathname || '/'
-
+export function getPortalModuleContext(path = '/'): PortalModuleContext {
   if (path === '/') return { title: 'Central de módulos' }
   if (startsWithAny(path, CONFIGURADOR_PAINEIS_PATH_PREFIXES)) {
     return { title: 'Configurador de painéis' }
@@ -41,7 +40,7 @@ export function getPortalModuleContext(pathname: string): PortalModuleContext {
   if (path === '/erp/configuracoes' || path.startsWith('/erp/configuracoes/')) {
     return { title: 'Configurações do ERP' }
   }
-  const erpShell = path.match(/^\/erp\/m\/([^/]+)/)
+  const erpShell = ERP_SHELL_RE.exec(path)
   if (erpShell) {
     const mod = findErpModuleByShellSlug(erpShell[1])
     return { title: mod?.title ?? 'Módulo ERP' }

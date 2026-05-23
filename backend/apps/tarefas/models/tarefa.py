@@ -151,40 +151,47 @@ class Tarefa(BaseModel):
         )
 
     def _erros_classificacao_por_etapa(self, proposta: str, ordem_producao: str) -> dict:
-        if self.tipo_etapa == TipoTarefaChoices.NAO_CLASSIFICADA:
-            if proposta or ordem_producao:
-                return {
-                    "tipo_etapa": (
-                        "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
-                    )
-                }
+        validadores = {
+            TipoTarefaChoices.NAO_CLASSIFICADA: self._erros_etapa_sem_vinculo,
+            TipoTarefaChoices.PROPOSTA: self._erros_etapa_proposta,
+            TipoTarefaChoices.PRODUCAO: self._erros_etapa_producao,
+            TipoTarefaChoices.INTERNA: self._erros_etapa_interna,
+        }
+        validador = validadores.get(self.tipo_etapa)
+        return validador(proposta, ordem_producao) if validador else {}
+
+    def _erros_etapa_sem_vinculo(self, proposta: str, ordem_producao: str) -> dict:
+        if not proposta and not ordem_producao:
             return {}
+        return {
+            "tipo_etapa": (
+                "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
+            )
+        }
 
-        if self.tipo_etapa == TipoTarefaChoices.PROPOSTA:
-            erros = {}
-            if not proposta:
-                erros["proposta_referencia"] = "Informe a PROP vinculada a tarefa."
-            if ordem_producao:
-                erros["ordem_producao_referencia"] = (
-                    "Tarefa de proposta nao deve possuir vinculo com OP."
-                )
-            return erros
+    def _erros_etapa_proposta(self, proposta: str, ordem_producao: str) -> dict:
+        erros = {}
+        if not proposta:
+            erros["proposta_referencia"] = "Informe a PROP vinculada a tarefa."
+        if ordem_producao:
+            erros["ordem_producao_referencia"] = (
+                "Tarefa de proposta nao deve possuir vinculo com OP."
+            )
+        return erros
 
-        if self.tipo_etapa == TipoTarefaChoices.PRODUCAO:
-            if not ordem_producao:
-                return {
-                    "ordem_producao_referencia": "Informe a OP vinculada a tarefa."
-                }
+    def _erros_etapa_producao(self, proposta: str, ordem_producao: str) -> dict:
+        if ordem_producao:
             return {}
+        return {"ordem_producao_referencia": "Informe a OP vinculada a tarefa."}
 
-        if self.tipo_etapa == TipoTarefaChoices.INTERNA:
-            if proposta or ordem_producao:
-                return {
-                    "tipo_etapa": (
-                        "Tarefa interna nao deve possuir vinculo com PROP ou OP."
-                    )
-                }
-        return {}
+    def _erros_etapa_interna(self, proposta: str, ordem_producao: str) -> dict:
+        if not proposta and not ordem_producao:
+            return {}
+        return {
+            "tipo_etapa": (
+                "Tarefa interna nao deve possuir vinculo com PROP ou OP."
+            )
+        }
 
     def validar_classificacao(self):
         proposta = (self.proposta_referencia or "").strip()

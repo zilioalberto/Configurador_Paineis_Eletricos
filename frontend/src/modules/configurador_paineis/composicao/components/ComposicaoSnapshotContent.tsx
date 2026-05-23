@@ -47,6 +47,52 @@ type Props = {
   onReavaliarPendencias: () => void
 }
 
+function SnapshotResumo({
+  projetoId,
+  snapshot,
+  projetoSelecionado,
+}: Pick<Props, 'projetoId' | 'snapshot' | 'projetoSelecionado'>) {
+  const totais = snapshot.totais
+
+  return (
+    <div className="col-12">
+      <ProjetoIdentificacaoFluxo
+        projetoCodigo={projetoSelecionado?.codigo ?? snapshot.projeto_codigo}
+        projetoNome={projetoSelecionado?.nome ?? snapshot.projeto_nome}
+        fallbackId={snapshot.projeto ?? projetoId}
+        htmlId="composicao-projeto-identificacao"
+      />
+      <p className="small text-muted mb-0 mt-2">
+        {totais ? (
+          <>
+            {totais.sugestoes} sugestão(ões) · {totais.pendencias} pendência(s)
+            {totais.composicao_itens != null ? (
+              <> · {totais.composicao_itens} item(ns) na composição</>
+            ) : null}
+            {totais.inclusoes_manuais != null ? (
+              <> · {totais.inclusoes_manuais} inclusão(ões) manual(is)</>
+            ) : null}
+          </>
+        ) : (
+          'Sem totais de composição.'
+        )}
+      </p>
+      {snapshot.geracao?.erros_etapas && snapshot.geracao.erros_etapas.length > 0 ? (
+        <div className="alert alert-warning mt-2 mb-0" role="status">
+          <strong>Avisos na última geração:</strong>
+          <ul className="mb-0 mt-1 small">
+            {snapshot.geracao.erros_etapas.map((e, i) => (
+              <li key={i}>
+                {e.etapa}: {e.erro}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function ComposicaoTabelaPendencias({
   grupos,
   vazio,
@@ -168,41 +214,11 @@ export function ComposicaoSnapshotContent({
 }: Props) {
   return (
     <div className="row g-4">
-      <div className="col-12">
-        <ProjetoIdentificacaoFluxo
-          projetoCodigo={projetoSelecionado?.codigo ?? snapshot.projeto_codigo}
-          projetoNome={projetoSelecionado?.nome ?? snapshot.projeto_nome}
-          fallbackId={snapshot.projeto ?? projetoId}
-          htmlId="composicao-projeto-identificacao"
-        />
-        <p className="small text-muted mb-0 mt-2">
-          {snapshot.totais ? (
-            <>
-              {snapshot.totais.sugestoes} sugestão(ões) · {snapshot.totais.pendencias} pendência(s)
-              {snapshot.totais.composicao_itens != null ? (
-                <> · {snapshot.totais.composicao_itens} item(ns) na composição</>
-              ) : null}
-              {snapshot.totais.inclusoes_manuais != null ? (
-                <> · {snapshot.totais.inclusoes_manuais} inclusão(ões) manual(is)</>
-              ) : null}
-            </>
-          ) : (
-            'Sem totais de composição.'
-          )}
-        </p>
-        {snapshot.geracao?.erros_etapas && snapshot.geracao.erros_etapas.length > 0 ? (
-          <div className="alert alert-warning mt-2 mb-0" role="status">
-            <strong>Avisos na última geração:</strong>
-            <ul className="mb-0 mt-1 small">
-              {snapshot.geracao.erros_etapas.map((e, i) => (
-                <li key={i}>
-                  {e.etapa}: {e.erro}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
+      <SnapshotResumo
+        projetoId={projetoId}
+        snapshot={snapshot}
+        projetoSelecionado={projetoSelecionado}
+      />
 
       <div className="col-12">
         <h2 className="h5 mb-3">Composição aprovada</h2>
