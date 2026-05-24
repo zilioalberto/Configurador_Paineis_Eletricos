@@ -61,16 +61,16 @@ function setupProjetoListPage({
 }
 
 describe('ProjetoListPage', () => {
-  it('oculta botao novo projeto sem permissao de criacao', () => {
+  it('oculta botao nova configuracao sem permissao de criacao', () => {
     setupProjetoListPage({})
 
-    expect(screen.queryByRole('link', { name: /Novo Projeto/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Nova configuração/i })).not.toBeInTheDocument()
   })
 
-  it('exibe botao novo projeto e permite atualizar lista', () => {
+  it('exibe botao nova configuracao e permite atualizar lista', () => {
     setupProjetoListPage({ permissoes: ['projeto.criar', 'projeto.visualizar'] })
 
-    expect(screen.getByRole('link', { name: /Novo Projeto/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Nova configuração/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Atualizar/i }))
     expect(refetchMock).toHaveBeenCalled()
   })

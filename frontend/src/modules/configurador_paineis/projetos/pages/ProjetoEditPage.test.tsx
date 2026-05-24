@@ -152,7 +152,7 @@ describe('ProjetoEditPage', () => {
     mockProjetoDetailQuery({ isError: true, error: new Error('falhou'), refetch })
     renderPage()
     expect(
-      await screen.findByText(/Não foi possível carregar os dados deste projeto/i)
+      await screen.findByText(/Não foi possível carregar os dados desta configuração/i)
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Tentar novamente/i }))
     expect(refetch).toHaveBeenCalled()
@@ -164,12 +164,12 @@ describe('ProjetoEditPage', () => {
     mockProjetoDetailQuery({ data: projetoMinimo })
     renderPage()
 
-    await screen.findByRole('heading', { name: /Editar Projeto/i })
+    await screen.findByRole('heading', { name: /Editar configuração de painel/i })
 
     fireEvent.change(document.querySelector('input[name="nome"]')!, {
       target: { value: 'Novo nome' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Salvar projeto/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Salvar alterações/i }))
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
     await waitFor(() => expect(navigate).toHaveBeenCalled())

@@ -105,11 +105,11 @@ describe('CargaListPage', () => {
     )
   })
 
-  it('exibe CTA de criar projeto quando lista esta vazia e usuario pode criar', () => {
+  it('exibe CTA de criar configuracao quando lista esta vazia e usuario pode criar', () => {
     mockCargaListContext({ user: authUser(['projeto.criar']) })
     renderCargaListPage()
 
-    expect(screen.getByRole('link', { name: /Criar projeto/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Criar configuração/i })).toBeInTheDocument()
   })
 
   it('mostra estados de carregamento e erro da listagem', () => {
