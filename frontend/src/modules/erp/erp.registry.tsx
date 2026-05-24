@@ -10,6 +10,7 @@ const RhPage = lazy(() => import('@/modules/rh/pages/RhPage'))
 const OrcamentoDetailPage = lazy(() => import('./pages/OrcamentoDetailPage'))
 const OrcamentoListPage = lazy(() => import('./pages/OrcamentoListPage'))
 const ConfiguracoesErpPage = lazy(() => import('./pages/ConfiguracoesErpPage'))
+const MargensClientesPage = lazy(() => import('./pages/MargensClientesPage'))
 
 function withPermission(permission: string, element: ReactElement): ReactElement {
   return <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -62,6 +63,10 @@ export const erpRoutes: ModuleRouteConfig[] = [
   {
     path: '/erp/orcamentos',
     element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoListPage />),
+  },
+  {
+    path: '/erp/orcamentos/margens-clientes',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <MargensClientesPage />),
   },
   {
     path: '/erp/configuracoes',

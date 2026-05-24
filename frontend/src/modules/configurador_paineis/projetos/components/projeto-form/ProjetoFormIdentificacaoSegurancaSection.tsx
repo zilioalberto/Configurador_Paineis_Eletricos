@@ -10,11 +10,6 @@ export function ProjetoFormIdentificacaoSegurancaSection({
 
   return (
     <>
-      <div className="col-12">
-        <hr />
-        <h2 className="h5">Identificação e segurança</h2>
-      </div>
-
       <ProjetoFormCheckboxField
         name="possui_plaqueta_identificacao"
         label="Plaqueta de identificação"

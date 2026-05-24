@@ -20,7 +20,7 @@ from core.choices import (
 )
 from core.choices.produtos import UnidadeMedidaChoices
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 @pytest.mark.django_db
@@ -85,7 +85,7 @@ def test_nucleo_tipo_seccionamento_ausente_cria_pendencia(criar_projeto):
         projeto=projeto,
         corrente_total_painel_a=Decimal("80"),
     )
-    Projeto.objects.filter(pk=projeto.pk).update(tipo_seccionamento="")
+    ProjetoConfigurador.objects.filter(pk=projeto.pk).update(tipo_seccionamento="")
     projeto.refresh_from_db()
     assert _nucleo_gerar_seccionamento(projeto) is None
     p = PendenciaItem.objects.get(projeto=projeto)
@@ -212,7 +212,7 @@ def test_nucleo_tipo_seccionamento_invalido_cria_pendencia_outros(criar_projeto)
         projeto=projeto,
         corrente_total_painel_a=Decimal("40"),
     )
-    Projeto.objects.filter(pk=projeto.pk).update(tipo_seccionamento="TIPO_INVALIDO_TESTE")
+    ProjetoConfigurador.objects.filter(pk=projeto.pk).update(tipo_seccionamento="TIPO_INVALIDO_TESTE")
     projeto.refresh_from_db()
     assert _nucleo_gerar_seccionamento(projeto) is None
     p = PendenciaItem.objects.get(

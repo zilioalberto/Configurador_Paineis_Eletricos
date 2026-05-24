@@ -5,6 +5,8 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
 import CargaModeloOpcionalSection from '../components/CargaModeloOpcionalSection'
@@ -106,7 +108,7 @@ export default function CargaCreatePage() {
     try {
       const created = await createMutation.mutateAsync(cargaFormToApiPayload(data))
       showToast({ variant: 'success', message: 'Carga criada com sucesso.' })
-      navigate(`/cargas?projeto=${encodeURIComponent(created.projeto)}`)
+      navigate(withFluxoOrigem(configuradorPaths.cargas(created.projeto), searchParams))
     } catch (err) {
       console.error(err)
       showToast({
@@ -137,7 +139,7 @@ export default function CargaCreatePage() {
           {!loadingProjetos && projetos.length === 0 && (
             <div className="alert alert-warning mb-0" role="alert">
               É necessário ter pelo menos um projeto cadastrado.{' '}
-              {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
+              {canCreateProjeto ? <Link to={configuradorPaths.novaConfiguracao}>Criar configuração</Link> : null}
             </div>
           )}
 
@@ -147,7 +149,7 @@ export default function CargaCreatePage() {
               <div className="alert alert-secondary mb-0" role="alert">
                 Todos os projetos estão finalizados. Não é possível cadastrar novas
                 cargas até existir um projeto em andamento.{' '}
-                <Link to="/projetos">Ver projetos</Link>
+                <Link to={configuradorPaths.configuracoes}>Ver configurações</Link>
               </div>
             )}
 

@@ -1,6 +1,17 @@
 from django.contrib import admin
 
-from apps.orcamentos.models import ConfiguracaoMargemCliente, Orcamento, OrcamentoItem
+from apps.orcamentos.models import (
+    ConfiguracaoMargemCliente,
+    Orcamento,
+    OrcamentoConfiguradorPainel,
+    OrcamentoItem,
+)
+
+
+class OrcamentoConfiguradorPainelInline(admin.TabularInline):
+    model = OrcamentoConfiguradorPainel
+    extra = 0
+    readonly_fields = ("projeto_configurador", "sincronizado_em")
 
 
 class OrcamentoItemInline(admin.TabularInline):
@@ -12,6 +23,9 @@ class OrcamentoItemInline(admin.TabularInline):
 class OrcamentoAdmin(admin.ModelAdmin):
     list_display = (
         "codigo",
+        "codigo_base",
+        "revisao",
+        "tipo_revisao",
         "titulo",
         "status",
         "cliente",
@@ -22,7 +36,7 @@ class OrcamentoAdmin(admin.ModelAdmin):
     )
     list_filter = ("status",)
     search_fields = ("codigo", "titulo", "cliente_referencia", "cliente__razao_social")
-    inlines = (OrcamentoItemInline,)
+    inlines = (OrcamentoConfiguradorPainelInline, OrcamentoItemInline,)
 
 
 @admin.register(ConfiguracaoMargemCliente)

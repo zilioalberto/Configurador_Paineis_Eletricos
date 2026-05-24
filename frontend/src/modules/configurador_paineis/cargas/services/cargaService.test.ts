@@ -45,7 +45,7 @@ describe('cargaService', () => {
   it('listarCargas com projeto vazio envia params coerentes', async () => {
     getMock.mockResolvedValueOnce({ data: [] })
     await listarCargas('')
-    expect(getMock).toHaveBeenCalledWith('/cargas/', { params: { projeto: '' } })
+    expect(getMock).toHaveBeenCalledWith('/configurador/cargas/', { params: { projeto: '' } })
   })
 
   it('listarModelosCarga envia params e devolve dados', async () => {
@@ -53,7 +53,7 @@ describe('cargaService', () => {
     await expect(listarModelosCarga({ tipo: 'MOTOR', q: 'bomba' })).resolves.toEqual([
       { id: 'm1' },
     ])
-    expect(getMock).toHaveBeenCalledWith('/cargas/modelos/', {
+    expect(getMock).toHaveBeenCalledWith('/configurador/cargas/modelos/', {
       params: { tipo: 'MOTOR', q: 'bomba' },
     })
   })
@@ -61,7 +61,7 @@ describe('cargaService', () => {
   it('obterCarga', async () => {
     getMock.mockResolvedValueOnce({ data: { id: 'x' } })
     await expect(obterCarga('x')).resolves.toEqual({ id: 'x' })
-    expect(getMock).toHaveBeenCalledWith('/cargas/x/')
+    expect(getMock).toHaveBeenCalledWith('/configurador/cargas/x/')
   })
 
   it('criarCarga e atualizarCarga', async () => {
@@ -75,7 +75,7 @@ describe('cargaService', () => {
   it('deletarCarga', async () => {
     deleteMock.mockResolvedValueOnce({})
     await deletarCarga('y')
-    expect(deleteMock).toHaveBeenCalledWith('/cargas/y/')
+    expect(deleteMock).toHaveBeenCalledWith('/configurador/cargas/y/')
   })
 
   it('criarModeloCarga', async () => {
@@ -89,7 +89,7 @@ describe('cargaService', () => {
       ativo: false,
     }
     await expect(criarModeloCarga(body)).resolves.toMatchObject({ nome: 'N' })
-    expect(postMock).toHaveBeenCalledWith('/cargas/modelos/', body)
+    expect(postMock).toHaveBeenCalledWith('/configurador/cargas/modelos/', body)
   })
 
   it('atualizarModeloCarga e deletarModeloCarga', async () => {
@@ -103,6 +103,6 @@ describe('cargaService', () => {
 
     deleteMock.mockResolvedValueOnce({})
     await deletarModeloCarga('mid')
-    expect(deleteMock).toHaveBeenCalledWith('/cargas/modelos/mid/')
+    expect(deleteMock).toHaveBeenCalledWith('/configurador/cargas/modelos/mid/')
   })
 })

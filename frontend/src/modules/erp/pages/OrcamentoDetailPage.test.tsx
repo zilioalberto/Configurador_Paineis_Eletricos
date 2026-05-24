@@ -6,8 +6,6 @@ import { authUser } from '@/test/factories/authUser'
 const showToastMock = vi.hoisted(() => vi.fn())
 const obterOrcamentoMock = vi.hoisted(() => vi.fn())
 const atualizarOrcamentoMock = vi.hoisted(() => vi.fn())
-const listarClientesOrcamentoMock = vi.hoisted(() => vi.fn())
-const listarContatosClienteMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast: showToastMock }),
@@ -21,45 +19,19 @@ vi.mock('@/modules/auth/AuthContext', () => ({
 
 vi.mock('../services/erpApi', () => ({
   atualizarOrcamento: (...args: unknown[]) => atualizarOrcamentoMock(...args),
-  listarClientesOrcamento: (...args: unknown[]) => listarClientesOrcamentoMock(...args),
-  listarContatosCliente: (...args: unknown[]) => listarContatosClienteMock(...args),
   obterOrcamento: (...args: unknown[]) => obterOrcamentoMock(...args),
 }))
 
 import OrcamentoDetailPage from './OrcamentoDetailPage'
 
-const clienteBase = {
-  id: 'cli-1',
-  tipo_pessoa: 'PJ',
-  documento: '11222333000144',
-  razao_social: 'Cliente Industrial',
-  nome_fantasia: 'Cliente',
-  inscricao_estadual: '',
-  email: 'cliente@empresa.com',
-  telefone: '',
-  eh_cliente: true,
-  eh_fornecedor: false,
-  eh_parceiro: false,
-  ativo: true,
-  origem: 'MANUAL',
-  enderecos: [],
-  contatos: [],
-}
-
-const contatoBase = {
-  id: 'cont-1',
-  parceiro: 'cli-1',
-  nome: 'Joana Compras',
-  cargo: 'Compras',
-  email: 'joana@empresa.com',
-  telefone: '',
-  principal: true,
-  observacoes: '',
-}
-
 const orcamentoBase = {
   id: 'orc-1',
-  codigo: 'ORC-2026-001',
+  codigo: 'ORC-2026-001 Rev A',
+  codigo_base: 'ORC-2026-001',
+  revisao: 'A',
+  tipo_revisao: 'INICIAL',
+  orcamento_origem: null,
+  editavel: true,
   titulo: 'Painel QGBT',
   descricao: 'Escopo inicial',
   cliente: 'cli-1',
@@ -85,15 +57,15 @@ const orcamentoBase = {
       custo_unitario: '100.00',
       margem_percentual: '20.00',
       preco_unitario: '150.00',
+      editavel: true,
     },
   ],
+  configuradores_painel: [],
 }
 
 function setupOrcamentoDetailPage() {
   showToastMock.mockClear()
   obterOrcamentoMock.mockResolvedValue(orcamentoBase)
-  listarClientesOrcamentoMock.mockResolvedValue([clienteBase])
-  listarContatosClienteMock.mockResolvedValue([contatoBase])
   atualizarOrcamentoMock.mockImplementation(async (_id: string, payload: Record<string, unknown>) => ({
     ...orcamentoBase,
     ...payload,
@@ -117,11 +89,12 @@ describe('OrcamentoDetailPage', () => {
   it('carrega dados, salva cabecalho e itens', async () => {
     renderOrcamentoDetailPage()
 
-    await screen.findByDisplayValue('ORC-2026-001')
+    await screen.findByRole('heading', { name: 'ORC-2026-001 Rev A' })
+    expect(screen.getByText('Cliente Industrial')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Painel QGBT')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Disjuntor caixa moldada')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Título'), {
+    fireEvent.change(screen.getByLabelText('Título da proposta'), {
       target: { value: 'Painel CCM' },
     })
     fireEvent.change(screen.getByLabelText('Estado'), {
@@ -135,11 +108,10 @@ describe('OrcamentoDetailPage', () => {
       expect.objectContaining({
         titulo: 'Painel CCM',
         status: 'ENVIADO',
-        cliente: 'cli-1',
       })
     )
 
-    fireEvent.change(screen.getByPlaceholderText('Descrição do item'), {
+    fireEvent.change(screen.getByDisplayValue('Disjuntor caixa moldada'), {
       target: { value: 'Disjuntor 250A' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar itens' }))

@@ -16,7 +16,9 @@ class ParceiroComercialViewSet(ModelViewSet):
     permission_classes = [HasEffectivePermission]
 
     def get_queryset(self):
-        qs = ParceiroComercial.objects.prefetch_related("enderecos", "contatos").order_by(
+        qs = ParceiroComercial.objects.prefetch_related(
+            "enderecos", "contatos", "cnaes", "socios"
+        ).order_by(
             "razao_social",
             "documento",
         )

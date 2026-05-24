@@ -79,11 +79,11 @@ export function ProjetoFormDadosGeraisSection({
           onChange={onFieldChange}
           readOnly
           disabled={ro}
-          placeholder="Gerado ao salvar (MMnnn-AA)"
-          title="O código é definido pelo sistema ao criar o projeto."
+          placeholder="CONF-05008-26 ou MMnnn-AA"
+          title="Código da configuração de painel."
         />
         <p className="form-text small text-muted mb-0">
-          Gerado ao abrir &quot;Novo projeto&quot; e gravado apenas ao salvar (MMnnn-AA, ex. 04001-26).
+          Vinculado à proposta: CONF-MMnnn-AA (ex. CONF-05008-26). Avulso: MMnnn-AA (ex. 04001-26).
         </p>
       </div>
 

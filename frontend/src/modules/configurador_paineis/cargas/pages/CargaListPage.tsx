@@ -10,6 +10,8 @@ import { ProjetoIdentificacaoFluxo } from '@/modules/configurador_paineis/projet
 import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
@@ -66,7 +68,7 @@ function ProjetoFiltroCard({
         {!loadingProjetos && projetos.length === 0 ? (
           <p className="text-muted small mt-2 mb-0">
             Não há projetos cadastrados.{' '}
-            {canCreateProjeto ? <Link to="/projetos/novo">Criar projeto</Link> : null}
+            {canCreateProjeto ? <Link to={configuradorPaths.novaConfiguracao}>Criar configuração</Link> : null}
           </p>
         ) : null}
         {!loadingProjetos && projetos.length > 0 && projetosNoFiltro.length === 0 ? (
@@ -312,8 +314,11 @@ export default function CargaListPage() {
             <Link
               to={
                 projetoIdListagem
-                  ? `/cargas/novo?projeto=${encodeURIComponent(projetoIdListagem)}`
-                  : '/cargas/novo'
+                  ? withFluxoOrigem(
+                      configuradorPaths.novaCarga(projetoIdListagem),
+                      searchParams
+                    )
+                  : configuradorPaths.novaCarga()
               }
               className={`btn btn-primary${!projetoIdListagem ? ' disabled' : ''}`}
               aria-disabled={!projetoIdListagem}

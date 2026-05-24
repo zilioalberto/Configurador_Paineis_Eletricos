@@ -28,7 +28,7 @@ from apps.configurador_paineis.composicao_painel.models import (
     SugestaoItem,
 )
 from core.choices.cargas import TipoCargaChoices
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 COLUNAS = [
@@ -139,7 +139,7 @@ def _linha_carga(carga) -> list[str]:
     ]
 
 
-def _linhas_composicao_export(projeto: Projeto) -> list[list[str]]:
+def _linhas_composicao_export(projeto: ProjetoConfigurador) -> list[list[str]]:
     qs = (
         ComposicaoItem.objects.filter(projeto=projeto)
         .select_related(
@@ -169,7 +169,7 @@ def _linhas_composicao_export(projeto: Projeto) -> list[list[str]]:
     ]
 
 
-def _linhas_sugestao_export(projeto: Projeto) -> list[list[str]]:
+def _linhas_sugestao_export(projeto: ProjetoConfigurador) -> list[list[str]]:
     qs = (
         SugestaoItem.objects.filter(projeto=projeto)
         .select_related(
@@ -199,7 +199,7 @@ def _linhas_sugestao_export(projeto: Projeto) -> list[list[str]]:
     ]
 
 
-def _linhas_inclusao_manual_export(projeto: Projeto) -> list[list[str]]:
+def _linhas_inclusao_manual_export(projeto: ProjetoConfigurador) -> list[list[str]]:
     qs = (
         ComposicaoInclusaoManual.objects.filter(projeto=projeto)
         .select_related("produto")
@@ -227,7 +227,7 @@ def _linhas_inclusao_manual_export(projeto: Projeto) -> list[list[str]]:
     ]
 
 
-def _linhas_pendencia_export(projeto: Projeto) -> list[list[str]]:
+def _linhas_pendencia_export(projeto: ProjetoConfigurador) -> list[list[str]]:
     qs = (
         PendenciaItem.objects.filter(projeto=projeto)
         .select_related(
@@ -270,7 +270,7 @@ def _remover_coluna_memoria_calculo(
 
 
 def montar_linhas_export(
-    projeto: Projeto, *, incluir_memoria_calculo: bool = True
+    projeto: ProjetoConfigurador, *, incluir_memoria_calculo: bool = True
 ) -> tuple[list[str], list[list[str]]]:
     """Retorna (cabeçalhos, linhas) com strings para planilha/PDF."""
     header = list(COLUNAS)
@@ -286,7 +286,7 @@ def montar_linhas_export(
     return header, linhas
 
 
-def nome_arquivo_seguro(projeto: Projeto, extensao: str) -> str:
+def nome_arquivo_seguro(projeto: ProjetoConfigurador, extensao: str) -> str:
     partes = [_txt(projeto.codigo), _txt(getattr(projeto, "cliente", "")), _txt(projeto.nome)]
     base = " - ".join([p for p in partes if p]) or str(projeto.id)[:8]
     invalidos = '<>:"/\\|?*'
@@ -296,7 +296,7 @@ def nome_arquivo_seguro(projeto: Projeto, extensao: str) -> str:
     return f"{safe}.{extensao}"
 
 
-def render_xlsx_bytes(projeto: Projeto, header: list[str], linhas: list[list[str]]) -> bytes:
+def render_xlsx_bytes(projeto: ProjetoConfigurador, header: list[str], linhas: list[list[str]]) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = "Lista completa"
@@ -357,7 +357,7 @@ _PDF_COL_FRACS = (
 )
 
 
-def render_pdf_bytes(projeto: Projeto, header: list[str], linhas: list[list[str]]) -> bytes:
+def render_pdf_bytes(projeto: ProjetoConfigurador, header: list[str], linhas: list[list[str]]) -> bytes:
     bio = BytesIO()
     page_w, _page_h = landscape(A4)
     margin = 1.1 * cm

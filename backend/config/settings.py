@@ -193,6 +193,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "cnpj_consulta": os.getenv("CNPJ_CONSULTA_THROTTLE_RATE", "30/min"),
+    },
+}
+
+# Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
+CNPJ_CONSULTA = {
+    "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),
+    "MAX_SOCIOS": int(os.getenv("CNPJ_CONSULTA_MAX_SOCIOS", "50")),
+    "MAX_CNAES": int(os.getenv("CNPJ_CONSULTA_MAX_CNAES", "50")),
+    "MAX_RESPONSE_BYTES": int(os.getenv("CNPJ_CONSULTA_MAX_RESPONSE_BYTES", "524288")),
+    "BRASILAPI_URL": os.getenv(
+        "CNPJ_BRASILAPI_URL",
+        "https://brasilapi.com.br/api/cnpj/v1/{cnpj}",
+    ),
 }
 
 

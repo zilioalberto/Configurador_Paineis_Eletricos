@@ -16,11 +16,6 @@ export function ProjetoFormAlimentacaoSection({
 
   return (
     <>
-      <div className="col-12">
-        <hr />
-        <h2 className="h5">Alimentação</h2>
-      </div>
-
       <ProjetoFormCheckboxField
         name="possui_neutro"
         label="Possui neutro"

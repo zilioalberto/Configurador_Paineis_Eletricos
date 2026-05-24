@@ -36,6 +36,17 @@ def aprovar_sugestao_item(
     if sugestao.pk is None:
         raise ValidationError("A sugestão precisa estar salva no banco antes da aprovação.")
 
+    try:
+        sugestao = (
+            SugestaoItem.objects.select_for_update(of=("self",))
+            .select_related("projeto", "produto", "carga")
+            .get(pk=sugestao.pk)
+        )
+    except SugestaoItem.DoesNotExist as exc:
+        raise ValidationError(
+            "Esta sugestão não está mais disponível. Atualize a composição e tente novamente."
+        ) from exc
+
     produto_final = sugestao.produto
     houve_alteracao = False
     if produto_substituto is not None:
@@ -52,9 +63,6 @@ def aprovar_sugestao_item(
         if houve_alteracao
         else f"Sugerido pelo sistema e aprovado por {responsavel}"
     )
-
-    sugestao.status = StatusSugestaoChoices.APROVADA
-    sugestao.save(update_fields=["status"])
 
     composicao_item, _ = ComposicaoItem.objects.update_or_create(
         projeto=sugestao.projeto,

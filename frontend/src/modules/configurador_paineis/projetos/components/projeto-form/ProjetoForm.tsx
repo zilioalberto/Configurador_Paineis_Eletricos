@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { ProjetoFormData, ProjetoResponsavelOption } from '../../types/projeto'
 import { ProjetoFormAlimentacaoSection } from './ProjetoFormAlimentacaoSection'
 import { ProjetoFormDadosGeraisSection } from './ProjetoFormDadosGeraisSection'
@@ -15,6 +16,28 @@ type ProjetoFormProps = {
   responsavelOptions?: ProjetoResponsavelOption[]
   canEditResponsavel?: boolean
   showStatus?: boolean
+  submitLabel?: string
+  loadingLabel?: string
+}
+
+function ProjetoFormSection({
+  title,
+  accent,
+  children,
+}: {
+  title: string
+  accent: string
+  children: ReactNode
+}) {
+  return (
+    <section className="projeto-form-section">
+      <div className="projeto-form-section__header">
+        <span className="projeto-form-section__accent" aria-hidden style={{ backgroundColor: accent }} />
+        <h2 className="h6 mb-0">{title}</h2>
+      </div>
+      <div className="row g-3">{children}</div>
+    </section>
+  )
 }
 
 export default function ProjetoForm({
@@ -25,6 +48,8 @@ export default function ProjetoForm({
   responsavelOptions = [],
   canEditResponsavel = false,
   showStatus = true,
+  submitLabel = 'Salvar projeto',
+  loadingLabel = 'Salvando...',
 }: ProjetoFormProps) {
   const { formData, fieldErrors, handleFieldChange, handleSubmit } = useProjetoForm({
     onSubmit,
@@ -44,9 +69,23 @@ export default function ProjetoForm({
   }
 
   const fieldErrorEntries = Object.entries(fieldErrors)
+  const bloqueado = readOnlyExceptStatus ? 'Projeto finalizado' : 'Em edição'
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form className="projeto-form-workspace" onSubmit={handleSubmit} noValidate>
+      <div className="projeto-form-actionbar">
+        <div className="min-w-0">
+          <p className="small text-muted mb-1">Configuração</p>
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <strong className="text-truncate">{formData.codigo || 'Novo código'}</strong>
+            <span className="badge text-bg-light border">{bloqueado}</span>
+          </div>
+        </div>
+        <button type="submit" className="btn btn-success" disabled={loading}>
+          {loading ? loadingLabel : submitLabel}
+        </button>
+      </div>
+
       {fieldErrorEntries.length > 0 ? (
         <div className="alert alert-danger" role="alert">
           <p className="mb-2 fw-semibold">Corrija os seguintes pontos antes de salvar:</p>
@@ -59,19 +98,22 @@ export default function ProjetoForm({
           </ul>
         </div>
       ) : null}
-      <div className="row g-3">
-        <ProjetoFormDadosGeraisSection {...sectionProps} />
-        <ProjetoFormAlimentacaoSection {...sectionProps} />
-        <ProjetoFormRecursosSection {...sectionProps} />
-        <ProjetoFormIdentificacaoSegurancaSection {...sectionProps} />
-        <ProjetoFormSeccionamentoSection {...sectionProps} />
-      </div>
 
-      <div className="mt-4 d-flex gap-2">
-        <button type="submit" className="btn btn-success" disabled={loading}>
-          {loading ? 'Salvando...' : 'Salvar projeto'}
-        </button>
-      </div>
+      <ProjetoFormSection title="Dados gerais" accent="#2563eb">
+        <ProjetoFormDadosGeraisSection {...sectionProps} />
+      </ProjetoFormSection>
+      <ProjetoFormSection title="Alimentação" accent="#059669">
+        <ProjetoFormAlimentacaoSection {...sectionProps} />
+      </ProjetoFormSection>
+      <ProjetoFormSection title="Recursos do painel" accent="#7c3aed">
+        <ProjetoFormRecursosSection {...sectionProps} />
+      </ProjetoFormSection>
+      <ProjetoFormSection title="Identificação e segurança" accent="#d97706">
+        <ProjetoFormIdentificacaoSegurancaSection {...sectionProps} />
+      </ProjetoFormSection>
+      <ProjetoFormSection title="Seccionamento" accent="#0f766e">
+        <ProjetoFormSeccionamentoSection {...sectionProps} />
+      </ProjetoFormSection>
     </form>
   )
 }

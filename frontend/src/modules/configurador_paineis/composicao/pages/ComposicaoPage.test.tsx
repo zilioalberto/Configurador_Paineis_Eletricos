@@ -32,6 +32,9 @@ const useProjetoListQueryMock = vi.hoisted(() => vi.fn())
 const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaPdfMock = vi.hoisted(() => vi.fn())
 const exportarComposicaoListaXlsxMock = vi.hoisted(() => vi.fn())
+const sincronizarComposicaoPainelMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ itens_sincronizados: 2, orcamento: { id: 'orc-1' } })
+)
 const showToastMock = vi.hoisted(() => vi.fn())
 type ConfirmModalPropsShape = {
   show?: boolean
@@ -118,6 +121,10 @@ vi.mock('@/modules/configurador_paineis/composicao/services/composicaoService', 
   exportarComposicaoListaXlsx: exportarComposicaoListaXlsxMock,
 }))
 
+vi.mock('@/modules/erp/services/erpApi', () => ({
+  sincronizarComposicaoPainel: sincronizarComposicaoPainelMock,
+}))
+
 vi.mock('@/components/feedback', () => ({
   ConfirmModal: (props: ConfirmModalPropsShape) => {
     lastConfirmModalProps.current = props
@@ -132,6 +139,7 @@ describe('ComposicaoPage', () => {
   beforeEach(() => {
     exportarComposicaoListaPdfMock.mockClear()
     exportarComposicaoListaXlsxMock.mockClear()
+    sincronizarComposicaoPainelMock.mockClear()
     showToastMock.mockClear()
     gerarMutateAsyncMock.mockClear()
     reavaliarMutateAsyncMock.mockReset()
@@ -386,6 +394,32 @@ describe('ComposicaoPage', () => {
         'PRJ-01 - Cliente X - Projeto 1'
       )
     })
+  })
+
+  it('sincroniza e retorna para a proposta quando não há pendências', async () => {
+    setupComposicaoPage({
+      user: userComPermissaoSeparar(),
+      projetos: baseProjetos,
+      snapshot: snapshotBase,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1']}>
+        <ComposicaoPage />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Retornar à proposta/i }))
+
+    await waitFor(() => {
+      expect(sincronizarComposicaoPainelMock).toHaveBeenCalledWith('orc-1', 'vinc-1')
+    })
+    expect(showToastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: 'success',
+        message: '2 item(ns) sincronizado(s) com a proposta.',
+      })
+    )
   })
 
   it('quando há pendências abre confirmação antes de exportar', async () => {

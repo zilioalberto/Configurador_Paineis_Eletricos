@@ -1,6 +1,7 @@
 import secrets
 
 import pytest
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +18,10 @@ from apps.orcamentos.models import (
     StatusOrcamentoChoices,
     TipoItemOrcamentoChoices,
 )
+
+
+def _codigo_rev(base: str, revisao: str = "A") -> str:
+    return f"{base} Rev {revisao}"
 from core.choices.produtos import CategoriaProdutoNomeChoices
 
 User = get_user_model()
@@ -83,7 +88,10 @@ def test_create_orcamento_gera_codigo_e_vincula_cliente_contato(
 
     assert resp.status_code == 201, resp.content
     body = resp.json()
-    assert body["codigo"] == f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
+    base = f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
+    assert body["codigo"] == _codigo_rev(base)
+    assert body["codigo_base"] == base
+    assert body["revisao"] == "A"
     assert body["cliente"] == str(cliente.id)
     assert body["cliente_nome"] == "Cliente Proposta LTDA"
     assert body["contato_cliente"] == str(contato.id)
@@ -98,7 +106,9 @@ def test_create_orcamento_gera_codigo_e_vincula_cliente_contato(
 def test_patch_orcamento_atualiza_atualizado_por(user_admin):
     user, raw = user_admin
     client = _auth_client(user, raw)
-    orc = Orcamento.objects.create(codigo="O-AUDIT", titulo="Audit", status=StatusOrcamentoChoices.RASCUNHO)
+    orc = Orcamento.objects.create(
+        codigo_base="O-AUDIT", titulo="Audit", status=StatusOrcamentoChoices.RASCUNHO
+    )
     assert orc.criado_por_id is None
     url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
     resp = client.patch(url, {"titulo": "Audit 2"}, format="json")
@@ -128,8 +138,10 @@ def test_create_orcamento_incrementa_codigo_no_mes(user_admin, cliente_com_conta
 
     assert primeiro.status_code == 201
     assert segundo.status_code == 201
-    assert primeiro.json()["codigo"] == f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
-    assert segundo.json()["codigo"] == f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}"
+    base1 = f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
+    base2 = f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}"
+    assert primeiro.json()["codigo"] == _codigo_rev(base1)
+    assert segundo.json()["codigo"] == _codigo_rev(base2)
 
 
 @pytest.mark.django_db
@@ -139,7 +151,7 @@ def test_create_orcamento_pula_codigo_existente_no_mes(user_admin, cliente_com_c
     client = _auth_client(user, raw)
     hoje = timezone.localdate()
     codigo_existente = f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
-    Orcamento.objects.create(codigo=codigo_existente, titulo="Legado")
+    Orcamento.objects.create(codigo_base=codigo_existente, titulo="Legado")
 
     resp = client.post(
         reverse("erp-orcamento-list"),
@@ -148,7 +160,7 @@ def test_create_orcamento_pula_codigo_existente_no_mes(user_admin, cliente_com_c
     )
 
     assert resp.status_code == 201
-    assert resp.json()["codigo"] == f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}"
+    assert resp.json()["codigo"] == _codigo_rev(f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}")
 
 
 @pytest.mark.django_db
@@ -227,7 +239,7 @@ def test_patch_orcamento_sem_itens_preserva_linhas(user_admin):
     user, raw = user_admin
     client = _auth_client(user, raw)
     orc = Orcamento.objects.create(
-        codigo="O-1",
+        codigo_base="O-1",
         titulo="Teste",
         status=StatusOrcamentoChoices.RASCUNHO,
     )
@@ -287,7 +299,7 @@ def test_create_orcamento_item_produto_catalogo_preco_e_ipi(user_admin, cliente_
     assert item.descricao == produto.descricao
     assert item.custo_unitario == 150
     assert item.margem_percentual == 10
-    assert item.preco_unitario == 165
+    assert item.preco_unitario == Decimal("172.8750")
     assert item.aliquota_ipi == 5.25
 
 
@@ -317,11 +329,63 @@ def test_create_orcamento_item_servico_com_produto_rejeita(user_admin, cliente_c
 
 
 @pytest.mark.django_db
+def test_patch_orcamento_ignora_ipi_informado_na_linha(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    produto = Produto.objects.create(
+        codigo="CAT-IPI-LOCK",
+        descricao="Produto IPI fixo",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="100.00",
+    )
+    ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="7.5000")
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-IPI",
+        titulo="IPI",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    item = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        descricao=produto.descricao,
+        produto=produto,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        quantidade=1,
+        custo_unitario=100,
+        preco_unitario=110,
+        aliquota_ipi=7.5,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+    resp = client.patch(
+        url,
+        {
+            "itens": [
+                {
+                    "id": str(item.id),
+                    "ordem": 0,
+                    "descricao": produto.descricao,
+                    "quantidade": "1",
+                    "custo_unitario": "100",
+                    "preco_unitario": "110",
+                    "aliquota_ipi": "99.99",
+                }
+            ]
+        },
+        format="json",
+    )
+    assert resp.status_code == 200, resp.content
+    item.refresh_from_db()
+    assert item.aliquota_ipi == 7.5
+
+
+@pytest.mark.django_db
 def test_patch_orcamento_sync_itens_atualiza_adiciona_remove(user_admin):
     user, raw = user_admin
     client = _auth_client(user, raw)
     orc = Orcamento.objects.create(
-        codigo="O-2",
+        codigo_base="O-2",
         titulo="Itens",
         status=StatusOrcamentoChoices.RASCUNHO,
     )

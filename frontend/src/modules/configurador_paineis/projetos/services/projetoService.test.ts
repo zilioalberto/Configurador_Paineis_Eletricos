@@ -56,6 +56,17 @@ describe('projetoService', () => {
     expect(await alocarCodigoProjeto()).toEqual({ codigo: '04001-26' })
   })
 
+  it('alocarCodigoProjeto com proposta', async () => {
+    postMock.mockResolvedValue({ data: { codigo: 'CONF-05008-26' } })
+    expect(
+      await alocarCodigoProjeto({ orcamento_id: 'orc-1', ordem_painel: 0 })
+    ).toEqual({ codigo: 'CONF-05008-26' })
+    expect(postMock).toHaveBeenCalledWith('/configurador/configuracoes/alocar-codigo/', {
+      orcamento_id: 'orc-1',
+      ordem_painel: 0,
+    })
+  })
+
   it('criarProjeto', async () => {
     const payload = { nome: 'P' } as unknown as ProjetoFormData
     postMock.mockResolvedValue({ data: { id: 'x', nome: 'P' } })

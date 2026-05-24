@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
@@ -9,6 +9,10 @@ import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensio
 import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoFluxoGates } from '@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
+import { sincronizarComposicaoPainel } from '@/modules/erp/services/erpApi'
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ComposicaoAlterarSugestaoModal } from '../components/ComposicaoAlterarSugestaoModal'
 import { ComposicaoSnapshotContent } from '../components/ComposicaoSnapshotContent'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
@@ -59,7 +63,10 @@ function modalComposicaoState(
 export default function ComposicaoPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const projetoId = searchParams.get('projeto') ?? ''
+  const orcamentoId = searchParams.get('orcamento') ?? ''
+  const vinculoId = searchParams.get('vinculo') ?? ''
   const { showToast } = useToast()
 
   const [alterarSugestao, setAlterarSugestao] = useState<SugestaoItem | null>(null)
@@ -68,6 +75,7 @@ export default function ComposicaoPage() {
   const [confirmExportFmt, setConfirmExportFmt] = useState<ComposicaoExportFormat | null>(null)
   const [aprovandoTodas, setAprovandoTodas] = useState(false)
   const [itemReabrir, setItemReabrir] = useState<ComposicaoItem | null>(null)
+  const [sincronizandoOrcamento, setSincronizandoOrcamento] = useState(false)
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const {
@@ -108,6 +116,8 @@ export default function ComposicaoPage() {
 
   const {
     gerarMutation,
+    autoGerando,
+    gerandoSugestoes,
     reavaliarPendenciasMutation,
     aprovarMutation,
     reabrirComposicaoItemMutation,
@@ -134,7 +144,7 @@ export default function ComposicaoPage() {
 
   const onProjetoChange = useComposicaoProjetoChange(setSearchParams)
 
-  const composicaoItens = snapshot?.composicao_itens ?? []
+  const composicaoItens = useMemo(() => snapshot?.composicao_itens ?? [], [snapshot?.composicao_itens])
   const optsAgrupamento = useMemo(
     () => ({ correnteTotalPainelA: dimensionamento?.corrente_total_painel_a ?? null }),
     [dimensionamento?.corrente_total_painel_a]
@@ -156,6 +166,8 @@ export default function ComposicaoPage() {
       snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
     return agruparPorTagCarga(comMemoria, optsAgrupamento)
   }, [snapshot?.sugestoes, optsAgrupamento])
+  const pendenciasAbertas = snapshot?.totais.pendencias ?? snapshot?.pendencias.length ?? 0
+  const podeRetornarOrcamento = Boolean(orcamentoId && vinculoId && snapshot && pendenciasAbertas === 0)
 
   const modalComposicao = useMemo(
     () =>
@@ -180,12 +192,33 @@ export default function ComposicaoPage() {
     executarExportacao(fmt).catch(() => undefined)
   }, [confirmExportFmt, executarExportacao, modalComposicao, onReabrirItemAprovado])
 
+  const onRetornarOrcamento = useCallback(async () => {
+    if (!orcamentoId || !vinculoId || pendenciasAbertas > 0) return
+    try {
+      setSincronizandoOrcamento(true)
+      const resultado = await sincronizarComposicaoPainel(orcamentoId, vinculoId)
+      showToast({
+        variant: 'success',
+        message: `${resultado.itens_sincronizados} item(ns) sincronizado(s) com a proposta.`,
+      })
+      navigate(`/erp/orcamentos/${orcamentoId}`)
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível retornar à proposta',
+        message: extrairMensagemErroApi(err) || 'Revise as pendências e tente novamente.',
+      })
+    } finally {
+      setSincronizandoOrcamento(false)
+    }
+  }, [navigate, orcamentoId, pendenciasAbertas, showToast, vinculoId])
+
   if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
-    return <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
   }
   if (projetoId && !fluxoGates.loading && fluxoGates.temCargas && !fluxoGates.condutoresRevisaoOk) {
     return (
-      <Navigate to={`/projetos/${projetoId}/fluxo/dimensionamento`} replace />
+      <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'), searchParams)} replace />
     )
   }
 
@@ -218,6 +251,16 @@ export default function ComposicaoPage() {
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap align-items-center">
+          {podeRetornarOrcamento ? (
+            <button
+              type="button"
+              className="btn btn-success"
+              disabled={sincronizandoOrcamento}
+              onClick={() => void onRetornarOrcamento()}
+            >
+              {sincronizandoOrcamento ? 'Sincronizando…' : 'Retornar à proposta'}
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-outline-success"
@@ -240,10 +283,10 @@ export default function ComposicaoPage() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!projetoId || !podeEditar || gerarMutation.isPending}
+              disabled={!projetoId || !podeEditar || gerandoSugestoes}
               onClick={onGerar}
             >
-              {gerarMutation.isPending ? 'Gerando…' : 'Gerar sugestões'}
+              {gerandoSugestoes ? 'Gerando…' : 'Gerar sugestões'}
             </button>
           ) : null}
         </div>
@@ -272,8 +315,12 @@ export default function ComposicaoPage() {
             </select>
             <p className="small text-muted mt-2 mb-0">
               Antes de gerar, confira as{' '}
-              {canViewCargas ? <Link to="/cargas">cargas</Link> : 'cargas'} e o{' '}
-              {canViewDimensionamento ? <Link to="/cargas">dimensionamento</Link> : 'dimensionamento'}{' '}
+              {canViewCargas ? <Link to={configuradorPaths.cargas()}>cargas</Link> : 'cargas'} e o{' '}
+              {canViewDimensionamento ? (
+                <Link to={configuradorPaths.dimensionamento()}>dimensionamento</Link>
+              ) : (
+                'dimensionamento'
+              )}{' '}
               (corrente total de entrada).
             </p>
           </div>
@@ -316,6 +363,7 @@ export default function ComposicaoPage() {
           podeEditar={podeEditar}
           canEditarCatalogo={canEditarCatalogo}
           canSepararMaterial={canSepararMaterial}
+          autoGerando={autoGerando}
           aprovarPending={aprovarMutation.isPending}
           aprovandoTodas={aprovandoTodas}
           reabrirPending={reabrirComposicaoItemMutation.isPending}

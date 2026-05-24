@@ -1,4 +1,4 @@
-import { type ChangeEvent, useCallback, useEffect, useRef } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import { montarNomeArquivoProjeto } from '../utils/composicaoDisplay'
@@ -53,6 +53,9 @@ export function useComposicaoPageActions({
   itemReabrir,
 }: Params) {
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
+  const gerarMutateAsyncRef = useRef(gerarMutation.mutateAsync)
+  gerarMutateAsyncRef.current = gerarMutation.mutateAsync
+  const [autoGerando, setAutoGerando] = useState(false)
   const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
   const aprovarMutation = useAprovarSugestaoMutation(projetoId || null)
   const reabrirComposicaoItemMutation = useReabrirComposicaoItemMutation(projetoId || null)
@@ -98,6 +101,7 @@ export function useComposicaoPageActions({
   const jaDisparouAutoGerarRef = useRef(false)
   useEffect(() => {
     jaDisparouAutoGerarRef.current = false
+    setAutoGerando(false)
   }, [projetoId])
 
   useEffect(() => {
@@ -109,44 +113,38 @@ export function useComposicaoPageActions({
       composicaoAutoGerarDedup?.projetoId === projetoId &&
       now - composicaoAutoGerarDedup.at < COMPOSICAO_AUTO_GERAR_DEDUP_MS
     ) {
+      jaDisparouAutoGerarRef.current = true
       return
     }
     composicaoAutoGerarDedup = { projetoId, at: now }
     jaDisparouAutoGerarRef.current = true
 
     let cancelled = false
+    setAutoGerando(true)
     const autoGerar = async () => {
       try {
-        const data = await gerarMutation.mutateAsync(true)
+        const data = await gerarMutateAsyncRef.current(true)
         if (cancelled) return
         notificarResultadoGeracao(data)
       } catch (err) {
         if (cancelled) return
-        jaDisparouAutoGerarRef.current = false
-        composicaoAutoGerarDedup = null
         console.error(err)
         showToast({
           variant: 'danger',
           title: 'Não foi possível gerar sugestões',
           message: extrairMensagemErroApi(err) || 'Tente novamente.',
         })
+      } finally {
+        if (!cancelled) setAutoGerando(false)
       }
     }
     autoGerar().catch(() => undefined)
 
     return () => {
       cancelled = true
+      setAutoGerando(false)
     }
-  }, [
-    projetoId,
-    podeEditar,
-    loadingSnap,
-    isError,
-    snapshot,
-    gerarMutation,
-    notificarResultadoGeracao,
-    showToast,
-  ])
+  }, [projetoId, podeEditar, loadingSnap, isError, snapshot, notificarResultadoGeracao, showToast])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return
@@ -280,8 +278,12 @@ export function useComposicaoPageActions({
     [executarExportacao, projetoId, snapshot, setConfirmExportFmt]
   )
 
+  const gerandoSugestoes = autoGerando || gerarMutation.isPending
+
   return {
     gerarMutation,
+    autoGerando,
+    gerandoSugestoes,
     reavaliarPendenciasMutation,
     aprovarMutation,
     reabrirComposicaoItemMutation,

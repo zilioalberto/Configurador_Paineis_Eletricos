@@ -11,7 +11,7 @@ from core.choices import (
 
 class PendenciaItem(BaseModel):
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="pendencias_itens",
     )

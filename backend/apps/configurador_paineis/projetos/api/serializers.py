@@ -2,7 +2,7 @@ import re
 
 from rest_framework import serializers
 
-from apps.configurador_paineis.projetos.models import Projeto, ProjetoEvento
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador, ProjetoConfiguradorEvento
 
 
 class ProjetoSerializer(serializers.ModelSerializer):
@@ -44,7 +44,7 @@ class ProjetoSerializer(serializers.ModelSerializer):
             self.fields["codigo"].read_only = True
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = "__all__"
         read_only_fields = (
             "criado_por",
@@ -60,15 +60,18 @@ class ProjetoSerializer(serializers.ModelSerializer):
         if value is None or (isinstance(value, str) and not value.strip()):
             return value
         v = value.strip().upper()
-        if not re.fullmatch(r"\d{2}\d{3}-\d{2}", v):
+        formato_conf = bool(re.fullmatch(r"CONF-\d{5}-\d{2}(-P\d{2})?", v))
+        formato_auto = bool(re.fullmatch(r"\d{2}\d{3}-\d{2}", v))
+        if not formato_conf and not formato_auto:
             raise serializers.ValidationError(
-                "Código deve estar no formato MMnnn-AA (ex.: 04001-26)."
+                "Código deve estar no formato MMnnn-AA, CONF-MMnnn-AA "
+                "(ex.: CONF-05008-26) ou CONF-MMnnn-AA-P02 para painéis adicionais."
             )
         # Em criação, não checamos unicidade aqui: duas requisições podem receber a mesma
         # sugestão; o `Projeto.save()` trata colisão com retry e novo código. Na edição,
         # o código é read-only; esta checagem cobre alterações futuras via admin/API.
         if self.instance is not None:
-            qs = Projeto.objects.filter(codigo=v).exclude(pk=self.instance.pk)
+            qs = ProjetoConfigurador.objects.filter(codigo=v).exclude(pk=self.instance.pk)
             if qs.exists():
                 raise serializers.ValidationError("Este código já está em uso.")
         return v
@@ -122,7 +125,7 @@ class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = (
             "id",
             "codigo",
@@ -134,14 +137,14 @@ class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
         )
 
 
-class ProjetoEventoSerializer(serializers.ModelSerializer):
+class ProjetoConfiguradorEventoSerializer(serializers.ModelSerializer):
     usuario_nome = serializers.SerializerMethodField()
 
     class Meta:
-        model = ProjetoEvento
+        model = ProjetoConfiguradorEvento
         fields = (
             "id",
-            "projeto",
+            "projeto_configurador",
             "usuario",
             "usuario_nome",
             "modulo",

@@ -98,7 +98,7 @@ describe('ProjetoCreatePage', () => {
 
   it('cria projeto e mostra toast de sucesso', async () => {
     renderProjetoCreatePage()
-    expect(screen.getByRole('heading', { name: /Novo Projeto/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Nova configuração de painel/i })).toBeInTheDocument()
     const btn = await screen.findByRole('button', { name: /enviar-teste/i })
     fireEvent.click(btn)
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled())

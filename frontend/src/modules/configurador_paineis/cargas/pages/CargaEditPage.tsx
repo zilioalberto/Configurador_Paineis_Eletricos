@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaForm from '../components/CargaForm'
 import CargaModeloOpcionalSection from '../components/CargaModeloOpcionalSection'
@@ -16,6 +18,7 @@ import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
 export default function CargaEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { showToast } = useToast()
   const loadErrorToastSent = useRef(false)
 
@@ -104,7 +107,7 @@ export default function CargaEditPage() {
         body: cargaFormToApiPayload(data),
       })
       showToast({ variant: 'success', message: 'Carga atualizada com sucesso.' })
-      navigate(`/cargas?projeto=${encodeURIComponent(updated.projeto)}`)
+      navigate(withFluxoOrigem(configuradorPaths.cargas(updated.projeto), searchParams))
     } catch (err) {
       console.error(err)
       showToast({
@@ -156,9 +159,9 @@ export default function CargaEditPage() {
               <div className="alert alert-secondary mb-0" role="alert">
                 Esta carga pertence a um projeto finalizado e não pode ser alterada
                 por aqui.{' '}
-                <Link to={`/cargas/${id}`}>Voltar aos detalhes</Link>
+                <Link to={configuradorPaths.cargaDetalhe(id)}>Voltar aos detalhes</Link>
                 {' · '}
-                <Link to="/cargas">Lista de cargas</Link>
+                <Link to={configuradorPaths.cargas()}>Lista de cargas</Link>
               </div>
             )}
 

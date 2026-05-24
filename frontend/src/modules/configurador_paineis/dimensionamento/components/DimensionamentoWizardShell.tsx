@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ProjetoIdentificacaoFluxo,
 } from '@/modules/configurador_paineis/projetos/components/ProjetoIdentificacaoFluxo'
 import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -29,6 +31,7 @@ export function DimensionamentoWizardShell({
   children,
 }: Props) {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
   const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
 
@@ -62,14 +65,19 @@ export function DimensionamentoWizardShell({
           <p className="small text-muted mb-0">
             Antes de revisar as bitolas, confira as{' '}
             {canViewCargas ? (
-              <Link to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}>cargas</Link>
+              <Link to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}>
+                cargas
+              </Link>
             ) : (
               'cargas'
             )}{' '}
             e o{' '}
             {canViewDimensionamento ? (
               <Link
-                to={`/cargas?projeto=${encodeURIComponent(projetoId)}#dimensionamento-resumo`}
+                to={withFluxoOrigem(
+                  `${configuradorPaths.cargas(projetoId)}#dimensionamento-resumo`,
+                  searchParams
+                )}
               >
                 resumo de dimensionamento
               </Link>

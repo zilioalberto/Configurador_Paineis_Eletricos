@@ -11,7 +11,7 @@ from core.choices import (
 
 class SugestaoItem(BaseModel):
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="sugestoes_itens",
     )

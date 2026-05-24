@@ -4,6 +4,7 @@ import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProjetoTable from '../components/ProjetoTable'
 import { useProjetoListQuery } from '../hooks/useProjetoListQuery'
@@ -149,9 +150,9 @@ export default function ProjetoListPage() {
 
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h1 className="h3 mb-1">Projetos</h1>
+          <h1 className="h3 mb-1">Configurações de painel</h1>
           <p className="text-muted mb-0">
-            Gerencie os projetos do configurador de painéis.
+            Gerencie as configurações técnicas de painéis no CPQ.
           </p>
         </div>
 
@@ -165,8 +166,8 @@ export default function ProjetoListPage() {
           </button>
 
           {canCreateProjeto ? (
-            <Link to="/projetos/novo" className="btn btn-primary">
-              Novo Projeto
+            <Link to={configuradorPaths.novaConfiguracao} className="btn btn-primary">
+              Nova configuração
             </Link>
           ) : null}
         </div>

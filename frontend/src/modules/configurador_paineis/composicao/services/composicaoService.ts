@@ -11,7 +11,7 @@ export async function obterComposicaoPorProjeto(
   projetoId: string
 ): Promise<ComposicaoSnapshot> {
   const response = await apiClient.get<ComposicaoSnapshot>(
-    `/composicao/projeto/${projetoId}/`
+    `/configurador/composicao/projeto/${projetoId}/`
   )
   return response.data
 }
@@ -21,8 +21,9 @@ export async function gerarSugestoesComposicao(
   limparAntes = true
 ): Promise<ComposicaoSnapshot> {
   const response = await apiClient.post<ComposicaoSnapshot>(
-    `/composicao/projeto/${projetoId}/gerar-sugestoes/`,
-    { limpar_antes: limparAntes }
+    `/configurador/composicao/projeto/${projetoId}/gerar-sugestoes/`,
+    { limpar_antes: limparAntes },
+    { timeout: 120_000 }
   )
   return response.data
 }
@@ -31,7 +32,7 @@ export async function reavaliarPendenciasComposicao(
   projetoId: string
 ): Promise<ComposicaoSnapshot> {
   const response = await apiClient.post<ComposicaoSnapshot>(
-    `/composicao/projeto/${projetoId}/reavaliar-pendencias/`,
+    `/configurador/composicao/projeto/${projetoId}/reavaliar-pendencias/`,
     {}
   )
   return response.data
@@ -41,7 +42,7 @@ export async function listarAlternativasSugestao(
   sugestaoId: string
 ): Promise<ProdutoAlternativa[]> {
   const response = await apiClient.get<{ alternativas: ProdutoAlternativa[] }>(
-    `/composicao/sugestoes/${sugestaoId}/alternativas/`
+    `/configurador/composicao/sugestoes/${sugestaoId}/alternativas/`
   )
   return response.data.alternativas
 }
@@ -53,7 +54,7 @@ export async function aprovarSugestao(
   const body =
     produtoId != null && produtoId !== '' ? { produto_id: produtoId } : {}
   const response = await apiClient.post<AprovarSugestaoResponse>(
-    `/composicao/sugestoes/${sugestaoId}/aprovar/`,
+    `/configurador/composicao/sugestoes/${sugestaoId}/aprovar/`,
     body
   )
   return response.data
@@ -63,7 +64,7 @@ export async function reabrirComposicaoItem(
   composicaoItemId: string
 ): Promise<{ snapshot: ComposicaoSnapshot }> {
   const response = await apiClient.post<{ snapshot: ComposicaoSnapshot }>(
-    `/composicao/itens/${composicaoItemId}/reabrir/`,
+    `/configurador/composicao/itens/${composicaoItemId}/reabrir/`,
     {}
   )
   return response.data
@@ -82,7 +83,7 @@ export async function adicionarInclusaoManual(
   const response = await apiClient.post<{
     inclusao_manual: InclusaoManualItem
     snapshot: ComposicaoSnapshot
-  }>(`/composicao/projeto/${projetoId}/inclusoes-manuais/`, body)
+  }>(`/configurador/composicao/projeto/${projetoId}/inclusoes-manuais/`, body)
   return response.data
 }
 
@@ -90,7 +91,7 @@ export async function removerInclusaoManual(
   inclusaoId: string
 ): Promise<{ snapshot: ComposicaoSnapshot }> {
   const response = await apiClient.delete<{ snapshot: ComposicaoSnapshot }>(
-    `/composicao/inclusoes-manuais/${inclusaoId}/`
+    `/configurador/composicao/inclusoes-manuais/${inclusaoId}/`
   )
   return response.data
 }
@@ -112,7 +113,7 @@ export async function exportarComposicaoListaXlsx(
   projetoId: string,
   nomeProjeto?: string
 ): Promise<void> {
-  const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/xlsx/`, {
+  const res = await apiClient.get<Blob>(`/configurador/composicao/projeto/${projetoId}/export/xlsx/`, {
     responseType: 'blob',
   })
   const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.xlsx`
@@ -128,7 +129,7 @@ export async function exportarComposicaoListaPdf(
   projetoId: string,
   nomeProjeto?: string
 ): Promise<void> {
-  const res = await apiClient.get<Blob>(`/composicao/projeto/${projetoId}/export/pdf/`, {
+  const res = await apiClient.get<Blob>(`/configurador/composicao/projeto/${projetoId}/export/pdf/`, {
     responseType: 'blob',
   })
   const fallback = `${slugNomeArquivo(nomeProjeto) || projetoId}.pdf`

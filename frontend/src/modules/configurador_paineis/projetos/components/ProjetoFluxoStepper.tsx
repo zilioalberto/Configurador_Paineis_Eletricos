@@ -1,7 +1,9 @@
 import { Fragment, useId } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { ProjetoFluxoEtapaId } from '../hooks/useProjetoFluxoGates'
 import { useProjetoFluxoGates } from '../hooks/useProjetoFluxoGates'
+import { withFluxoOrigem } from '../utils/fluxoOrigem'
+import { configuradorPaths } from '../../configuradorPaths'
 
 const ETAPAS: {
   id: ProjetoFluxoEtapaId
@@ -27,20 +29,28 @@ type Props = {
 export function ProjetoFluxoStepper({ projetoId, etapaAtual, compact = false }: Props) {
   const gates = useProjetoFluxoGates(projetoId)
   const hintId = useId()
+  const [searchParams] = useSearchParams()
 
   function hrefPara(etapa: ProjetoFluxoEtapaId): string {
+    let href: string
     switch (etapa) {
       case 'projeto':
-        return `/projetos/${projetoId}`
+        href = configuradorPaths.configuracaoDetalhe(projetoId)
+        break
       case 'cargas':
-        return `/cargas?projeto=${encodeURIComponent(projetoId)}`
+        href = configuradorPaths.cargas(projetoId)
+        break
       case 'dimensionamento':
-        return `/projetos/${projetoId}/fluxo/dimensionamento`
+        href = configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento')
+        break
       case 'composicao':
-        return `/composicao?projeto=${encodeURIComponent(projetoId)}`
+        href = configuradorPaths.composicao(projetoId)
+        break
       default:
-        return `/projetos/${projetoId}`
+        href = configuradorPaths.configuracaoDetalhe(projetoId)
+        break
     }
+    return withFluxoOrigem(href, searchParams)
   }
 
   function bloqueada(etapa: ProjetoFluxoEtapaId): boolean {

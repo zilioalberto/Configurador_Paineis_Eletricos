@@ -22,6 +22,12 @@ class StatusOrcamentoChoices(models.TextChoices):
     CANCELADO = "CANCELADO", "Cancelado"
 
 
+class TipoRevisaoOrcamentoChoices(models.TextChoices):
+    INICIAL = "INICIAL", "Inicial"
+    COMERCIAL = "COMERCIAL", "Comercial"
+    TECNICA = "TECNICA", "Tecnica"
+
+
 class TipoItemOrcamentoChoices(models.TextChoices):
     PRODUTO = "PRODUTO", "Produto"
     SERVICO = "SERVICO", "Servico"
@@ -31,6 +37,12 @@ class OrigemItemOrcamentoChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
     CONFIGURADOR = "CONFIGURADOR", "Configurador de paineis"
     CATALOGO = "CATALOGO", "Catalogo de produtos"
+    HERANCA_REVISAO = "HERANCA_REVISAO", "Heranca de revisao anterior"
+
+
+class ModoConfiguradorPainelChoices(models.TextChoices):
+    ATIVO = "ATIVO", "Ativo"
+    HERANCA_HISTORICA = "HERANCA_HISTORICA", "Heranca historica"
 
 
 class SequenciaPropostaMensal(models.Model):
@@ -39,11 +51,11 @@ class SequenciaPropostaMensal(models.Model):
     ultimo_numero = models.PositiveIntegerField(default=0)
 
     class Meta:
-        db_table = "erp_orcamento_sequencia_mensal"
+        db_table = "orcamento_sequencia_mensal"
         unique_together = ("ano", "mes")
 
     @classmethod
-    def proximo_codigo(cls, data=None) -> str:
+    def proximo_codigo_base(cls, data=None) -> str:
         data = data or timezone.localdate()
         with transaction.atomic():
             sequencia, _created = cls.objects.select_for_update().get_or_create(
@@ -53,12 +65,12 @@ class SequenciaPropostaMensal(models.Model):
             )
             while True:
                 sequencia.ultimo_numero += 1
-                codigo = (
+                codigo_base = (
                     f"Prop-{data.month:02d}{sequencia.ultimo_numero:03d}-{data.year % 100:02d}"
                 )
-                if not Orcamento.objects.filter(codigo=codigo).exists():
+                if not Orcamento.objects.filter(codigo_base=codigo_base).exists():
                     sequencia.save(update_fields=("ultimo_numero",))
-                    return codigo
+                    return codigo_base
 
 
 class ConfiguracaoMargemCliente(models.Model):
@@ -85,7 +97,7 @@ class ConfiguracaoMargemCliente(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "erp_orcamento_margem_cliente"
+        db_table = "orcamento_margem_cliente"
         verbose_name = "Configuracao de margem por cliente"
         verbose_name_plural = "Configuracoes de margem por cliente"
         ordering = ("cliente__razao_social",)
@@ -96,9 +108,23 @@ class ConfiguracaoMargemCliente(models.Model):
 
 class Orcamento(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    codigo = models.CharField(max_length=32, unique=True, db_index=True, blank=True)
+    codigo_base = models.CharField(max_length=32, db_index=True, blank=True)
+    revisao = models.CharField(max_length=4, default="A")
+    codigo = models.CharField(max_length=48, unique=True, db_index=True, blank=True)
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
+    tipo_revisao = models.CharField(
+        max_length=20,
+        choices=TipoRevisaoOrcamentoChoices.choices,
+        default=TipoRevisaoOrcamentoChoices.INICIAL,
+    )
+    orcamento_origem = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="revisoes_derivadas",
+    )
     cliente = models.ForeignKey(
         ParceiroComercial,
         on_delete=models.PROTECT,
@@ -148,18 +174,92 @@ class Orcamento(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "erp_orcamento"
+        db_table = "orcamento"
         ordering = ("-criado_em",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("codigo_base", "revisao"),
+                name="uq_orcamento_codigo_base_revisao",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.codigo} — {self.titulo}"
 
+    @staticmethod
+    def montar_codigo_exibicao(codigo_base: str, revisao: str) -> str:
+        return f"{codigo_base} Rev {revisao}"
+
     def save(self, *args, **kwargs):
-        if not self.codigo:
-            self.codigo = SequenciaPropostaMensal.proximo_codigo()
+        if not self.codigo_base:
+            legado = (self.codigo or "").strip()
+            if legado and " Rev " in legado:
+                base, rev = legado.rsplit(" Rev ", 1)
+                self.codigo_base = base.strip()
+                self.revisao = (rev.strip() or "A")[:4]
+            elif legado:
+                self.codigo_base = legado
+            else:
+                self.codigo_base = SequenciaPropostaMensal.proximo_codigo_base()
+        if not self.revisao:
+            self.revisao = "A"
+        self.codigo = self.montar_codigo_exibicao(self.codigo_base, self.revisao)
         if self.cliente_id and not self.cliente_referencia:
             self.cliente_referencia = self.cliente.razao_social
         super().save(*args, **kwargs)
+
+    @property
+    def editavel(self) -> bool:
+        return self.status == StatusOrcamentoChoices.RASCUNHO
+
+
+class OrcamentoConfiguradorPainel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    orcamento = models.ForeignKey(
+        Orcamento,
+        on_delete=models.CASCADE,
+        related_name="configuradores_painel",
+    )
+    projeto_configurador = models.ForeignKey(
+        "projetos.ProjetoConfigurador",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="orcamentos_configurador_painel",
+        db_column="projeto_configurador_id",
+    )
+    projeto_configurador_origem = models.ForeignKey(
+        "projetos.ProjetoConfigurador",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orcamentos_configurador_painel_derivados",
+        db_column="projeto_configurador_origem_id",
+    )
+    configurador_painel_origem = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="derivados_revisao",
+    )
+    ordem = models.PositiveIntegerField(default=0)
+    descricao_painel = models.CharField(max_length=200)
+    modo = models.CharField(
+        max_length=30,
+        choices=ModoConfiguradorPainelChoices.choices,
+        default=ModoConfiguradorPainelChoices.ATIVO,
+    )
+    sincronizado_em = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "orcamento_configurador_painel"
+        ordering = ("orcamento_id", "ordem", "id")
+
+    def __str__(self) -> str:
+        return f"{self.descricao_painel} ({self.modo})"
 
 
 class OrcamentoItem(models.Model):
@@ -168,6 +268,20 @@ class OrcamentoItem(models.Model):
         Orcamento,
         on_delete=models.CASCADE,
         related_name="itens",
+    )
+    configurador_painel = models.ForeignKey(
+        OrcamentoConfiguradorPainel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="itens",
+    )
+    item_origem = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="derivados_revisao",
     )
     ordem = models.PositiveIntegerField(default=0)
     tipo = models.CharField(
@@ -180,6 +294,7 @@ class OrcamentoItem(models.Model):
         choices=OrigemItemOrcamentoChoices.choices,
         default=OrigemItemOrcamentoChoices.MANUAL,
     )
+    editavel = models.BooleanField(default=True)
     descricao = models.CharField(max_length=500)
     quantidade = models.DecimalField(max_digits=14, decimal_places=4, default=1)
     custo_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
@@ -202,7 +317,7 @@ class OrcamentoItem(models.Model):
     )
 
     class Meta:
-        db_table = "erp_orcamento_item"
+        db_table = "orcamento_item"
         ordering = ("orcamento_id", "ordem", "id")
 
     def __str__(self) -> str:

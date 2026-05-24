@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { Projeto } from '../types/projeto'
 
 type ProjetoTableProps = {
@@ -91,13 +92,13 @@ export default function ProjetoTable({
               <td className="text-end">
                 <div className="table-actions d-flex justify-content-end flex-wrap">
                   <Link
-                    to={`/projetos/${projeto.id}`}
+                    to={configuradorPaths.configuracaoDetalhe(projeto.id)}
                     className="btn btn-sm btn-outline-primary"
                   >
                     Visualizar
                   </Link>
                   <Link
-                    to={`/projetos/${projeto.id}/fluxo/cargas`}
+                    to={configuradorPaths.configuracaoFluxo(projeto.id, 'cargas')}
                     className="btn btn-sm btn-outline-info"
                   >
                     Fluxo do painel
@@ -105,7 +106,7 @@ export default function ProjetoTable({
 
                   {canEdit ? (
                     <Link
-                      to={`/projetos/${projeto.id}/editar`}
+                      to={configuradorPaths.configuracaoEditar(projeto.id)}
                       className="btn btn-sm btn-outline-warning"
                     >
                       Editar

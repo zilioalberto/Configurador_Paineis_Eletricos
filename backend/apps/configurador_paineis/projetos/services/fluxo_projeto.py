@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem, PendenciaItem, ComposicaoItem
 from core.choices import (
     StatusProjetoChoices,
@@ -12,7 +12,7 @@ from core.choices import (
 MSG_PROJETO_NAO_INFORMADO = "Projeto não informado."
 
 
-def validar_projeto_editavel(projeto: Projeto) -> None:
+def validar_projeto_editavel(projeto: ProjetoConfigurador) -> None:
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -22,7 +22,7 @@ def validar_projeto_editavel(projeto: Projeto) -> None:
         )
 
 
-def validar_projeto_pode_ser_finalizado(projeto: Projeto) -> None:
+def validar_projeto_pode_ser_finalizado(projeto: ProjetoConfigurador) -> None:
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -57,7 +57,7 @@ def validar_projeto_pode_ser_finalizado(projeto: Projeto) -> None:
 
 
 @transaction.atomic
-def finalizar_projeto(projeto: Projeto) -> Projeto:
+def finalizar_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
     validar_projeto_pode_ser_finalizado(projeto)
 
     projeto.status = StatusProjetoChoices.FINALIZADO
@@ -66,7 +66,7 @@ def finalizar_projeto(projeto: Projeto) -> Projeto:
     return projeto
 
 
-def validar_projeto_pode_ser_reaberto(projeto: Projeto) -> None:
+def validar_projeto_pode_ser_reaberto(projeto: ProjetoConfigurador) -> None:
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -77,7 +77,7 @@ def validar_projeto_pode_ser_reaberto(projeto: Projeto) -> None:
 
 
 @transaction.atomic
-def reabrir_projeto(projeto: Projeto) -> Projeto:
+def reabrir_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
     validar_projeto_pode_ser_reaberto(projeto)
 
     projeto.status = StatusProjetoChoices.EM_ANDAMENTO

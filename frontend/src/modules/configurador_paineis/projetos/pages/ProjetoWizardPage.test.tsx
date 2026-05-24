@@ -110,9 +110,15 @@ function renderWizard(initialEntry: string, includeListRoute = false) {
       <Routes>
         <Route path="/projetos/:id/fluxo/:etapa" element={<ProjetoWizardPage />} />
         <Route path="/projetos/fluxo/:etapa" element={<ProjetoWizardPage />} />
-        <Route path="/composicao" element={<div>Página de composição</div>} />
-        <Route path="/cargas" element={<div>Lista de cargas</div>} />
-        {includeListRoute ? <Route path="/projetos" element={<div>Lista de projetos</div>} /> : null}
+        <Route path="/configurador/composicao" element={<div>Página de composição</div>} />
+        <Route path="/configurador/cargas" element={<div>Lista de cargas</div>} />
+        <Route
+          path="/configurador/configuracoes/:id/fluxo/:etapa"
+          element={<ProjetoWizardPage />}
+        />
+        {includeListRoute ? (
+          <Route path="/configurador/configuracoes" element={<div>Lista de projetos</div>} />
+        ) : null}
       </Routes>
     </MemoryRouter>
   )

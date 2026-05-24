@@ -2484,7 +2484,86 @@ h3,
   }
 }
 
-/* Formulário de projeto — painel de status no topo */
+/* Formulário de projeto */
+.projeto-config-page {
+  max-width: 1420px;
+}
+
+.projeto-config-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.projeto-config-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.projeto-form-workspace {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.projeto-form-actionbar {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--cp-surface-elevated) 94%, white);
+  box-shadow: var(--cp-shadow-sm);
+}
+
+.projeto-form-section {
+  padding: 1rem;
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: 0.5rem;
+  background: var(--cp-surface-elevated);
+  box-shadow: var(--cp-shadow-sm);
+}
+
+.projeto-form-section__header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--cp-border-subtle) 70%, transparent);
+}
+
+.projeto-form-section__accent {
+  width: 0.35rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.projeto-form-workspace .form-label {
+  margin-bottom: 0.3rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--bs-body-color) 88%, var(--bs-secondary-color));
+}
+
+.projeto-form-workspace .form-text {
+  font-size: 0.76rem;
+}
+
+.projeto-form-workspace textarea {
+  min-height: 5.5rem;
+}
+
 .projeto-form-status-panel {
   background: color-mix(in srgb, var(--cp-primary) 7%, var(--cp-surface-elevated));
   border-color: color-mix(in srgb, var(--cp-primary) 22%, var(--cp-border-subtle)) !important;
@@ -2493,6 +2572,22 @@ h3,
 .projeto-form-status-hint strong {
   font-weight: 600;
   color: var(--bs-body-color);
+}
+
+@media (max-width: 767.98px) {
+  .projeto-config-header,
+  .projeto-form-actionbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .projeto-config-header__meta {
+    justify-content: flex-start;
+  }
+
+  .projeto-form-actionbar {
+    top: 0.5rem;
+  }
 }
 
 /* Barra de etapas — fluxo do painel (projeto → cargas → condutores → composição) */

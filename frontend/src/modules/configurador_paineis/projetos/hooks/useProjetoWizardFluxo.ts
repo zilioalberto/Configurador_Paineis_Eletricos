@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCargaListQuery } from '@/modules/configurador_paineis/cargas/hooks/useCargaListQuery'
 import { useComposicaoSnapshotQuery } from '@/modules/configurador_paineis/composicao/hooks/useComposicaoSnapshotQuery'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarHistoricoProjeto } from '../services/projetoService'
@@ -153,7 +154,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
         id: 'projeto',
         title: 'Dados do projeto',
         description: 'Revise ou ajuste os dados de entrada do projeto.',
-        href: `/projetos/${projetoId}/editar`,
+        href: configuradorPaths.configuracaoEditar(projetoId),
         canEnter: true,
         done: Boolean(projeto),
       },
@@ -161,7 +162,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
         id: 'cargas',
         title: 'Cargas do projeto',
         description: 'Cadastre as cargas do projeto para liberar o dimensionamento de condutores.',
-        href: `/cargas?projeto=${encodeURIComponent(projetoId)}`,
+        href: configuradorPaths.cargas(projetoId),
         canEnter: Boolean(projeto),
         done: temCargas,
       },
@@ -170,7 +171,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
         title: 'Dimensionamento de condutores',
         description:
           'Revise bitolas sugeridas, ajuste se necessário (Iz mínimo) e confirme a revisão.',
-        href: `/projetos/${projetoId}/fluxo/dimensionamento`,
+        href: configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
         canEnter: temCargas,
         done: dimensionamentoEtapaConcluida,
       },
@@ -178,7 +179,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
         id: 'composicao',
         title: 'Composição do painel',
         description: 'Gere e aprove a composição para exportação final.',
-        href: `/composicao?projeto=${encodeURIComponent(projetoId)}`,
+        href: configuradorPaths.composicao(projetoId),
         canEnter: dimensionamentoEtapaConcluida,
         done: composicaoGerada,
       },

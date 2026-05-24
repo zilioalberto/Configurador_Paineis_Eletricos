@@ -10,7 +10,7 @@ from core.choices import (
 
 class ComposicaoItem(BaseModel):
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="composicao_itens",
     )

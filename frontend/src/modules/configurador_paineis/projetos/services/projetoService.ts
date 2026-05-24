@@ -6,7 +6,7 @@ import type {
   ProjetoResponsavelOption,
 } from '../types/projeto'
 
-const BASE_URL = '/projetos/'
+const BASE_URL = '/configurador/configuracoes/'
 
 type ListResponse<T> = {
   results?: T[]
@@ -36,9 +36,17 @@ export async function listarHistoricoProjeto(id: string): Promise<ProjetoEvento[
   return response.data
 }
 
-export async function alocarCodigoProjeto(): Promise<{ codigo: string }> {
+export type AlocarCodigoProjetoPayload = {
+  orcamento_id?: string
+  ordem_painel?: number
+}
+
+export async function alocarCodigoProjeto(
+  payload?: AlocarCodigoProjetoPayload
+): Promise<{ codigo: string }> {
   const response = await apiClient.post<{ codigo: string }>(
-    `${BASE_URL}alocar-codigo/`
+    `${BASE_URL}alocar-codigo/`,
+    payload ?? {}
   )
   return response.data
 }

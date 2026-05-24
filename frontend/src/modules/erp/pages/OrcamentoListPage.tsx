@@ -136,11 +136,18 @@ export default function OrcamentoListPage() {
         </ol>
       </nav>
 
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 className="h4 mb-0">Orçamentos</h1>
+        <Link className="btn btn-sm btn-outline-secondary" to="/erp/orcamentos/margens-clientes">
+          Margens por cliente
+        </Link>
+      </div>
+
       <div className="row g-4">
         <div className="col-lg-4">
           <div className="card shadow-sm">
             <div className="card-body">
-              <h2 className="h5">Novo orçamento</h2>
+              <h2 className="h5">Nova proposta</h2>
               <form onSubmit={(e) => void handleCriar(e)} className="vstack gap-2">
                 <div>
                   <label className="form-label" htmlFor="orc-cliente">
@@ -200,7 +207,7 @@ export default function OrcamentoListPage() {
                   className="btn btn-primary"
                   disabled={enviando || !clienteId || !titulo.trim()}
                 >
-                  {enviando ? 'A guardar…' : 'Criar rascunho'}
+                  {enviando ? 'A guardar…' : 'Criar proposta'}
                 </button>
               </form>
             </div>
@@ -220,6 +227,7 @@ export default function OrcamentoListPage() {
                     <thead>
                       <tr>
                         <th>Código</th>
+                        <th>Rev.</th>
                         <th>Cliente</th>
                         <th>Título</th>
                         <th>Estado</th>
@@ -236,8 +244,11 @@ export default function OrcamentoListPage() {
                               className="btn btn-link p-0 align-baseline text-start"
                               onClick={() => navigate(`/erp/orcamentos/${orc.id}`)}
                             >
-                              <code>{orc.codigo}</code>
+                              <code>{orc.codigo_base || orc.codigo}</code>
                             </button>
+                          </td>
+                          <td>
+                            <span className="badge text-bg-secondary">{orc.revisao ?? 'A'}</span>
                           </td>
                           <td>{orc.cliente_nome || orc.cliente_referencia || '—'}</td>
                           <td>{orc.titulo}</td>

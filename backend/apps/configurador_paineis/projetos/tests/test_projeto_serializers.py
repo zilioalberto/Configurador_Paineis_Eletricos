@@ -3,8 +3,8 @@ from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
 
-from apps.configurador_paineis.projetos.api.serializers import ProjetoEventoSerializer, ProjetoSerializer
-from apps.configurador_paineis.projetos.models import Projeto, ProjetoEvento
+from apps.configurador_paineis.projetos.api.serializers import ProjetoConfiguradorEventoSerializer, ProjetoSerializer
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador, ProjetoConfiguradorEvento
 
 
 def test_validate_codigo_normaliza_e_valida():
@@ -81,15 +81,15 @@ def test_projeto_evento_serializer_usuario_nome_e_model_str(criar_projeto):
         is_active=True,
     )
     projeto = criar_projeto(nome="Evento", codigo="06002-26")
-    evento = ProjetoEvento.objects.create(
-        projeto=projeto,
+    evento = ProjetoConfiguradorEvento.objects.create(
+        projeto_configurador=projeto,
         usuario=user,
         modulo="projeto",
         acao="editado",
         descricao="Projeto atualizado",
         detalhes={"x": 1},
     )
-    data = ProjetoEventoSerializer(evento).data
+    data = ProjetoConfiguradorEventoSerializer(evento).data
     assert "usuario_nome" in data
     assert data["descricao"] == "Projeto atualizado"
     assert str(projeto.id) in str(evento)

@@ -20,11 +20,6 @@ export function ProjetoFormRecursosSection({
 
   return (
     <>
-      <div className="col-12">
-        <hr />
-        <h2 className="h5">Recursos do painel</h2>
-      </div>
-
       <ProjetoFormCheckboxField
         name="possui_plc"
         label="Possui PLC"

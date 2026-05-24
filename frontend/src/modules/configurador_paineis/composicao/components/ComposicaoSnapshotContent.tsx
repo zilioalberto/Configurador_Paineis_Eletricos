@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import type { ResumoDimensionamento } from '@/modules/configurador_paineis/dimensionamento/types/dimensionamento'
 import { ProjetoIdentificacaoFluxo } from '@/modules/configurador_paineis/projetos/components/ProjetoIdentificacaoFluxo'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { ComposicaoItem, ComposicaoSnapshot, PendenciaItem, SugestaoItem } from '../types/composicao'
 import {
   em,
@@ -38,6 +39,7 @@ type Props = {
   canSepararMaterial: boolean
   aprovarPending: boolean
   aprovandoTodas: boolean
+  autoGerando?: boolean
   reabrirPending: boolean
   reavaliarPending: boolean
   onReabrir: (item: ComposicaoItem) => void
@@ -204,6 +206,7 @@ export function ComposicaoSnapshotContent({
   canSepararMaterial,
   aprovarPending,
   aprovandoTodas,
+  autoGerando = false,
   reabrirPending,
   reavaliarPending,
   onReabrir,
@@ -236,6 +239,9 @@ export function ComposicaoSnapshotContent({
       <div className="col-12">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <h2 className="h5 mb-0">Sugestões de itens</h2>
+          {autoGerando ? (
+            <span className="badge text-bg-info">Atualizando sugestões…</span>
+          ) : null}
           {podeEditar && snapshot.sugestoes.length > 0 ? (
             <button
               type="button"
@@ -289,7 +295,7 @@ export function ComposicaoSnapshotContent({
                 <Link
                   to={
                     projetoId
-                      ? `/catalogo/novo?retorno=${encodeURIComponent(`/composicao?projeto=${projetoId}`)}`
+                      ? `/catalogo/novo?retorno=${encodeURIComponent(configuradorPaths.composicao(projetoId))}`
                       : '/catalogo/novo'
                   }
                   className="btn btn-outline-primary"

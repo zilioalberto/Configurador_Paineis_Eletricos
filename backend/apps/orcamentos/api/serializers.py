@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import empty
 
@@ -13,6 +16,7 @@ from apps.orcamentos.models import (
     OrigemItemOrcamentoChoices,
     TipoItemOrcamentoChoices,
 )
+from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 
 _ORCAMENTO_ITEM_MERGE_FIELDS = (
     "tipo",
@@ -23,8 +27,46 @@ _ORCAMENTO_ITEM_MERGE_FIELDS = (
     "margem_percentual",
     "preco_unitario",
     "produto",
-    "aliquota_ipi",
 )
+
+
+class OrcamentoConfiguradorPainelSerializer(serializers.ModelSerializer):
+    projeto_configurador_codigo = serializers.SerializerMethodField()
+    pendencias_abertas = serializers.SerializerMethodField()
+
+    class Meta:
+        from apps.orcamentos.models import OrcamentoConfiguradorPainel
+
+        model = OrcamentoConfiguradorPainel
+        fields = (
+            "id",
+            "ordem",
+            "descricao_painel",
+            "modo",
+            "projeto_configurador_id",
+            "projeto_configurador_codigo",
+            "projeto_configurador_origem_id",
+            "configurador_painel_origem_id",
+            "pendencias_abertas",
+            "sincronizado_em",
+            "criado_em",
+            "atualizado_em",
+        )
+        read_only_fields = fields
+
+    def get_projeto_configurador_codigo(self, obj):
+        if obj.projeto_configurador_id:
+            return obj.projeto_configurador.codigo
+        return ""
+
+    def get_pendencias_abertas(self, obj):
+        if not obj.projeto_configurador_id:
+            return 0
+        from apps.orcamentos.services.configurador_painel import (
+            contar_pendencias_abertas_projeto,
+        )
+
+        return contar_pendencias_abertas_projeto(obj.projeto_configurador)
 
 
 class OrcamentoItemSerializer(serializers.ModelSerializer):
@@ -32,11 +74,15 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
 
     id = serializers.UUIDField(required=False, allow_null=True)
     descricao = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    produto_codigo = serializers.SerializerMethodField()
     produto = serializers.PrimaryKeyRelatedField(
         queryset=Produto.objects.all(),
         required=False,
         allow_null=True,
     )
+
+    def get_produto_codigo(self, obj):
+        return obj.produto.codigo if obj.produto_id else ""
 
     class Meta:
         model = OrcamentoItem
@@ -45,19 +91,35 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "ordem",
             "tipo",
             "origem",
+            "editavel",
+            "configurador_painel",
+            "item_origem",
+            "produto",
+            "produto_codigo",
             "descricao",
             "quantidade",
             "custo_unitario",
             "margem_percentual",
             "preco_unitario",
-            "produto",
             "aliquota_ipi",
         )
-        read_only_fields = ()
+        read_only_fields = (
+            "editavel",
+            "configurador_painel",
+            "item_origem",
+            "origem",
+            "produto_codigo",
+            "aliquota_ipi",
+        )
 
 
 class OrcamentoSerializer(serializers.ModelSerializer):
     itens = OrcamentoItemSerializer(many=True, required=False)
+    configuradores_painel = OrcamentoConfiguradorPainelSerializer(
+        many=True,
+        read_only=True,
+    )
+    editavel = serializers.SerializerMethodField()
     cliente_nome = serializers.SerializerMethodField()
     contato_cliente_nome = serializers.SerializerMethodField()
     contato_cliente_email = serializers.SerializerMethodField()
@@ -69,6 +131,11 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "codigo",
+            "codigo_base",
+            "revisao",
+            "tipo_revisao",
+            "orcamento_origem",
+            "editavel",
             "titulo",
             "descricao",
             "cliente",
@@ -88,10 +155,16 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "atualizado_por",
             "atualizado_por_label",
             "itens",
+            "configuradores_painel",
         )
         read_only_fields = (
             "id",
             "codigo",
+            "codigo_base",
+            "revisao",
+            "tipo_revisao",
+            "orcamento_origem",
+            "editavel",
             "cliente_nome",
             "contato_cliente_nome",
             "contato_cliente_email",
@@ -127,6 +200,9 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     def get_atualizado_por_label(self, obj):
         return self._usuario_label(obj.atualizado_por)
 
+    def get_editavel(self, obj):
+        return obj.editavel
+
     def validate(self, attrs):
         instance = self.instance
         cliente = attrs.get("cliente", getattr(instance, "cliente", None))
@@ -139,6 +215,12 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"contato_cliente": "O contato selecionado não pertence ao cliente."}
             )
+        if instance and not instance.editavel:
+            bloqueados = set(attrs.keys()) - {"status"}
+            if bloqueados:
+                raise serializers.ValidationError(
+                    "Proposta fora de rascunho: apenas o status pode ser alterado."
+                )
         return attrs
 
     def update(self, instance, validated_data):
@@ -174,6 +256,14 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             return orcamento.margem_servicos_percentual
         return orcamento.margem_produtos_percentual
 
+    def _aplicar_ipi_do_catalogo(self, data) -> None:
+        """IPI é sempre derivado do cadastro fiscal do produto (não editável na proposta)."""
+        produto = data.get("produto")
+        if produto is not None:
+            data["aliquota_ipi"] = p_ipi_referencia_produto(produto)
+            return
+        data["aliquota_ipi"] = None
+
     def _preencher_item_produto_catalogo(self, data, produto: Produto) -> None:
         if data.get("tipo") == TipoItemOrcamentoChoices.SERVICO:
             raise serializers.ValidationError(
@@ -184,11 +274,9 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         desc = (data.get("descricao") or "").strip()
         data["descricao"] = desc or produto.descricao
         data["custo_unitario"] = produto.preco_base
-        data["aliquota_ipi"] = p_ipi_referencia_produto(produto)
 
     def _limpar_produto_catalogo_item(self, data) -> None:
         data["produto"] = None
-        data["aliquota_ipi"] = None
         if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
             data["origem"] = OrigemItemOrcamentoChoices.MANUAL
 
@@ -205,10 +293,13 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             data["custo_unitario"] = data.get("custo_unitario", 0)
         if data.get("margem_percentual") in (None, "") or "margem_percentual" not in data:
             data["margem_percentual"] = self._margem_padrao_item(orcamento, data["tipo"])
-        if "preco_unitario" not in data or data.get("preco_unitario") in (None, ""):
-            custo = data.get("custo_unitario") or 0
-            margem = data.get("margem_percentual") or 0
-            data["preco_unitario"] = custo * (1 + margem / 100)
+
+    def _recalcular_preco_item(self, data) -> None:
+        data["preco_unitario"] = calcular_preco_unitario_linha(
+            data.get("custo_unitario") or 0,
+            data.get("margem_percentual") or 0,
+            data.get("aliquota_ipi"),
+        )
 
     def _normalizar_item_data(
         self,
@@ -226,6 +317,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         produto = data.get("produto")
         self._normalizar_origem_tipo_item(data, produto, rehydrate_catalogo)
         self._preencher_valores_padrao_item(orcamento, data, rehydrate_catalogo)
+        self._aplicar_ipi_do_catalogo(data)
+        self._recalcular_preco_item(data)
         if not (data.get("descricao") or "").strip():
             raise serializers.ValidationError(
                 {"itens": "Cada item precisa de descrição (ou produto do catálogo)."}
@@ -247,6 +340,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         for field in _ORCAMENTO_ITEM_MERGE_FIELDS:
             if field not in raw_in:
                 raw[field] = getattr(existing, field)
+        if "produto" not in raw_in and existing.produto_id:
+            raw["produto"] = existing.produto
         return raw
 
     def _normalize_itens_list(self, orcamento, itens_data):
@@ -267,7 +362,15 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         return normalized
 
     def _sync_itens(self, orcamento, itens_data):
-        kept_ids = []
+        if not orcamento.editavel:
+            raise serializers.ValidationError(
+                {"itens": "Não é possível alterar itens fora do rascunho."}
+            )
+        kept_ids = list(
+            OrcamentoItem.objects.filter(orcamento=orcamento, editavel=False).values_list(
+                "pk", flat=True
+            )
+        )
         with transaction.atomic():
             for raw in self._normalize_itens_list(orcamento, itens_data):
                 item_id = raw.get("id")
@@ -282,6 +385,14 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                             {
                                 "itens": (
                                     f"Item com id {item_id} não existe neste orçamento."
+                                )
+                            }
+                        )
+                    if not item.editavel:
+                        raise serializers.ValidationError(
+                            {
+                                "itens": (
+                                    f"O item «{item.descricao[:40]}» é histórico e não pode ser alterado."
                                 )
                             }
                         )
@@ -323,12 +434,16 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                         aliquota_ipi=raw.get("aliquota_ipi"),
                     )
                     kept_ids.append(novo.pk)
-            OrcamentoItem.objects.filter(orcamento=orcamento).exclude(
+            OrcamentoItem.objects.filter(orcamento=orcamento, editavel=True).exclude(
                 pk__in=kept_ids
             ).delete()
 
     def create(self, validated_data):
         itens_data = validated_data.pop("itens", [])
+        validated_data.setdefault(
+            "valido_ate",
+            timezone.localdate() + timedelta(days=15),
+        )
         self._aplicar_margens_cliente(validated_data)
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None

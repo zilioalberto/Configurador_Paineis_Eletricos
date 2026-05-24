@@ -2,12 +2,12 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from core.choices import TensaoChoices
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 @pytest.mark.django_db
 def test_clean_exige_familia_plc_quando_possui_plc(projeto_ca_minimo_kwargs):
-    p = Projeto(
+    p = ProjetoConfigurador(
         nome="P",
         codigo="21010-26",
         **projeto_ca_minimo_kwargs,

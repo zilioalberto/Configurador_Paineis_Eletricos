@@ -2,6 +2,7 @@ import { lazy, type ReactElement } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
+import { configuradorPaths } from '../configuradorPaths'
 
 const CargaListPage = lazy(() => import('./pages/CargaListPage'))
 const CargaCreatePage = lazy(() => import('./pages/CargaCreatePage'))
@@ -15,21 +16,44 @@ function withPermission(permission: string, element: ReactElement): ReactElement
 
 export const cargasMenuItems: AppMenuLinkItem[] = [
   {
-    to: '/cargas',
+    to: configuradorPaths.cargas(),
     label: 'Cargas do Projeto',
     order: 20,
     requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
   },
   {
-    to: '/cargas/modelos',
+    to: configuradorPaths.modelosCargas,
     label: 'Modelos de Carga',
     order: 21,
     requiresPermission: PERMISSION_KEYS.MATERIAL_EDITAR_LISTA,
   },
 ]
 
-/** Rotas específicas antes de `/cargas/:id`. */
-export const cargasRoutes: ModuleRouteConfig[] = [
+const canonicalCargaRoutes: ModuleRouteConfig[] = [
+  {
+    path: '/configurador/cargas',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <CargaListPage />),
+  },
+  {
+    path: '/configurador/cargas/novo',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <CargaCreatePage />),
+  },
+  {
+    path: '/configurador/cargas/modelos',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <CargaModelosPage />),
+  },
+  {
+    path: '/configurador/cargas/:id/editar',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <CargaEditPage />),
+  },
+  {
+    path: '/configurador/cargas/:id',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <CargaDetailPage />),
+  },
+]
+
+/** Rotas legadas `/cargas/*` mantidas por compatibilidade. */
+const legacyCargaRoutes: ModuleRouteConfig[] = [
   {
     path: '/cargas',
     element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <CargaListPage />),
@@ -50,4 +74,9 @@ export const cargasRoutes: ModuleRouteConfig[] = [
     path: '/cargas/:id',
     element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <CargaDetailPage />),
   },
+]
+
+export const cargasRoutes: ModuleRouteConfig[] = [
+  ...canonicalCargaRoutes,
+  ...legacyCargaRoutes,
 ]

@@ -13,6 +13,7 @@ class OrigemCadastroParceiroChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
     NFE = "NFE", "NF-e"
     IMPORTACAO = "IMPORTACAO", "Importacao"
+    BRASILAPI = "BRASILAPI", "Consulta Receita (Brasil API)"
 
 
 class ParceiroComercial(BaseModel):
@@ -47,7 +48,31 @@ class ParceiroComercial(BaseModel):
         choices=OrigemCadastroParceiroChoices.choices,
         default=OrigemCadastroParceiroChoices.MANUAL,
     )
-
+    situacao_cadastral = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Descricao da situacao na Receita Federal (ex.: ATIVA).",
+    )
+    situacao_cadastral_codigo = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Codigo numerico da situacao cadastral na Receita.",
+    )
+    data_inicio_atividade = models.DateField(null=True, blank=True)
+    capital_social = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    cnae_fiscal = models.CharField(max_length=7, blank=True)
+    cnae_fiscal_descricao = models.CharField(max_length=255, blank=True)
+    natureza_juridica = models.CharField(max_length=120, blank=True)
+    consulta_receita_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Ultima consulta de CNPJ na Receita via Brasil API.",
+    )
     class Meta:
         db_table = "cadastros_parceiro_comercial"
         verbose_name = "Parceiro comercial"
@@ -105,3 +130,50 @@ class ContatoParceiro(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.nome} - {self.parceiro}"
+
+
+class CnaeParceiro(BaseModel):
+    """CNAEs (principal e secundarios) vinculados ao parceiro PJ."""
+
+    parceiro = models.ForeignKey(
+        ParceiroComercial,
+        on_delete=models.CASCADE,
+        related_name="cnaes",
+    )
+    ordem = models.PositiveSmallIntegerField(default=0)
+    codigo = models.CharField(max_length=7)
+    descricao = models.CharField(max_length=255, blank=True)
+    principal = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "cadastros_parceiro_cnae"
+        verbose_name = "CNAE do parceiro"
+        verbose_name_plural = "CNAEs do parceiro"
+        ordering = ("parceiro_id", "-principal", "ordem", "codigo")
+
+    def __str__(self) -> str:
+        return f"{self.codigo} ({self.parceiro_id})"
+
+
+class SocioParceiro(BaseModel):
+    """Quadro societario (QSA) vinculado ao parceiro PJ."""
+
+    parceiro = models.ForeignKey(
+        ParceiroComercial,
+        on_delete=models.CASCADE,
+        related_name="socios",
+    )
+    ordem = models.PositiveSmallIntegerField(default=0)
+    nome = models.CharField(max_length=255)
+    qualificacao = models.CharField(max_length=120, blank=True)
+    data_entrada = models.DateField(null=True, blank=True)
+    faixa_etaria = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        db_table = "cadastros_parceiro_socio"
+        verbose_name = "Socio do parceiro"
+        verbose_name_plural = "Socios do parceiro"
+        ordering = ("parceiro_id", "ordem", "nome")
+
+    def __str__(self) -> str:
+        return f"{self.nome} ({self.parceiro_id})"

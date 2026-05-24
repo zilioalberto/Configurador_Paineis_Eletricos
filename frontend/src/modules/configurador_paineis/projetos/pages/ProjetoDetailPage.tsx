@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import type { Projeto } from '../types/projeto'
@@ -263,7 +264,7 @@ export default function ProjetoDetailPage() {
         </div>
         {id && canEditProjeto ? (
           <div className="d-flex flex-wrap gap-2">
-            <Link to={`/projetos/${id}/editar`} className="btn btn-primary">
+            <Link to={configuradorPaths.configuracaoEditar(id)} className="btn btn-primary">
               Editar projeto
             </Link>
           </div>

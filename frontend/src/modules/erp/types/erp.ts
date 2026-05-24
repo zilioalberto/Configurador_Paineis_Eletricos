@@ -13,17 +13,43 @@ export type OrcamentoItemDto = {
   id: string
   ordem: number
   tipo: 'PRODUTO' | 'SERVICO'
-  origem: 'MANUAL' | 'CONFIGURADOR'
+  origem: 'MANUAL' | 'CONFIGURADOR' | 'CATALOGO' | 'HERANCA_REVISAO'
+  editavel?: boolean
+  configurador_painel?: string | null
+  item_origem?: string | null
+  produto?: string | null
+  produto_codigo?: string
   descricao: string
   quantidade: string
   custo_unitario: string
   margem_percentual: string
   preco_unitario: string
+  aliquota_ipi?: string | null
+}
+
+export type OrcamentoConfiguradorPainelDto = {
+  id: string
+  ordem: number
+  descricao_painel: string
+  modo: 'ATIVO' | 'HERANCA_HISTORICA'
+  projeto_configurador_id: string | null
+  projeto_configurador_codigo: string
+  projeto_configurador_origem_id: string | null
+  configurador_painel_origem_id: string | null
+  pendencias_abertas?: number
+  sincronizado_em: string | null
+  criado_em: string
+  atualizado_em: string
 }
 
 export type OrcamentoDto = {
   id: string
   codigo: string
+  codigo_base: string
+  revisao: string
+  tipo_revisao: 'INICIAL' | 'COMERCIAL' | 'TECNICA'
+  orcamento_origem: string | null
+  editavel?: boolean
   titulo: string
   descricao: string
   cliente: string | null
@@ -39,6 +65,7 @@ export type OrcamentoDto = {
   criado_em: string
   atualizado_em: string
   itens: OrcamentoItemDto[]
+  configuradores_painel?: OrcamentoConfiguradorPainelDto[]
 }
 
 export type ParceiroClienteDto = ParceiroComercialDto

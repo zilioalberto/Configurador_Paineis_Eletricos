@@ -17,11 +17,6 @@ export function ProjetoFormSeccionamentoSection({
 
   return (
     <>
-      <div className="col-12">
-        <hr />
-        <h2 className="h5">Seccionamento</h2>
-      </div>
-
       <ProjetoFormCheckboxField
         name="possui_seccionamento"
         label="Possui seccionamento"

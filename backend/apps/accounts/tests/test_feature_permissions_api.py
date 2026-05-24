@@ -117,16 +117,16 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from apps.configurador_paineis.projetos.models import Projeto
+        from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
-        p1 = Projeto.objects.create(
+        p1 = ProjetoConfigurador.objects.create(
             nome="Projeto Orc 1",
             codigo="TST-ORC-001",
             criado_por=user_1,
             atualizado_por=user_1,
             **self._projeto_kwargs(),
         )
-        Projeto.objects.create(
+        ProjetoConfigurador.objects.create(
             nome="Projeto Orc 2",
             codigo="TST-ORC-002",
             criado_por=user_2,
@@ -157,9 +157,9 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from apps.configurador_paineis.projetos.models import Projeto
+        from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
-        Projeto.objects.create(
+        ProjetoConfigurador.objects.create(
             nome="Projeto atribuído",
             codigo="TST-ORC-005",
             criado_por=user_2,
@@ -190,9 +190,9 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from apps.configurador_paineis.projetos.models import Projeto
+        from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
-        projeto_outro = Projeto.objects.create(
+        projeto_outro = ProjetoConfigurador.objects.create(
             nome="Projeto privado",
             codigo="TST-ORC-003",
             criado_por=user_2,
@@ -218,16 +218,16 @@ class TestProjetoVisibilityScopeApi:
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.ORCAMENTISTA,
         )
-        from apps.configurador_paineis.projetos.models import Projeto
+        from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
-        p_almox = Projeto.objects.create(
+        p_almox = ProjetoConfigurador.objects.create(
             nome="Projeto Almox",
             codigo="TST-ALM-001",
             criado_por=almox,
             atualizado_por=almox,
             **self._projeto_kwargs(),
         )
-        p_orc = Projeto.objects.create(
+        p_orc = ProjetoConfigurador.objects.create(
             nome="Projeto Orc",
             codigo="TST-ORC-004",
             criado_por=orc,

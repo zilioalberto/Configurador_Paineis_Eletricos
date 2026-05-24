@@ -89,7 +89,7 @@ describe('OrcamentoListPage', () => {
     fireEvent.change(screen.getByLabelText('Título'), {
       target: { value: ' Novo painel ' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Criar rascunho/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Criar proposta/i }))
 
     await waitFor(() => {
       expect(criarOrcamento).toHaveBeenCalledWith({
@@ -143,7 +143,7 @@ describe('OrcamentoListPage', () => {
     fireEvent.change(screen.getByLabelText('Título'), {
       target: { value: 'Painel' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Criar rascunho/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Criar proposta/i }))
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith(

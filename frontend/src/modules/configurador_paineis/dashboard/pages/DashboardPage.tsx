@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { useDashboardResumoQuery } from '../hooks/useDashboardResumoQuery'
 import type { ProjetoDashboardMini } from '../types/dashboard'
 
@@ -58,11 +59,10 @@ function LinhaProjetoRecente({
   canViewComposicao: boolean
   canViewCargas: boolean
 }>) {
-  const q = encodeURIComponent(p.id)
   return (
     <tr>
       <td className="fw-semibold">
-        <Link to={`/projetos/${p.id}`}>{p.codigo}</Link>
+        <Link to={configuradorPaths.configuracaoDetalhe(p.id)}>{p.codigo}</Link>
       </td>
       <td>{p.nome}</td>
       <td>
@@ -70,16 +70,16 @@ function LinhaProjetoRecente({
       </td>
       <td className="text-muted small">{formatarDataHora(p.atualizado_em)}</td>
       <td className="text-end text-nowrap">
-        <Link className="btn btn-sm btn-outline-primary me-1" to={`/projetos/${p.id}`}>
+        <Link className="btn btn-sm btn-outline-primary me-1" to={configuradorPaths.configuracaoDetalhe(p.id)}>
           Ver
         </Link>
         {canViewComposicao ? (
-          <Link className="btn btn-sm btn-outline-secondary me-1" to={`/composicao?projeto=${q}`}>
+          <Link className="btn btn-sm btn-outline-secondary me-1" to={configuradorPaths.composicao(p.id)}>
             Composição
           </Link>
         ) : null}
         {canViewCargas ? (
-          <Link className="btn btn-sm btn-outline-secondary" to={`/cargas?projeto=${q}`}>
+          <Link className="btn btn-sm btn-outline-secondary" to={configuradorPaths.cargas(p.id)}>
             Cargas
           </Link>
         ) : null}
@@ -145,8 +145,8 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   {canViewProjetos ? (
-                    <Link className="small d-inline-block mt-2" to="/projetos">
-                      Ver lista de projetos →
+                    <Link className="small d-inline-block mt-2" to={configuradorPaths.configuracoes}>
+                      Ver lista de configurações →
                     </Link>
                   ) : null}
                 </div>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
               value={data.composicao.pendencias_abertas}
               footer={
                 canViewComposicao ? (
-                  <Link className="link-secondary" to="/composicao">
+                  <Link className="link-secondary" to={configuradorPaths.composicao()}>
                     Abrir composição →
                   </Link>
                 ) : null
@@ -188,7 +188,7 @@ export default function DashboardPage() {
               value={data.cargas.total}
               footer={
                 canViewCargas ? (
-                  <Link className="link-secondary" to="/cargas">
+                  <Link className="link-secondary" to={configuradorPaths.cargas()}>
                     Ver cargas →
                   </Link>
                 ) : null
@@ -201,18 +201,18 @@ export default function DashboardPage() {
               <h2 className="h5 card-title">Fluxo sugerido</h2>
               <p className="card-text text-muted mb-0">
                 Crie ou escolha um{' '}
-                {canViewProjetos ? <Link to="/projetos">projeto</Link> : 'projeto'}
+                {canViewProjetos ? <Link to={configuradorPaths.configuracoes}>configuração</Link> : 'configuração'}
                 , cadastre{' '}
-                {canViewCargas ? <Link to="/cargas">cargas do projeto</Link> : 'cargas do projeto'},
+                {canViewCargas ? <Link to={configuradorPaths.cargas()}>cargas do projeto</Link> : 'cargas do projeto'},
                 execute o{' '}
                 {canViewDimensionamento ? (
-                  <Link to="/dimensionamento">dimensionamento de condutores</Link>
+                  <Link to={configuradorPaths.dimensionamento()}>dimensionamento de condutores</Link>
                 ) : (
                   'dimensionamento de condutores'
                 )}{' '}
                 e, em seguida, use a{' '}
                 {canViewComposicao ? (
-                  <Link to="/composicao">composição do painel</Link>
+                  <Link to={configuradorPaths.composicao()}>composição do painel</Link>
                 ) : (
                   'composição do painel'
                 )}{' '}

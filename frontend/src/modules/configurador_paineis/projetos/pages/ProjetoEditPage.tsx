@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
@@ -12,6 +12,7 @@ import type { Projeto, ProjetoFormData } from '../types/projeto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarResponsaveisProjeto } from '../services/projetoService'
+import { configuradorPaths } from '../../configuradorPaths'
 
 function projetoParaFormData(projeto: Projeto): ProjetoFormData {
   return {
@@ -112,7 +113,7 @@ export default function ProjetoEditPage() {
       variant: 'success',
       message: 'Projeto atualizado com sucesso.',
     })
-    navigate(`/projetos/${projetoAtualizado.id}`)
+    navigate(configuradorPaths.configuracaoDetalhe(projetoAtualizado.id))
   }
 
   function handleSubmitError(err: unknown) {
@@ -128,55 +129,69 @@ export default function ProjetoEditPage() {
   const initialData = projeto ? projetoParaFormData(projeto) : undefined
 
   return (
-    <div className="container-fluid">
-      <div className="mb-4">
-        <h1 className="h3 mb-1">Editar Projeto</h1>
-        <p className="text-muted mb-0">
-          Atualize os dados do projeto selecionado.
-        </p>
-      </div>
-
-      <div className="card">
-        <div className="card-body">
-          {!id && (
-            <div className="alert alert-danger" role="alert">
-              Projeto não informado.
-            </div>
-          )}
-
-          {id && loadingProjeto && (
-            <p className="mb-0 text-muted">Carregando dados do projeto...</p>
-          )}
-
-          {id && !loadingProjeto && isLoadError && (
-            <div className="d-flex flex-wrap align-items-center gap-3">
-              <p className="text-danger mb-0">
-                Não foi possível carregar os dados deste projeto.
-              </p>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => void refetch()}
-              >
-                Tentar novamente
-              </button>
-            </div>
-          )}
-
-          {id && !loadingProjeto && !isLoadError && initialData && (
-            <ProjetoForm
-              key={id}
-              onSubmit={handleSubmit}
-              onSubmitError={handleSubmitError}
-              loading={updateMutation.isPending}
-              initialData={initialData}
-              responsavelOptions={responsavelOptions}
-              canEditResponsavel={canEditResponsavel}
-              showStatus={false}
-            />
-          )}
+    <div className="container-fluid projeto-config-page">
+      <div className="projeto-config-header">
+        <div className="min-w-0">
+          {id ? (
+            <Link className="small d-inline-flex mb-2" to={configuradorPaths.configuracaoDetalhe(id)}>
+              ← Voltar aos detalhes
+            </Link>
+          ) : null}
+          <h1 className="h3 mb-1">Editar configuração de painel</h1>
+          <p className="text-muted mb-0">
+            {projeto
+              ? `${projeto.codigo} · ${projeto.nome}`
+              : 'Atualize os dados técnicos e comerciais da configuração.'}
+          </p>
+        </div>
+        <div className="projeto-config-header__meta">
+          {projeto?.status ? <span className="badge text-bg-light border">{projeto.status}</span> : null}
+          {projeto?.codigo ? <span className="badge text-bg-primary">{projeto.codigo}</span> : null}
         </div>
       </div>
+
+      {!id && (
+        <div className="alert alert-danger" role="alert">
+          Projeto não informado.
+        </div>
+      )}
+
+      {id && loadingProjeto && (
+        <div className="card border-0 shadow-sm">
+          <div className="card-body py-4 text-muted">Carregando dados do projeto...</div>
+        </div>
+      )}
+
+      {id && !loadingProjeto && isLoadError && (
+        <div className="card border-0 shadow-sm">
+          <div className="card-body d-flex flex-wrap align-items-center gap-3">
+            <p className="text-danger mb-0">
+              Não foi possível carregar os dados desta configuração.
+            </p>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => void refetch()}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {id && !loadingProjeto && !isLoadError && initialData && (
+        <ProjetoForm
+          key={id}
+          onSubmit={handleSubmit}
+          onSubmitError={handleSubmitError}
+          loading={updateMutation.isPending}
+          initialData={initialData}
+          responsavelOptions={responsavelOptions}
+          canEditResponsavel={canEditResponsavel}
+          showStatus={false}
+          submitLabel="Salvar alterações"
+        />
+      )}
     </div>
   )
 }

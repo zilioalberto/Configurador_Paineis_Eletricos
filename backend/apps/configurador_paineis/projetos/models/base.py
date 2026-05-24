@@ -20,7 +20,7 @@ from core.choices import (
 )
 
 
-class Projeto(BaseModel, AtivacaoMixin):
+class ProjetoConfigurador(BaseModel, AtivacaoMixin):
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -237,8 +237,9 @@ class Projeto(BaseModel, AtivacaoMixin):
     )
 
     class Meta:
-        verbose_name = "Projeto"
-        verbose_name_plural = "Projetos"
+        db_table = "configurador_projeto"
+        verbose_name = "Projeto configurador"
+        verbose_name_plural = "Projetos configurador"
         ordering = ["codigo", "nome"]
         indexes = [
             models.Index(fields=["codigo"]),

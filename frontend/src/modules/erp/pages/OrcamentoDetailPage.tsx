@@ -14,21 +14,19 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { hasPermission } from '@/modules/auth/permissions'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
+import OrcamentoCatalogoItemForm from '../components/OrcamentoCatalogoItemForm'
+import OrcamentoLinhaDescricaoCampo from '../components/OrcamentoLinhaDescricaoCampo'
+import OrcamentoPainelsCard from '../components/OrcamentoPainelsCard'
+import { atualizarOrcamento, obterOrcamento } from '../services/erpApi'
+import type { LinhaEditavelOrcamento } from '../types/orcamentoLinha'
+import type { OrcamentoDto, OrcamentoItemDto } from '../types/erp'
 import {
-  contatoIdValidoParaLista,
-  useOrcamentoContatosCliente,
-} from '../hooks/useOrcamentoContatosCliente'
-import {
-  atualizarOrcamento,
-  listarClientesOrcamento,
-  obterOrcamento,
-} from '../services/erpApi'
-import type {
-  ContatoClienteDto,
-  OrcamentoDto,
-  OrcamentoItemDto,
-  ParceiroClienteDto,
-} from '../types/erp'
+  clampMargemParaCima,
+  parseDecimalPt,
+  toDateInputValue,
+  validadePadraoProposta,
+} from '../utils/orcamentoUi'
+import { calcularPrecoUnitarioLinha } from '../utils/orcamentoPrecoLinha'
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'RASCUNHO', label: 'Rascunho' },
@@ -38,65 +36,62 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'CANCELADO', label: 'Cancelado' },
 ]
 
-type LinhaEditavel = {
-  id?: string
-  ordem: number
-  tipo: 'PRODUTO' | 'SERVICO'
-  descricao: string
-  quantidade: string
-  custo_unitario: string
-  margem_percentual: string
-  preco_unitario: string
-}
-
-function toDateInputValue(iso: string | null): string {
-  if (!iso) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toISOString().slice(0, 10)
-}
-
-function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavel[] {
+function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavelOrcamento[] {
   return [...itens]
     .sort((a, b) => a.ordem - b.ordem)
-    .map((item, idx) => ({
-      id: item.id,
-      ordem: idx,
-      tipo: item.tipo ?? 'PRODUTO',
-      descricao: item.descricao,
-      quantidade: String(item.quantidade),
-      custo_unitario: String(item.custo_unitario ?? '0'),
-      margem_percentual: String(item.margem_percentual ?? '0'),
-      preco_unitario: String(item.preco_unitario),
-    }))
+    .map((item, idx) => {
+      const custo = String(item.custo_unitario ?? '0')
+      const margem = String(item.margem_percentual ?? '0')
+      const aliquota_ipi =
+        item.aliquota_ipi != null && item.aliquota_ipi !== ''
+          ? String(item.aliquota_ipi)
+          : null
+      return {
+        id: item.id,
+        ordem: idx,
+        tipo: item.tipo ?? 'PRODUTO',
+        editavel: item.editavel !== false,
+        origem: item.origem,
+        produtoId: item.produto ?? undefined,
+        produtoCodigo: item.produto_codigo ?? undefined,
+        descricao: item.descricao,
+        quantidade: String(item.quantidade),
+        custo_unitario: custo,
+        margem_percentual: margem,
+        margem_minima: margem,
+        aliquota_ipi,
+        preco_unitario: calcularPrecoUnitarioLinha(custo, margem, aliquota_ipi),
+      }
+    })
 }
 
-function parseDecimalPt(valor: string): number {
-  const normalizado = valor.trim().replace(/\s/g, '').replace(',', '.')
-  const n = Number(normalizado)
-  return Number.isFinite(n) ? n : NaN
+function formatIpiExibicao(valor: string | null | undefined): string {
+  if (valor == null || valor === '') return '—'
+  const n = Number(String(valor).replace(',', '.'))
+  if (!Number.isFinite(n)) return valor
+  return `${n} %`
 }
 
 export default function OrcamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { showToast } = useToast()
   const { user } = useAuth()
-  const podeEditar = hasPermission(user, PERMISSION_KEYS.ORCAMENTO_EDITAR)
+  const podeEditarPerm = hasPermission(user, PERMISSION_KEYS.ORCAMENTO_EDITAR)
 
   const [orcamento, setOrcamento] = useState<OrcamentoDto | null>(null)
+  const podeEditar = podeEditarPerm && (orcamento?.editavel !== false)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [salvandoItens, setSalvandoItens] = useState(false)
-  const [clientes, setClientes] = useState<ParceiroClienteDto[]>([])
-
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
-  const [clienteId, setClienteId] = useState('')
-  const [contatoId, setContatoId] = useState('')
   const [status, setStatus] = useState('RASCUNHO')
   const [validoAte, setValidoAte] = useState('')
-  const [linhasItens, setLinhasItens] = useState<LinhaEditavel[]>([])
+  const [margemProdutos, setMargemProdutos] = useState('0')
+  const [margemServicos, setMargemServicos] = useState('0')
+  const [margemProdutosMin, setMargemProdutosMin] = useState('0')
+  const [margemServicosMin, setMargemServicosMin] = useState('0')
+  const [linhasItens, setLinhasItens] = useState<LinhaEditavelOrcamento[]>([])
 
   const recarregar = useCallback(async () => {
     if (!id) return
@@ -106,10 +101,16 @@ export default function OrcamentoDetailPage() {
       setOrcamento(dados)
       setTitulo(dados.titulo)
       setDescricao(dados.descricao ?? '')
-      setClienteId(dados.cliente ?? '')
-      setContatoId(dados.contato_cliente ?? '')
       setStatus(dados.status)
-      setValidoAte(toDateInputValue(dados.valido_ate))
+      setValidoAte(
+        toDateInputValue(dados.valido_ate) || validadePadraoProposta()
+      )
+      const mp = String(dados.margem_produtos_percentual ?? '0')
+      const ms = String(dados.margem_servicos_percentual ?? '0')
+      setMargemProdutos(mp)
+      setMargemServicos(ms)
+      setMargemProdutosMin(mp)
+      setMargemServicosMin(ms)
       setLinhasItens(itensParaLinhas(dados.itens ?? []))
     } catch {
       showToast({
@@ -126,43 +127,6 @@ export default function OrcamentoDetailPage() {
   useEffect(() => {
     void recarregar()
   }, [recarregar])
-
-  useEffect(() => {
-    let ativo = true
-    listarClientesOrcamento()
-      .then((dados) => {
-        if (ativo) setClientes(dados)
-      })
-      .catch(() => {
-        if (ativo) {
-          showToast({
-            variant: 'warning',
-            title: 'Clientes',
-            message: 'Não foi possível carregar os clientes cadastrados.',
-          })
-        }
-      })
-    return () => {
-      ativo = false
-    }
-  }, [showToast])
-
-  const sincronizarContatoAposContatos = useCallback(
-    (dados: ContatoClienteDto[]) => {
-      if (dados.length === 0) {
-        setContatoId('')
-        return
-      }
-      setContatoId((atual) => contatoIdValidoParaLista(atual, dados))
-    },
-    []
-  )
-
-  const contatos = useOrcamentoContatosCliente(
-    clienteId,
-    showToast,
-    sincronizarContatoAposContatos
-  )
 
   const totalOrcamento = useMemo(() => {
     let soma = 0
@@ -187,10 +151,16 @@ export default function OrcamentoDetailPage() {
       const atualizado = await atualizarOrcamento(id, {
         titulo: titulo.trim(),
         descricao: descricao.trim(),
-        cliente: clienteId || null,
-        contato_cliente: contatoId || null,
         status,
         valido_ate: validoAte.trim() ? validoAte.trim() : null,
+        margem_produtos_percentual: clampMargemParaCima(
+          margemProdutos.trim() || '0',
+          margemProdutosMin
+        ),
+        margem_servicos_percentual: clampMargemParaCima(
+          margemServicos.trim() || '0',
+          margemServicosMin
+        ),
       })
       setOrcamento(atualizado)
       setLinhasItens(itensParaLinhas(atualizado.itens ?? []))
@@ -223,10 +193,15 @@ export default function OrcamentoDetailPage() {
           ...(linha.id ? { id: linha.id } : {}),
           ordem: idx,
           tipo: linha.tipo,
+          ...(linha.origem ? { origem: linha.origem as 'MANUAL' | 'CATALOGO' | 'CONFIGURADOR' } : {}),
+          ...(linha.produtoId ? { produto: linha.produtoId } : {}),
           descricao: linha.descricao.trim(),
           quantidade: linha.quantidade.trim() || '1',
           custo_unitario: linha.custo_unitario.trim() || '0',
-          margem_percentual: linha.margem_percentual.trim() || '0',
+          margem_percentual: clampMargemParaCima(
+            linha.margem_percentual.trim() || '0',
+            linha.margem_minima ?? linha.margem_percentual
+          ),
           preco_unitario: linha.preco_unitario.trim() || '0',
         })),
       })
@@ -250,22 +225,58 @@ export default function OrcamentoDetailPage() {
       {
         ordem: rows.length,
         tipo: 'PRODUTO',
+        origem: 'MANUAL',
+        editavel: true,
         descricao: '',
         quantidade: '1',
         custo_unitario: '0',
-        margem_percentual: orcamento?.margem_produtos_percentual ?? '0',
+        margem_percentual: margemProdutos || '0',
+        margem_minima: margemProdutos || '0',
         preco_unitario: '0',
       },
     ])
+  }
+
+  function alterarMargemProdutos(valor: string) {
+    setMargemProdutos(clampMargemParaCima(valor, margemProdutosMin))
+  }
+
+  function alterarMargemServicos(valor: string) {
+    setMargemServicos(clampMargemParaCima(valor, margemServicosMin))
+  }
+
+  function adicionarLinhaCatalogo(linha: LinhaEditavelOrcamento) {
+    setLinhasItens((rows) => [...rows, { ...linha, ordem: rows.length }])
   }
 
   function removerLinha(index: number) {
     setLinhasItens((rows) => rows.filter((_, i) => i !== index))
   }
 
-  function atualizarLinha(index: number, patch: Partial<LinhaEditavel>) {
+  function atualizarLinha(index: number, patch: Partial<LinhaEditavelOrcamento>) {
     setLinhasItens((rows) =>
-      rows.map((row, i) => (i === index ? { ...row, ...patch } : row))
+      rows.map((row, i) => {
+        if (i !== index) return row
+        const merged = { ...row, ...patch }
+        if (patch.margem_percentual !== undefined) {
+          merged.margem_percentual = clampMargemParaCima(
+            patch.margem_percentual,
+            row.margem_minima ?? row.margem_percentual
+          )
+        }
+        if (patch.tipo !== undefined && patch.margem_percentual === undefined) {
+          const margemCab =
+            patch.tipo === 'SERVICO' ? margemServicos : margemProdutos
+          merged.margem_percentual = margemCab
+          merged.margem_minima = margemCab
+        }
+        merged.preco_unitario = calcularPrecoUnitarioLinha(
+          merged.custo_unitario,
+          merged.margem_percentual,
+          merged.aliquota_ipi
+        )
+        return merged
+      })
     )
   }
 
@@ -296,13 +307,16 @@ export default function OrcamentoDetailPage() {
 
       <OrcamentoDetalheConteudo
         adicionarLinha={adicionarLinha}
+        adicionarLinhaCatalogo={adicionarLinhaCatalogo}
         atualizarLinha={atualizarLinha}
+        margemProdutos={margemProdutos}
+        margemServicos={margemServicos}
+        alterarMargemProdutos={alterarMargemProdutos}
+        alterarMargemServicos={alterarMargemServicos}
         carregando={carregando}
-        clienteId={clienteId}
-        clientes={clientes}
-        contatoId={contatoId}
-        contatos={contatos}
         descricao={descricao}
+        margemProdutosMin={margemProdutosMin}
+        margemServicosMin={margemServicosMin}
         linhasItens={linhasItens}
         orcamento={orcamento}
         podeEditar={podeEditar}
@@ -315,8 +329,10 @@ export default function OrcamentoDetailPage() {
         validoAte={validoAte}
         onSalvarCabecalho={handleSalvarCabecalho}
         onSalvarItens={handleSalvarItens}
-        setClienteId={setClienteId}
-        setContatoId={setContatoId}
+        onOrcamentoAtualizado={(dados) => {
+          setOrcamento(dados)
+          setLinhasItens(itensParaLinhas(dados.itens ?? []))
+        }}
         setDescricao={setDescricao}
         setStatus={setStatus}
         setTitulo={setTitulo}
@@ -328,14 +344,17 @@ export default function OrcamentoDetailPage() {
 
 type OrcamentoDetalheConteudoProps = {
   adicionarLinha: () => void
-  atualizarLinha: (index: number, patch: Partial<LinhaEditavel>) => void
+  adicionarLinhaCatalogo: (linha: LinhaEditavelOrcamento) => void
+  alterarMargemProdutos: (valor: string) => void
+  alterarMargemServicos: (valor: string) => void
+  atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  margemProdutos: string
+  margemServicos: string
+  margemProdutosMin: string
+  margemServicosMin: string
   carregando: boolean
-  clienteId: string
-  clientes: ParceiroClienteDto[]
-  contatoId: string
-  contatos: ContatoClienteDto[]
   descricao: string
-  linhasItens: LinhaEditavel[]
+  linhasItens: LinhaEditavelOrcamento[]
   orcamento: OrcamentoDto | null
   podeEditar: boolean
   removerLinha: (index: number) => void
@@ -347,8 +366,7 @@ type OrcamentoDetalheConteudoProps = {
   validoAte: string
   onSalvarCabecalho: FormEventHandler<HTMLFormElement>
   onSalvarItens: () => void | Promise<void>
-  setClienteId: Dispatch<SetStateAction<string>>
-  setContatoId: Dispatch<SetStateAction<string>>
+  onOrcamentoAtualizado: (orcamento: OrcamentoDto) => void
   setDescricao: Dispatch<SetStateAction<string>>
   setStatus: Dispatch<SetStateAction<string>>
   setTitulo: Dispatch<SetStateAction<string>>
@@ -372,13 +390,16 @@ function OrcamentoDetalheConteudo({
 
 function OrcamentoEdicao({
   adicionarLinha,
+  adicionarLinhaCatalogo,
+  alterarMargemProdutos,
+  alterarMargemServicos,
   atualizarLinha,
-  clienteId,
-  clientes,
-  contatoId,
-  contatos,
   descricao,
   linhasItens,
+  margemProdutos,
+  margemServicos,
+  margemProdutosMin,
+  margemServicosMin,
   orcamento,
   podeEditar,
   removerLinha,
@@ -390,8 +411,7 @@ function OrcamentoEdicao({
   validoAte,
   onSalvarCabecalho,
   onSalvarItens,
-  setClienteId,
-  setContatoId,
+  onOrcamentoAtualizado,
   setDescricao,
   setStatus,
   setTitulo,
@@ -400,52 +420,57 @@ function OrcamentoEdicao({
   orcamento: OrcamentoDto
 }>) {
   return (
-    <div className="row g-4">
-      <div className="col-lg-5">
-        <OrcamentoDadosCard
-          clienteId={clienteId}
-          clientes={clientes}
-          contatoId={contatoId}
-          contatos={contatos}
-          descricao={descricao}
-          orcamento={orcamento}
-          podeEditar={podeEditar}
-          salvando={salvando}
-          status={status}
-          titulo={titulo}
-          validoAte={validoAte}
-          onSalvarCabecalho={onSalvarCabecalho}
-          setClienteId={setClienteId}
-          setContatoId={setContatoId}
-          setDescricao={setDescricao}
-          setStatus={setStatus}
-          setTitulo={setTitulo}
-          setValidoAte={setValidoAte}
-        />
-      </div>
-      <div className="col-lg-7">
-        <OrcamentoItensCard
-          adicionarLinha={adicionarLinha}
-          atualizarLinha={atualizarLinha}
-          linhasItens={linhasItens}
-          orcamento={orcamento}
-          podeEditar={podeEditar}
-          removerLinha={removerLinha}
-          salvandoItens={salvandoItens}
-          totalOrcamento={totalOrcamento}
-          onSalvarItens={onSalvarItens}
-        />
-      </div>
+    <div className="vstack gap-4">
+      <OrcamentoDadosCard
+        alterarMargemProdutos={alterarMargemProdutos}
+        alterarMargemServicos={alterarMargemServicos}
+        descricao={descricao}
+        margemProdutos={margemProdutos}
+        margemServicos={margemServicos}
+        margemProdutosMin={margemProdutosMin}
+        margemServicosMin={margemServicosMin}
+        orcamento={orcamento}
+        podeEditar={podeEditar}
+        salvando={salvando}
+        status={status}
+        titulo={titulo}
+        validoAte={validoAte}
+        onSalvarCabecalho={onSalvarCabecalho}
+        setDescricao={setDescricao}
+        setStatus={setStatus}
+        setTitulo={setTitulo}
+        setValidoAte={setValidoAte}
+      />
+      <OrcamentoItensCard
+        adicionarLinha={adicionarLinha}
+        adicionarLinhaCatalogo={adicionarLinhaCatalogo}
+        margemProdutos={margemProdutos}
+        atualizarLinha={atualizarLinha}
+        linhasItens={linhasItens}
+        orcamento={orcamento}
+        podeEditar={podeEditar}
+        removerLinha={removerLinha}
+        salvandoItens={salvandoItens}
+        totalOrcamento={totalOrcamento}
+        onSalvarItens={onSalvarItens}
+      />
+      <OrcamentoPainelsCard
+        orcamento={orcamento}
+        podeEditar={podeEditar}
+        onAtualizado={onOrcamentoAtualizado}
+      />
     </div>
   )
 }
 
 function OrcamentoDadosCard({
-  clienteId,
-  clientes,
-  contatoId,
-  contatos,
+  alterarMargemProdutos,
+  alterarMargemServicos,
   descricao,
+  margemProdutos,
+  margemServicos,
+  margemProdutosMin,
+  margemServicosMin,
   orcamento,
   podeEditar,
   salvando,
@@ -453,18 +478,18 @@ function OrcamentoDadosCard({
   titulo,
   validoAte,
   onSalvarCabecalho,
-  setClienteId,
-  setContatoId,
   setDescricao,
   setStatus,
   setTitulo,
   setValidoAte,
 }: Readonly<{
-  clienteId: string
-  clientes: ParceiroClienteDto[]
-  contatoId: string
-  contatos: ContatoClienteDto[]
+  alterarMargemProdutos: (valor: string) => void
+  alterarMargemServicos: (valor: string) => void
   descricao: string
+  margemProdutos: string
+  margemServicos: string
+  margemProdutosMin: string
+  margemServicosMin: string
   orcamento: OrcamentoDto
   podeEditar: boolean
   salvando: boolean
@@ -472,161 +497,138 @@ function OrcamentoDadosCard({
   titulo: string
   validoAte: string
   onSalvarCabecalho: FormEventHandler<HTMLFormElement>
-  setClienteId: Dispatch<SetStateAction<string>>
-  setContatoId: Dispatch<SetStateAction<string>>
   setDescricao: Dispatch<SetStateAction<string>>
   setStatus: Dispatch<SetStateAction<string>>
   setTitulo: Dispatch<SetStateAction<string>>
   setValidoAte: Dispatch<SetStateAction<string>>
 }>) {
+  const statusLabel =
+    STATUS_OPTIONS.find((o) => o.value === orcamento.status)?.label ?? orcamento.status
+
   return (
-    <div className="card shadow-sm">
+    <div className="card shadow-sm border-0">
       <div className="card-body">
-        <h1 className="h5 mb-3">Dados do orçamento</h1>
-        <form onSubmit={onSalvarCabecalho} className="vstack gap-3">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <label className="form-label" htmlFor="orc-det-codigo">
-              Código
-            </label>
-            <input id="orc-det-codigo" className="form-control" value={orcamento.codigo} readOnly disabled />
+            <p className="text-muted small mb-1">Proposta comercial</p>
+            <h1 className="h4 mb-0">{orcamento.codigo}</h1>
           </div>
-          <div>
-            <label className="form-label" htmlFor="orc-det-titulo">
-              Título
-            </label>
-            <input
-              id="orc-det-titulo"
-              className="form-control"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              maxLength={200}
-              required
-              disabled={!podeEditar}
-            />
+          <span className="badge text-bg-secondary">{statusLabel}</span>
+        </div>
+
+        <form onSubmit={onSalvarCabecalho}>
+          <div className="row g-3">
+            <div className="col-md-6 col-lg-4">
+              <label className="form-label text-muted small mb-1">Cliente</label>
+              <p className="mb-0 fw-semibold">{orcamento.cliente_nome || '—'}</p>
+              {orcamento.contato_cliente_nome ? (
+                <p className="small text-muted mb-0 mt-1">
+                  {orcamento.contato_cliente_nome}
+                  {orcamento.contato_cliente_email
+                    ? ` · ${orcamento.contato_cliente_email}`
+                    : ''}
+                </p>
+              ) : null}
+            </div>
+            <div className="col-md-6 col-lg-4">
+              <label className="form-label" htmlFor="orc-det-titulo">
+                Título da proposta
+              </label>
+              <input
+                id="orc-det-titulo"
+                className="form-control"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                maxLength={200}
+                required
+                disabled={!podeEditar}
+              />
+            </div>
+            <div className="col-md-6 col-lg-4">
+              <label className="form-label" htmlFor="orc-det-valido">
+                Validade da oferta
+              </label>
+              <input
+                id="orc-det-valido"
+                type="date"
+                className="form-control"
+                value={validoAte}
+                onChange={(e) => setValidoAte(e.target.value)}
+                disabled={!podeEditar}
+              />
+              <div className="form-text">Padrão: 15 dias a partir da criação (editável).</div>
+            </div>
+            <div className="col-12">
+              <label className="form-label" htmlFor="orc-det-desc">
+                Descrição / escopo
+              </label>
+              <textarea
+                id="orc-det-desc"
+                className="form-control"
+                rows={2}
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                disabled={!podeEditar}
+              />
+            </div>
+            <div className="col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="orc-det-margem-prod">
+                Margem produtos (%)
+              </label>
+              <input
+                id="orc-det-margem-prod"
+                type="text"
+                inputMode="decimal"
+                className="form-control"
+                value={margemProdutos}
+                min={margemProdutosMin}
+                onChange={(e) => alterarMargemProdutos(e.target.value)}
+                disabled={!podeEditar}
+              />
+              <div className="form-text">Mín. {margemProdutosMin}% (só aumentar).</div>
+            </div>
+            <div className="col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="orc-det-margem-serv">
+                Margem serviços (%)
+              </label>
+              <input
+                id="orc-det-margem-serv"
+                type="text"
+                inputMode="decimal"
+                className="form-control"
+                value={margemServicos}
+                min={margemServicosMin}
+                onChange={(e) => alterarMargemServicos(e.target.value)}
+                disabled={!podeEditar}
+              />
+              <div className="form-text">Mín. {margemServicosMin}% (só aumentar).</div>
+            </div>
+            <div className="col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="orc-det-status">
+                Estado
+              </label>
+              <select
+                id="orc-det-status"
+                className="form-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                disabled={!podeEditar}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-12">
+              <OrcamentoDadosSubmit podeEditar={podeEditar} salvando={salvando} />
+            </div>
           </div>
-          <div>
-            <label className="form-label" htmlFor="orc-det-desc">
-              Descrição
-            </label>
-            <textarea
-              id="orc-det-desc"
-              className="form-control"
-              rows={3}
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              disabled={!podeEditar}
-            />
-          </div>
-          <OrcamentoClienteSelect
-            clienteId={clienteId}
-            clientes={clientes}
-            contatoId={contatoId}
-            contatos={contatos}
-            podeEditar={podeEditar}
-            setClienteId={setClienteId}
-            setContatoId={setContatoId}
-          />
-          <div>
-            <label className="form-label" htmlFor="orc-det-status">
-              Estado
-            </label>
-            <select
-              id="orc-det-status"
-              className="form-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              disabled={!podeEditar}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="orc-det-valido">
-              Válido até
-            </label>
-            <input
-              id="orc-det-valido"
-              type="date"
-              className="form-control"
-              value={validoAte}
-              onChange={(e) => setValidoAte(e.target.value)}
-              disabled={!podeEditar}
-            />
-          </div>
-          <OrcamentoDadosSubmit podeEditar={podeEditar} salvando={salvando} />
         </form>
       </div>
     </div>
   )
-}
-
-function OrcamentoClienteSelect({
-  clienteId,
-  clientes,
-  contatoId,
-  contatos,
-  podeEditar,
-  setClienteId,
-  setContatoId,
-}: Readonly<{
-  clienteId: string
-  clientes: ParceiroClienteDto[]
-  contatoId: string
-  contatos: ContatoClienteDto[]
-  podeEditar: boolean
-  setClienteId: Dispatch<SetStateAction<string>>
-  setContatoId: Dispatch<SetStateAction<string>>
-}>) {
-  return (
-    <>
-      <div>
-        <label className="form-label" htmlFor="orc-det-cliente">
-          Cliente
-        </label>
-        <select
-          id="orc-det-cliente"
-          className="form-select"
-          value={clienteId}
-          onChange={(e) => setClienteId(e.target.value)}
-          disabled={!podeEditar}
-        >
-          <option value="">Selecione...</option>
-          {clientes.map((cliente) => (
-            <option key={cliente.id} value={cliente.id}>
-              {cliente.razao_social} ({cliente.documento})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="form-label" htmlFor="orc-det-contato">
-          Contato do cliente
-        </label>
-        <select
-          id="orc-det-contato"
-          className="form-select"
-          value={contatoId}
-          onChange={(e) => setContatoId(e.target.value)}
-          disabled={!podeEditar || !clienteId || contatos.length === 0}
-        >
-          <option value="">Sem contato selecionado</option>
-          {contatos.map((contato) => (
-            <option key={contato.id} value={contato.id}>
-              {contatoOptionLabel(contato)}
-            </option>
-          ))}
-        </select>
-      </div>
-    </>
-  )
-}
-
-function contatoOptionLabel(contato: ContatoClienteDto): string {
-  return contato.email ? `${contato.nome} (${contato.email})` : contato.nome
 }
 
 function OrcamentoDadosSubmit({
@@ -648,6 +650,8 @@ function OrcamentoDadosSubmit({
 
 function OrcamentoItensCard({
   adicionarLinha,
+  adicionarLinhaCatalogo,
+  margemProdutos,
   atualizarLinha,
   linhasItens,
   orcamento,
@@ -658,8 +662,10 @@ function OrcamentoItensCard({
   onSalvarItens,
 }: Readonly<{
   adicionarLinha: () => void
-  atualizarLinha: (index: number, patch: Partial<LinhaEditavel>) => void
-  linhasItens: LinhaEditavel[]
+  adicionarLinhaCatalogo: (linha: LinhaEditavelOrcamento) => void
+  margemProdutos: string
+  atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  linhasItens: LinhaEditavelOrcamento[]
   orcamento: OrcamentoDto
   podeEditar: boolean
   removerLinha: (index: number) => void
@@ -674,7 +680,8 @@ function OrcamentoItensCard({
           <div>
             <h2 className="h5 mb-1">Itens</h2>
             <p className="text-muted small mb-0">
-              Edite linhas, adicione novas ou remova. Guarde para sincronizar com o servidor.
+              Edite linhas, adicione novas ou remova. O IPI % vem do catálogo fiscal e não pode ser
+              alterado na proposta. Guarde para sincronizar com o servidor.
             </p>
           </div>
           {podeEditar ? (
@@ -688,6 +695,14 @@ function OrcamentoItensCard({
             </button>
           ) : null}
         </div>
+
+        {podeEditar ? (
+          <OrcamentoCatalogoItemForm
+            margemProdutos={margemProdutos}
+            onAdicionar={adicionarLinhaCatalogo}
+            disabled={salvandoItens}
+          />
+        ) : null}
 
         <OrcamentoItensTable
           atualizarLinha={atualizarLinha}
@@ -725,8 +740,8 @@ function OrcamentoItensTable({
   salvandoItens,
   totalOrcamento,
 }: Readonly<{
-  atualizarLinha: (index: number, patch: Partial<LinhaEditavel>) => void
-  linhasItens: LinhaEditavel[]
+  atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  linhasItens: LinhaEditavelOrcamento[]
   orcamento: OrcamentoDto
   podeEditar: boolean
   removerLinha: (index: number) => void
@@ -738,7 +753,7 @@ function OrcamentoItensTable({
   }
 
   return (
-    <div className="table-responsive">
+    <div className="table-responsive" style={{ overflow: 'visible' }}>
       <table className="table table-sm align-middle">
         <thead>
           <tr>
@@ -750,6 +765,9 @@ function OrcamentoItensTable({
             </th>
             <th className="text-end" style={{ width: '8rem' }}>
               Custo
+            </th>
+            <th className="text-end" style={{ width: '5rem' }} title="Referência do catálogo">
+              IPI %
             </th>
             <th className="text-end" style={{ width: '7rem' }}>
               Margem %
@@ -781,7 +799,7 @@ function OrcamentoItensTable({
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={7} className="text-end fw-semibold">
+            <td colSpan={8} className="text-end fw-semibold">
               Total
             </td>
             <td className="text-end fw-semibold">{valorMonetarioTabela(totalOrcamento)}</td>
@@ -802,31 +820,44 @@ function OrcamentoItemRow({
   removerLinha,
   salvandoItens,
 }: Readonly<{
-  atualizarLinha: (index: number, patch: Partial<LinhaEditavel>) => void
+  atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
   index: number
-  linha: LinhaEditavel
+  linha: LinhaEditavelOrcamento
   orcamento: OrcamentoDto
   podeEditar: boolean
   removerLinha: (index: number) => void
   salvandoItens: boolean
 }>) {
+  const linhaEditavel = podeEditar && linha.editavel !== false
+  const historico = linha.origem === 'HERANCA_REVISAO'
   return (
-    <tr>
-      <td className="text-muted">{index + 1}</td>
+    <tr className={historico ? 'table-secondary' : undefined}>
+      <td className="text-muted">
+        {index + 1}
+        {linha.origem && linha.origem !== 'MANUAL' ? (
+          <span className="d-block badge text-bg-light text-dark fw-normal mt-1">
+            {linha.origem === 'HERANCA_REVISAO' ? 'Hist.' : linha.origem.slice(0, 4)}
+          </span>
+        ) : null}
+      </td>
       <td>
-        {podeEditar ? (
+        {linhaEditavel ? (
           <select
             className="form-select form-select-sm"
             value={linha.tipo}
-            onChange={(e) =>
+            onChange={(e) => {
+              const tipo = e.target.value as 'PRODUTO' | 'SERVICO'
+              const margem =
+                tipo === 'SERVICO'
+                  ? orcamento.margem_servicos_percentual
+                  : orcamento.margem_produtos_percentual
               atualizarLinha(index, {
-                tipo: e.target.value as 'PRODUTO' | 'SERVICO',
-                margem_percentual:
-                  e.target.value === 'SERVICO'
-                    ? orcamento.margem_servicos_percentual
-                    : orcamento.margem_produtos_percentual,
+                tipo,
+                margem_percentual: margem,
+                margem_minima: margem,
+                aliquota_ipi: tipo === 'SERVICO' ? null : linha.aliquota_ipi,
               })
-            }
+            }}
             disabled={salvandoItens}
           >
             <option value="PRODUTO">Produto</option>
@@ -836,23 +867,44 @@ function OrcamentoItemRow({
           linha.tipo
         )}
       </td>
+      {linhaEditavel && linha.tipo === 'PRODUTO' ? (
+        <OrcamentoLinhaDescricaoCampo
+          index={index}
+          linha={linha}
+          margemProdutos={orcamento.margem_produtos_percentual}
+          salvandoItens={salvandoItens}
+          atualizarLinha={atualizarLinha}
+        />
+      ) : (
+        <OrcamentoCampoLinha
+          alinhadoDireita={false}
+          campo="descricao"
+          index={index}
+          linha={linha}
+          podeEditar={linhaEditavel}
+          salvandoItens={salvandoItens}
+          atualizarLinha={atualizarLinha}
+          maxLength={500}
+          placeholder="Descrição do item"
+        />
+      )}
+      <OrcamentoCampoLinha campo="quantidade" index={index} linha={linha} podeEditar={linhaEditavel} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
+      <OrcamentoCampoLinha campo="custo_unitario" index={index} linha={linha} podeEditar={linhaEditavel} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
+      <td className="text-end text-muted small" title="Definido no catálogo fiscal">
+        {formatIpiExibicao(linha.aliquota_ipi)}
+      </td>
       <OrcamentoCampoLinha
-        alinhadoDireita={false}
-        campo="descricao"
+        campo="margem_percentual"
         index={index}
         linha={linha}
-        podeEditar={podeEditar}
+        podeEditar={linhaEditavel}
         salvandoItens={salvandoItens}
         atualizarLinha={atualizarLinha}
-        maxLength={500}
-        placeholder="Descrição do item"
+        tituloMargemMinima={`Mínimo ${linha.margem_minima ?? linha.margem_percentual}%`}
       />
-      <OrcamentoCampoLinha campo="quantidade" index={index} linha={linha} podeEditar={podeEditar} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
-      <OrcamentoCampoLinha campo="custo_unitario" index={index} linha={linha} podeEditar={podeEditar} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
-      <OrcamentoCampoLinha campo="margem_percentual" index={index} linha={linha} podeEditar={podeEditar} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
-      <OrcamentoCampoLinha campo="preco_unitario" index={index} linha={linha} podeEditar={podeEditar} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
+      <td className="text-end">{precoLinhaExibicao(linha)}</td>
       <td className="text-end">{subtotalLinha(linha)}</td>
-      {podeEditar ? (
+      {linhaEditavel ? (
         <td className="text-end">
           <button
             type="button"
@@ -879,19 +931,21 @@ function OrcamentoCampoLinha({
   podeEditar,
   salvandoItens,
   atualizarLinha,
+  tituloMargemMinima,
 }: Readonly<{
   alinhadoDireita?: boolean
   campo: keyof Pick<
-    LinhaEditavel,
+    LinhaEditavelOrcamento,
     'descricao' | 'quantidade' | 'custo_unitario' | 'margem_percentual' | 'preco_unitario'
   >
   index: number
-  linha: LinhaEditavel
+  linha: LinhaEditavelOrcamento
   maxLength?: number
   placeholder?: string
   podeEditar: boolean
   salvandoItens: boolean
-  atualizarLinha: (index: number, patch: Partial<LinhaEditavel>) => void
+  atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  tituloMargemMinima?: string
 }>) {
   if (podeEditar) {
     return (
@@ -905,6 +959,7 @@ function OrcamentoCampoLinha({
           placeholder={placeholder}
           disabled={salvandoItens}
           inputMode={alinhadoDireita ? 'decimal' : undefined}
+          title={campo === 'margem_percentual' ? tituloMargemMinima : undefined}
         />
       </td>
     )
@@ -917,7 +972,13 @@ function OrcamentoCampoLinha({
   )
 }
 
-function subtotalLinha(linha: LinhaEditavel): string {
+function precoLinhaExibicao(linha: LinhaEditavelOrcamento): string {
+  const preco = parseDecimalPt(linha.preco_unitario)
+  if (!Number.isFinite(preco)) return '—'
+  return valorMonetarioTabela(preco)
+}
+
+function subtotalLinha(linha: LinhaEditavelOrcamento): string {
   const quantidade = parseDecimalPt(linha.quantidade)
   const preco = parseDecimalPt(linha.preco_unitario)
   if (!Number.isFinite(quantidade) || !Number.isFinite(preco)) return '—'

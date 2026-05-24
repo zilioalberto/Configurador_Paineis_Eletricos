@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.cadastros.models import ContatoParceiro, EnderecoParceiro, ParceiroComercial
+from apps.cadastros.models import ContatoParceiro, EnderecoParceiro, ParceiroComercial, SocioParceiro
 
 
 class EnderecoParceiroInline(admin.TabularInline):
@@ -10,6 +10,11 @@ class EnderecoParceiroInline(admin.TabularInline):
 
 class ContatoParceiroInline(admin.TabularInline):
     model = ContatoParceiro
+    extra = 0
+
+
+class SocioParceiroInline(admin.TabularInline):
+    model = SocioParceiro
     extra = 0
 
 
@@ -33,7 +38,7 @@ class ParceiroComercialAdmin(admin.ModelAdmin):
         "origem",
     )
     search_fields = ("razao_social", "nome_fantasia", "documento", "email")
-    inlines = (EnderecoParceiroInline, ContatoParceiroInline)
+    inlines = (EnderecoParceiroInline, ContatoParceiroInline, SocioParceiroInline)
 
 
 @admin.register(EnderecoParceiro)

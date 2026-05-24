@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.db import transaction
 
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.composicao_painel.models import (
     ComposicaoInclusaoManual,
     SugestaoItem,
@@ -600,7 +600,7 @@ class PendenciaItemAdmin(admin.ModelAdmin):
 
 
 try:
-    projeto_admin = admin.site._registry.get(Projeto)
+    projeto_admin = admin.site._registry.get(ProjetoConfigurador)
     if projeto_admin:
         actions = list(getattr(projeto_admin, "actions", []) or [])
 

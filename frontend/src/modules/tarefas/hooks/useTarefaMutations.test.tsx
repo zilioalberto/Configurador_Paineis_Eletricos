@@ -1,4 +1,3 @@
-import type { UseMutationResult } from '@tanstack/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -82,10 +81,7 @@ function wrapper(client: QueryClient, { children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
-function renderMutation(
-  hook: () => UseMutationResult<any, Error, any, any>,
-  client = createClient()
-) {
+function renderMutation<TResult>(hook: () => TResult, client = createClient()) {
   return {
     client,
     ...renderHook(hook, {
@@ -125,7 +121,11 @@ describe('useTarefaMutations', () => {
   it('invalida cache em mutações básicas de tarefa', async () => {
     const client = createClient()
     const inv = vi.spyOn(client, 'invalidateQueries')
-    const cases = [
+    const cases: Array<{
+      hook: () => { mutateAsync: (payload: never) => Promise<unknown> }
+      payload: unknown
+      service: ReturnType<typeof vi.fn>
+    }> = [
       {
         hook: useCriarTarefaMutation,
         payload: { titulo: 'Tarefa' },

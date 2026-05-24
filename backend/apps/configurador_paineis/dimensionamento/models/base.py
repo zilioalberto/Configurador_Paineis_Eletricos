@@ -1,11 +1,11 @@
 from django.db import models
 from core.models import BaseModel
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 class ResumoDimensionamento(BaseModel):
     projeto = models.OneToOneField(
-        Projeto,
+        ProjetoConfigurador,
         on_delete=models.CASCADE,
         related_name="resumo_dimensionamento",
     )
