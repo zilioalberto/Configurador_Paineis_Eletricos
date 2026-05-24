@@ -6,6 +6,7 @@ const BUSCA_DEBOUNCE_MS = 320
 const BUSCA_MIN_CHARS = 2
 const EMPTY_PRODUTOS: ProdutoListItem[] = []
 
+/** Autocomplete de produtos do catálogo para inclusão manual (debounce + filtro por categoria). */
 export function useInclusaoManualProdutoBusca(filtroCategoria: string) {
   const [termoBusca, setTermoBusca] = useState('')
   const [debounced, setDebounced] = useState('')

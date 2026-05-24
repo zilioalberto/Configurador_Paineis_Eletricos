@@ -1,3 +1,5 @@
+"""Especificação de sensor de campo: sinal digital/analógico e consumo elétrico."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -18,6 +20,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaSensor(models.Model):
+    """Sensor industrial; deriva entradas digitais/analógicas/ rápidas quando há PLC."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,

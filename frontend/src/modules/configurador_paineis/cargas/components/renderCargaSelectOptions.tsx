@@ -1,3 +1,5 @@
+/** Renderiza `<option>` a partir de lista `{ value, label }`. */
+
 type Opt = { value: string; label: string }
 
 export function renderCargaSelectOptions(options: readonly Opt[]) {

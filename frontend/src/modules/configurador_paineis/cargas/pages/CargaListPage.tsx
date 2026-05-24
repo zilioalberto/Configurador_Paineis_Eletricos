@@ -1,3 +1,5 @@
+/** Listagem de cargas por projeto com filtros, stepper do fluxo e recálculo automático. */
+
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ConfirmModal, useToast } from '@/components/feedback'

@@ -1,3 +1,5 @@
+/** CRUD de modelos reutilizáveis de carga (templates para cadastro rápido). */
+
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/components/feedback'

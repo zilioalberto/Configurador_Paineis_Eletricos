@@ -1,3 +1,6 @@
+/**
+ * Rotas e menu do módulo fiscal (home com busca e lista de itens).
+ */
 import { lazy, type ReactElement } from 'react'
 import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'

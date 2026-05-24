@@ -35,6 +35,7 @@ function usePropostaVinculoParams() {
   }, [location.search])
 }
 
+/** Criação de projeto: aloca código sugerido e redireciona para cargas após salvar. */
 export default function ProjetoCreatePage() {
   const { user } = useAuth()
   const navigate = useNavigate()

@@ -43,6 +43,7 @@ import {
   usuarioPodeClassificarTarefa,
 } from '../utils/tarefasKanbanUtils'
 
+/** Página principal do Kanban de tarefas. */
 export default function TarefasKanbanPage() {
   const { data, isPending, isError, error, refetch, isFetching } = useKanbanTarefasQuery()
   const criarQuadroPadraoMutation = useCriarQuadroPadraoTarefasMutation()
@@ -147,7 +148,7 @@ export default function TarefasKanbanPage() {
     if (Number.isNaN(ms) || ms <= 0 || ms > 86_400_000) return undefined
     const id = globalThis.setTimeout(pararTimerAutomaticoJornada, ms)
     return () => globalThis.clearTimeout(id)
-  }, [timerQuery.data?.pausa_automatica_prevista_em, sessaoAtiva?.id, pararTimerAutomaticoJornada])
+  }, [timerQuery.data?.pausa_automatica_prevista_em, sessaoAtiva, pararTimerAutomaticoJornada])
 
   const tarefasVencidas = useMemo(() => {
     return (

@@ -1,3 +1,5 @@
+"""Endpoints REST do módulo projetos (CRUD, dashboard, código e responsáveis)."""
+
 from apps.configurador_paineis.cargas.models import Carga
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
@@ -142,6 +144,8 @@ class ProjetoResponsavelOptionsView(APIView):
 
 
 class ProjetoViewSet(ModelViewSet):
+    """CRUD de projetos com filtro por perfil e efeitos colaterais na edição."""
+
     queryset = ProjetoConfigurador.objects.all().order_by("-criado_em")
     serializer_class = ProjetoSerializer
     permission_classes = [HasEffectivePermission]
@@ -161,6 +165,7 @@ class ProjetoViewSet(ModelViewSet):
         return None
 
     def perform_create(self, serializer):
+        """Define criador/atualizador, responsável padrão e registra evento de criação."""
         projeto = serializer.save(
             criado_por=self.request.user,
             atualizado_por=self.request.user,
@@ -176,6 +181,10 @@ class ProjetoViewSet(ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        """
+        Atualiza projeto; se a tensão nominal mudar, reinicia composição
+        e recalcula dimensionamento via serviço de dependentes.
+        """
         tensao_antes = serializer.instance.tensao_nominal
         projeto = serializer.save(atualizado_por=self.request.user)
         tensao_alterada = tensao_antes != projeto.tensao_nominal
@@ -226,6 +235,7 @@ class ProjetoViewSet(ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="historico")
     def historico(self, request, pk=None):
+        """Lista os últimos 200 eventos de rastreabilidade do projeto."""
         projeto = self.get_object()
         eventos = ProjetoConfiguradorEvento.objects.filter(
             projeto_configurador=projeto
@@ -235,6 +245,10 @@ class ProjetoViewSet(ModelViewSet):
 
 
 def _visible_projetos_queryset(user, qs):
+    """
+    Restringe projetos visíveis: admin/almoxarifado veem todos;
+    orçamentista e demais perfis veem apenas os que criaram ou são responsáveis.
+    """
     if not getattr(user, "is_authenticated", False):
         return qs.none()
 

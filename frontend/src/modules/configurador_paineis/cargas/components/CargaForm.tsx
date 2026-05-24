@@ -1,3 +1,8 @@
+/**
+ * Formulário unificado de carga: campos comuns + blocos condicionais por tipo.
+ * Calcula preview de IO e valida tensão/partida conforme projeto selecionado.
+ */
+
 import {
   type ChangeEvent,
   type FormEvent,
@@ -110,8 +115,10 @@ export default function CargaForm({
       return
     }
 
-    const io = calcularOcupacaoIoCarga(formData, calcularSaidasDigitaisMotor)
-    setFormData((prev) => ({ ...prev, ...io }))
+    setFormData((prev) => ({
+      ...prev,
+      ...calcularOcupacaoIoCarga(prev, calcularSaidasDigitaisMotor),
+    }))
   }, [
     mostrarOcupacaoIo,
     formData.exige_comando,

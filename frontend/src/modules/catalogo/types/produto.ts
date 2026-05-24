@@ -1,3 +1,7 @@
+/**
+ * Tipos de produto do catálogo (formulário, listagem, detalhe e dados fiscais).
+ */
+
 import type { CategoriaProdutoNome } from './categoria'
 import type { UnidadeMedidaProduto } from '../constants/catalogoChoiceOptions'
 

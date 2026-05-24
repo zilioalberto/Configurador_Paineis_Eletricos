@@ -1,3 +1,8 @@
+/**
+ * Estado e ações do painel de revisão de condutores no wizard:
+ * overrides locais, aprovação, recálculo e PATCH para a API.
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -26,8 +31,11 @@ export function useWizardCondutoresPanel(projetoId: string) {
   const recalc = useRecalcularDimensionamentoMutation(projetoId || null)
   const patchMut = usePatchCondutoresDimensionamentoMutation(projetoId || null)
 
-  const tabela = dim?.condutores_tabela_referencia ?? []
-  const circuitos = dim?.circuitos_carga ?? []
+  const tabela = useMemo(
+    () => dim?.condutores_tabela_referencia ?? [],
+    [dim?.condutores_tabela_referencia]
+  )
+  const circuitos = useMemo(() => dim?.circuitos_carga ?? [], [dim?.circuitos_carga])
   const ag = dim?.alimentacao_geral ?? null
 
   const [circuitoOv, setCircuitoOv] = useState<Record<string, OverridesCircuito>>({})
@@ -52,7 +60,7 @@ export function useWizardCondutoresPanel(projetoId: string) {
       neutro: overrideBitolaAgCoerente(ag.secao_condutor_neutro_escolhida_mm2),
       pe: overrideBitolaAgCoerente(ag.secao_condutor_pe_escolhida_mm2),
     })
-  }, [ag?.id, ag?.secao_condutor_fase_escolhida_mm2, dim?.atualizado_em])
+  }, [ag, dim?.atualizado_em])
 
   const payloadUmCircuito = useCallback(
     (c: CircuitoCargaCondutores): PatchCondutoresPayload => {

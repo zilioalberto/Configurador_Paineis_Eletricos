@@ -1,3 +1,5 @@
+"""Endpoints REST de RH (departamentos, cargos, equipes, jornadas e colaboradores)."""
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
@@ -20,6 +22,8 @@ User = get_user_model()
 
 
 class RhPermissionMixin:
+    """Permissões RH: visualizar (list/retrieve) ou editar (demais ações)."""
+
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, _request, _view):
@@ -29,6 +33,8 @@ class RhPermissionMixin:
 
 
 class DepartamentoViewSet(RhPermissionMixin, ModelViewSet):
+    """CRUD de departamentos com filtros por ativo e busca textual."""
+
     serializer_class = DepartamentoSerializer
 
     def get_queryset(self):
@@ -46,6 +52,8 @@ class DepartamentoViewSet(RhPermissionMixin, ModelViewSet):
 
 
 class CargoViewSet(RhPermissionMixin, ModelViewSet):
+    """CRUD de cargos."""
+
     serializer_class = CargoSerializer
 
     def get_queryset(self):
@@ -63,6 +71,8 @@ class CargoViewSet(RhPermissionMixin, ModelViewSet):
 
 
 class JornadaTrabalhoViewSet(RhPermissionMixin, ModelViewSet):
+    """CRUD de jornadas de trabalho (horários e dias da semana)."""
+
     serializer_class = JornadaTrabalhoSerializer
 
     def get_queryset(self):
@@ -76,6 +86,8 @@ class JornadaTrabalhoViewSet(RhPermissionMixin, ModelViewSet):
 
 
 class EquipeViewSet(RhPermissionMixin, ModelViewSet):
+    """CRUD de equipes (departamento, líder e filtros)."""
+
     serializer_class = EquipeSerializer
 
     def get_queryset(self):
@@ -136,6 +148,8 @@ class RhUsuariosParaVinculoView(APIView):
 
 
 class ColaboradorViewSet(RhPermissionMixin, ModelViewSet):
+    """CRUD de colaboradores com vínculo opcional a usuário, cargo, equipe e jornada."""
+
     serializer_class = ColaboradorSerializer
 
     def get_queryset(self):

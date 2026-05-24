@@ -1,3 +1,8 @@
+/**
+ * Tipos TypeScript para dimensionamento: resumo, circuitos de condutores
+ * e payload de revisão/aprovação de bitolas.
+ */
+
 /** Resposta GET/PATCH `/configurador/dimensionamento/projeto/:id/` (detalhe com condutores). */
 export type TabelaReferenciaCondutor = {
   secao_mm2: string

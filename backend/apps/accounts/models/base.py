@@ -1,3 +1,8 @@
+"""
+Modelo de utilizador da aplicação: login por e-mail, tipo de perfil e permissões efetivas.
+
+As permissões combinam defaults por `tipo_usuario`, extras e negações explícitas.
+"""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -7,6 +12,8 @@ from core.choices import DEFAULT_PERMISSIONS_BY_TIPO, TipoUsuarioChoices
 
 
 class CustomUser(AbstractUser):
+    """Utilizador autenticável; identificador único é o e-mail (sem username Django)."""
+
     username = None
 
     first_name = models.CharField("nome", max_length=150, blank=True)
@@ -50,6 +57,7 @@ class CustomUser(AbstractUser):
 
     @property
     def permissoes_efetivas(self):
+        """Permissões finais: defaults do tipo + extras − negadas."""
         base = set(DEFAULT_PERMISSIONS_BY_TIPO.get(self.tipo_usuario, set()))
         extras = set(self.permissoes_extras or [])
         negadas = set(self.permissoes_negadas or [])

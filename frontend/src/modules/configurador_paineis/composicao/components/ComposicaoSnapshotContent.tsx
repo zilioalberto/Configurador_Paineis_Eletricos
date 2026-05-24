@@ -191,6 +191,7 @@ function ComposicaoTabelaPendencias({
   )
 }
 
+/** Corpo principal do snapshot: tabelas de aprovados, sugestões, pendências e memorial. */
 export function ComposicaoSnapshotContent({
   projetoId,
   snapshot,

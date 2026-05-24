@@ -27,6 +27,7 @@ type TarefasKanbanBoardProps = Readonly<{
   onNovaTarefa: () => void
 }>
 
+/** Board Kanban com colunas arrastáveis e cartões de tarefa. */
 export function TarefasKanbanBoard({
   quadroNome,
   colunas,

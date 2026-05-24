@@ -11,6 +11,7 @@ import {
   totalizarHorasTarefas,
 } from '../utils/tarefasKanbanUtils'
 
+/** Visualizações alternativas: lista, calendário e dashboard de horas. */
 export function TarefasListaView({
   tarefas,
   onOpen,

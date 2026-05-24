@@ -1,3 +1,7 @@
+/**
+ * Registo de rotas e menu do shell ERP (cadastros, RH, orçamentos, configurações).
+ * Reutiliza páginas de outros módulos com guards de permissão.
+ */
 import { lazy, type ReactElement } from 'react'
 
 import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
@@ -16,6 +20,7 @@ function withPermission(permission: string, element: ReactElement): ReactElement
   return <RequirePermission permission={permission}>{element}</RequirePermission>
 }
 
+/** Itens de menu lateral do ERP. */
 export const erpMenuItems: AppMenuItem[] = [
   {
     to: '/erp/cadastros',
@@ -43,6 +48,7 @@ export const erpMenuItems: AppMenuItem[] = [
   },
 ]
 
+/** Rotas lazy-loaded sob `/erp/`. */
 export const erpRoutes: ModuleRouteConfig[] = [
   {
     path: '/erp/m/:moduleId',

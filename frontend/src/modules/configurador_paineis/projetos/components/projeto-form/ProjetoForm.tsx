@@ -1,3 +1,8 @@
+/**
+ * Formulário completo do projeto, dividido em seções alinhadas ao backend.
+ * Validação cliente espelha `Projeto.clean()`; erros da API são mapeados por campo.
+ */
+
 import type { ReactNode } from 'react'
 import type { ProjetoFormData, ProjetoResponsavelOption } from '../../types/projeto'
 import { ProjetoFormAlimentacaoSection } from './ProjetoFormAlimentacaoSection'
@@ -58,6 +63,7 @@ export default function ProjetoForm({
   })
 
   const readOnlyExceptStatus = formData.status === 'FINALIZADO'
+  /** Props compartilhadas entre todas as seções do formulário. */
   const sectionProps = {
     formData,
     onFieldChange: handleFieldChange,

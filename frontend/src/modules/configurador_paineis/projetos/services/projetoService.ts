@@ -1,3 +1,7 @@
+/**
+ * Cliente HTTP para a API REST de projetos (`/projetos/`).
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   Projeto,
@@ -12,6 +16,7 @@ type ListResponse<T> = {
   results?: T[]
 }
 
+/** Lista projetos visíveis ao usuário (paginação DRF ou array direto). */
 export async function listarProjetos(): Promise<Projeto[]> {
   const response = await apiClient.get<Projeto[] | ListResponse<Projeto>>(BASE_URL)
 
@@ -41,6 +46,7 @@ export type AlocarCodigoProjetoPayload = {
   ordem_painel?: number
 }
 
+/** Próximo código sugerido (MMnnn-AA); não consome sequencial até salvar. */
 export async function alocarCodigoProjeto(
   payload?: AlocarCodigoProjetoPayload
 ): Promise<{ codigo: string }> {

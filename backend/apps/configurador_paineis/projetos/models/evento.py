@@ -1,3 +1,5 @@
+"""Registro de eventos de rastreabilidade (audit trail) por projeto."""
+
 from django.conf import settings
 from django.db import models
 
@@ -5,6 +7,8 @@ from core.models import BaseModel
 
 
 class ProjetoConfiguradorEvento(BaseModel):
+    """Ação registrada no histórico do projeto (criação, edição, mudanças em módulos)."""
+
     projeto_configurador = models.ForeignKey(
         "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,

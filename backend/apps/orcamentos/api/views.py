@@ -1,3 +1,6 @@
+"""
+API REST de orçamentos e margens por cliente (`/erp/orcamentos/`).
+"""
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -45,6 +48,8 @@ def _orcamento_queryset():
 
 
 class OrcamentoListCreateView(generics.ListCreateAPIView):
+    """Lista propostas e cria orçamento (margens do cliente aplicadas no serializer)."""
+
     queryset = _orcamento_queryset()
     serializer_class = OrcamentoSerializer
     permission_classes = [HasEffectivePermission]
@@ -56,6 +61,8 @@ class OrcamentoListCreateView(generics.ListCreateAPIView):
 
 
 class OrcamentoDetailView(generics.RetrieveUpdateAPIView):
+    """Detalhe e atualização com sync completo de itens quando `itens` é enviado."""
+
     queryset = _orcamento_queryset()
     serializer_class = OrcamentoSerializer
     permission_classes = [HasEffectivePermission]
@@ -209,6 +216,8 @@ class OrcamentoSincronizarComposicaoView(APIView):
 
 
 class ConfiguracaoMargemClienteListCreateView(generics.ListCreateAPIView):
+    """CRUD de margens padrão por parceiro cliente."""
+
     queryset = ConfiguracaoMargemCliente.objects.select_related("cliente").all()
     serializer_class = ConfiguracaoMargemClienteSerializer
     permission_classes = [HasEffectivePermission]
@@ -220,6 +229,8 @@ class ConfiguracaoMargemClienteListCreateView(generics.ListCreateAPIView):
 
 
 class ConfiguracaoMargemClienteDetailView(generics.RetrieveUpdateAPIView):
+    """Consulta e edita margens de um cliente específico."""
+
     queryset = ConfiguracaoMargemCliente.objects.select_related("cliente").all()
     serializer_class = ConfiguracaoMargemClienteSerializer
     permission_classes = [HasEffectivePermission]

@@ -15,6 +15,7 @@ import {
 } from '../utils/tarefasKanbanUtils'
 import { ColaboradoresChecklist } from './ColaboradoresChecklist'
 
+/** Modal de criação de nova tarefa no Kanban. */
 export function TarefaCreateModal({
   colunas,
   isSubmitting,

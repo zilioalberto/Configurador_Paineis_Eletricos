@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '@/modules/auth/AuthContext'
 
+/** Layout route: redireciona para `/login` se não houver sessão válida. */
 export default function RequireAuth() {
   const { user, status } = useAuth()
   const location = useLocation()

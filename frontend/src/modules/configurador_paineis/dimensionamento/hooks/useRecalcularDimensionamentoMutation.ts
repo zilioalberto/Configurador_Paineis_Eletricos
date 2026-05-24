@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { dimensionamentoQueryKeys } from '../dimensionamentoQueryKeys'
 import { recalcularDimensionamento } from '../services/dimensionamentoService'
 
+/** POST recalcular: persiste novo resumo e circuitos de condutores. */
 export function useRecalcularDimensionamentoMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

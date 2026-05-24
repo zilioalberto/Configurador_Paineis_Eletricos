@@ -6,6 +6,7 @@ import { configuradorPaths } from '../configuradorPaths'
 
 const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 
+/** Registo de rotas e menu do módulo composição no app. */
 export const composicaoMenuItems: AppMenuLinkItem[] = [
   {
     to: configuradorPaths.composicao(),

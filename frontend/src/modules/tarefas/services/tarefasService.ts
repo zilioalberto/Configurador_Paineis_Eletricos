@@ -1,3 +1,7 @@
+/**
+ * Cliente HTTP da API de tarefas (Kanban, CRUD, timer e relatórios).
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   ApontamentoHora,
@@ -20,6 +24,7 @@ import type {
   TarefaTimerPararResponse,
 } from '../types/tarefa'
 
+/** Obtém snapshot do quadro Kanban (colunas + tarefas). */
 export async function obterKanbanTarefas(quadroId?: string | null): Promise<KanbanTarefasResponse> {
   const response = await apiClient.get<KanbanTarefasResponse>('/tarefas/kanban/', {
     params: quadroId ? { quadro: quadroId } : undefined,

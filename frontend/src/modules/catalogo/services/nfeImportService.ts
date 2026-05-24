@@ -1,3 +1,5 @@
+/** Cliente HTTP da importação de NF-e no catálogo. */
+
 import apiClient from '@/services/apiClient'
 import type {
   NfeAplicarPayload,

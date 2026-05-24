@@ -23,6 +23,10 @@ import {
 import { withFluxoOrigem } from '../utils/fluxoOrigem'
 import { configuradorPaths } from '../../configuradorPaths'
 
+/**
+ * Shell do wizard por etapa (`/projetos/:id/fluxo/:etapa`):
+ * overview, dimensionamento embutido ou redirecionamentos para cargas/composição.
+ */
 export default function ProjetoWizardPage() {
   const { id, etapa } = useParams<{ id: string; etapa: string }>()
   const projetoId = id ?? ''

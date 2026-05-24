@@ -1,3 +1,5 @@
+/** Busca typeahead de modelos salvos para pré-preencher o formulário de carga. */
+
 import {
   type ChangeEvent,
   useCallback,

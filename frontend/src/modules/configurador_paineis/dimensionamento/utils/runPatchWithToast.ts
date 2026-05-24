@@ -1,3 +1,5 @@
+/** Executa PATCH de condutores com toast de sucesso/erro padronizado. */
+
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
 type ToastFn = (input: {

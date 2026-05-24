@@ -1,3 +1,5 @@
+"""Rotas da API REST do módulo dimensionamento."""
+
 from django.urls import path
 
 from apps.configurador_paineis.dimensionamento.api.views import (

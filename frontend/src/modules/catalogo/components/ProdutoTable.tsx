@@ -7,6 +7,7 @@ type ProdutoTableProps = {
   canManage: boolean
 }
 
+/** Tabela de listagem de produtos. */
 export default function ProdutoTable({
   produtos,
   onDeleteRequest,

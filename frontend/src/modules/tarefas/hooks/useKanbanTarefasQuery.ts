@@ -3,6 +3,7 @@ import { tarefasQueryKeys } from '../tarefasQueryKeys'
 import { obterKanbanTarefas } from '../services/tarefasService'
 
 /** `quadroId`: UUID do quadro (query `?quadro=` na API). Omitir usa o primeiro quadro visível. */
+/** Query do snapshot Kanban (invalidada após mover/criar tarefas). */
 export function useKanbanTarefasQuery(quadroId?: string | null) {
   return useQuery({
     queryKey: tarefasQueryKeys.kanban(quadroId),

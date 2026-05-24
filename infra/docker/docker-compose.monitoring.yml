@@ -23,16 +23,19 @@ services:
     image: prom/alertmanager:v0.27.0
     container_name: configurador_painel_alertmanager
     restart: unless-stopped
-    environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-    command:
+    env_file:
+      - ../../.env
+    entrypoint:
       - /bin/sh
       - -ec
+    command:
       - |
-        mkdir -p /run/secrets
-        printf '%s' "$$TELEGRAM_BOT_TOKEN" > /run/secrets/telegram_bot_token
-        chmod 0400 /run/secrets/telegram_bot_token
-        exec /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
+        : "$${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN ausente}"
+        : "$${TELEGRAM_CHAT_ID:?TELEGRAM_CHAT_ID ausente}"
+        printf '%s' "$$TELEGRAM_BOT_TOKEN" > /tmp/telegram_bot_token
+        sed "s/__TELEGRAM_CHAT_ID__/$${TELEGRAM_CHAT_ID}/g" /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.yml
+        chmod 0400 /tmp/telegram_bot_token
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
     ports:
       - "${ALERTMANAGER_PORT:-9093}:9093"
     volumes:

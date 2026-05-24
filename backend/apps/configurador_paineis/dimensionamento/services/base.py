@@ -1,3 +1,5 @@
+"""Orquestra o recálculo completo do resumo e dos circuitos de condutores."""
+
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 
 from .circuitos import calcular_e_salvar_circuitos_cargas
@@ -10,6 +12,10 @@ from .io_plc import calcular_totais_io_plc
 
 
 def calcular_e_salvar_dimensionamento_basico(projeto) -> ResumoDimensionamento:
+    """
+    Recalcula corrente total, necessidades (PLC, fonte 24 V, expansão), totais de I/O
+    e persiste circuitos de carga + alimentação geral.
+    """
     resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
 
     totais_io = calcular_totais_io_plc(projeto)

@@ -1,3 +1,5 @@
+"""Aplica bitolas escolhidas pelo utilizador e confirma revisão de condutores."""
+
 from __future__ import annotations
 
 from decimal import Decimal

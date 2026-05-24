@@ -1,3 +1,6 @@
+"""
+Serializers de orçamento: itens aninhados, sync por lista e integração catálogo/fiscal.
+"""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -114,6 +117,8 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
 
 
 class OrcamentoSerializer(serializers.ModelSerializer):
+    """Cabeçalho da proposta com itens; normaliza preços e origem ao vincular produto."""
+
     itens = OrcamentoItemSerializer(many=True, required=False)
     configuradores_painel = OrcamentoConfiguradorPainelSerializer(
         many=True,
@@ -470,6 +475,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
 
 class ConfiguracaoMargemClienteSerializer(serializers.ModelSerializer):
+    """Leitura/escrita de margens padrão vinculadas a cliente ativo."""
+
     cliente_nome = serializers.SerializerMethodField()
 
     class Meta:

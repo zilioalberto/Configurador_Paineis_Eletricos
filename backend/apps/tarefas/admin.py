@@ -1,3 +1,5 @@
+"""Admin Django do módulo tarefas."""
+
 from django.contrib import admin
 
 from apps.tarefas.models import (

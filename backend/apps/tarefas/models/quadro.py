@@ -1,3 +1,5 @@
+"""Quadro Kanban e colunas com status semântico (pendente, em andamento, concluído)."""
+
 from django.conf import settings
 from django.db import models
 
@@ -7,6 +9,8 @@ from .choices import StatusSemanticoColunaChoices
 
 
 class QuadroTarefa(BaseModel):
+    """Quadro de tarefas (equipe operacional); contém colunas ordenadas."""
+
     nome = models.CharField(max_length=120)
     descricao = models.TextField(blank=True)
     equipe = models.CharField(max_length=120, blank=True)
@@ -29,6 +33,8 @@ class QuadroTarefa(BaseModel):
 
 
 class ColunaTarefa(BaseModel):
+    """Coluna do quadro; o status semântico sincroniza o status da tarefa."""
+
     quadro = models.ForeignKey(
         QuadroTarefa,
         on_delete=models.CASCADE,

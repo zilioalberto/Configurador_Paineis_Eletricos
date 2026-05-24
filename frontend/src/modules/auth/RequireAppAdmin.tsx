@@ -6,6 +6,7 @@ import { isAppAdmin } from '@/modules/auth/appAdmin'
 
 type RequireAppAdminProps = Readonly<{ children: ReactNode }>
 
+/** Guard de rota reservado a administradores da aplicação. */
 export default function RequireAppAdmin({ children }: RequireAppAdminProps) {
   const { user, status } = useAuth()
 

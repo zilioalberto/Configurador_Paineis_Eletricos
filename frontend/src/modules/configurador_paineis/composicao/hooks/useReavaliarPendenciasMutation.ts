@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { composicaoQueryKeys } from '../composicaoQueryKeys'
 import { reavaliarPendenciasComposicao } from '../services/composicaoService'
 
+/** Mutation para reavaliar pendências abertas do projeto. */
 export function useReavaliarPendenciasMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

@@ -5,6 +5,7 @@ import { findErpModuleByShellSlug } from '@/modules/modulos/moduleCatalog'
 import { obterErpModuleMeta } from '../services/erpApi'
 import type { ErpModuleMetaDto } from '../types/erp'
 
+/** Shell de pré-visualização de módulos planejados (`/erp/m/:moduleId`). */
 export default function ErpModuleShellPage() {
   const { moduleId } = useParams<{ moduleId: string }>()
   const catalogModule = moduleId ? findErpModuleByShellSlug(moduleId) : undefined

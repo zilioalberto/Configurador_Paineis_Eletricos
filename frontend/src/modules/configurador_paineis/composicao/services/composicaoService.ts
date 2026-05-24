@@ -1,3 +1,7 @@
+/**
+ * Cliente HTTP da API de composição (snapshot, mutações e exportação).
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   AprovarSugestaoResponse,
@@ -7,6 +11,7 @@ import type {
 } from '../types/composicao'
 import { nomeArquivoContentDisposition, slugNomeArquivo } from './composicaoExportHelpers'
 
+/** Obtém snapshot completo da composição do projeto. */
 export async function obterComposicaoPorProjeto(
   projetoId: string
 ): Promise<ComposicaoSnapshot> {
@@ -16,6 +21,7 @@ export async function obterComposicaoPorProjeto(
   return response.data
 }
 
+/** Dispara o orquestrador de sugestões no backend. */
 export async function gerarSugestoesComposicao(
   projetoId: string,
   limparAntes = true
@@ -28,6 +34,7 @@ export async function gerarSugestoesComposicao(
   return response.data
 }
 
+/** Reexecuta regras de composição para pendências abertas. */
 export async function reavaliarPendenciasComposicao(
   projetoId: string
 ): Promise<ComposicaoSnapshot> {
@@ -38,6 +45,7 @@ export async function reavaliarPendenciasComposicao(
   return response.data
 }
 
+/** Lista produtos alternativos compatíveis com uma sugestão. */
 export async function listarAlternativasSugestao(
   sugestaoId: string
 ): Promise<ProdutoAlternativa[]> {
@@ -47,6 +55,7 @@ export async function listarAlternativasSugestao(
   return response.data.alternativas
 }
 
+/** Aprova sugestão (opcionalmente com produto substituto) e devolve snapshot atualizado. */
 export async function aprovarSugestao(
   sugestaoId: string,
   produtoId?: string | null
@@ -60,6 +69,7 @@ export async function aprovarSugestao(
   return response.data
 }
 
+/** Reabre item aprovado, devolvendo-o ao estado de sugestão pendente. */
 export async function reabrirComposicaoItem(
   composicaoItemId: string
 ): Promise<{ snapshot: ComposicaoSnapshot }> {
@@ -76,6 +86,7 @@ export type AdicionarInclusaoManualBody = {
   observacoes?: string
 }
 
+/** Adiciona produto do catálogo às inclusões manuais do projeto. */
 export async function adicionarInclusaoManual(
   projetoId: string,
   body: AdicionarInclusaoManualBody
@@ -87,6 +98,7 @@ export async function adicionarInclusaoManual(
   return response.data
 }
 
+/** Remove inclusão manual e devolve snapshot atualizado. */
 export async function removerInclusaoManual(
   inclusaoId: string
 ): Promise<{ snapshot: ComposicaoSnapshot }> {

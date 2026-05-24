@@ -1,3 +1,5 @@
+"""Pendências abertas quando não há produto adequado no catálogo."""
+
 from django.db import models
 from django.db.models import Q
 
@@ -10,6 +12,8 @@ from core.choices import (
 
 
 class PendenciaItem(BaseModel):
+    """Gap de engenharia/compras: regra aplicável mas sem match de catálogo."""
+
     projeto = models.ForeignKey(
         "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,

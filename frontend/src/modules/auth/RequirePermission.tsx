@@ -9,6 +9,7 @@ type RequirePermissionProps = Readonly<{
   children: ReactNode
 }>
 
+/** Guard de rota por permissão única; envia para `/` se negado. */
 export default function RequirePermission({ permission, children }: RequirePermissionProps) {
   const { user, status } = useAuth()
 

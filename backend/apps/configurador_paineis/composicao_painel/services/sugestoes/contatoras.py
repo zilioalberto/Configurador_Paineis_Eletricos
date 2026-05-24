@@ -1,3 +1,5 @@
+"""Sugestões de contatoras para motores, resistências e válvulas conforme acionamento."""
+
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List, NamedTuple, Optional
 

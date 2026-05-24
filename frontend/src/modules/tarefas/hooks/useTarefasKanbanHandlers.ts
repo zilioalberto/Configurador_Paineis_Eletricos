@@ -45,6 +45,7 @@ type TimerState = {
   onTimerTick: () => void
 }
 
+/** Handlers de drag-and-drop, filtros e ações do Kanban. */
 export function useTarefasKanbanHandlers(
   user: AuthUser | null,
   mutations: Mutations,

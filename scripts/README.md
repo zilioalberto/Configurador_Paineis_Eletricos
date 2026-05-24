@@ -1,5 +1,22 @@
 # Scripts utilitários
 
+## `up.ps1` / `down.ps1`
+
+Sobem e derrubam o ambiente local usando o compose base e o compose de monitoramento:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/up.ps1
+powershell -ExecutionPolicy Bypass -File scripts/down.ps1
+```
+
+O `up.ps1` recria os containers com `--force-recreate` e remove órfãos.
+O `down.ps1` remove containers, rede do projeto e órfãos. Para apagar também os volumes
+locais (`postgres_data`, `grafana_data`, `prometheus_data`, etc.), use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/down.ps1 -Volumes
+```
+
 ## `validar-demo-api.ps1`
 
 **Para que serve:** validar **antes da gravação** ou da apresentação que o ambiente Docker + API do wizard estão funcionando de ponta a ponta — **sem usar a interface gráfica**.
@@ -27,7 +44,7 @@
 **Como executar:**
 
 ```powershell
-docker compose -f infra/docker/docker-compose.yml up -d
+powershell -ExecutionPolicy Bypass -File scripts/up.ps1
 powershell -ExecutionPolicy Bypass -File scripts/validar-demo-api.ps1
 ```
 

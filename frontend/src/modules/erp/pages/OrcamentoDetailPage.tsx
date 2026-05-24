@@ -1,3 +1,6 @@
+/**
+ * Detalhe da proposta: cabeçalho, linhas editáveis, totais e sync de itens no PATCH.
+ */
 import {
   type Dispatch,
   type FormEventHandler,
@@ -72,6 +75,7 @@ function formatIpiExibicao(valor: string | null | undefined): string {
   return `${n} %`
 }
 
+/** Formulário completo de edição de orçamento existente. */
 export default function OrcamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { showToast } = useToast()

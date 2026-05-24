@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { obterProjeto } from '../services/projetoService'
 
+/** Carrega um projeto por ID (detalhe, edição, wizard). */
 export function useProjetoDetailQuery(id: string | undefined) {
   return useQuery({
     queryKey: projetoQueryKeys.detail(id ?? ''),

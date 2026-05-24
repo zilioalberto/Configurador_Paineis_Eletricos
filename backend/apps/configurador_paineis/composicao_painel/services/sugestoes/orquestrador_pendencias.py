@@ -1,3 +1,5 @@
+"""Reavalia pendências abertas tentando regenerar sugestões por carga."""
+
 from dataclasses import dataclass
 from typing import Optional
 

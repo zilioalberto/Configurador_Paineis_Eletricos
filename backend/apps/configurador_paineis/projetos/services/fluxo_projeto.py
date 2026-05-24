@@ -1,3 +1,5 @@
+"""Regras de ciclo de vida do projeto: edição, finalização e reabertura."""
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
@@ -13,6 +15,7 @@ MSG_PROJETO_NAO_INFORMADO = "Projeto não informado."
 
 
 def validar_projeto_editavel(projeto: ProjetoConfigurador) -> None:
+    """Impede alterações em projetos com status FINALIZADO."""
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -23,6 +26,10 @@ def validar_projeto_editavel(projeto: ProjetoConfigurador) -> None:
 
 
 def validar_projeto_pode_ser_finalizado(projeto: ProjetoConfigurador) -> None:
+    """
+    Exige composição com itens e ausência de sugestões/pendências abertas
+    antes de encerrar o projeto.
+    """
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -58,6 +65,7 @@ def validar_projeto_pode_ser_finalizado(projeto: ProjetoConfigurador) -> None:
 
 @transaction.atomic
 def finalizar_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
+    """Marca o projeto como FINALIZADO após validar pré-requisitos."""
     validar_projeto_pode_ser_finalizado(projeto)
 
     projeto.status = StatusProjetoChoices.FINALIZADO
@@ -67,6 +75,7 @@ def finalizar_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
 
 
 def validar_projeto_pode_ser_reaberto(projeto: ProjetoConfigurador) -> None:
+    """Somente projetos finalizados podem voltar para EM_ANDAMENTO."""
     if projeto is None:
         raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
@@ -78,6 +87,7 @@ def validar_projeto_pode_ser_reaberto(projeto: ProjetoConfigurador) -> None:
 
 @transaction.atomic
 def reabrir_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
+    """Reabre projeto finalizado para permitir novas alterações."""
     validar_projeto_pode_ser_reaberto(projeto)
 
     projeto.status = StatusProjetoChoices.EM_ANDAMENTO

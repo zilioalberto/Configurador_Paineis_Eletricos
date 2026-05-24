@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { obterDashboardHorasDia } from '../services/tarefasService'
 import { tarefasQueryKeys } from '../tarefasQueryKeys'
 
+/** Query do resumo de horas apontadas no dia. */
 export function useTarefaDashboardHorasDiaQuery(
   userId: number | string | undefined,
   data: string,

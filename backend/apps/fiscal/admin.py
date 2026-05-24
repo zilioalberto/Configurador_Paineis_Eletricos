@@ -1,3 +1,4 @@
+"""Registo Django Admin de itens fiscais por produto."""
 from django.contrib import admin
 
 from apps.fiscal.models import ItemFiscalProduto

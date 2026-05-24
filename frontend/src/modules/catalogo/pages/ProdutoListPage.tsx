@@ -12,6 +12,7 @@ import { useProdutoListQuery } from '../hooks/useProdutoListQuery'
 
 type DeleteTarget = { id: string; label: string }
 
+/** Lista de produtos do catálogo com filtros e paginação. */
 export default function ProdutoListPage() {
   const { user } = useAuth()
   const [filtroCategoria, setFiltroCategoria] = useState<string>('')
@@ -30,7 +31,7 @@ export default function ProdutoListPage() {
     error: loadError,
     refetch,
   } = useProdutoListQuery(categoriaQuery, paginaAtual, pageSize)
-  const produtos = pageData?.items ?? []
+  const produtos = useMemo(() => pageData?.items ?? [], [pageData?.items])
 
   const deleteMutation = useDeleteProdutoMutation()
 

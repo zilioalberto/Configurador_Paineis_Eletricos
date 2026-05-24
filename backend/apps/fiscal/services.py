@@ -1,3 +1,6 @@
+"""
+Serviços fiscais: referência de IPI por produto e criação de itens a partir de NF-e.
+"""
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
@@ -9,6 +12,7 @@ from core.choices.fiscal import OrigemMercadoriaICMSChoices
 
 
 def primeiro_item_fiscal_ordenado(produto: Produto) -> ItemFiscalProduto | None:
+    """Primeiro item fiscal do produto (ordem, depois data de criação)."""
     return (
         ItemFiscalProduto.objects.filter(produto=produto)
         .order_by("ordem", "criado_em")

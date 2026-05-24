@@ -1,3 +1,5 @@
+"""Admin Django para sugestões, composição aprovada, pendências e inclusões manuais."""
+
 from django.contrib import admin, messages
 from django.db import transaction
 

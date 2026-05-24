@@ -1,3 +1,4 @@
+"""API de parâmetros de configuração (`/erp/configuracoes/parametros/`)."""
 from rest_framework import generics
 
 from apps.accounts.api.permissions import HasEffectivePermission
@@ -7,6 +8,8 @@ from core.permissions import PermissionKeys
 
 
 class ParametroListCreateView(generics.ListCreateAPIView):
+    """Lista e cria parâmetros; lookup por `chave` no detalhe."""
+
     queryset = ParametroConfiguracao.objects.all()
     serializer_class = ParametroConfiguracaoSerializer
     permission_classes = [HasEffectivePermission]
@@ -18,6 +21,8 @@ class ParametroListCreateView(generics.ListCreateAPIView):
 
 
 class ParametroDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Consulta, atualiza ou remove parâmetro pela chave."""
+
     queryset = ParametroConfiguracao.objects.all()
     serializer_class = ParametroConfiguracaoSerializer
     permission_classes = [HasEffectivePermission]

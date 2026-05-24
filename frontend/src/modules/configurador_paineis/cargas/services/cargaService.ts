@@ -1,3 +1,5 @@
+/** Cliente HTTP para cargas (`/cargas/`) e modelos reutilizáveis (`/cargas/modelos/`). */
+
 import apiClient from '@/services/apiClient'
 import type { CargaDetail, CargaListItem, CargaModelo, TipoCarga } from '../types/carga'
 

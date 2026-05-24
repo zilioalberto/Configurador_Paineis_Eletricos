@@ -1,3 +1,5 @@
+"""Modelo base do catálogo: produto comercial e dados fiscais de referência."""
+
 import re
 
 from django.core.exceptions import ValidationError
@@ -32,6 +34,8 @@ class Produto(
     ObservacoesTecnicasMixin,
     FabricanteMixin,
 ):
+    """Item do catálogo técnico; categoria define a especificação 1:1 associada."""
+
     UPPERCASE_FIELDS = [
         "codigo",
         "descricao",

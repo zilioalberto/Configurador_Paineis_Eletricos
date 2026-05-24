@@ -1,3 +1,5 @@
+"""Serializers DRF para leitura/escrita de projetos e eventos."""
+
 import re
 
 from rest_framework import serializers
@@ -6,6 +8,8 @@ from apps.configurador_paineis.projetos.models import ProjetoConfigurador, Proje
 
 
 class ProjetoSerializer(serializers.ModelSerializer):
+    """Serializer completo do projeto; código read-only após criação."""
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
@@ -77,6 +81,7 @@ class ProjetoSerializer(serializers.ModelSerializer):
         return v
 
     def validate(self, attrs):
+        """Normaliza campos dependentes quando checkboxes vêm como False sem valor explícito."""
         attrs = super().validate(attrs)
 
         if attrs.get("possui_plc") is False and attrs.get("familia_plc") is None:
@@ -119,6 +124,8 @@ class ProjetoSerializer(serializers.ModelSerializer):
 
 
 class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
+    """Resumo enxuto para cards do dashboard (KPIs e lista recente)."""
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
@@ -138,6 +145,8 @@ class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
 
 
 class ProjetoConfiguradorEventoSerializer(serializers.ModelSerializer):
+    """Evento de rastreabilidade com nome legível do usuário."""
+
     usuario_nome = serializers.SerializerMethodField()
 
     class Meta:

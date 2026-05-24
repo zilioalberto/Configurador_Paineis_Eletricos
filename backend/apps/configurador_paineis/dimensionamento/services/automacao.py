@@ -1,3 +1,5 @@
+"""Indica se o projeto exige PLC com base no flag `possui_plc`."""
+
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 
 

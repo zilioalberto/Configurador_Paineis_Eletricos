@@ -1,3 +1,5 @@
+"""Configuração do Django Admin para resumos e circuitos de dimensionamento."""
+
 from django.contrib import admin
 
 from .models import (

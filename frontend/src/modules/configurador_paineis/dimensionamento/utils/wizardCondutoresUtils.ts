@@ -1,3 +1,5 @@
+/** Utilitários de bitolas: opções filtradas por Iz, overrides e mínimos normativos. */
+
 import type { CircuitoCargaCondutores, TabelaReferenciaCondutor } from '../types/dimensionamento'
 
 export const SUGESTAO_CONDUTOR = '__sugestao__'

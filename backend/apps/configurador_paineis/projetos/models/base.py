@@ -1,3 +1,5 @@
+"""Modelo principal do projeto de painel elétrico e regras de validação de negócio."""
+
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
@@ -21,6 +23,11 @@ from core.choices import (
 
 
 class ProjetoConfigurador(BaseModel, AtivacaoMixin):
+    """
+    Entidade central do configurador: agrupa dados elétricos, recursos do painel
+    e parâmetros que alimentam dimensionamento e composição.
+    """
+
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -251,12 +258,15 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
         return f"{self.codigo} - {self.nome}"
 
     def eh_ca(self) -> bool:
+        """Indica alimentação principal em corrente alternada."""
         return self.tipo_corrente == TipoCorrenteChoices.CA
 
     def eh_cc(self) -> bool:
+        """Indica alimentação principal em corrente contínua."""
         return self.tipo_corrente == TipoCorrenteChoices.CC
 
     def _validar_alimentacao_principal(self, errors: dict) -> None:
+        """CA exige fases e frequência; CC zera esses campos e restringe tensões."""
         if self.eh_ca():
             if not self.numero_fases:
                 errors["numero_fases"] = "Para alimentação CA, informe o número de fases."
@@ -288,6 +298,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             )
 
     def _validar_seccionamento(self, errors: dict) -> None:
+        """Sem seccionamento, o tipo é forçado para NENHUM; com seccionamento, exige tipo válido."""
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
             return
@@ -300,6 +311,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             )
 
     def _validar_conexoes_alimentacao(self, errors: dict) -> None:
+        """Conexões de neutro/terra só são obrigatórias quando o painel possui esses condutores."""
         if not self.tipo_conexao_alimentacao_potencia:
             errors["tipo_conexao_alimentacao_potencia"] = (
                 "Informe o tipo de conexão da alimentação de potência."
@@ -320,6 +332,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             )
 
     def _validar_climatizacao_e_plc(self, errors: dict) -> None:
+        """Campos dependentes de checkboxes (climatização, família PLC) são limpos ou exigidos."""
         if not self.possui_climatizacao:
             self.tipo_climatizacao = ""
         elif not self.tipo_climatizacao:
@@ -335,6 +348,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             )
 
     def clean(self):
+        """Validação de negócio antes de persistir (admin, serializers, save)."""
         errors: dict = {}
         self._validar_alimentacao_principal(errors)
         self._validar_seccionamento(errors)
@@ -345,12 +359,14 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             raise ValidationError(errors)
 
     def _definir_codigo_inicial_se_obrigatorio(self, is_new: bool) -> None:
+        """Na criação sem código informado, gera MMnnn-AA via serviço de sequencial."""
         if is_new and not (self.codigo and str(self.codigo).strip()):
             from apps.configurador_paineis.projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 
             self.codigo = sugerir_proximo_codigo_projeto()
 
     def _normalizar_campos_texto_maiusculas(self) -> None:
+        """Padroniza código, nome e cliente em maiúsculas."""
         if self.codigo:
             self.codigo = self.codigo.upper().strip()
         if self.nome:
@@ -359,6 +375,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             self.cliente = self.cliente.upper().strip()
 
     def _aplicar_padroes_antes_write(self) -> None:
+        """Limpa campos condicionais desabilitados antes de gravar no banco."""
         if self.eh_cc():
             self.numero_fases = None
             self.frequencia = None
@@ -378,6 +395,10 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
                 self.familia_plc = ""
 
     def _guardar_com_retry_duplicidade_codigo(self, is_new: bool, *args, **kwargs) -> None:
+        """
+        Em criação concorrente, duas requisições podem colidir no mesmo código;
+        tenta até 15 vezes com novo sequencial antes de falhar.
+        """
         from apps.configurador_paineis.projetos.services.codigo_projeto import (
             _integrity_error_duplicidade_codigo_projeto,
             sugerir_proximo_codigo_projeto,
@@ -400,6 +421,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
                     self.codigo = self.codigo.upper().strip()
 
     def save(self, *args, **kwargs):
+        """Normaliza, valida e persiste; atribui código automático na criação."""
         is_new = self.pk is None
         self._definir_codigo_inicial_se_obrigatorio(is_new)
         self._normalizar_campos_texto_maiusculas()

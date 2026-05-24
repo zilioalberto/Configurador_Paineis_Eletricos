@@ -1,3 +1,5 @@
+"""Especificação técnica de painéis vinculada ao Produto do catálogo."""
+
 from django.core.exceptions import ValidationError
 from django.db import models
 

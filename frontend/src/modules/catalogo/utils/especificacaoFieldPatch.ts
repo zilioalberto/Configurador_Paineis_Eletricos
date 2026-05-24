@@ -1,3 +1,5 @@
+/** Patches tipados em campos numéricos da especificação (validação no form). */
+
 import type { CategoriaProdutoNome } from '../types/categoria'
 
 export type EspecPatch = Record<string, string | number | boolean>

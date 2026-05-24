@@ -1,3 +1,5 @@
+/** Cliente HTTP das categorias de produto (enum fixo do backend). */
+
 import apiClient from '@/services/apiClient'
 import type { CategoriaProduto } from '../types/categoria'
 

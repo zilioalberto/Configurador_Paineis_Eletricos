@@ -1,3 +1,5 @@
+"""Especificação de válvula pneumática/hidráulica com solenoides e feedback."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -19,6 +21,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaValvula(models.Model):
+    """Válvula; ocupa saídas digitais por solenoide e entrada se houver feedback."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,

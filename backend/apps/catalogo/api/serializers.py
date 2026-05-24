@@ -1,3 +1,5 @@
+"""Serializers do catálogo: produto, especificações por categoria e persistência."""
+
 from django.db import transaction
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
@@ -1555,6 +1557,8 @@ def _aliquota_ipi_do_primeiro_item_fiscal(obj: Produto):
 
 
 class ProdutoListSerializer(serializers.ModelSerializer):
+    """Listagem resumida de produtos (sem especificações técnicas completas)."""
+
     categoria_nome = serializers.CharField(source="categoria", read_only=True)
     categoria_display = serializers.SerializerMethodField()
     unidade_medida_display = serializers.CharField(
@@ -1657,6 +1661,8 @@ PRODUTO_DETAIL_FIELDS = (
 
 
 class ProdutoDetailSerializer(serializers.ModelSerializer):
+    """Detalhe do produto com especificação da categoria e itens fiscais."""
+
     categoria_nome = serializers.CharField(source="categoria", read_only=True)
     categoria_display = serializers.SerializerMethodField()
     unidade_medida_display = serializers.CharField(
@@ -1709,6 +1715,8 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
 
 
 class ProdutoWriteSerializer(serializers.ModelSerializer):
+    """Criação/edição de produto com blocos de especificação por categoria."""
+
     especificacao_contatora = EspecificacaoContatoraWriteSerializer(
         required=False,
         allow_null=True,

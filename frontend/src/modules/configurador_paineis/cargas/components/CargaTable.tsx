@@ -1,3 +1,5 @@
+/** Tabela de cargas do projeto com potência, corrente e ações CRUD. */
+
 import { Link, useSearchParams } from 'react-router-dom'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'

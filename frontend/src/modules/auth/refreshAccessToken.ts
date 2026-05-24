@@ -6,7 +6,7 @@ import { tokenStorage } from '@/modules/auth/tokenStorage'
 let inFlight: Promise<string> | null = null
 
 /**
- * Renova o access token com o refresh atual.
+ * Renova o access token com o refresh atual (`POST /auth/token/refresh/`).
  * Pedidos concorrentes partilham a mesma promessa.
  */
 export function refreshAccessToken(): Promise<string> {

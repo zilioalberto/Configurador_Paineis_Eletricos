@@ -1,3 +1,8 @@
+"""
+Orçamentos comerciais (propostas): cabeçalho, itens, margens por cliente e numeração mensal.
+
+Integra cadastros (cliente/contato), catálogo (produtos e IPI fiscal) e permissões ERP.
+"""
 from __future__ import annotations
 
 import uuid
@@ -46,6 +51,8 @@ class ModoConfiguradorPainelChoices(models.TextChoices):
 
 
 class SequenciaPropostaMensal(models.Model):
+    """Contador atômico para códigos `Prop-MMNNN-AA` sem colisão."""
+
     ano = models.PositiveSmallIntegerField()
     mes = models.PositiveSmallIntegerField()
     ultimo_numero = models.PositiveIntegerField(default=0)
@@ -56,6 +63,7 @@ class SequenciaPropostaMensal(models.Model):
 
     @classmethod
     def proximo_codigo_base(cls, data=None) -> str:
+        """Gera próximo código único no formato Prop-{mês}{seq}-{ano}."""
         data = data or timezone.localdate()
         with transaction.atomic():
             sequencia, _created = cls.objects.select_for_update().get_or_create(
@@ -74,6 +82,8 @@ class SequenciaPropostaMensal(models.Model):
 
 
 class ConfiguracaoMargemCliente(models.Model):
+    """Margens padrão de produtos e serviços aplicadas ao criar orçamento para o cliente."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     cliente = models.OneToOneField(
         ParceiroComercial,
@@ -107,6 +117,8 @@ class ConfiguracaoMargemCliente(models.Model):
 
 
 class Orcamento(models.Model):
+    """Proposta comercial; código gerado automaticamente na primeira gravação."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo_base = models.CharField(max_length=32, db_index=True, blank=True)
     revisao = models.CharField(max_length=4, default="A")
@@ -263,6 +275,8 @@ class OrcamentoConfiguradorPainel(models.Model):
 
 
 class OrcamentoItem(models.Model):
+    """Linha da proposta: produto/serviço, custo, margem, preço e referência fiscal (IPI)."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     orcamento = models.ForeignKey(
         Orcamento,

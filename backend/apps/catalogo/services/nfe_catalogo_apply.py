@@ -1,3 +1,5 @@
+"""Persistência da importação de NF-e: produtos, fornecedores e itens fiscais."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

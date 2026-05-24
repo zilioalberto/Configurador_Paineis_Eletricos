@@ -3,6 +3,7 @@ import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
+/** Seção: neutro, terra e tipos de conexão da alimentação. */
 export function ProjetoFormAlimentacaoSection({
   formData,
   onFieldChange,

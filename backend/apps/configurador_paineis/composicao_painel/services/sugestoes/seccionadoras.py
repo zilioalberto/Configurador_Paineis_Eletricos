@@ -1,3 +1,5 @@
+"""Sugestões de seccionamento geral do painel (seccionadora ou disjuntor caixa moldada)."""
+
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem, PendenciaItem
 

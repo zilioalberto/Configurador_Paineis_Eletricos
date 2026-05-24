@@ -88,6 +88,7 @@ function LinhaProjetoRecente({
   )
 }
 
+/** Painel inicial com KPIs, fluxo sugerido e projetos recentes. */
 export default function DashboardPage() {
   const { user } = useAuth()
   const canViewProjetos = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)

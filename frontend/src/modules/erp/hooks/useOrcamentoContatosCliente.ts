@@ -1,3 +1,6 @@
+/**
+ * Carrega contatos do cliente selecionado no formulário de orçamento.
+ */
 import { useEffect, useState } from 'react'
 import { listarContatosCliente } from '../services/erpApi'
 import type { ContatoClienteDto } from '../types/erp'
@@ -8,6 +11,7 @@ type ToastFn = (input: {
   message: string
 }) => void
 
+/** Mantém contato selecionado apenas se ainda existir na lista carregada. */
 export function contatoIdValidoParaLista(
   atual: string,
   contatos: ContatoClienteDto[]
@@ -15,6 +19,7 @@ export function contatoIdValidoParaLista(
   return atual && contatos.some((c) => c.id === atual) ? atual : ''
 }
 
+/** Hook que busca contatos quando `clienteId` muda; avisa em falha de rede. */
 export function useOrcamentoContatosCliente(
   clienteId: string,
   showToast: ToastFn,

@@ -1,9 +1,12 @@
+"""Manager do CustomUser: criação por e-mail e superusuário com tipo ADMIN."""
 from django.contrib.auth.base_user import BaseUserManager
 
 from core.choices import TipoUsuarioChoices
 
 
 class CustomUserManager(BaseUserManager):
+    """Normaliza e-mail e define flags padrão para utilizador comum e superusuário."""
+
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):

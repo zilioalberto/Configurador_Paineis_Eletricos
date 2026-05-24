@@ -1,3 +1,5 @@
+/** Registro de rotas e item de menu do módulo dimensionamento. */
+
 import { lazy } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'

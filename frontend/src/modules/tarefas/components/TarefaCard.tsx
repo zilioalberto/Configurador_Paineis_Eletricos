@@ -96,6 +96,7 @@ function TimerActionButton({
   )
 }
 
+/** Cartão resumido de tarefa no Kanban. */
 export function TarefaCard({
   tarefa,
   podeMover,

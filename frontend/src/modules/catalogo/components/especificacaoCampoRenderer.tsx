@@ -1,3 +1,5 @@
+/** Renderização dinâmica de campos de especificação por categoria. */
+
 import type { ReactNode } from 'react'
 import { selectOptionsParaCampo } from '../constants/specSelectRegistry'
 import type { CategoriaProdutoNome } from '../types/categoria'
@@ -355,6 +357,7 @@ function renderCampoInput({
   )
 }
 
+/** Renderiza um campo de especificação conforme metadados e categoria. */
 export function renderCampoEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,

@@ -10,6 +10,7 @@ import {
 } from '../services/erpApi'
 import type { ContatoClienteDto, OrcamentoDto, ParceiroClienteDto } from '../types/erp'
 
+/** Listagem e criação rápida de propostas comerciais. */
 export default function OrcamentoListPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()

@@ -209,6 +209,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
 
 
 def normalize_module_slug(raw: str) -> str:
+    """Normaliza slug da URL (`_` → `-`, alias `configurador` → `configurador-paineis`)."""
     s = (raw or "").strip().lower().replace("_", "-")
     if s == "configurador":
         s = "configurador-paineis"
@@ -221,5 +222,6 @@ def normalize_module_slug(raw: str) -> str:
 
 
 def get_module_meta(slug: str) -> ErpModuleMeta | None:
+    """Retorna metadados do módulo ou `None` se o slug não existir no registo."""
     key = normalize_module_slug(slug)
     return ERP_MODULES_REGISTRY.get(key)

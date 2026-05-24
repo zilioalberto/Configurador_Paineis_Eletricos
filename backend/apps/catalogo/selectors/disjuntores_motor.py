@@ -1,3 +1,5 @@
+"""Seletores de produtos do catálogo: disjuntores motor."""
+
 from decimal import Decimal
 
 from django.db.models import F, ExpressionWrapper, DecimalField, QuerySet

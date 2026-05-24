@@ -1,3 +1,5 @@
+"""Rotas da API de composição do painel."""
+
 from django.urls import path
 
 from apps.configurador_paineis.composicao_painel.api.views import (

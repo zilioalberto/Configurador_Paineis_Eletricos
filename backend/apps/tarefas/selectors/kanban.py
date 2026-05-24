@@ -1,3 +1,5 @@
+"""Consultas otimizadas para montagem do payload Kanban."""
+
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, OuterRef, Prefetch, Q, Subquery, Sum

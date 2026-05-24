@@ -1,3 +1,5 @@
+"""Rotas da API de cadastros (parceiros, endereços, contatos)."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 

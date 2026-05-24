@@ -11,6 +11,7 @@ import {
 } from '../services/projetoService'
 import type { Projeto, ProjetoFormData } from '../types/projeto'
 
+/** Cria projeto e invalida listagens e dashboard. */
 export function useCreateProjetoMutation() {
   const queryClient = useQueryClient()
 
@@ -24,6 +25,10 @@ export function useCreateProjetoMutation() {
   })
 }
 
+/**
+ * Atualiza projeto; se a tensão nominal mudar, invalida cargas,
+ * dimensionamento e composição (efeito espelhado do backend).
+ */
 export function useUpdateProjetoMutation() {
   const queryClient = useQueryClient()
 
@@ -53,6 +58,7 @@ export function useUpdateProjetoMutation() {
   })
 }
 
+/** Remove projeto e limpa cache de detalhe. */
 export function useDeleteProjetoMutation() {
   const queryClient = useQueryClient()
 

@@ -1,3 +1,5 @@
+"""Sugestões automáticas de produtos aguardando aprovação do utilizador."""
+
 from django.db import models
 from django.db.models import Q
 
@@ -10,6 +12,8 @@ from core.choices import (
 
 
 class SugestaoItem(BaseModel):
+    """Produto sugerido pelo motor de regras; passa a ComposicaoItem após aprovação."""
+
     projeto = models.ForeignKey(
         "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,

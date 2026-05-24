@@ -1,9 +1,14 @@
+"""
+Serializers fiscais aninhados no catálogo (leitura e escrita de ItemFiscalProduto).
+"""
 from rest_framework import serializers
 
 from apps.fiscal.models import ItemFiscalProduto
 
 
 class ItemFiscalProdutoSerializer(serializers.ModelSerializer):
+    """Leitura de item fiscal em detalhe de produto."""
+
     class Meta:
         model = ItemFiscalProduto
         fields = (

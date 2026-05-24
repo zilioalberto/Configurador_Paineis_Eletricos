@@ -1,3 +1,5 @@
+/** Valores padrão do formulário e troca de tipo (limpa blocos incompatíveis). */
+
 import type {
   CargaFormData,
   CargaMotorPayload,

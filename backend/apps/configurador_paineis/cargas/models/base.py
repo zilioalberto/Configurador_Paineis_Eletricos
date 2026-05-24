@@ -1,3 +1,5 @@
+"""Modelo base de carga elétrica vinculada a um projeto de painel."""
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -8,6 +10,11 @@ from core.choices import TipoCargaChoices
 
 
 class Carga(BaseModel, AtivacaoMixin):
+    """
+    Item de carga do projeto (motor, válvula, resistência, etc.).
+    Contadores de IO são derivados automaticamente pelas especificações quando há PLC.
+    """
+
     projeto = models.ForeignKey(
         ProjetoConfigurador,
         on_delete=models.CASCADE,
@@ -67,6 +74,7 @@ class Carga(BaseModel, AtivacaoMixin):
         return f"{self.tag} - {self.descricao}"
 
     def save(self, *args, **kwargs):
+        """Normaliza tag, descrição e local em maiúsculas antes de persistir."""
         if self.tag:
             self.tag = self.tag.upper().strip()
 

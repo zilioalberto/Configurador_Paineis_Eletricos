@@ -1,3 +1,5 @@
+/** Tipos do fluxo de importação de NF-e para o catálogo. */
+
 export type NfeEmitentePreview = {
   cnpj: string
   cpf?: string

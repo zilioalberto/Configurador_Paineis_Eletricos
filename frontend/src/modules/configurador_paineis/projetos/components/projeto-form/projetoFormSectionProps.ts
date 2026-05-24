@@ -1,3 +1,5 @@
+/** Props compartilhadas pelas seções visuais do formulário de projeto. */
+
 import type { ChangeEvent } from 'react'
 import type { ProjetoFormData, ProjetoResponsavelOption } from '../../types/projeto'
 

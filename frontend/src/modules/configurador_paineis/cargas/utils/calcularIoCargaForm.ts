@@ -1,3 +1,8 @@
+/**
+ * Estimativa de ocupação de IO no formulário (preview antes de salvar).
+ * Espelha regras de `sincronizar_quantidades_carga` no backend quando há PLC.
+ */
+
 import type { CargaFormData } from '../types/carga'
 
 export type OcupacaoIoCarga = {

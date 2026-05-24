@@ -1,3 +1,5 @@
+/** Subcomponentes do wizard: toolbar, tabela de circuitos e alimentação geral. */
+
 import type {
   AlimentacaoGeralCondutores,
   CircuitoCargaCondutores,
