@@ -1,3 +1,5 @@
+"""Agregação de pontos de I/O declarados nas cargas ativas do projeto."""
+
 from __future__ import annotations
 
 from apps.configurador_paineis.cargas.models import Carga

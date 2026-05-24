@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { dimensionamentoQueryKeys } from '../dimensionamentoQueryKeys'
 import { obterDimensionamentoPorProjeto } from '../services/dimensionamentoService'
 
+/** Carrega dimensionamento completo (GET recalcula automaticamente no backend). */
 export function useDimensionamentoQuery(projetoId: string | null) {
   return useQuery({
     queryKey: dimensionamentoQueryKeys.porProjeto(projetoId ?? ''),

@@ -1,3 +1,4 @@
+"""Serializer de listagem com dados do produto desnormalizados."""
 from rest_framework import serializers
 
 from apps.fiscal.models import ItemFiscalProduto

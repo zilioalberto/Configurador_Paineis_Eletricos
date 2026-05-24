@@ -1,3 +1,5 @@
+"""Enums de status, prioridade, tipo de tarefa e apontamento."""
+
 from django.db import models
 
 

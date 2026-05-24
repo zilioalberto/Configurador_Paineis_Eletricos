@@ -1,3 +1,5 @@
+"""Admin Django do módulo RH."""
+
 from django.contrib import admin
 
 from apps.rh.models import Cargo, Colaborador, Departamento, Equipe, JornadaTrabalho

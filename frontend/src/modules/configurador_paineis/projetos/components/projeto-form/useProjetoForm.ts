@@ -1,3 +1,8 @@
+/**
+ * Estado e handlers do formulário de projeto: sincroniza campos condicionais
+ * (CA/CC, neutro, PLC, seccionamento) e valida antes do submit.
+ */
+
 import { type SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import type { ProjetoFormData } from '../../types/projeto'
 import { projetoFormInitialState } from './formOptions'
@@ -26,6 +31,7 @@ export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProj
     })
   }, [])
 
+  /** Atualiza código quando a sugestão da API chega após abrir "Novo projeto". */
   useEffect(() => {
     const c = initialData?.codigo
     if (c === undefined) return

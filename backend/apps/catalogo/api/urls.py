@@ -1,3 +1,5 @@
+"""Rotas da API do catálogo (produtos, categorias, importação NF-e)."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 

@@ -10,6 +10,7 @@ import {
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
+/** Seção: identificação, alimentação principal, comando e margem de bitola. */
 export function ProjetoFormDadosGeraisSection({
   formData,
   onFieldChange,
@@ -21,6 +22,7 @@ export function ProjetoFormDadosGeraisSection({
   const ro = readOnlyExceptStatus
 
   const mb = formData.degraus_margem_bitola_condutores
+  /** Inclui valor legado (>1) quando projeto antigo tinha margem fora das opções atuais. */
   const margemBitolaSelectOptions: FormOption<number>[] =
     mb === 0 || mb === 1
       ? margemBitolaCondutoresOptions

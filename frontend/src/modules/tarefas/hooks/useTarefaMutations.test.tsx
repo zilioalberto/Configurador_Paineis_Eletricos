@@ -1,4 +1,3 @@
-import type { UseMutationResult } from '@tanstack/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -82,8 +81,8 @@ function wrapper(client: QueryClient, { children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
 
-function renderMutation(
-  hook: () => UseMutationResult<any, Error, any, any>,
+function renderMutation<TMutation>(
+  hook: () => TMutation,
   client = createClient()
 ) {
   return {
@@ -125,31 +124,34 @@ describe('useTarefaMutations', () => {
   it('invalida cache em mutações básicas de tarefa', async () => {
     const client = createClient()
     const inv = vi.spyOn(client, 'invalidateQueries')
-    const cases = [
-      {
-        hook: useCriarTarefaMutation,
-        payload: { titulo: 'Tarefa' },
-        service: criarTarefa,
-      },
-      {
-        hook: useAtualizarTarefaMutation,
-        payload: { tarefaId: 't1', payload: { titulo: 'Novo' } },
-        service: atualizarTarefa,
-      },
-      { hook: useExcluirTarefaMutation, payload: 't1', service: excluirTarefa },
-      { hook: useConcluirTarefaMutation, payload: 't1', service: concluirTarefa },
-      {
-        hook: useClassificarTarefaMutation,
-        payload: { tarefaId: 't1', payload: { prioridade: 'ALTA' } },
-        service: classificarTarefa,
-      },
-    ]
 
-    for (const item of cases) {
-      const { result } = renderMutation(item.hook, client)
-      await result.current.mutateAsync(item.payload as never)
-      expect(item.service).toHaveBeenCalled()
+    async function runCase<TPayload>(
+      hook: () => { mutateAsync: (payload: TPayload) => Promise<unknown> },
+      payload: TPayload,
+      service: ReturnType<typeof vi.fn>
+    ) {
+      const { result } = renderMutation(hook, client)
+      await result.current.mutateAsync(payload)
+      expect(service).toHaveBeenCalled()
     }
+
+    await runCase(
+      useCriarTarefaMutation,
+      { titulo: 'Tarefa', coluna: 'todo', prioridade: 'MEDIA' },
+      criarTarefa
+    )
+    await runCase(
+      useAtualizarTarefaMutation,
+      { tarefaId: 't1', payload: { titulo: 'Novo' } },
+      atualizarTarefa
+    )
+    await runCase(useExcluirTarefaMutation, 't1', excluirTarefa)
+    await runCase(useConcluirTarefaMutation, 't1', concluirTarefa)
+    await runCase(
+      useClassificarTarefaMutation,
+      { tarefaId: 't1', payload: { tipo_etapa: 'PROPOSTA' } },
+      classificarTarefa
+    )
 
     expect(inv).toHaveBeenCalledWith({ queryKey: tarefasQueryKeys.all })
   })

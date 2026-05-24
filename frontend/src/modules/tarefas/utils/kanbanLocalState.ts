@@ -1,3 +1,5 @@
+/** Atualização otimista do estado local ao mover tarefa entre colunas. */
+
 import type {
   ColunaKanban,
   KanbanTarefasResponse,
@@ -7,6 +9,8 @@ import type {
 function ordenarTarefas(tarefas: TarefaKanbanItem[]): TarefaKanbanItem[] {
   return tarefas.map((tarefa, ordem) => ({ ...tarefa, ordem }))
 }
+
+/** Atualização otimista do estado local ao mover tarefa entre colunas. */
 
 export function moverTarefaNoKanbanLocal(
   atual: KanbanTarefasResponse | undefined,

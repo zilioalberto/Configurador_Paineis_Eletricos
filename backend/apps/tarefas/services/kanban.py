@@ -1,3 +1,5 @@
+"""Regras de movimentação de cartões no Kanban (ordem, status e histórico)."""
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone

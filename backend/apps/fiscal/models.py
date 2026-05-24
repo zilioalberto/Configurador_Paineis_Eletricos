@@ -1,3 +1,6 @@
+"""
+Modelos fiscais: tributação de referência por produto do catálogo (NF-e de entrada).
+"""
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError

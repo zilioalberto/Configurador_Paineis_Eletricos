@@ -1,3 +1,5 @@
+"""Especificação de resistência elétrica: potência, acionamento e corrente calculada."""
+
 from decimal import Decimal
 from math import sqrt
 
@@ -24,6 +26,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaResistencia(models.Model):
+    """Resistência de aquecimento; valida tensão vs. projeto e acionamento."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,

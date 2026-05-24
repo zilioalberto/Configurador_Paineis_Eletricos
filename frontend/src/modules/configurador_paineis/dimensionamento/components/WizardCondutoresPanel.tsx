@@ -1,3 +1,5 @@
+/** Painel principal de revisão/aprovação de bitolas (modo embutido no wizard). */
+
 import { useWizardCondutoresPanel } from '../hooks/useWizardCondutoresPanel'
 import {
   AlimentacaoGeralSection,

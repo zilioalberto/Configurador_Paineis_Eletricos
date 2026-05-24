@@ -1,3 +1,5 @@
+"""Especificação técnica de inversores de frequência vinculada ao Produto do catálogo."""
+
 from django.db import models
 
 from core.models import BaseModel

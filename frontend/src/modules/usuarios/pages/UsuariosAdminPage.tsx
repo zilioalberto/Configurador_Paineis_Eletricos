@@ -1,3 +1,7 @@
+/**
+ * Página de administração de utilizadores: CRUD, tipos e matriz de permissões.
+ * Consome a API `accounts` (`/auth/users/`); vínculo RH é somente leitura aqui.
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -27,6 +31,7 @@ const emptyCreate = {
   is_active: true,
 }
 
+/** Grade de checkboxes para seleção de permissões efetivas. */
 function PermissionSelector({
   disabled,
   selected,
@@ -67,6 +72,7 @@ function PermissionSelector({
   )
 }
 
+/** Tela principal: formulário de criação, listagem e modal de edição. */
 export default function UsuariosAdminPage() {
   const { showToast } = useToast()
   const queryClient = useQueryClient()
@@ -130,8 +136,14 @@ export default function UsuariosAdminPage() {
   })
 
   const defaultTipo = useMemo(() => tipos[0]?.value ?? 'USUARIO', [tipos])
-  const permissionOptions = permissionData?.permissions ?? []
-  const defaultsByTipo = permissionData?.defaults_by_tipo ?? {}
+  const permissionOptions = useMemo(
+    () => permissionData?.permissions ?? [],
+    [permissionData?.permissions]
+  )
+  const defaultsByTipo = useMemo(
+    () => permissionData?.defaults_by_tipo ?? {},
+    [permissionData?.defaults_by_tipo]
+  )
 
   useEffect(() => {
     if (!createForm.permissoes.length) {

@@ -1,3 +1,5 @@
+"""Serializers da API de tarefas (Kanban, apontamentos, timer e histórico)."""
+
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -56,6 +58,8 @@ class ColunaTarefaSerializer(serializers.ModelSerializer):
 
 
 class TarefaSerializer(serializers.ModelSerializer):
+    """Tarefa com flags de permissão, totais de horas e referências de vínculo."""
+
     responsavel_nome = serializers.SerializerMethodField()
     colaboradores_nomes = serializers.SerializerMethodField()
     criador_nome = serializers.SerializerMethodField()
@@ -157,6 +161,8 @@ class TarefaSerializer(serializers.ModelSerializer):
 
 
 class TarefaKanbanSerializer(TarefaSerializer):
+    """Subconjunto de campos da tarefa serializado dentro das colunas do Kanban."""
+
     class Meta(TarefaSerializer.Meta):
         fields = (
             "id",

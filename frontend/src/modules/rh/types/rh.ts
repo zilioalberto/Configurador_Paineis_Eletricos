@@ -1,3 +1,7 @@
+/**
+ * Tipos e payloads da API de RH (departamentos, cargos, equipes, jornadas, colaboradores).
+ */
+
 export type AtivoFiltroRh = '' | '1' | '0'
 
 export type DepartamentoDto = {

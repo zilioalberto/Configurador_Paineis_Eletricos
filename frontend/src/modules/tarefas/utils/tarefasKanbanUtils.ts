@@ -1,3 +1,5 @@
+/** Utilitários de formatação, filtros e payload do Kanban de tarefas. */
+
 import type { AuthUser } from '@/modules/auth/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'

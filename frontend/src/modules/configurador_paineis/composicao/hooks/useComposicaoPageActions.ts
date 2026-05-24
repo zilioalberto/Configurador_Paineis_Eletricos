@@ -37,6 +37,7 @@ type Params = {
   itemReabrir: ComposicaoItem | null
 }
 
+/** Ações da página de composição (gerar, aprovar, exportar, reabrir). */
 export function useComposicaoPageActions({
   projetoId,
   podeEditar,
@@ -295,6 +296,7 @@ export function useComposicaoPageActions({
   }
 }
 
+/** Sincroniza seleção de projeto com query string `?projeto=`. */
 export function useComposicaoProjetoChange(
   setSearchParams: (params: Record<string, string> | URLSearchParams, opts?: { replace?: boolean }) => void
 ) {

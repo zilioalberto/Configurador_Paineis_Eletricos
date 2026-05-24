@@ -1,5 +1,9 @@
+/**
+ * Tipos do shell ERP: orçamentos, metadados de módulos e parâmetros de configuração.
+ */
 import type { ContatoParceiroDto, ParceiroComercialDto } from '@/modules/cadastros/types/cadastros'
 
+/** Metadados de um módulo do roadmap (`GET /erp/modules/:slug/meta/`). */
 export type ErpModuleMetaDto = {
   id: string
   area: string
@@ -9,6 +13,7 @@ export type ErpModuleMetaDto = {
   notes: string
 }
 
+/** Linha de item da proposta comercial. */
 export type OrcamentoItemDto = {
   id: string
   ordem: number
@@ -21,6 +26,7 @@ export type OrcamentoItemDto = {
   preco_unitario: string
 }
 
+/** Orçamento/proposta com cabeçalho, cliente e itens. */
 export type OrcamentoDto = {
   id: string
   codigo: string
@@ -45,6 +51,7 @@ export type ParceiroClienteDto = ParceiroComercialDto
 
 export type ContatoClienteDto = ContatoParceiroDto
 
+/** Margens padrão de produtos/serviços por cliente. */
 export type ConfiguracaoMargemClienteDto = {
   id: string
   cliente: string
@@ -53,6 +60,7 @@ export type ConfiguracaoMargemClienteDto = {
   margem_servicos_percentual: string
 }
 
+/** Parâmetro chave/valor das configurações globais do ERP. */
 export type ParametroConfiguracaoDto = {
   id: number
   chave: string

@@ -1,3 +1,5 @@
+"""Rotas da API de tarefas (Kanban, timer, apontamentos e relatórios)."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 

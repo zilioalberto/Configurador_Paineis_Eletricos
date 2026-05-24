@@ -1,3 +1,5 @@
+"""Seletores de produtos do catálogo: temporizadores."""
+
 from __future__ import annotations
 
 from django.db.models import QuerySet

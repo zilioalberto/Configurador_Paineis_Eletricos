@@ -1,3 +1,4 @@
+"""Permissões DRF reutilizáveis: admin da app e checagem por permissão efetiva."""
 from rest_framework import permissions
 
 from core.choices import TipoUsuarioChoices

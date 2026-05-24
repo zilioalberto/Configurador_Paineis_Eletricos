@@ -16,6 +16,7 @@ type Props = {
   onAprovar: (sugestaoId: string, produtoId: string) => void
 }
 
+/** Modal para escolher produto alternativo antes de aprovar sugestão. */
 export function ComposicaoAlterarSugestaoModal({
   sugestao,
   alternativas,

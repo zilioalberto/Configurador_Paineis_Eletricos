@@ -1,3 +1,4 @@
+"""Admin Django para parâmetros de configuração."""
 from django.contrib import admin
 
 from apps.configuracoes_erp.models import ParametroConfiguracao

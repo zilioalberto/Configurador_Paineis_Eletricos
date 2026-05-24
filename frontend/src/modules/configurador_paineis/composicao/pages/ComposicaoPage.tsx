@@ -56,6 +56,7 @@ function modalComposicaoState(
   }
 }
 
+/** Página principal da etapa de composição do painel (wizard passo 4). */
 export default function ComposicaoPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -134,7 +135,10 @@ export default function ComposicaoPage() {
 
   const onProjetoChange = useComposicaoProjetoChange(setSearchParams)
 
-  const composicaoItens = snapshot?.composicao_itens ?? []
+  const composicaoItens = useMemo(
+    () => snapshot?.composicao_itens ?? [],
+    [snapshot?.composicao_itens]
+  )
   const optsAgrupamento = useMemo(
     () => ({ correnteTotalPainelA: dimensionamento?.corrente_total_painel_a ?? null }),
     [dimensionamento?.corrente_total_painel_a]

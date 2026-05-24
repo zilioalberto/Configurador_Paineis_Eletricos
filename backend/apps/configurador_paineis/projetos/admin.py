@@ -1,3 +1,5 @@
+"""Configuração do Django Admin para projetos e ações de fluxo."""
+
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 
@@ -66,6 +68,8 @@ def reabrir_projeto_action(modeladmin, request, queryset):
 
 @admin.register(Projeto)
 class ProjetoAdmin(admin.ModelAdmin):
+    """Interface administrativa com fieldsets alinhados ao formulário do wizard."""
+
     list_display = (
         "codigo",
         "nome",
@@ -223,6 +227,7 @@ class ProjetoAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        """Bloqueia edição de projetos finalizados até reabertura via ação admin."""
         if change:
             projeto_atual = Projeto.objects.get(pk=obj.pk)
             if projeto_atual.status == StatusProjetoChoices.FINALIZADO:
@@ -233,6 +238,7 @@ class ProjetoAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
+        """Projeto finalizado: todos os campos ficam somente leitura no admin."""
         readonly = list(super().get_readonly_fields(request, obj))
         readonly.append("codigo")
 

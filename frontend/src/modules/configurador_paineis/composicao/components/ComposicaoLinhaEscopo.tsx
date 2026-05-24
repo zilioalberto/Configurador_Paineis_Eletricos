@@ -41,6 +41,7 @@ type Props = {
   acoes?: ReactNode
 }
 
+/** Linha única de item de composição (sugestão ou aprovado) com colunas de escopo. */
 export function ComposicaoLinhaEscopo({
   item,
   dimensionamento,

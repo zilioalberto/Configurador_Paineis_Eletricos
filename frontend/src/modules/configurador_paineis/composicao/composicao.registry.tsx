@@ -5,6 +5,7 @@ import RequirePermission from '@/modules/auth/RequirePermission'
 
 const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 
+/** Registo de rotas e menu do módulo composição no app. */
 export const composicaoMenuItems: AppMenuLinkItem[] = [
   {
     to: '/composicao',

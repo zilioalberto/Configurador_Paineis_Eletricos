@@ -1,3 +1,5 @@
+"""Sugestões de relé térmico de sobrecarga para motores."""
+
 from typing import Optional
 
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor

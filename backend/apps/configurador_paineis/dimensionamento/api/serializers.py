@@ -1,3 +1,5 @@
+"""Serializers DRF para resumo, circuitos de condutores e PATCH de escolhas."""
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -147,6 +149,8 @@ class DimensionamentoAlimentacaoGeralDetalheSerializer(serializers.ModelSerializ
 
 
 class ResumoDimensionamentoSerializer(serializers.ModelSerializer):
+    """Resumo agregado do dimensionamento (sem detalhe de circuitos)."""
+
     projeto = serializers.UUIDField(source="projeto_id", read_only=True)
     projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
     projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
@@ -236,6 +240,8 @@ class DimensionamentoProjetoDetalheSerializer(ResumoDimensionamentoSerializer):
 
 
 class EscolhasCondutoresInputSerializer(serializers.Serializer):
+    """Payload do PATCH `/condutores/`: bitolas escolhidas e confirmação de revisão."""
+
     circuitos = serializers.ListField(
         child=serializers.DictField(),
         required=False,

@@ -1,3 +1,5 @@
+/** Mapeamento categoria → chave JSON da especificação (espelha backend). */
+
 import type { CategoriaProdutoNome } from '../types/categoria'
 
 /** Igual a `CATEGORIA_PARA_CAMPO` no backend (`catalogo/api/serializers.py`). */

@@ -1,3 +1,7 @@
+/**
+ * Tipos e payloads da API de cadastros (parceiros, endereços, contatos).
+ */
+
 export type TipoPessoaParceiro = 'PJ' | 'PF' | 'EX'
 
 export type OrigemCadastroParceiro = 'MANUAL' | 'NFE' | 'IMPORTACAO'

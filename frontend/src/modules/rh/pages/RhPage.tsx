@@ -274,6 +274,7 @@ function jornadaPayload(form: JornadaForm): JornadaTrabalhoPayload {
   }
 }
 
+/** Página de gestão de RH (abas: colaboradores, departamentos, cargos, equipes, jornadas). */
 export default function RhPage() {
   const { user } = useAuth()
   const { showToast } = useToast()

@@ -1,3 +1,7 @@
+/**
+ * Formatação e agrupamento de dados para tabelas de composição (tags, potência, export).
+ */
+
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import type { CargaDetalhe, ProjetoAlimentacaoSnapshot } from '../types/composicao'
 

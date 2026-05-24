@@ -1,3 +1,5 @@
+/** Componentes reutilizáveis de células e cabeçalhos das tabelas de composição. */
+
 import type { CargaDetalhe } from '../types/composicao'
 import {
   em,

@@ -1,3 +1,4 @@
+/** Chaves React Query do módulo catálogo. */
 export const catalogoQueryKeys = {
   all: ['catalogo'] as const,
   plcFamilias: (apenasEspecificacaoPlc?: boolean) =>

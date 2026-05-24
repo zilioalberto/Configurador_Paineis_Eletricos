@@ -1,3 +1,5 @@
+"""Itens de checklist por tarefa."""
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone

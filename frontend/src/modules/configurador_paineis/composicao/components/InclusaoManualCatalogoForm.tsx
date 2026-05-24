@@ -86,6 +86,7 @@ function InclusaoManualProdutoListbox({
   )
 }
 
+/** Formulário de busca e inclusão de produto do catálogo na composição. */
 export function InclusaoManualCatalogoForm({
   baseId,
   buscaId,

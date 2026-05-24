@@ -1,3 +1,5 @@
+/** Converte detalhe da API em estado do formulário de produto. */
+
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
 import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
 import type { CategoriaProduto } from '../types/categoria'

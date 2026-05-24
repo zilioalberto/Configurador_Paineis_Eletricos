@@ -1,3 +1,5 @@
+"""Sugestões de disjuntor motor e proteção elétrica para cargas motor/resistência."""
+
 from typing import Optional
 
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia

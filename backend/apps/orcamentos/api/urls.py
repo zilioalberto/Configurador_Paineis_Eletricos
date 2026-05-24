@@ -1,3 +1,4 @@
+"""Rotas de orçamentos sob o prefixo `/erp/orcamentos/`."""
 from django.urls import path
 
 from apps.orcamentos.api.views import (

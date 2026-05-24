@@ -1,3 +1,6 @@
+/**
+ * Página inicial: grid de módulos disponíveis (por permissão) e roadmap planejado.
+ */
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -50,6 +53,7 @@ function ModuleCard({
   )
 }
 
+/** Home do portal — central de módulos liberados e planejados. */
 export default function ModuleLauncherPage() {
   const { user } = useAuth()
   const availableModules = ERP_MODULES.filter((module) => moduleVisible(user, module))

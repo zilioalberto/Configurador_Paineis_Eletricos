@@ -1,3 +1,5 @@
+/** Renderização dinâmica de campos de especificação por categoria. */
+
 import type { ReactNode } from 'react'
 import { selectOptionsParaCampo } from '../constants/specSelectRegistry'
 import { usePlcFamiliasQuery } from '../hooks/usePlcFamiliasQuery'
@@ -87,8 +89,8 @@ function deveOcultarCampoReleEstadoSolido(
   value: Record<string, string | number | boolean>
 ): boolean {
   if (categoria !== 'RELE_ESTADO_SOLIDO') return false
-  if (campo === 'tipo_dissipador' && !Boolean(value.possui_dissipador)) return true
-  if (campo === 'tensao_ventilacao_v' && !Boolean(value.possui_ventilacao)) return true
+  if (campo === 'tipo_dissipador' && !value.possui_dissipador) return true
+  if (campo === 'tensao_ventilacao_v' && !value.possui_ventilacao) return true
   return false
 }
 
@@ -395,6 +397,7 @@ function renderCampoInput({
   )
 }
 
+/** Renderiza um campo de especificação conforme metadados e categoria. */
 export function renderCampoEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,

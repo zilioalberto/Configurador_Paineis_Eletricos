@@ -1,3 +1,9 @@
+"""
+Cadastros comerciais: parceiros (cliente/fornecedor), endereços e contatos.
+
+Usado pelo catálogo (fabricante_parceiro), importação NF-e e orçamentos.
+"""
+
 from django.db import models
 
 from core.models import BaseModel
@@ -59,6 +65,8 @@ class ParceiroComercial(BaseModel):
 
 
 class EnderecoParceiro(BaseModel):
+    """Endereço vinculado a um parceiro comercial (pode ser marcado como principal)."""
+
     parceiro = models.ForeignKey(
         ParceiroComercial,
         on_delete=models.CASCADE,
@@ -85,6 +93,8 @@ class EnderecoParceiro(BaseModel):
 
 
 class ContatoParceiro(BaseModel):
+    """Pessoa de contato do parceiro (comercial, financeiro, etc.)."""
+
     parceiro = models.ForeignKey(
         ParceiroComercial,
         on_delete=models.CASCADE,

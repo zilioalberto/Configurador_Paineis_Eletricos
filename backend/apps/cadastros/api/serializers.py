@@ -1,3 +1,5 @@
+"""Serializers da API de cadastros comerciais."""
+
 from rest_framework import serializers
 
 from apps.cadastros.models import ContatoParceiro, EnderecoParceiro, ParceiroComercial
@@ -43,6 +45,8 @@ class ContatoParceiroSerializer(serializers.ModelSerializer):
 
 
 class ParceiroComercialSerializer(serializers.ModelSerializer):
+    """Parceiro com endereços e contatos aninhados (somente leitura no detalhe)."""
+
     enderecos = EnderecoParceiroSerializer(many=True, read_only=True)
     contatos = ContatoParceiroSerializer(many=True, read_only=True)
 

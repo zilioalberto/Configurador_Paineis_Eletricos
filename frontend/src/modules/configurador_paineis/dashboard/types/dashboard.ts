@@ -1,5 +1,10 @@
+/**
+ * Tipos do painel inicial: KPIs agregados e mini-lista de projetos recentes.
+ */
+
 import type { StatusProjeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 
+/** Projeto resumido para a tabela «Projetos recentes». */
 export interface ProjetoDashboardMini {
   id: string
   codigo: string
@@ -10,6 +15,7 @@ export interface ProjetoDashboardMini {
   atualizado_em: string
 }
 
+/** Payload de GET `/dashboard/resumo/` (projetos, composição, catálogo, cargas). */
 export interface DashboardResumo {
   projetos: {
     total: number

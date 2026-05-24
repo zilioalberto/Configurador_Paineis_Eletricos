@@ -1,3 +1,5 @@
+"""Endpoints REST da composição do painel (snapshot, sugestões, aprovação, exportação)."""
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Max
 from django.http import HttpResponse
@@ -77,6 +79,7 @@ def _nome_usuario_auditoria(user) -> str:
 
 
 def _snapshot(projeto: Projeto) -> dict:
+    """Monta o payload unificado de sugestões, pendências, itens aprovados e inclusões manuais."""
     sugestoes = (
         SugestaoItem.objects.filter(projeto=projeto)
         .select_related(*_composicao_select_related())

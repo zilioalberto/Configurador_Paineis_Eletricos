@@ -2,6 +2,7 @@ import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useItensFiscaisListQuery } from '../hooks/useItensFiscaisListQuery'
 
+/** Tabela paginada de todos os itens fiscais registrados. */
 export default function ItensFiscaisListPage() {
   const [inputSearch, setInputSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')

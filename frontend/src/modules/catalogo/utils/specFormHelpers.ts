@@ -1,3 +1,8 @@
+/**
+ * Metadados e conversão de campos de especificação (form ↔ API).
+ * `specFieldList.json` espelha os modelos Django por categoria.
+ */
+
 import type { CategoriaProdutoNome } from '../types/categoria'
 import specFieldsJson from '../data/specFieldList.json'
 

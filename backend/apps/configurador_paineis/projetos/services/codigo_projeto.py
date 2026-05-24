@@ -12,6 +12,7 @@ _CODIGO_AUTO = re.compile(r"^(\d{2})(\d{3})-(\d{2})$")
 
 
 def _maior_sequencial_para_mes(mes: int, yy: int) -> int:
+    """Retorna o maior sequencial nnn já usado no mês/ano (formato MMnnn-AA)."""
     prefix = f"{mes:02d}"
     suffix = f"-{yy:02d}"
     maior = 0

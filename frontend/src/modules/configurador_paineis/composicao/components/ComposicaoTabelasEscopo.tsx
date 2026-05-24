@@ -34,6 +34,7 @@ function CabecalhoTabelaEscopo({ comAcoes }: { comAcoes: boolean }) {
   )
 }
 
+/** Tabela de itens aprovados agrupados por tag de carga. */
 export function ComposicaoTabelaAprovada({
   grupos,
   vazio,
@@ -100,6 +101,7 @@ export function ComposicaoTabelaAprovada({
   )
 }
 
+/** Tabela de sugestões pendentes de aprovação, agrupadas por tag. */
 export function ComposicaoTabelaSugestoes({
   grupos,
   vazio,

@@ -1,3 +1,8 @@
+/**
+ * Estado agregado do wizard do projeto: etapas, checklist de conclusão
+ * e indicadores de prontidão para exportação.
+ */
+
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useCargaListQuery } from '@/modules/configurador_paineis/cargas/hooks/useCargaListQuery'
@@ -26,6 +31,7 @@ export type ChecklistItem = {
   status: ChecklistStatus
 }
 
+/** Etapas válidas na URL `/projetos/:id/fluxo/:etapa`. */
 export const ETAPAS_VALIDAS: WizardStepId[] = [
   'projeto',
   'cargas',
@@ -50,6 +56,7 @@ function statusHistorico(
 }
 
 export function useProjetoWizardFluxo(projetoId: string) {
+  /** Consulta projeto, cargas, dimensionamento, composição e histórico em paralelo. */
   const { data: projeto, isPending: loadingProjeto } = useProjetoDetailQuery(
     projetoId || undefined
   )
@@ -88,6 +95,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
   const dimensionamentoAposUltimaCarga =
     temCargas && dimensionado && dimensionamentoAtualizacaoMs >= maxCargaAtualizacaoMs
 
+  /** Fluxo técnico completo: cargas + condutores revisados + composição gerada. */
   const prontoParaExportar =
     temCargas && dimensionamentoEtapaConcluida && composicaoGerada
 

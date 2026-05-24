@@ -1,3 +1,5 @@
+"""Rotas da API de cadastros (parceiros, endereços, contatos)."""
+
 from rest_framework.routers import DefaultRouter
 
 from apps.cadastros.api.views import (

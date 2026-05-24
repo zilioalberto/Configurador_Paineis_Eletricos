@@ -1,3 +1,5 @@
+"""Modelo reutilizável de carga (template JSON para cadastro rápido)."""
+
 from django.conf import settings
 from django.db import models
 
@@ -6,6 +8,8 @@ from core.models import BaseModel
 
 
 class CargaModelo(BaseModel):
+    """Preset de especificação por tipo; payload espelha bloco aninhado da API."""
+
     nome = models.CharField(max_length=120, unique=True)
     tipo = models.CharField(max_length=30, choices=TipoCargaChoices.choices)
     payload = models.JSONField(default=dict, blank=True)

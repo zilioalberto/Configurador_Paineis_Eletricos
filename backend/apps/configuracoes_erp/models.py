@@ -1,3 +1,4 @@
+"""Modelo e API de parâmetros globais do ERP (chave/valor)."""
 from django.db import models
 
 

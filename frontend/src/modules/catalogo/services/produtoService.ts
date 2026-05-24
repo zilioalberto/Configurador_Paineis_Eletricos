@@ -1,3 +1,7 @@
+/**
+ * Cliente HTTP de produtos do catálogo (CRUD, listagem e autocomplete).
+ */
+
 import apiClient from '@/services/apiClient'
 import type { ProdutoDetail, ProdutoListItem } from '../types/produto'
 
@@ -64,6 +68,7 @@ function normalizeListPage(
   }
 }
 
+/** Lista paginada de produtos, com filtro opcional por categoria. */
 export async function listarProdutos(
   categoriaId?: string | null,
   page = 1,
@@ -92,6 +97,7 @@ export async function buscarProdutosAutocomplete(
   return normalizeList(response.data)
 }
 
+/** Obtém produto com especificação técnica e itens fiscais. */
 export async function obterProduto(id: string): Promise<ProdutoDetail> {
   const response = await apiClient.get<ProdutoDetail>(`${BASE_URL}${id}/`)
   return response.data

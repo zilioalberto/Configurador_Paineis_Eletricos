@@ -1,3 +1,8 @@
+/**
+ * Agregador do módulo Configurador de Painéis: rotas e menu lateral
+ * (dashboard + wizard projetos → cargas → dimensionamento → composição).
+ */
+
 import { dashboardRoutes } from './dashboard/dashboard.registry'
 import { projetosMenuItems, projetosRoutes } from './projetos/projetos.registry'
 import { cargasMenuItems, cargasRoutes } from './cargas/cargas.registry'
@@ -16,6 +21,7 @@ import type {
   ModuleRouteConfig,
 } from '@/app/navigation/types'
 
+/** Rotas React Router de todos os submódulos do configurador. */
 export const configuradorPaineisRoutes: ModuleRouteConfig[] = [
   ...dashboardRoutes,
   ...projetosRoutes,
@@ -24,12 +30,14 @@ export const configuradorPaineisRoutes: ModuleRouteConfig[] = [
   ...composicaoRoutes,
 ]
 
+/** Une entradas de menu dos submódulos e ordena por `order`. */
 function mergeChildren(...chunks: AppMenuLinkItem[][]): AppMenuLinkItem[] {
   return chunks
     .flat()
     .sort((a, b) => (a.order ?? 100) - (b.order ?? 100))
 }
 
+/** Grupo colapsável no menu lateral (sem dashboard — rota `/dashboard` fica fora do grupo). */
 const configuradorPaineisGroup: AppMenuGroupItem = {
   type: 'group',
   id: 'configurador-paineis',
@@ -43,4 +51,5 @@ const configuradorPaineisGroup: AppMenuGroupItem = {
   ),
 }
 
+/** Itens de navegação exportados para `collectNavigation`. */
 export const configuradorPaineisMenuItems: AppMenuItem[] = [configuradorPaineisGroup]

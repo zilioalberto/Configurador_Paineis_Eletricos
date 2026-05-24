@@ -1,3 +1,5 @@
+/** Constantes de UI do Kanban (tipos, filtros e estado inicial do formulário). */
+
 import type { ColunaKanban, PrioridadeTarefa, TarefaKanbanItem, TipoTarefa } from '../types/tarefa'
 
 export type FiltroSituacao = 'todas' | 'abertas' | 'vencidas' | 'concluidas'

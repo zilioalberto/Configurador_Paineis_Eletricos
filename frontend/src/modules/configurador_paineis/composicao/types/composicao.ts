@@ -1,3 +1,7 @@
+/**
+ * Tipos da etapa de composição do painel (snapshot, sugestões, pendências, inclusões).
+ */
+
 export type ProdutoMini = {
   id: string
   codigo: string

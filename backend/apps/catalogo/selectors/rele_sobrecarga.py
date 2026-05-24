@@ -1,3 +1,5 @@
+"""Seletores de produtos do catálogo: relés de sobrecarga."""
+
 from decimal import Decimal
 
 from django.db.models import DecimalField, ExpressionWrapper, F, Q, QuerySet

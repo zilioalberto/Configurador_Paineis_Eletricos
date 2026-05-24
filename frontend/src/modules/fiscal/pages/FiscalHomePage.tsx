@@ -5,6 +5,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useFiscalProdutoBuscaQuery } from '../hooks/useFiscalProdutoBuscaQuery'
 
+/** Página inicial: busca de produtos e atalhos para NF-e e catálogo. */
 export default function FiscalHomePage() {
   const { user } = useAuth()
   const [buscaInput, setBuscaInput] = useState('')

@@ -1,3 +1,5 @@
+"""Especificação técnica de chaves seletoras vinculada ao Produto do catálogo."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError

@@ -1,3 +1,7 @@
+/**
+ * Tipos do módulo tarefas (Kanban, apontamentos, timer e relatórios).
+ */
+
 export type StatusTarefa =
   | 'PENDENTE'
   | 'INICIADA'

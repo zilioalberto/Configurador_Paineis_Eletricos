@@ -27,6 +27,7 @@ type ProdutoFormProps = {
   lockCategoria?: boolean
 }
 
+/** Formulário principal de produto (dados gerais + especificação). */
 export default function ProdutoForm({
   categorias,
   initialData,

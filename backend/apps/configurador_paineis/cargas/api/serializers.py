@@ -1,3 +1,5 @@
+"""Serializers DRF: listagem enxuta, detalhe aninhado e escrita com specs por tipo."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -58,6 +60,7 @@ TENSAO_CARGA_POR_TIPO = {
 
 
 def _default_spec_payload(tipo: str) -> dict:
+    """Defaults de criação quando o cliente não envia bloco aninhado completo."""
     if tipo == TipoCargaChoices.MOTOR:
         return {
             "potencia_corrente_valor": Decimal("1.00"),
@@ -125,6 +128,7 @@ def _default_spec_payload(tipo: str) -> dict:
 
 
 def _clear_specs(carga: Carga) -> None:
+    """Remove todas as especificações ao trocar o tipo da carga."""
     CargaMotor.objects.filter(carga=carga).delete()
     CargaValvula.objects.filter(carga=carga).delete()
     CargaResistencia.objects.filter(carga=carga).delete()
@@ -174,6 +178,8 @@ class CargaTransdutorSerializer(serializers.ModelSerializer):
 
 
 class CargaListSerializer(serializers.ModelSerializer):
+    """Listagem com corrente/potência derivadas e contexto elétrico do projeto."""
+
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
     projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
@@ -374,6 +380,8 @@ class CargaListSerializer(serializers.ModelSerializer):
 
 
 class CargaDetailSerializer(serializers.ModelSerializer):
+    """Detalhe read-only com bloco aninhado conforme o tipo da carga."""
+
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
     projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
@@ -457,6 +465,8 @@ class CargaDetailSerializer(serializers.ModelSerializer):
 
 
 class CargaWriteSerializer(serializers.ModelSerializer):
+    """Criação/edição com specs aninhadas; troca de tipo recria o bloco correspondente."""
+
     projeto_codigo = serializers.CharField(source=PROJETO_CODIGO_SOURCE, read_only=True)
     projeto_nome = serializers.CharField(source=PROJETO_NOME_SOURCE, read_only=True)
 
@@ -587,6 +597,8 @@ class CargaWriteSerializer(serializers.ModelSerializer):
 
 
 class CargaModeloSerializer(serializers.ModelSerializer):
+    """Valida e sanitiza payload JSON do template conforme o tipo."""
+
     def validate_payload(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError("Payload deve ser um objeto JSON.")

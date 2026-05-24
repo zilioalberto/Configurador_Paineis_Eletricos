@@ -35,6 +35,7 @@ function getStatusBadgeClass(status: string): string {
   }
 }
 
+/** Tabela responsiva de projetos com ações de visualizar, fluxo, editar e excluir. */
 export default function ProjetoTable({
   projetos,
   onDeleteRequest,

@@ -13,6 +13,7 @@ function em(v: string | null | undefined) {
   return v
 }
 
+/** Secção de inclusão manual: formulário de busca e tabela de itens adicionados. */
 export function InclusaoManualCatalogoSection({ projetoId, podeEditar, inclusoes }: Props) {
   const form = useInclusaoManualCatalogoSection(projetoId, podeEditar)
   const { onRemover, busy } = form
