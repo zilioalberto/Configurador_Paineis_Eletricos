@@ -1,3 +1,5 @@
+"""Admin Django do catálogo (produto e todas as especificações técnicas)."""
+
 from django.contrib import admin
 
 from .models import (

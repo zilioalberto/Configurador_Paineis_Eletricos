@@ -13,6 +13,7 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarResponsaveisProjeto } from '../services/projetoService'
 
+/** Converte entidade da API para estado inicial do formulário de edição. */
 function projetoParaFormData(projeto: Projeto): ProjetoFormData {
   return {
     codigo: projeto.codigo ?? '',
@@ -63,6 +64,7 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
   }
 }
 
+/** Edição de projeto existente; mapeia API → formulário e persiste via mutation. */
 export default function ProjetoEditPage() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()

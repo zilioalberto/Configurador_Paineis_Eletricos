@@ -1,3 +1,5 @@
+"""Persistência e recálculo de circuitos de carga e alimentação geral."""
+
 from __future__ import annotations
 
 from decimal import Decimal

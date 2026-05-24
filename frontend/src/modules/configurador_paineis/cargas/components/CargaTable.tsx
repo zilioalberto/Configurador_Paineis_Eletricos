@@ -1,3 +1,5 @@
+/** Tabela de cargas do projeto com potência, corrente e ações CRUD. */
+
 import { Link } from 'react-router-dom'
 import type { CargaListItem } from '../types/carga'
 

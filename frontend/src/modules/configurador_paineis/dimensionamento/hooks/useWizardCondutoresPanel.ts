@@ -1,3 +1,8 @@
+/**
+ * Estado e ações do painel de revisão de condutores no wizard:
+ * overrides locais, aprovação, recálculo e PATCH para a API.
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'

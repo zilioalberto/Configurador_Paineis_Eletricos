@@ -1,3 +1,5 @@
+"""Reexportação dos seletores de produtos por categoria (uso em composição/dimensionamento)."""
+
 from apps.catalogo.selectors._base import (
     CATEGORIA_ESPEC_RELATED,
     filtrar_produtos_especificacao,

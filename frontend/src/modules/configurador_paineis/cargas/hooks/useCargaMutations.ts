@@ -8,6 +8,7 @@ import {
   deletarCarga,
 } from '../services/cargaService'
 
+/** Cria carga e invalida listagem, dimensionamento e composição do projeto. */
 export function useCreateCargaMutation() {
   const queryClient = useQueryClient()
 
@@ -29,6 +30,7 @@ export function useCreateCargaMutation() {
   })
 }
 
+/** Atualiza carga e propaga invalidação para módulos dependentes. */
 export function useUpdateCargaMutation() {
   const queryClient = useQueryClient()
 
@@ -56,6 +58,7 @@ export function useUpdateCargaMutation() {
   })
 }
 
+/** Exclui carga e limpa caches relacionados ao projeto. */
 export function useDeleteCargaMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
 

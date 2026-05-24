@@ -1,3 +1,5 @@
+"""Sugestões de fusíveis de proteção para motores e resistências."""
+
 from typing import Optional
 
 from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResistencia

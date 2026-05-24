@@ -6,6 +6,7 @@ import {
   excluirProduto,
 } from '../services/produtoService'
 
+/** Mutations de CRUD de produtos no catálogo. */
 export function useCreateProdutoMutation() {
   const queryClient = useQueryClient()
   return useMutation({

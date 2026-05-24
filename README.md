@@ -30,6 +30,45 @@ O projeto é organizado como um monorepo com separação clara entre aplicação
 
 Para uma explicação mais detalhada das camadas, integrações e responsabilidades, consulte [Arquitetura](docs/visao-geral/arquitetura.md).
 
+## Mapa estrutural do código
+
+Referência rápida para navegar no repositório. O guia completo está em **[Estrutura do código](docs/visao-geral/estrutura-codigo.md)**.
+
+### Monorepo
+
+| Pasta | Conteúdo |
+|-------|----------|
+| `backend/apps/` | Domínios Django (models, API, services, testes) |
+| `backend/config/` | URLs, settings, JWT, `erp_registry.py` |
+| `backend/core/` | Choices, cálculos elétricos, permissões compartilhadas |
+| `frontend/src/modules/` | Um diretório por área de negócio (espelha o backend) |
+| `frontend/src/app/` | Router, agregação de menus (`collectNavigation.ts`) |
+| `docs/modulos/` | Documentação funcional por módulo |
+
+### Módulos operacionais (API + UI)
+
+| Área | Backend | Frontend | Rotas UI (exemplos) |
+|------|---------|----------|---------------------|
+| Auth | `accounts`, `config` | `auth`, `usuarios` | `/login`, `/administracao/utilizadores` |
+| Launcher | `config.erp_registry` | `modulos` | `/` |
+| Configurador | `configurador_paineis/*` | `configurador_paineis/` | `/dashboard`, `/projetos`, `/cargas`, … |
+| Catálogo | `catalogo` | `catalogo` | `/catalogo` |
+| Fiscal | `fiscal` | `fiscal` | `/fiscal` |
+| Tarefas | `tarefas` | `tarefas` | `/tarefas` |
+| ERP comercial | `orcamentos`, `configuracoes_erp` | `erp/` | `/erp/orcamentos`, `/erp/configuracoes` |
+| Cadastros / RH | `cadastros`, `rh` | `cadastros`, `rh` (via `/erp/`) | `/erp/cadastros`, `/erp/rh` |
+
+API REST unificada em **`/api/v1/`** (JWT). Orçamentos e parâmetros ERP ficam em **`/api/v1/erp/`**.
+
+### Padrões recorrentes
+
+- **Registry:** cada módulo frontend exporta `*.registry.ts(x)` com rotas e menu; `collectNavigation.ts` agrega tudo.
+- **Permissões:** backend `HasEffectivePermission` + frontend `RequirePermission` / `PERMISSION_KEYS`.
+- **HTTP:** `frontend/src/services/apiClient.ts` (Bearer + refresh automático).
+- **Testes:** `backend/apps/<app>/tests/` e `frontend/src/modules/<modulo>/**/*.test.*`.
+
+Apps Django registrados apenas como **stub de roadmap** (sem API ativa): `crm`, `compras`, `estoque`, `producao`, `financeiro`, `qualidade`, `conformidade`, `expedicao`, `pos_venda`, `documentos`, `notificacoes`, `auditoria`, `integracoes`, `relatorios`, `pedidos_venda`. Detalhes em [Módulos do ERP](docs/visao-geral/modulos-erp.md).
+
 ## Execução local
 
 O caminho recomendado para rodar o ambiente completo é o Docker Compose, pois ele sobe PostgreSQL, backend e frontend com a mesma topologia usada pela documentação do projeto.
@@ -93,6 +132,7 @@ O índice central da documentação está em [docs/README.md](docs/README.md). E
 
 Atalhos úteis:
 
+- [Estrutura do código](docs/visao-geral/estrutura-codigo.md)
 - [Arquitetura](docs/visao-geral/arquitetura.md)
 - [Módulos do ERP](docs/visao-geral/modulos-erp.md)
 - [Glossário](docs/visao-geral/glossario.md)

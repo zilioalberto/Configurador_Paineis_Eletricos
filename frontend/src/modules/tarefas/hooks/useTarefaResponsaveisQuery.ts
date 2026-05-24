@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { tarefasQueryKeys } from '../tarefasQueryKeys'
 import { listarResponsaveisTarefa } from '../services/tarefasService'
 
+/** Query de responsáveis elegíveis para tarefas. */
 export function useTarefaResponsaveisQuery(enabled = true) {
   return useQuery({
     queryKey: tarefasQueryKeys.responsaveis(),

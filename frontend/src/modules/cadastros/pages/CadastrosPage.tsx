@@ -226,6 +226,7 @@ function rolesParceiro(p: ParceiroComercialDto | ParceiroFormState): string[] {
   ]
 }
 
+/** Página de gestão de parceiros comerciais (dados, contatos e endereços). */
 export default function CadastrosPage() {
   const { user } = useAuth()
   const { showToast } = useToast()

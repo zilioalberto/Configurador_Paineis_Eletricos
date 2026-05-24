@@ -1,3 +1,5 @@
+/** Cadastro de carga com opção de aplicar modelo salvo e redirecionamento pós-save. */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
@@ -17,6 +19,7 @@ import { cargaFormToApiPayload } from '../utils/cargaPayload'
 import { filtrarProjetosComEdicaoCargas } from '../utils/projetoEdicaoCargas'
 
 export default function CargaCreatePage() {
+  /** Página de nova carga; projeto vem de `?projeto=` na URL quando aplicável. */
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const projetoQuery = searchParams.get('projeto') ?? ''

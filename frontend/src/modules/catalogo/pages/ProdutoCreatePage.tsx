@@ -9,6 +9,7 @@ import type { ProdutoFormData } from '../types/produto'
 import { produtoFormEmpty } from '../utils/produtoFormDefaults'
 import { produtoFormToApiPayload } from '../utils/produtoPayload'
 
+/** Cadastro de novo produto com especificação por categoria. */
 export default function ProdutoCreatePage() {
   const navigate = useNavigate()
   const { showToast } = useToast()

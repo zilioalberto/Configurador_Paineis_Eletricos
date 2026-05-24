@@ -1,6 +1,7 @@
 import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 
+/** Seção: plaquetas, faixas e adesivos de identificação/segurança. */
 export function ProjetoFormIdentificacaoSegurancaSection({
   formData,
   onFieldChange,

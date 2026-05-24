@@ -47,6 +47,7 @@ async function atualizarResumosExistentes(
   }
 }
 
+/** Resolve produto existente por item da NF-e (debounce ao editar código/categoria). */
 export function useNfeExistentePorItem(
   snapshot: NfeSnapshot | null,
   selecoes: Record<number, ItemSelecaoImportacao>

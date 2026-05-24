@@ -1,3 +1,5 @@
+/** Registo de opções de select por campo de especificação (choices do backend). */
+
 import type { CategoriaProdutoNome } from '../types/categoria'
 import {
   acabamentoPlacaPainelOptions,

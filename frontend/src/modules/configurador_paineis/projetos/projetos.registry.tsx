@@ -1,3 +1,5 @@
+/** Registro de rotas e item de menu do módulo projetos. */
+
 import { lazy, type ReactElement } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'

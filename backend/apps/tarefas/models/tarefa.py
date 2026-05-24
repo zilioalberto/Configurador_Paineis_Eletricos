@@ -1,3 +1,5 @@
+"""Modelo central de tarefa no Kanban (coluna, responsável, classificação e horas)."""
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -36,6 +38,8 @@ def _status_from_coluna(coluna):
 
 
 class Tarefa(BaseModel):
+    """Cartão do Kanban com vínculo opcional a proposta/OP e apontamento de horas."""
+
     titulo = models.CharField(max_length=180)
     descricao = models.TextField(blank=True)
     coluna = models.ForeignKey(

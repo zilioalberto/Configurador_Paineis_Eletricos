@@ -4,6 +4,7 @@ import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
+/** Seção: PLC (família do catálogo), IHM, switches e climatização. */
 export function ProjetoFormRecursosSection({
   formData,
   onFieldChange,

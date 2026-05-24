@@ -41,6 +41,7 @@ import {
 import { ColaboradoresChecklist } from './ColaboradoresChecklist'
 import { TarefaPainelExpansivel } from './TarefaPainelExpansivel'
 
+/** Modal de edição completa da tarefa (detalhes, checklist, apontamentos). */
 export function TarefaEditModal({
   tarefa,
   colunas,

@@ -1,3 +1,5 @@
+"""Especificação elétrica de motor: potência/corrente, partida e cálculos derivados."""
+
 from decimal import Decimal
 from math import sqrt
 
@@ -25,6 +27,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaMotor(models.Model):
+    """Detalhes do motor; calcula kW e corrente e sincroniza IO da carga pai."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,
@@ -123,6 +127,7 @@ class CargaMotor(models.Model):
         return f"Motor - {self.carga.tag}"
 
     def clean(self):
+        """Valida tipo, fases/partida, parâmetros elétricos e tensão vs. projeto."""
         erros = {}
         self._validar_tipo_carga(erros)
         self._validar_fases_e_partida(erros)
@@ -271,6 +276,7 @@ class CargaMotor(models.Model):
         save_io_flags(self.carga)
 
     def save(self, *args, **kwargs):
+        """Recalcula potência/corrente e propaga contadores de IO para a carga."""
         self.full_clean()
         self.potencia_kw_calculada = self._obter_potencia_kw()
         self.corrente_calculada_a = self._calcular_corrente()

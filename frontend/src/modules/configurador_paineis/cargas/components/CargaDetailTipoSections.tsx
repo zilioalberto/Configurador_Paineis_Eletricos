@@ -1,3 +1,5 @@
+/** Seções de detalhe específicas por tipo (motor, válvula, sensor, etc.). */
+
 import { tipoConexaoCargaPainelOptions } from '../constants/cargaChoiceOptions'
 import type { CargaDetail } from '../types/carga'
 

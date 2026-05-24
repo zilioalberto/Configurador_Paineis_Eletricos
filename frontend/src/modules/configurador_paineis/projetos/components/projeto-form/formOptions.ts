@@ -1,3 +1,5 @@
+/** Opções de select e valores padrão do formulário de projeto. */
+
 import type {
   ProjetoFormData,
   StatusProjeto,
@@ -66,6 +68,7 @@ export const tipoSeccionamentoOptions: FormOption<TipoSeccionamento>[] = [
   { value: 'DISJUNTOR_CAIXA_MOLDADA', label: 'Disjuntor caixa moldada' },
 ]
 
+/** Estado inicial ao criar um novo projeto (espelha defaults do model Django). */
 export const projetoFormInitialState: ProjetoFormData = {
   codigo: '',
   nome: '',

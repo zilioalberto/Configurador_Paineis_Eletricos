@@ -1,3 +1,5 @@
+"""Exportações públicas dos geradores de sugestão por categoria de produto."""
+
 from .seccionadoras import gerar_sugestao_seccionamento
 from .contatoras import gerar_sugestoes_contatoras
 from .disjuntores_motor import gerar_sugestoes_disjuntores_motor

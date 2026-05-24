@@ -2,6 +2,8 @@
 
 Visão de alto nível do monorepo **Configurador de Painéis Elétricos**.
 
+> **Mapa de pastas e APIs:** [estrutura-codigo.md](estrutura-codigo.md). **Status dos módulos:** [modulos-erp.md](modulos-erp.md).
+
 > **Portfólio ([RFC](../rfc.pdf)):** MVP = **CPQ** (catálogo + wizard + regras + BoM) em `configurador_paineis` e `catalogo`. O ERP no diagrama é evolução do monorepo, fora do § 2.7 do RFC. Ver [escopo-portfolio.md](escopo-portfolio.md).
 
 O repositório evolui como ERP modular; o núcleo do portfólio é engenharia de painéis (projetos → cargas → dimensionamento → composição).

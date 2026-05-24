@@ -9,6 +9,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { atualizarParametroConfiguracao, listarParametrosConfiguracao } from '../services/erpApi'
 import type { ParametroConfiguracaoDto } from '../types/erp'
 
+/** Edição de parâmetros globais do ERP (requer permissão de gerenciamento). */
 export default function ConfiguracoesErpPage() {
   const { showToast } = useToast()
   const { user } = useAuth()

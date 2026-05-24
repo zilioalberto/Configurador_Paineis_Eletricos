@@ -1,3 +1,5 @@
+"""Endpoints REST: consulta, recálculo e PATCH de condutores por projeto."""
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework import status

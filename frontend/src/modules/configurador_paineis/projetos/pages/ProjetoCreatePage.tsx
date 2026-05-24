@@ -13,6 +13,7 @@ import { projetoQueryKeys } from '../projetoQueryKeys'
 import { alocarCodigoProjeto, listarResponsaveisProjeto } from '../services/projetoService'
 import type { ProjetoFormData } from '../types/projeto'
 
+/** Criação de projeto: aloca código sugerido e redireciona para cargas após salvar. */
 export default function ProjetoCreatePage() {
   const { user } = useAuth()
   const navigate = useNavigate()

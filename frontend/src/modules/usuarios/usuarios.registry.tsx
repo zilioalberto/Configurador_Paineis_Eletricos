@@ -1,3 +1,7 @@
+/**
+ * Registo de rotas e menu da administração de utilizadores.
+ * Rota `/administracao/utilizadores` protegida por `usuario.gerenciar`.
+ */
 import { lazy, Suspense } from 'react'
 
 import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
@@ -16,6 +20,7 @@ function GuardedUsuariosAdminPage() {
   )
 }
 
+/** Entrada de menu na secção Administração. */
 export const usuariosAdminMenuItems: AppMenuItem[] = [
   {
     to: '/administracao/utilizadores',
@@ -25,6 +30,7 @@ export const usuariosAdminMenuItems: AppMenuItem[] = [
   },
 ]
 
+/** Rotas lazy-loaded com guard de permissão. */
 export const usuariosAdminRoutes: ModuleRouteConfig[] = [
   { path: '/administracao/utilizadores', element: <GuardedUsuariosAdminPage /> },
 ]

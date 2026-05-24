@@ -1,3 +1,9 @@
+"""
+Modelos de RH: estrutura organizacional, jornadas e vínculo colaborador ↔ usuário.
+
+A jornada alimenta validação de apontamento de horas no módulo tarefas.
+"""
+
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -6,6 +12,8 @@ from core.models import BaseModel
 
 
 class Departamento(BaseModel):
+    """Unidade organizacional (área/departamento)."""
+
     nome = models.CharField(max_length=120, unique=True)
     codigo = models.CharField(max_length=30, blank=True, db_index=True)
     descricao = models.TextField(blank=True)
@@ -22,6 +30,8 @@ class Departamento(BaseModel):
 
 
 class Cargo(BaseModel):
+    """Função/cargo do colaborador."""
+
     nome = models.CharField(max_length=120, unique=True)
     descricao = models.TextField(blank=True)
     ativo = models.BooleanField(default=True)
@@ -37,6 +47,8 @@ class Cargo(BaseModel):
 
 
 class JornadaTrabalho(BaseModel):
+    """Horários e dias úteis; usada pelo cronómetro de tarefas para respeitar jornada."""
+
     nome = models.CharField(max_length=120, unique=True)
     carga_horaria_semanal = models.DecimalField(
         max_digits=5,
@@ -62,6 +74,8 @@ class JornadaTrabalho(BaseModel):
 
 
 class Equipe(BaseModel):
+    """Equipe operacional opcionalmente ligada a departamento e líder."""
+
     nome = models.CharField(max_length=120, unique=True)
     departamento = models.ForeignKey(
         Departamento,
@@ -91,6 +105,8 @@ class Equipe(BaseModel):
 
 
 class Colaborador(BaseModel):
+    """Cadastro de colaborador; vínculo 1:1 opcional com usuário do sistema."""
+
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

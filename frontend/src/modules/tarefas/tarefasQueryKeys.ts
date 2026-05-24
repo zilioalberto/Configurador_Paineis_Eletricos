@@ -1,3 +1,4 @@
+/** Chaves React Query do módulo tarefas. */
 export const tarefasQueryKeys = {
   all: ['tarefas'] as const,
   kanban: (quadroId?: string | null) =>

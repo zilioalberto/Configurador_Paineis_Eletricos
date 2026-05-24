@@ -1,3 +1,8 @@
+/**
+ * Recalcula dimensionamento automaticamente quando a assinatura das cargas
+ * muda na listagem (evita resumo desatualizado após CRUD).
+ */
+
 import { useEffect, useRef, useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
 

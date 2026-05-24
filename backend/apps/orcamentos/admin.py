@@ -1,3 +1,4 @@
+"""Registo Django Admin de orçamentos e margens por cliente."""
 from django.contrib import admin
 
 from apps.orcamentos.models import ConfiguracaoMargemCliente, Orcamento, OrcamentoItem

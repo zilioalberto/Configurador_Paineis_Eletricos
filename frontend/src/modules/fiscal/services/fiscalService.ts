@@ -1,3 +1,6 @@
+/**
+ * Cliente HTTP do módulo fiscal: listagem paginada de itens fiscais por produto.
+ */
 import apiClient from '@/services/apiClient'
 import type { ItemFiscalProdutoListRow } from '../types/itemFiscalProduto'
 
@@ -12,6 +15,7 @@ function normalizeTotal(count: unknown, fallback: number): number {
   return Number.isNaN(parsed) ? fallback : parsed
 }
 
+/** Página normalizada da API DRF (results, count, next/previous). */
 export type ItensFiscaisListPage = {
   readonly items: ItemFiscalProdutoListRow[]
   readonly total: number
@@ -57,6 +61,7 @@ function normalizeListPage(
   }
 }
 
+/** Lista itens fiscais com busca opcional por código/descrição do produto. */
 export async function listarItensFiscais(
   search = '',
   page = 1,

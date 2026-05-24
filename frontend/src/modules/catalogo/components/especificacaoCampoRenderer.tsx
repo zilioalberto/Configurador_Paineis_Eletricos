@@ -1,3 +1,5 @@
+/** Renderização dinâmica de campos de especificação por categoria. */
+
 import type { ReactNode } from 'react'
 import { selectOptionsParaCampo } from '../constants/specSelectRegistry'
 import { usePlcFamiliasQuery } from '../hooks/usePlcFamiliasQuery'
@@ -395,6 +397,7 @@ function renderCampoInput({
   )
 }
 
+/** Renderiza um campo de especificação conforme metadados e categoria. */
 export function renderCampoEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,

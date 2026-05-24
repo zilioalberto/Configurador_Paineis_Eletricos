@@ -1,3 +1,5 @@
+"""Seletores de produtos do catálogo: relés de estado sólido."""
+
 from __future__ import annotations
 
 from decimal import Decimal

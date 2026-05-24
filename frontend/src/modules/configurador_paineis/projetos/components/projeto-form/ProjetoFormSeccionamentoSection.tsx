@@ -3,6 +3,7 @@ import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
+/** Seção: seccionamento geral e tipo (seccionadora ou disjuntor caixa moldada). */
 export function ProjetoFormSeccionamentoSection({
   formData,
   onFieldChange,
@@ -11,6 +12,7 @@ export function ProjetoFormSeccionamentoSection({
 }: ProjetoFormSectionProps) {
   const ro = readOnlyExceptStatus
   const errSec = fieldErrors.tipo_seccionamento
+  /** Com seccionamento ativo, "NENHUM" não é opção válida no select. */
   const opcoesTipoSeccionamento = formData.possui_seccionamento
     ? tipoSeccionamentoOptions.filter((opt) => opt.value !== 'NENHUM')
     : tipoSeccionamentoOptions

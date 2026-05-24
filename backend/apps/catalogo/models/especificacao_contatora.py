@@ -1,3 +1,5 @@
+"""Especificação técnica de contatoras vinculada ao Produto do catálogo."""
+
 from django.db import models
 from django.core.exceptions import ValidationError
 

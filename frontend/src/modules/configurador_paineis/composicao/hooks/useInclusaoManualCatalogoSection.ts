@@ -9,6 +9,7 @@ import {
   useRemoverInclusaoManualMutation,
 } from './useInclusaoManualMutations'
 
+/** Estado e handlers da secção de inclusão manual na página de composição. */
 export function useInclusaoManualCatalogoSection(projetoId: string, podeEditar: boolean) {
   const { showToast } = useToast()
   const baseId = useId()

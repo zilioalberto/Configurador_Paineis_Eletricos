@@ -1,3 +1,4 @@
+/** Chaves React Query do módulo fiscal. */
 export const fiscalQueryKeys = {
   all: ['fiscal'] as const,
   itensFiscais: (search: string, page: number, pageSize: number) =>

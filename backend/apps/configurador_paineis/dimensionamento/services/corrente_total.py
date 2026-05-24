@@ -1,3 +1,5 @@
+"""Cálculo da corrente total do painel a partir das cargas ativas."""
+
 from decimal import Decimal
 
 from apps.configurador_paineis.cargas.models import (

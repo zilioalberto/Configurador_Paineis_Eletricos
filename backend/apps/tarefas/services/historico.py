@@ -1,3 +1,5 @@
+"""Registo de eventos no histórico auditável da tarefa."""
+
 from apps.tarefas.models import HistoricoTarefa
 
 

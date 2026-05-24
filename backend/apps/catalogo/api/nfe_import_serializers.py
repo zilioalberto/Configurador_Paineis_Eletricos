@@ -1,3 +1,5 @@
+"""Serializers do fluxo de importação de NF-e no catálogo."""
+
 from rest_framework import serializers
 
 

@@ -56,6 +56,7 @@ function modalComposicaoState(
   }
 }
 
+/** Página principal da etapa de composição do painel (wizard passo 4). */
 export default function ComposicaoPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()

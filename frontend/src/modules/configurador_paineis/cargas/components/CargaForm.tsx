@@ -1,3 +1,8 @@
+/**
+ * Formulário unificado de carga: campos comuns + blocos condicionais por tipo.
+ * Calcula preview de IO e valida tensão/partida conforme projeto selecionado.
+ */
+
 import {
   type ChangeEvent,
   type FormEvent,

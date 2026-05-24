@@ -1,3 +1,5 @@
+/** Constrói payloads aninhados (motor, válvula, etc.) para a API. */
+
 import type { CargaFormData } from '../types/carga'
 import { defaultMotor } from './cargaFormDefaults'
 

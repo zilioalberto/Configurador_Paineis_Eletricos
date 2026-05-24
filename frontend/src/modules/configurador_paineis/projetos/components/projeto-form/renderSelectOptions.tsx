@@ -1,5 +1,6 @@
 import type { FormOption } from './formOptions'
 
+/** Renderiza `<option>` a partir de lista `{ value, label }`. */
 export function renderSelectOptions<T extends string | number>(
   options: FormOption<T>[]
 ) {

@@ -6,6 +6,7 @@ import {
   type AdicionarInclusaoManualBody,
 } from '../services/composicaoService'
 
+/** Mutations de inclusão manual de produtos do catálogo na composição. */
 export function useAdicionarInclusaoManualMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

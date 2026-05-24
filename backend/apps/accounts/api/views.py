@@ -1,3 +1,8 @@
+"""
+API de administração de utilizadores (CRUD e metadados de tipos/permissões).
+
+Rotas sob `/auth/`; acesso restrito a administradores da aplicação (`IsAppAdmin`).
+"""
 from django.contrib.auth import get_user_model
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
@@ -47,6 +52,8 @@ class UserPermissionOptionsView(APIView):
 
 
 class AdminUserListCreateView(generics.ListCreateAPIView):
+    """Lista utilizadores (com vínculo RH) e cria conta com permissões calculadas."""
+
     permission_classes = [IsAuthenticated, IsAppAdmin]
 
     def get_queryset(self):
@@ -59,6 +66,8 @@ class AdminUserListCreateView(generics.ListCreateAPIView):
 
 
 class AdminUserRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+    """Detalhe e atualização de utilizador (inclui recálculo de extras/negadas)."""
+
     permission_classes = [IsAuthenticated, IsAppAdmin]
 
     def get_queryset(self):

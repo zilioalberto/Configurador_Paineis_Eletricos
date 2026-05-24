@@ -21,6 +21,7 @@
 
 - [Escopo do portfólio](visao-geral/escopo-portfolio.md) — wizard (RFC) vs. evolução ERP
 - [Arquitetura](visao-geral/arquitetura.md) — camadas, pastas e integração backend ↔ frontend
+- [**Estrutura do código**](visao-geral/estrutura-codigo.md) — mapa de pastas, APIs, registries e correspondência frontend ↔ backend
 - [Módulos do ERP](visao-geral/modulos-erp.md) — mapa do monorepo (inclui itens **fora** do portfólio)
 - [Glossário](visao-geral/glossario.md) — termos do domínio
 

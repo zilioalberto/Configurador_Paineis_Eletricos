@@ -1,3 +1,5 @@
+"""Especificação de transdutor de processo (pressão, temperatura, etc.)."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -17,6 +19,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaTransdutor(models.Model):
+    """Transdutor analógico; consome uma entrada analógica do PLC quando aplicável."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,

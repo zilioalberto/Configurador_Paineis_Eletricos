@@ -1,3 +1,5 @@
+"""Endpoints REST do catálogo (produtos, categorias, famílias PLC)."""
+
 from django.db.models import Prefetch, Q
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
@@ -108,6 +110,8 @@ class CategoriaProdutoViewSet(ViewSet):
 
 
 class ProdutoViewSet(ModelViewSet):
+    """CRUD de produtos com busca tokenizada, paginação e especificações aninhadas."""
+
     queryset = Produto.objects.order_by("codigo", "descricao")
     permission_classes = [HasEffectivePermission]
     pagination_class = None

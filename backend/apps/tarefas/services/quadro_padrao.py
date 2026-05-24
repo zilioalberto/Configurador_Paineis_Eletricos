@@ -1,3 +1,5 @@
+"""Criação e manutenção do quadro Kanban padrão (Pendentes / Trabalhando / Entregue)."""
+
 from django.db import transaction
 
 from apps.tarefas.models import (

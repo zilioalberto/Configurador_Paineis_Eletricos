@@ -1,3 +1,8 @@
+/**
+ * Cards do resumo do wizard: cabeçalho, grade de etapas, ações rápidas,
+ * checklist de conclusão e histórico de rastreabilidade.
+ */
+
 import { Link } from 'react-router-dom'
 import type { CargaListItem } from '@/modules/configurador_paineis/cargas/types/carga'
 import type { ComposicaoSnapshot } from '@/modules/configurador_paineis/composicao/types/composicao'

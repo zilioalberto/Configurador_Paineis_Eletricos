@@ -1,3 +1,5 @@
+/** Mapeia blocos aninhados da API para campos do formulário. */
+
 import { normalizarTipoProtecaoMotorNoForm } from '../constants/cargaChoiceOptions'
 import type { CargaDetail } from '../types/carga'
 import {

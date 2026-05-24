@@ -14,6 +14,7 @@ type DeleteTarget = {
   label: string
 }
 
+/** Página de listagem com filtros locais e exclusão confirmada. */
 export default function ProjetoListPage() {
   const { user } = useAuth()
   const {

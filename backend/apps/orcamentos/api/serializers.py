@@ -1,3 +1,6 @@
+"""
+Serializers de orçamento: itens aninhados, sync por lista e integração catálogo/fiscal.
+"""
 from __future__ import annotations
 
 from django.db import transaction
@@ -57,6 +60,8 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
 
 
 class OrcamentoSerializer(serializers.ModelSerializer):
+    """Cabeçalho da proposta com itens; normaliza preços e origem ao vincular produto."""
+
     itens = OrcamentoItemSerializer(many=True, required=False)
     cliente_nome = serializers.SerializerMethodField()
     contato_cliente_nome = serializers.SerializerMethodField()
@@ -355,6 +360,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
 
 class ConfiguracaoMargemClienteSerializer(serializers.ModelSerializer):
+    """Leitura/escrita de margens padrão vinculadas a cliente ativo."""
+
     cliente_nome = serializers.SerializerMethodField()
 
     class Meta:

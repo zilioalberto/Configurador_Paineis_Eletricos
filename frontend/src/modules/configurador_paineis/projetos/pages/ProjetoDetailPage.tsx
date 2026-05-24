@@ -245,6 +245,7 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
   )
 }
 
+/** Visualização somente leitura dos dados do projeto com stepper do fluxo. */
 export default function ProjetoDetailPage() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()

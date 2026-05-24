@@ -1,3 +1,7 @@
+/**
+ * Cliente HTTP para a API REST de projetos (`/projetos/`).
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   Projeto,
@@ -12,6 +16,7 @@ type ListResponse<T> = {
   results?: T[]
 }
 
+/** Lista projetos visíveis ao usuário (paginação DRF ou array direto). */
 export async function listarProjetos(): Promise<Projeto[]> {
   const response = await apiClient.get<Projeto[] | ListResponse<Projeto>>(BASE_URL)
 
@@ -36,6 +41,7 @@ export async function listarHistoricoProjeto(id: string): Promise<ProjetoEvento[
   return response.data
 }
 
+/** Próximo código sugerido (MMnnn-AA); não consome sequencial até salvar. */
 export async function alocarCodigoProjeto(): Promise<{ codigo: string }> {
   const response = await apiClient.post<{ codigo: string }>(
     `${BASE_URL}alocar-codigo/`

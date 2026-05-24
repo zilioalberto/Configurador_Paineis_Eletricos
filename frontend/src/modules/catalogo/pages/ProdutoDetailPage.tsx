@@ -82,6 +82,7 @@ function tituloBlocoEspecificacao(apiKey: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1)
 }
 
+/** Visualização read-only do produto e especificação técnica. */
 export default function ProdutoDetailPage() {
   const { user } = useAuth()
   const navigate = useNavigate()

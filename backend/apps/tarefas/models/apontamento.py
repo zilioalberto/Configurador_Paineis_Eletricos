@@ -1,3 +1,5 @@
+"""Apontamento manual ou gerado pelo cronómetro de tarefa."""
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -12,6 +14,8 @@ from .tarefa import Tarefa
 
 
 class ApontamentoHora(BaseModel):
+    """Horas registradas por colaborador em uma tarefa (com aprovação opcional)."""
+
     tarefa = models.ForeignKey(Tarefa, on_delete=models.CASCADE, related_name="apontamentos")
     colaborador = models.ForeignKey(
         settings.AUTH_USER_MODEL,

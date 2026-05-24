@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { composicaoQueryKeys } from '../composicaoQueryKeys'
 import { gerarSugestoesComposicao } from '../services/composicaoService'
 
+/** Mutation para gerar sugestões de composição via orquestrador. */
 export function useGerarSugestoesMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

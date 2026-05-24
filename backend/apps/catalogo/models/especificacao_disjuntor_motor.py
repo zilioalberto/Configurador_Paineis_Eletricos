@@ -1,3 +1,5 @@
+"""Especificação técnica de disjuntores motor vinculada ao Produto do catálogo."""
+
 from django.db import models
 from django.core.exceptions import ValidationError
 

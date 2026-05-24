@@ -1,3 +1,8 @@
+"""
+Endpoints de sessão JWT: perfil do utilizador autenticado (`auth/me/`).
+
+Complementa token/refresh (SimpleJWT) usados pelo frontend no login e bootstrap.
+"""
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +18,8 @@ class _JwtAuthenticatedReadOnlyView(APIView):
 
 
 class AuthMeView(_JwtAuthenticatedReadOnlyView):
+    """Retorna perfil e permissões efetivas para o contexto React (`AuthProvider`)."""
+
     def get(self, request):
         user = request.user
         return Response(
@@ -30,6 +37,8 @@ class AuthMeView(_JwtAuthenticatedReadOnlyView):
 
 
 class ProtectedAuthTestView(_JwtAuthenticatedReadOnlyView):
+    """Endpoint de smoke test para validar JWT em ambiente de desenvolvimento."""
+
     def get(self, request):
         return Response(
             {

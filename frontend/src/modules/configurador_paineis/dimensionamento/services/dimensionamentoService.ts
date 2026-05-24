@@ -1,3 +1,5 @@
+/** Cliente HTTP para consulta, recálculo e PATCH de condutores por projeto. */
+
 import apiClient from '@/services/apiClient'
 import type { PatchCondutoresPayload, ResumoDimensionamento } from '../types/dimensionamento'
 

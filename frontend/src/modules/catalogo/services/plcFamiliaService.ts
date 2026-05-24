@@ -1,3 +1,5 @@
+/** Famílias de PLC usadas no catálogo e no cadastro de projetos. */
+
 import apiClient from '@/services/apiClient'
 
 export type PlcFamiliasResponse = { familias: string[] }

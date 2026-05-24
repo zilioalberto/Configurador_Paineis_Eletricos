@@ -1,3 +1,5 @@
+/** Registro de rotas e itens de menu do módulo cargas. */
+
 import { lazy, type ReactElement } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'

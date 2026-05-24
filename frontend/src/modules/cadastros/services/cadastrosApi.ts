@@ -1,3 +1,8 @@
+/**
+ * Cliente HTTP de cadastros comerciais.
+ * Rota exposta em `/erp/cadastros` via `erp.registry`.
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   ContatoParceiroDto,
@@ -35,6 +40,7 @@ function cleanParams(filters: ParceiroListFilters = {}) {
   }
 }
 
+/** Lista parceiros com filtros por tipo, ativo e busca textual. */
 export async function listarParceiros(
   filters: ParceiroListFilters = {}
 ): Promise<ParceiroComercialDto[]> {

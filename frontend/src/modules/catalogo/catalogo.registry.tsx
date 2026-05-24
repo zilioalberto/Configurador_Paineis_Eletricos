@@ -1,3 +1,7 @@
+/**
+ * Registo de rotas e menu do módulo catálogo (produtos e importação NF-e).
+ */
+
 import { lazy, type ReactElement } from 'react'
 import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'

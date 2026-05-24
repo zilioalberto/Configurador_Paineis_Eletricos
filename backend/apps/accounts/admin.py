@@ -1,3 +1,4 @@
+"""Registo do CustomUser no Django Admin (campos alinhados ao login por e-mail)."""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
@@ -6,6 +7,8 @@ from .models import CustomUser
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
+    """Painel admin para gestão manual de utilizadores e flags Django."""
+
     model = CustomUser
 
     list_display = (

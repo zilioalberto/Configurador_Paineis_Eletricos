@@ -461,6 +461,7 @@ function NfeResultadoImportacao({
   )
 }
 
+/** Wizard de importação de produtos a partir de XML de NF-e. */
 export default function NfeImportPage() {
   const { showToast } = useToast()
   const { data: categorias = [], isPending: catPending } = useCategoriaListQuery()

@@ -1,3 +1,5 @@
+/** Visualização somente leitura da carga e bloco específico por tipo. */
+
 import { useMemo } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'

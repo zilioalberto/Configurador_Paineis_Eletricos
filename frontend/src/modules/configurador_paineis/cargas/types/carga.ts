@@ -1,3 +1,8 @@
+/**
+ * Tipos TypeScript para cargas do projeto: payloads aninhados por tipo
+ * e contratos de listagem/detalhe da API.
+ */
+
 export type TipoCarga =
   | 'MOTOR'
   | 'VALVULA'

@@ -12,6 +12,7 @@ import { useProdutoListQuery } from '../hooks/useProdutoListQuery'
 
 type DeleteTarget = { id: string; label: string }
 
+/** Lista de produtos do catálogo com filtros e paginação. */
 export default function ProdutoListPage() {
   const { user } = useAuth()
   const [filtroCategoria, setFiltroCategoria] = useState<string>('')

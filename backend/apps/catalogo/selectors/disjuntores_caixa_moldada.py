@@ -1,3 +1,5 @@
+"""Seletores de produtos do catálogo: disjuntores caixa moldada."""
+
 from decimal import Decimal
 
 from django.db.models import QuerySet

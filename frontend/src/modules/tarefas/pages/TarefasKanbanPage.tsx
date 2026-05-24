@@ -43,6 +43,7 @@ import {
   usuarioPodeClassificarTarefa,
 } from '../utils/tarefasKanbanUtils'
 
+/** Página principal do Kanban de tarefas. */
 export default function TarefasKanbanPage() {
   const { data, isPending, isError, error, refetch, isFetching } = useKanbanTarefasQuery()
   const criarQuadroPadraoMutation = useCriarQuadroPadraoTarefasMutation()

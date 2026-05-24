@@ -1,3 +1,5 @@
+/** Aplica modelos salvos no formulário e monta payload para persistir templates. */
+
 import type { CargaFormData, TipoCarga } from '../types/carga'
 import { applyTipoChange, cargaFormInitial, emptyNestedForTipo } from './cargaFormDefaults'
 

@@ -10,6 +10,7 @@ import type { ProdutoFormData } from '../types/produto'
 import { produtoDetailToForm } from '../utils/produtoDetailToForm'
 import { produtoFormToApiPayload } from '../utils/produtoPayload'
 
+/** Edição de produto existente. */
 export default function ProdutoEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()

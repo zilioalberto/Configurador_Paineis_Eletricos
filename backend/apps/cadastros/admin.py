@@ -1,3 +1,5 @@
+"""Admin Django de parceiros comerciais, endereços e contatos."""
+
 from django.contrib import admin
 
 from apps.cadastros.models import ContatoParceiro, EnderecoParceiro, ParceiroComercial

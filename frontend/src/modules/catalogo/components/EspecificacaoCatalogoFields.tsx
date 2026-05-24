@@ -8,6 +8,7 @@ type Props = {
   onPatch: (patch: Record<string, string | number | boolean>) => void
 }
 
+/** Campos dinâmicos da especificação técnica conforme a categoria selecionada. */
 export default function EspecificacaoCatalogoFields({ categoria, value, onPatch }: Props) {
   const fields = SPEC_FIELDS_BY_CATEGORIA[categoria]
   if (!fields?.length) return null

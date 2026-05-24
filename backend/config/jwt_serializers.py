@@ -1,3 +1,4 @@
+"""Serializer JWT com mensagens em português para o utilizador final."""
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
