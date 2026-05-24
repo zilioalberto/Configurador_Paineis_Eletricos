@@ -115,8 +115,10 @@ export default function CargaForm({
       return
     }
 
-    const io = calcularOcupacaoIoCarga(formData, calcularSaidasDigitaisMotor)
-    setFormData((prev) => ({ ...prev, ...io }))
+    setFormData((prev) => ({
+      ...prev,
+      ...calcularOcupacaoIoCarga(prev, calcularSaidasDigitaisMotor),
+    }))
   }, [
     mostrarOcupacaoIo,
     formData.exige_comando,

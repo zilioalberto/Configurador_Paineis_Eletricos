@@ -136,8 +136,14 @@ export default function UsuariosAdminPage() {
   })
 
   const defaultTipo = useMemo(() => tipos[0]?.value ?? 'USUARIO', [tipos])
-  const permissionOptions = permissionData?.permissions ?? []
-  const defaultsByTipo = permissionData?.defaults_by_tipo ?? {}
+  const permissionOptions = useMemo(
+    () => permissionData?.permissions ?? [],
+    [permissionData?.permissions]
+  )
+  const defaultsByTipo = useMemo(
+    () => permissionData?.defaults_by_tipo ?? {},
+    [permissionData?.defaults_by_tipo]
+  )
 
   useEffect(() => {
     if (!createForm.permissoes.length) {

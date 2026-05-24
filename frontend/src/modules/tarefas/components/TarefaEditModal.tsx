@@ -79,7 +79,10 @@ export function TarefaEditModal({
   const apontamentosQuery = useTarefaApontamentosQuery(tarefa.id)
   const historicoQuery = useTarefaHistoricoQuery(tarefa.id)
   const comentariosQuery = useTarefaComentariosQuery(tarefa.id)
-  const apontamentos = apontamentosQuery.data ?? []
+  const apontamentos = useMemo(
+    () => apontamentosQuery.data ?? [],
+    [apontamentosQuery.data]
+  )
   const entregue = tarefaEntregue(tarefa)
   const podeVerOrcamentos = hasPermission(user, PERMISSION_KEYS.ORCAMENTO_VISUALIZAR)
   const podeAprovarHoras = hasPermission(user, PERMISSION_KEYS.TAREFA_APROVAR_HORAS)

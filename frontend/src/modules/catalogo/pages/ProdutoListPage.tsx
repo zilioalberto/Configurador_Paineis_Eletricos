@@ -31,7 +31,7 @@ export default function ProdutoListPage() {
     error: loadError,
     refetch,
   } = useProdutoListQuery(categoriaQuery, paginaAtual, pageSize)
-  const produtos = pageData?.items ?? []
+  const produtos = useMemo(() => pageData?.items ?? [], [pageData?.items])
 
   const deleteMutation = useDeleteProdutoMutation()
 

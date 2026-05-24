@@ -89,8 +89,8 @@ function deveOcultarCampoReleEstadoSolido(
   value: Record<string, string | number | boolean>
 ): boolean {
   if (categoria !== 'RELE_ESTADO_SOLIDO') return false
-  if (campo === 'tipo_dissipador' && !Boolean(value.possui_dissipador)) return true
-  if (campo === 'tensao_ventilacao_v' && !Boolean(value.possui_ventilacao)) return true
+  if (campo === 'tipo_dissipador' && !value.possui_dissipador) return true
+  if (campo === 'tensao_ventilacao_v' && !value.possui_ventilacao) return true
   return false
 }
 
