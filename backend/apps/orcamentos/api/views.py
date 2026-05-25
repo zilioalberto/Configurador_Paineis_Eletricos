@@ -40,7 +40,7 @@ def _orcamento_queryset():
             "orcamento_origem",
         )
         .prefetch_related(
-            "itens",
+            "itens__produto",
             "configuradores_painel__projeto_configurador",
         )
         .all()

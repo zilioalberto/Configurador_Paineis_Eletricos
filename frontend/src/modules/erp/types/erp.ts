@@ -24,6 +24,7 @@ export type OrcamentoItemDto = {
   item_origem?: string | null
   produto?: string | null
   produto_codigo?: string
+  produto_ncm?: string
   descricao: string
   quantidade: string
   custo_unitario: string

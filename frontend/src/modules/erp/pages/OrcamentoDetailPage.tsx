@@ -30,6 +30,10 @@ import {
   validadePadraoProposta,
 } from '../utils/orcamentoUi'
 import { calcularPrecoUnitarioLinha } from '../utils/orcamentoPrecoLinha'
+import {
+  exibirNcmLinhaOrcamento,
+  rotuloOrigemLinhaOrcamento,
+} from '../utils/orcamentoOrigemLinha'
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'RASCUNHO', label: 'Rascunho' },
@@ -57,6 +61,7 @@ function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavelOrcamento[] {
         origem: item.origem,
         produtoId: item.produto ?? undefined,
         produtoCodigo: item.produto_codigo ?? undefined,
+        produtoNcm: item.produto_ncm ?? undefined,
         descricao: item.descricao,
         quantidade: String(item.quantidade),
         custo_unitario: custo,
@@ -761,9 +766,11 @@ function OrcamentoItensTable({
       <table className="table table-sm align-middle">
         <thead>
           <tr>
-            <th style={{ minWidth: '8rem' }}>#</th>
+            <th style={{ width: '2.5rem' }}>#</th>
+            <th style={{ width: '7rem' }}>Origem</th>
             <th style={{ width: '8rem' }}>Tipo</th>
             <th>Descrição</th>
+            <th style={{ width: '6.5rem' }}>NCM</th>
             <th className="text-end" style={{ width: '7rem' }}>
               Qtd
             </th>
@@ -803,7 +810,7 @@ function OrcamentoItensTable({
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={8} className="text-end fw-semibold">
+            <td colSpan={10} className="text-end fw-semibold">
               Total
             </td>
             <td className="text-end fw-semibold">{valorMonetarioTabela(totalOrcamento)}</td>
@@ -836,14 +843,8 @@ function OrcamentoItemRow({
   const historico = linha.origem === 'HERANCA_REVISAO'
   return (
     <tr className={historico ? 'table-secondary' : undefined}>
-      <td className="text-muted">
-        {index + 1}
-        {linha.origem && linha.origem !== 'MANUAL' ? (
-          <span className="d-block badge text-bg-light text-dark fw-normal mt-1">
-            {linha.origem === 'HERANCA_REVISAO' ? 'Hist.' : linha.origem.slice(0, 4)}
-          </span>
-        ) : null}
-      </td>
+      <td className="text-muted">{index + 1}</td>
+      <td className="small text-muted">{rotuloOrigemLinhaOrcamento(linha.origem)}</td>
       <td>
         {linhaEditavel ? (
           <select
@@ -860,6 +861,7 @@ function OrcamentoItemRow({
                 margem_percentual: margem,
                 margem_minima: margem,
                 aliquota_ipi: tipo === 'SERVICO' ? null : linha.aliquota_ipi,
+                produtoNcm: tipo === 'SERVICO' ? undefined : linha.produtoNcm,
               })
             }}
             disabled={salvandoItens}
@@ -892,6 +894,9 @@ function OrcamentoItemRow({
           placeholder="Descrição do item"
         />
       )}
+      <td className="small text-muted" title="NCM do produto no catálogo fiscal">
+        {exibirNcmLinhaOrcamento(linha.tipo, linha.produtoNcm)}
+      </td>
       <OrcamentoCampoLinha campo="quantidade" index={index} linha={linha} podeEditar={linhaEditavel} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
       <OrcamentoCampoLinha campo="custo_unitario" index={index} linha={linha} podeEditar={linhaEditavel} salvandoItens={salvandoItens} atualizarLinha={atualizarLinha} />
       <td className="text-end text-muted small" title="Definido no catálogo fiscal">

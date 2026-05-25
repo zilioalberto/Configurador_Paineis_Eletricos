@@ -116,7 +116,6 @@ export default function ComposicaoPage() {
   })
 
   const {
-    gerarMutation,
     autoGerando,
     gerandoSugestoes,
     reavaliarPendenciasMutation,

@@ -274,6 +274,7 @@ def test_create_orcamento_item_produto_catalogo_preco_e_ipi(user_admin, cliente_
         descricao="Produto lista IPI",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
         preco_base="150.00",
+        ncm="85381000",
     )
     ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="5.2500")
     client = _auth_client(user, raw)
@@ -301,6 +302,7 @@ def test_create_orcamento_item_produto_catalogo_preco_e_ipi(user_admin, cliente_
     assert item.margem_percentual == 10
     assert item.preco_unitario == Decimal("172.8750")
     assert item.aliquota_ipi == 5.25
+    assert resp.json()["itens"][0]["produto_ncm"] == "85381000"
 
 
 @pytest.mark.django_db

@@ -78,6 +78,7 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(required=False, allow_null=True)
     descricao = serializers.CharField(max_length=500, required=False, allow_blank=True)
     produto_codigo = serializers.SerializerMethodField()
+    produto_ncm = serializers.SerializerMethodField()
     produto = serializers.PrimaryKeyRelatedField(
         queryset=Produto.objects.all(),
         required=False,
@@ -86,6 +87,13 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
 
     def get_produto_codigo(self, obj):
         return obj.produto.codigo if obj.produto_id else ""
+
+    def get_produto_ncm(self, obj):
+        if obj.tipo == TipoItemOrcamentoChoices.SERVICO:
+            return ""
+        if obj.produto_id and obj.produto.ncm:
+            return obj.produto.ncm
+        return ""
 
     class Meta:
         model = OrcamentoItem
@@ -99,6 +107,7 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "item_origem",
             "produto",
             "produto_codigo",
+            "produto_ncm",
             "descricao",
             "quantidade",
             "custo_unitario",
@@ -112,6 +121,7 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "item_origem",
             "origem",
             "produto_codigo",
+            "produto_ncm",
             "aliquota_ipi",
         )
 

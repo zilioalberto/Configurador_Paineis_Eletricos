@@ -6,6 +6,7 @@ export type LinhaEditavelOrcamento = {
   origem?: string
   produtoId?: string
   produtoCodigo?: string
+  produtoNcm?: string
   descricao: string
   quantidade: string
   custo_unitario: string

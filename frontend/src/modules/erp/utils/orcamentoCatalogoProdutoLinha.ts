@@ -2,6 +2,7 @@ import type { ProdutoListItem } from '@/modules/catalogo/types/produto'
 
 import type { LinhaEditavelOrcamento } from '../types/orcamentoLinha'
 import { calcularPrecoUnitarioLinha } from './orcamentoPrecoLinha'
+import { ncmProdutoCatalogo } from './orcamentoOrigemLinha'
 
 function aliquotaIpiProduto(produto: ProdutoListItem): string | null {
   if (produto.aliquota_ipi != null && produto.aliquota_ipi !== '') {
@@ -25,6 +26,7 @@ export function criarLinhaDeProdutoCatalogo(
     editavel: true,
     produtoId: produto.id,
     produtoCodigo: produto.codigo,
+    produtoNcm: ncmProdutoCatalogo(produto),
     descricao: produto.descricao,
     quantidade: '1',
     custo_unitario: custo,
