@@ -1,16 +1,17 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/configurador_paineis/cargas/utils/projetoEdicaoCargas'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
-import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoFluxoGates } from '@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
+import { orcamentoDetalhePath } from '@/modules/erp/utils/orcamentoUi'
 import { sincronizarComposicaoPainel } from '@/modules/erp/services/erpApi'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ComposicaoAlterarSugestaoModal } from '../components/ComposicaoAlterarSugestaoModal'
@@ -58,6 +59,96 @@ function modalComposicaoState(
     isConfirming: reabrirPending,
     tipo: 'reabrir',
   }
+}
+
+function statusSimNao(v: boolean): string {
+  return v ? 'Sim' : 'Não'
+}
+
+function ComposicaoRetornoOrcamentoMonitor({
+  orcamentoId,
+  vinculoId,
+  snapshotCarregado,
+  pendenciasAbertas,
+  sugestoesPendentes,
+  sincronizandoOrcamento,
+  botaoExportarHabilitado,
+  motivoBloqueio,
+}: Readonly<{
+  orcamentoId: string
+  vinculoId: string
+  snapshotCarregado: boolean
+  pendenciasAbertas: number
+  sugestoesPendentes: number
+  sincronizandoOrcamento: boolean
+  botaoExportarHabilitado: boolean
+  motivoBloqueio: string
+}>) {
+  return (
+    <section className="border rounded bg-white p-3 mb-3" aria-label="Monitoramento da exportação para proposta">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 className="h6 mb-0">Monitoramento da exportação para proposta</h2>
+        <span className={`badge ${botaoExportarHabilitado ? 'text-bg-success' : 'text-bg-warning'}`}>
+          {botaoExportarHabilitado ? 'Habilitado' : 'Bloqueado'}
+        </span>
+      </div>
+      <div className="row g-2">
+        <div className="col-sm-6 col-lg-3">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-orcamento">
+            Orçamento
+          </label>
+          <input id="comp-monitor-orcamento" className="form-control form-control-sm" value={orcamentoId} readOnly />
+        </div>
+        <div className="col-sm-6 col-lg-3">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-vinculo">
+            Vínculo
+          </label>
+          <input id="comp-monitor-vinculo" className="form-control form-control-sm" value={vinculoId} readOnly />
+        </div>
+        <div className="col-6 col-lg-2">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-snapshot">
+            Snapshot carregado
+          </label>
+          <input id="comp-monitor-snapshot" className="form-control form-control-sm" value={statusSimNao(snapshotCarregado)} readOnly />
+        </div>
+        <div className="col-6 col-lg-2">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-pendencias">
+            Pendências
+          </label>
+          <input id="comp-monitor-pendencias" className="form-control form-control-sm" value={pendenciasAbertas} readOnly />
+        </div>
+        <div className="col-6 col-lg-2">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-sugestoes">
+            Sugestões pendentes
+          </label>
+          <input id="comp-monitor-sugestoes" className="form-control form-control-sm" value={sugestoesPendentes} readOnly />
+        </div>
+        <div className="col-6 col-lg-2">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-sincronizando">
+            Sincronizando
+          </label>
+          <input id="comp-monitor-sincronizando" className="form-control form-control-sm" value={statusSimNao(sincronizandoOrcamento)} readOnly />
+        </div>
+        <div className="col-sm-6 col-lg-2">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-liberado">
+            Pode exportar
+          </label>
+          <input id="comp-monitor-liberado" className="form-control form-control-sm" value={statusSimNao(botaoExportarHabilitado)} readOnly />
+        </div>
+        <div className="col-lg-8">
+          <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-motivo">
+            Motivo
+          </label>
+          <input
+            id="comp-monitor-motivo"
+            className="form-control form-control-sm"
+            value={botaoExportarHabilitado ? 'Pronto para exportar para a proposta.' : motivoBloqueio}
+            readOnly
+          />
+        </div>
+      </div>
+    </section>
+  )
 }
 
 /** Página principal da etapa de composição do painel (wizard passo 4). */
@@ -166,8 +257,21 @@ export default function ComposicaoPage() {
       snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
     return agruparPorTagCarga(comMemoria, optsAgrupamento)
   }, [snapshot?.sugestoes, optsAgrupamento])
-  const pendenciasAbertas = snapshot?.totais.pendencias ?? snapshot?.pendencias.length ?? 0
-  const podeRetornarOrcamento = Boolean(orcamentoId && vinculoId && snapshot && pendenciasAbertas === 0)
+  const pendenciasAbertas = snapshot?.pendencias.length ?? snapshot?.totais.pendencias ?? 0
+  const sugestoesPendentes = snapshot?.sugestoes.length ?? snapshot?.totais.sugestoes ?? 0
+  const fluxoVinculadoOrcamento = Boolean(orcamentoId && vinculoId)
+  const podeRetornarOrcamento = Boolean(
+    orcamentoId && vinculoId && snapshot && pendenciasAbertas === 0 && sugestoesPendentes === 0
+  )
+  const botaoExportarPropostaHabilitado = podeRetornarOrcamento && !sincronizandoOrcamento
+  const motivoBloqueioRetornoOrcamento =
+    sincronizandoOrcamento
+      ? 'Exportação para a proposta em andamento.'
+      : pendenciasAbertas > 0
+        ? 'Resolva as pendências antes de exportar para a proposta.'
+        : sugestoesPendentes > 0
+          ? 'Aprove todas as sugestões antes de exportar para a proposta.'
+          : 'Conclua a composição antes de exportar para a proposta.'
 
   const modalComposicao = useMemo(
     () =>
@@ -193,7 +297,7 @@ export default function ComposicaoPage() {
   }, [confirmExportFmt, executarExportacao, modalComposicao, onReabrirItemAprovado])
 
   const onRetornarOrcamento = useCallback(async () => {
-    if (!orcamentoId || !vinculoId || pendenciasAbertas > 0) return
+    if (!orcamentoId || !vinculoId || pendenciasAbertas > 0 || sugestoesPendentes > 0) return
     try {
       setSincronizandoOrcamento(true)
       const resultado = await sincronizarComposicaoPainel(orcamentoId, vinculoId)
@@ -201,17 +305,140 @@ export default function ComposicaoPage() {
         variant: 'success',
         message: `${resultado.itens_sincronizados} item(ns) sincronizado(s) com a proposta.`,
       })
-      navigate(`/erp/orcamentos/${orcamentoId}`)
+      navigate(orcamentoDetalhePath(orcamentoId))
     } catch (err) {
       showToast({
         variant: 'danger',
-        title: 'Não foi possível retornar à proposta',
+        title: 'Não foi possível exportar para a proposta',
         message: extrairMensagemErroApi(err) || 'Revise as pendências e tente novamente.',
       })
     } finally {
       setSincronizandoOrcamento(false)
     }
-  }, [navigate, orcamentoId, pendenciasAbertas, showToast, vinculoId])
+  }, [navigate, orcamentoId, pendenciasAbertas, showToast, sugestoesPendentes, vinculoId])
+
+  const toolbarActions = useMemo(
+    () => (
+      <>
+        {projetoId ? (
+          <>
+            <Link
+              to={`${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(
+                withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)
+              )}`}
+              className="btn btn-outline-light btn-sm"
+            >
+              Editar configurações
+            </Link>
+            <Link
+              to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+              className="btn btn-outline-light btn-sm"
+            >
+              Editar cargas
+            </Link>
+            <Link
+              to={withFluxoOrigem(
+                configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+                searchParams
+              )}
+              className="btn btn-outline-light btn-sm"
+            >
+              Editar condutores
+            </Link>
+          </>
+        ) : null}
+        {fluxoVinculadoOrcamento ? (
+          <button
+            type="button"
+            className="btn btn-success btn-sm"
+            disabled={!botaoExportarPropostaHabilitado}
+            title={!botaoExportarPropostaHabilitado ? motivoBloqueioRetornoOrcamento : undefined}
+            onClick={() => void onRetornarOrcamento()}
+          >
+            {sincronizandoOrcamento ? 'Exportando…' : 'Exportar sugestões para proposta'}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="btn btn-outline-light btn-sm"
+          disabled={!projetoId || exportando !== null}
+          title="Composição aprovada, inclusões manuais e pendências de catálogo"
+          onClick={() => onExportLista('xlsx')}
+        >
+          {exportando === 'xlsx' ? 'Excel…' : 'Excel'}
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline-light btn-sm"
+          disabled={!projetoId || exportando !== null}
+          title="Composição aprovada, inclusões manuais e pendências de catálogo"
+          onClick={() => onExportLista('pdf')}
+        >
+          {exportando === 'pdf' ? 'PDF…' : 'PDF'}
+        </button>
+        {canSepararMaterial && !fluxoVinculadoOrcamento ? (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={!projetoId || !podeEditar || gerandoSugestoes}
+            onClick={onGerar}
+          >
+            {gerandoSugestoes ? 'Gerando…' : 'Gerar sugestões'}
+          </button>
+        ) : null}
+      </>
+    ),
+    [
+      canSepararMaterial,
+      exportando,
+      gerandoSugestoes,
+      onExportLista,
+      onGerar,
+      onRetornarOrcamento,
+      podeEditar,
+      fluxoVinculadoOrcamento,
+      botaoExportarPropostaHabilitado,
+      motivoBloqueioRetornoOrcamento,
+      projetoId,
+      searchParams,
+      sincronizandoOrcamento,
+    ]
+  )
+
+  const toolbarConfig = useMemo(
+    () => ({
+      title: 'Composição do painel',
+      subtitle: projetoSelecionado
+        ? `${projetoSelecionado.codigo} · ${projetoSelecionado.nome}`
+        : 'Sugestões, aprovações e pendências de materiais',
+      badges: undefined,
+      actions: toolbarActions,
+      actionsKey: [
+        projetoId,
+        fluxoVinculadoOrcamento ? 'proposta' : 'fluxo',
+        botaoExportarPropostaHabilitado ? 'retorno-ok' : 'retorno-bloqueado',
+        sincronizandoOrcamento ? 'sync' : 'idle',
+        exportando ?? 'sem-export',
+        gerandoSugestoes ? 'gerando' : 'pronto',
+      ].join('|'),
+    }),
+    [
+      botaoExportarPropostaHabilitado,
+      composicaoItens.length,
+      exportando,
+      fluxoVinculadoOrcamento,
+      gerandoSugestoes,
+      pendenciasAbertas,
+      podeRetornarOrcamento,
+      projetoSelecionado,
+      projetoId,
+      snapshot,
+      sincronizandoOrcamento,
+      toolbarActions,
+    ]
+  )
+
+  useAppPageToolbar(toolbarConfig)
 
   if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
     return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
@@ -224,9 +451,6 @@ export default function ComposicaoPage() {
 
   return (
     <div className="container-fluid">
-      {projetoId ? (
-        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual="composicao" compact />
-      ) : null}
       <ConfirmModal
         show={modalComposicao !== null}
         title={modalComposicao?.title ?? ''}
@@ -241,57 +465,6 @@ export default function ComposicaoPage() {
         }}
         onConfirm={confirmarModalComposicao}
       />
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-          <h1 className="h3 mb-1">Composição do painel</h1>
-          <p className="text-muted mb-0">
-            Sugestões automáticas de seccionamento, contatoras e disjuntores motor (quando
-            aplicável), com base nas cargas e no dimensionamento. Demais materiais cadastrados no
-            catálogo podem ser acrescentados manualmente na secção de inclusões.
-          </p>
-        </div>
-        <div className="d-flex gap-2 flex-wrap align-items-center">
-          {podeRetornarOrcamento ? (
-            <button
-              type="button"
-              className="btn btn-success"
-              disabled={sincronizandoOrcamento}
-              onClick={() => void onRetornarOrcamento()}
-            >
-              {sincronizandoOrcamento ? 'Sincronizando…' : 'Retornar à proposta'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="btn btn-outline-success"
-            disabled={!projetoId || exportando !== null}
-            title="Composição aprovada, inclusões manuais e pendências de catálogo"
-            onClick={() => onExportLista('xlsx')}
-          >
-            {exportando === 'xlsx' ? 'Excel…' : 'Excel'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            disabled={!projetoId || exportando !== null}
-            title="Composição aprovada, inclusões manuais e pendências de catálogo"
-            onClick={() => onExportLista('pdf')}
-          >
-            {exportando === 'pdf' ? 'PDF…' : 'PDF'}
-          </button>
-          {canSepararMaterial ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!projetoId || !podeEditar || gerandoSugestoes}
-              onClick={onGerar}
-            >
-              {gerandoSugestoes ? 'Gerando…' : 'Gerar sugestões'}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
       {!projetoId ? (
         <div className="card mb-3">
           <div className="card-body">
@@ -338,6 +511,19 @@ export default function ComposicaoPage() {
             : 'Projeto finalizado: apenas visualização. A geração de sugestões e aprovações não estão disponíveis.'}
         </div>
       )}
+
+      {fluxoVinculadoOrcamento ? (
+        <ComposicaoRetornoOrcamentoMonitor
+          orcamentoId={orcamentoId}
+          vinculoId={vinculoId}
+          snapshotCarregado={Boolean(snapshot)}
+          pendenciasAbertas={pendenciasAbertas}
+          sugestoesPendentes={sugestoesPendentes}
+          sincronizandoOrcamento={sincronizandoOrcamento}
+          botaoExportarHabilitado={botaoExportarPropostaHabilitado}
+          motivoBloqueio={motivoBloqueioRetornoOrcamento}
+        />
+      ) : null}
 
       {projetoId && loadingSnap && <p className="text-muted mb-0">Carregando composição…</p>}
 

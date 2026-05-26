@@ -105,7 +105,7 @@ export default function MargensClientesPage() {
       <nav aria-label="breadcrumb">
         <ol className="breadcrumb">
           <li className="breadcrumb-item">
-            <Link to="/erp/orcamentos">Orçamentos</Link>
+            <Link to="/orcamentos">Orçamentos</Link>
           </li>
           <li className="breadcrumb-item active" aria-current="page">
             Margens por cliente

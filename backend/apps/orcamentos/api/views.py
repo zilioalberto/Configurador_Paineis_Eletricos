@@ -38,10 +38,12 @@ def _orcamento_queryset():
             "criado_por",
             "atualizado_por",
             "orcamento_origem",
+            "snapshot_envio",
         )
         .prefetch_related(
             "itens__produto",
             "configuradores_painel__projeto_configurador",
+            "revisoes_derivadas__snapshot_envio",
         )
         .all()
     )

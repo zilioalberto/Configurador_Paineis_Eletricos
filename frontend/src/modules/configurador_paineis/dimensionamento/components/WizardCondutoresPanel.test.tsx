@@ -11,11 +11,9 @@ import type {
 const showToastMock = vi.hoisted(() => vi.fn())
 const useDimensionamentoQueryMock = vi.hoisted(() => vi.fn())
 const patchMutateAsyncMock = vi.hoisted(() => vi.fn())
-const recalcMutateAsyncMock = vi.hoisted(() => vi.fn())
 const state = vi.hoisted(() => ({
   canEdit: true,
   patchPending: false,
-  recalcPending: false,
 }))
 
 vi.mock('@/components/feedback', () => ({
@@ -44,13 +42,6 @@ vi.mock('../hooks/usePatchCondutoresDimensionamentoMutation', () => ({
   usePatchCondutoresDimensionamentoMutation: () => ({
     mutateAsync: patchMutateAsyncMock,
     isPending: state.patchPending,
-  }),
-}))
-
-vi.mock('../hooks/useRecalcularDimensionamentoMutation', () => ({
-  useRecalcularDimensionamentoMutation: () => ({
-    mutateAsync: recalcMutateAsyncMock,
-    isPending: state.recalcPending,
   }),
 }))
 
@@ -163,9 +154,7 @@ describe('WizardCondutoresPanel', () => {
     vi.clearAllMocks()
     state.canEdit = true
     state.patchPending = false
-    state.recalcPending = false
     patchMutateAsyncMock.mockResolvedValue({})
-    recalcMutateAsyncMock.mockResolvedValue({})
     mockDimensionamentoQuery(dimensionamento())
   })
 
@@ -305,7 +294,7 @@ describe('WizardCondutoresPanel', () => {
     )
   })
 
-  it('aprova todas, recalcula e restaura todas as linhas', async () => {
+  it('aprova todas e restaura todas as linhas', async () => {
     renderPanel()
 
     fireEvent.click(screen.getByRole('button', { name: 'Aprovar todas' }))
@@ -334,10 +323,6 @@ describe('WizardCondutoresPanel', () => {
         confirmar_revisao: true,
       })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: /Recalcular dimensionamento/i }))
-    expect(recalcMutateAsyncMock).toHaveBeenCalledTimes(1)
-
     fireEvent.click(
       screen.getByRole('button', {
         name: /Usar apenas sugestões do sistema/i,
@@ -418,7 +403,6 @@ describe('WizardCondutoresPanel', () => {
     renderPanel()
 
     expect(screen.queryByRole('button', { name: 'Aprovar todas' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Recalcular dimensionamento/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('combobox')[0]).toBeDisabled()
   })

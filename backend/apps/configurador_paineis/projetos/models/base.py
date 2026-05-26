@@ -422,7 +422,8 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
 
     def save(self, *args, **kwargs):
         """Normaliza, valida e persiste; atribui código automático na criação."""
-        is_new = self.pk is None
+        # BaseModel pré-atribui UUID antes do INSERT; `pk is None` falha nesse caso.
+        is_new = self._state.adding
         self._definir_codigo_inicial_se_obrigatorio(is_new)
         self._normalizar_campos_texto_maiusculas()
         self._aplicar_padroes_antes_write()

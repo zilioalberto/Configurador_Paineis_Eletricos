@@ -122,7 +122,7 @@ describe('ItensFiscaisListPage', () => {
     const tracos = screen.getAllByText('—')
     expect(tracos.length).toBeGreaterThanOrEqual(4)
 
-    expect(screen.getByRole('link', { name: 'COD-1' })).toHaveAttribute('href', '/catalogo/prod-1')
+    expect(screen.getByRole('link', { name: 'COD-1' })).toHaveAttribute('href', '/catalogo/produtos/prod-1')
     expect(screen.getByText('Mostrando 2 de 80 itens')).toBeInTheDocument()
 
     const anterior = screen.getByRole('button', { name: 'Anterior' })

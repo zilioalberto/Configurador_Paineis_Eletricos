@@ -35,7 +35,7 @@ export const erpMenuItems: AppMenuItem[] = [
     requiresPermission: PERMISSION_KEYS.RH_VISUALIZAR,
   },
   {
-    to: '/erp/orcamentos',
+    to: '/orcamentos',
     label: 'Orçamentos',
     order: 46,
     requiresPermission: PERMISSION_KEYS.ORCAMENTO_VISUALIZAR,
@@ -67,11 +67,23 @@ export const erpRoutes: ModuleRouteConfig[] = [
     element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoDetailPage />),
   },
   {
+    path: '/orcamentos/:id',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoDetailPage />),
+  },
+  {
     path: '/erp/orcamentos',
     element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoListPage />),
   },
   {
+    path: '/orcamentos',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoListPage />),
+  },
+  {
     path: '/erp/orcamentos/margens-clientes',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <MargensClientesPage />),
+  },
+  {
+    path: '/orcamentos/margens-clientes',
     element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <MargensClientesPage />),
   },
   {

@@ -55,7 +55,17 @@ vi.mock('../components/projeto-form/ProjetoForm', () => ({
   ),
 }))
 
+import AppPageToolbar from '@/components/layout/AppPageToolbar'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarContext,
+} from '@/components/layout/AppPageToolbarContext'
 import ProjetoCreatePage from '@/modules/configurador_paineis/projetos/pages/ProjetoCreatePage'
+
+function AppPageToolbarHost() {
+  const { toolbar } = useAppPageToolbarContext()
+  return toolbar ? <AppPageToolbar toolbar={toolbar} /> : null
+}
 
 function createTestClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -65,9 +75,12 @@ function renderProjetoCreatePage() {
   const qc = createTestClient()
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <ProjetoCreatePage />
-      </MemoryRouter>
+      <AppPageToolbarProvider>
+        <MemoryRouter>
+          <AppPageToolbarHost />
+          <ProjetoCreatePage />
+        </MemoryRouter>
+      </AppPageToolbarProvider>
     </QueryClientProvider>
   )
 }
@@ -98,12 +111,30 @@ describe('ProjetoCreatePage', () => {
 
   it('cria projeto e mostra toast de sucesso', async () => {
     renderProjetoCreatePage()
-    expect(screen.getByRole('heading', { name: /Nova configuração de painel/i })).toBeInTheDocument()
     const btn = await screen.findByRole('button', { name: /enviar-teste/i })
     fireEvent.click(btn)
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
     await waitFor(() =>
       expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'success' }))
     )
+  })
+
+  it('exibe cancelar na barra sem link voltar a configuracoes', async () => {
+    renderProjetoCreatePage()
+    await screen.findByRole('button', { name: /enviar-teste/i })
+    expect(screen.queryByRole('link', { name: /Voltar à lista de configurações/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^← Configurações$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Cancelar/i })).toHaveAttribute(
+      'href',
+      '/configurador/configuracoes'
+    )
+  })
+
+  it('não exibe badges de código nem modo avulsa na barra', async () => {
+    renderProjetoCreatePage()
+    await screen.findByRole('button', { name: /enviar-teste/i })
+    expect(screen.queryByText('04001-26')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Avulsa/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Vinculada à proposta/i)).not.toBeInTheDocument()
   })
 })

@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import type { ResumoDimensionamento } from '@/modules/configurador_paineis/dimensionamento/types/dimensionamento'
-import { ProjetoIdentificacaoFluxo } from '@/modules/configurador_paineis/projetos/components/ProjetoIdentificacaoFluxo'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
+import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 import type { ComposicaoItem, ComposicaoSnapshot, PendenciaItem, SugestaoItem } from '../types/composicao'
 import {
   em,
@@ -49,48 +49,22 @@ type Props = {
   onReavaliarPendencias: () => void
 }
 
-function SnapshotResumo({
-  projetoId,
+function ComposicaoGeracaoAvisos({
   snapshot,
-  projetoSelecionado,
-}: Readonly<Pick<Props, 'projetoId' | 'snapshot' | 'projetoSelecionado'>>) {
-  const totais = snapshot.totais
-
+}: Readonly<Pick<Props, 'snapshot'>>) {
+  if (!snapshot.geracao?.erros_etapas || snapshot.geracao.erros_etapas.length === 0) {
+    return null
+  }
   return (
-    <div className="col-12">
-      <ProjetoIdentificacaoFluxo
-        projetoCodigo={projetoSelecionado?.codigo ?? snapshot.projeto_codigo}
-        projetoNome={projetoSelecionado?.nome ?? snapshot.projeto_nome}
-        fallbackId={snapshot.projeto ?? projetoId}
-        htmlId="composicao-projeto-identificacao"
-      />
-      <p className="small text-muted mb-0 mt-2">
-        {totais ? (
-          <>
-            {totais.sugestoes} sugestão(ões) · {totais.pendencias} pendência(s)
-            {totais.composicao_itens == null ? null : (
-              <> · {totais.composicao_itens} item(ns) na composição</>
-            )}
-            {totais.inclusoes_manuais == null ? null : (
-              <> · {totais.inclusoes_manuais} inclusão(ões) manual(is)</>
-            )}
-          </>
-        ) : (
-          'Sem totais de composição.'
-        )}
-      </p>
-      {snapshot.geracao?.erros_etapas && snapshot.geracao.erros_etapas.length > 0 ? (
-        <div className="alert alert-warning mt-2 mb-0" role="status">
-          <strong>Avisos na última geração:</strong>
-          <ul className="mb-0 mt-1 small">
-            {snapshot.geracao.erros_etapas.map((e, i) => (
-              <li key={i}>
-                {e.etapa}: {e.erro}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    <div className="alert alert-warning mb-3" role="status">
+      <strong>Avisos na última geração:</strong>
+      <ul className="mb-0 mt-1 small">
+        {snapshot.geracao.erros_etapas.map((e, i) => (
+          <li key={i}>
+            {e.etapa}: {e.erro}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -218,12 +192,6 @@ export function ComposicaoSnapshotContent({
 }: Readonly<Props>) {
   return (
     <div className="row g-4">
-      <SnapshotResumo
-        projetoId={projetoId}
-        snapshot={snapshot}
-        projetoSelecionado={projetoSelecionado}
-      />
-
       <div className="col-12">
         <h2 className="h5 mb-3">Composição aprovada</h2>
         <ComposicaoTabelaAprovada
@@ -240,9 +208,6 @@ export function ComposicaoSnapshotContent({
       <div className="col-12">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <h2 className="h5 mb-0">Sugestões de itens</h2>
-          {autoGerando ? (
-            <span className="badge text-bg-info">Atualizando sugestões…</span>
-          ) : null}
           {podeEditar && snapshot.sugestoes.length > 0 ? (
             <button
               type="button"
@@ -254,6 +219,7 @@ export function ComposicaoSnapshotContent({
             </button>
           ) : null}
         </div>
+        <ComposicaoGeracaoAvisos snapshot={snapshot} />
         <ComposicaoTabelaSugestoes
           grupos={gruposSugestoes}
           vazio={snapshot.sugestoes.length === 0}
@@ -296,8 +262,8 @@ export function ComposicaoSnapshotContent({
                 <Link
                   to={
                     projetoId
-                      ? `/catalogo/novo?retorno=${encodeURIComponent(configuradorPaths.composicao(projetoId))}`
-                      : '/catalogo/novo'
+                      ? `${catalogoPaths.produtoNovo}?retorno=${encodeURIComponent(configuradorPaths.composicao(projetoId))}`
+                      : catalogoPaths.produtoNovo
                   }
                   className="btn btn-outline-primary"
                 >

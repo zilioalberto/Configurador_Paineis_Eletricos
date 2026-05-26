@@ -77,13 +77,10 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
     <>
       <WizardCondutoresToolbar
         embedded={embedded}
-        revisaoEfetivaOk={revisaoEfetivaOk}
         podeAprovarTodas={podeAprovarTodas}
         patchPending={patchMut.isPending}
-        recalcPending={recalc.isPending}
         canEditar={canEditar}
         onAprovarTodas={onAprovarTodas}
-        onRecalcular={() => recalc.mutateAsync()}
       />
 
       <WizardCondutoresCircuitosBlock

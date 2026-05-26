@@ -1,17 +1,21 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import ProjetoForm from '../components/ProjetoForm'
+import { PROJETO_CONFIG_FORM_ID } from '../components/projeto-form/projetoFormIds'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { useUpdateProjetoMutation } from '../hooks/useProjetoMutations'
 import type { Projeto, ProjetoFormData } from '../types/projeto'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { projetoQueryKeys } from '../projetoQueryKeys'
+import { listarClientesProjeto } from '../services/projetoClienteService'
 import { listarResponsaveisProjeto } from '../services/projetoService'
+import { buildClienteSelectOptions } from '../utils/projetoClienteSelect'
 import { configuradorPaths } from '../../configuradorPaths'
 
 /** Converte entidade da API para estado inicial do formulário de edição. */
@@ -69,6 +73,7 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
 export default function ProjetoEditPage() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const loadErrorToastSent = useRef(false)
@@ -87,6 +92,19 @@ export default function ProjetoEditPage() {
     queryKey: [...projetoQueryKeys.all, 'responsaveis'],
     queryFn: listarResponsaveisProjeto,
   })
+  const {
+    data: clientesCadastro = [],
+    isPending: carregandoClientes,
+    isError: erroClientes,
+  } = useQuery({
+    queryKey: [...projetoQueryKeys.all, 'clientes'],
+    queryFn: listarClientesProjeto,
+  })
+
+  const clienteOptions = useMemo(
+    () => buildClienteSelectOptions(clientesCadastro, projeto?.cliente ?? ''),
+    [clientesCadastro, projeto?.cliente]
+  )
 
   useEffect(() => {
     loadErrorToastSent.current = false
@@ -115,7 +133,7 @@ export default function ProjetoEditPage() {
       variant: 'success',
       message: 'Projeto atualizado com sucesso.',
     })
-    navigate(configuradorPaths.configuracaoDetalhe(projetoAtualizado.id))
+    navigate(searchParams.get('retorno') || configuradorPaths.cargas(projetoAtualizado.id))
   }
 
   function handleSubmitError(err: unknown) {
@@ -130,27 +148,31 @@ export default function ProjetoEditPage() {
 
   const initialData = projeto ? projetoParaFormData(projeto) : undefined
 
+  const toolbarConfig = useMemo(() => {
+    if (!id) return null
+    return {
+      title: 'Editar configuração de painel',
+      primaryAction: {
+        label: 'Salvar alterações',
+        formId: PROJETO_CONFIG_FORM_ID,
+        loading: updateMutation.isPending,
+        loadingLabel: 'Salvando…',
+        disabled: loadingProjeto || isLoadError || !initialData,
+      },
+    }
+  }, [
+    id,
+    initialData,
+    isLoadError,
+    loadingProjeto,
+    projeto,
+    updateMutation.isPending,
+  ])
+
+  useAppPageToolbar(toolbarConfig)
+
   return (
-    <div className="container-fluid projeto-config-page">
-      <div className="projeto-config-header">
-        <div className="min-w-0">
-          {id ? (
-            <Link className="small d-inline-flex mb-2" to={configuradorPaths.configuracaoDetalhe(id)}>
-              ← Voltar aos detalhes
-            </Link>
-          ) : null}
-          <h1 className="h3 mb-1">Editar configuração de painel</h1>
-          <p className="text-muted mb-0">
-            {projeto
-              ? `${projeto.codigo} · ${projeto.nome}`
-              : 'Atualize os dados técnicos e comerciais da configuração.'}
-          </p>
-        </div>
-        <div className="projeto-config-header__meta">
-          {projeto?.status ? <span className="badge text-bg-light border">{projeto.status}</span> : null}
-          {projeto?.codigo ? <span className="badge text-bg-primary">{projeto.codigo}</span> : null}
-        </div>
-      </div>
+    <div className="container-fluid projeto-config-page projeto-config-page--full projeto-config-page--compact">
 
       {!id && (
         <div className="alert alert-danger" role="alert">
@@ -159,9 +181,7 @@ export default function ProjetoEditPage() {
       )}
 
       {id && loadingProjeto && (
-        <div className="card border-0 shadow-sm">
-          <div className="card-body py-4 text-muted">Carregando dados do projeto...</div>
-        </div>
+        <p className="text-muted small mb-2">Carregando dados do projeto…</p>
       )}
 
       {id && !loadingProjeto && isLoadError && (
@@ -181,6 +201,13 @@ export default function ProjetoEditPage() {
         </div>
       )}
 
+      {erroClientes ? (
+        <div className="alert alert-warning py-2 mb-2">
+          Não foi possível carregar os clientes cadastrados. Atualize a página ou cadastre clientes em{' '}
+          <Link to="/erp/cadastros">Cadastros comerciais</Link>.
+        </div>
+      ) : null}
+
       {id && !loadingProjeto && !isLoadError && initialData && (
         <ProjetoForm
           key={id}
@@ -189,9 +216,12 @@ export default function ProjetoEditPage() {
           loading={updateMutation.isPending}
           initialData={initialData}
           responsavelOptions={responsavelOptions}
+          clienteOptions={clienteOptions}
+          carregandoClientes={carregandoClientes}
           canEditResponsavel={canEditResponsavel}
           showStatus={false}
           submitLabel="Salvar alterações"
+          formId={PROJETO_CONFIG_FORM_ID}
         />
       )}
     </div>

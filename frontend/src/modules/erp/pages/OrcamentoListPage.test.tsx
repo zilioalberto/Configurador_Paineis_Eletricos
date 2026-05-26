@@ -1,6 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import AppPageToolbar from '@/components/layout/AppPageToolbar'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarState,
+} from '@/components/layout/AppPageToolbarContext'
 
 const showToast = vi.hoisted(() => vi.fn())
 const navigate = vi.hoisted(() => vi.fn())
@@ -11,6 +16,12 @@ const listarOrcamentos = vi.hoisted(() => vi.fn())
 
 vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast }),
+}))
+
+vi.mock('@/modules/auth/AuthContext', () => ({
+  useAuth: () => ({
+    user: { email: 'a@test.com', tipo_usuario: 'ADMIN', permissoes: ['orcamento.criar'] },
+  }),
 }))
 
 vi.mock('react-router-dom', async () => {
@@ -30,10 +41,18 @@ vi.mock('../services/erpApi', () => ({
 
 import OrcamentoListPage from './OrcamentoListPage'
 
+function ToolbarProbe() {
+  const toolbar = useAppPageToolbarState()
+  return toolbar ? <AppPageToolbar toolbar={toolbar} /> : null
+}
+
 function renderPage() {
   render(
     <MemoryRouter>
-      <OrcamentoListPage />
+      <AppPageToolbarProvider>
+        <ToolbarProbe />
+        <OrcamentoListPage />
+      </AppPageToolbarProvider>
     </MemoryRouter>
   )
 }
@@ -67,13 +86,26 @@ describe('OrcamentoListPage', () => {
     expect(await screen.findByText('ORC-001')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /ORC-001/i }))
 
-    expect(navigate).toHaveBeenCalledWith('/erp/orcamentos/orc-1')
+    expect(navigate).toHaveBeenCalledWith('/orcamentos/orc-1')
   })
 
-  it('cria orçamento com cliente e contato principal', async () => {
+  it('não exibe formulário de criação inline no topo', async () => {
     renderPage()
 
-    const clienteSelect = await screen.findByLabelText('Cliente')
+    await screen.findByText('ORC-001')
+    expect(screen.queryByLabelText('Novo cliente')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Configurar margens por cliente/i)).not.toBeInTheDocument()
+  })
+
+  it('abre modal e cria orçamento pelo botão da toolbar', async () => {
+    renderPage()
+
+    await screen.findByText('ORC-001')
+    const botoesCriar = screen.getAllByRole('button', { name: /Criar proposta/i })
+    fireEvent.click(botoesCriar[0])
+
+    const dialog = await screen.findByRole('dialog', { name: /Nova proposta/i })
+    const clienteSelect = within(dialog).getByLabelText('Cliente')
     await waitFor(() => {
       expect(clienteSelect).not.toBeDisabled()
     })
@@ -84,12 +116,12 @@ describe('OrcamentoListPage', () => {
       expect(listarContatosCliente).toHaveBeenCalledWith('cli-1')
     })
     await waitFor(() => {
-      expect(screen.getByLabelText('Contato do cliente')).toHaveValue('ct-1')
+      expect(within(dialog).getByLabelText('Contato')).toHaveValue('ct-1')
     })
-    fireEvent.change(screen.getByLabelText('Título'), {
+    fireEvent.change(within(dialog).getByLabelText('Título'), {
       target: { value: ' Novo painel ' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Criar proposta/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Criar proposta$/i }))
 
     await waitFor(() => {
       expect(criarOrcamento).toHaveBeenCalledWith({
@@ -102,12 +134,11 @@ describe('OrcamentoListPage', () => {
       variant: 'success',
       message: 'Orçamento criado.',
     })
-    expect(navigate).toHaveBeenCalledWith('/erp/orcamentos/orc-2')
+    expect(navigate).toHaveBeenCalledWith('/orcamentos/orc-2')
   })
 
   it('mostra vazio e toast quando carregamentos falham', async () => {
     listarOrcamentos.mockRejectedValueOnce(new Error('lista'))
-    listarClientesOrcamento.mockRejectedValueOnce(new Error('clientes'))
 
     renderPage()
 
@@ -116,9 +147,6 @@ describe('OrcamentoListPage', () => {
         expect.objectContaining({ message: 'Não foi possível carregar os orçamentos.' })
       )
     })
-    expect(showToast).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'Não foi possível carregar os clientes cadastrados.' })
-    )
     expect(screen.getByText('Nenhum orçamento ainda.')).toBeInTheDocument()
   })
 
@@ -128,7 +156,11 @@ describe('OrcamentoListPage', () => {
 
     renderPage()
 
-    const clienteSelect = await screen.findByLabelText('Cliente')
+    await screen.findByText('ORC-001')
+    fireEvent.click(screen.getAllByRole('button', { name: /Criar proposta/i })[0])
+
+    const dialog = await screen.findByRole('dialog', { name: /Nova proposta/i })
+    const clienteSelect = within(dialog).getByLabelText('Cliente')
     await waitFor(() => {
       expect(clienteSelect).not.toBeDisabled()
     })
@@ -140,10 +172,10 @@ describe('OrcamentoListPage', () => {
         expect.objectContaining({ message: 'Não foi possível carregar os contatos do cliente.' })
       )
     })
-    fireEvent.change(screen.getByLabelText('Título'), {
+    fireEvent.change(within(dialog).getByLabelText('Título'), {
       target: { value: 'Painel' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Criar proposta/i }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Criar proposta$/i }))
 
     await waitFor(() => {
       expect(showToast).toHaveBeenCalledWith(

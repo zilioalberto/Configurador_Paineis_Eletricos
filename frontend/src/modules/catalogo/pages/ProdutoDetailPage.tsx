@@ -8,6 +8,7 @@ import { useProdutoDetailQuery } from '../hooks/useProdutoDetailQuery'
 import type { CategoriaProdutoNome } from '../types/categoria'
 import type { ItemFiscalProduto } from '../types/produto'
 import { labelCampoEspec, SPEC_FIELDS_BY_CATEGORIA } from '../utils/specFormHelpers'
+import { catalogoPaths } from '../catalogoPaths'
 
 function SpecBlock({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
   return (
@@ -102,19 +103,19 @@ export default function ProdutoDetailPage() {
         </div>
         <div className="d-flex flex-wrap gap-2 align-items-center">
           {canEditProduto ? (
-            <Link to="/catalogo/novo" className="btn btn-outline-primary">
+            <Link to={catalogoPaths.produtoNovo} className="btn btn-outline-primary">
               Novo produto
             </Link>
           ) : null}
           <button
             type="button"
             className="btn btn-outline-secondary"
-            onClick={() => navigate('/catalogo')}
+            onClick={() => navigate(catalogoPaths.produtos)}
           >
             Fechar
           </button>
           {id && canEditProduto ? (
-            <Link to={`/catalogo/${id}/editar`} className="btn btn-primary">
+            <Link to={catalogoPaths.produtoEditar(id)} className="btn btn-primary">
               Editar
             </Link>
           ) : null}
@@ -232,7 +233,7 @@ export default function ProdutoDetailPage() {
                 })()}
 
               <div className="col-12">
-                <Link to="/catalogo" className="btn btn-outline-secondary btn-sm">
+                <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary btn-sm">
                   Lista de produtos
                 </Link>
               </div>

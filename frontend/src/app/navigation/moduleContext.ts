@@ -5,6 +5,7 @@ export type PortalModuleContext = {
 }
 
 const CONFIGURADOR_PAINEIS_PATH_PREFIXES = [
+  '/configurador',
   '/dashboard',
   '/projetos',
   '/cargas',
@@ -34,7 +35,12 @@ export function getPortalModuleContext(path = '/'): PortalModuleContext {
   if (path === '/erp/rh' || path.startsWith('/erp/rh/')) {
     return { title: 'RH' }
   }
-  if (path === '/erp/orcamentos' || path.startsWith('/erp/orcamentos/')) {
+  if (
+    path === '/erp/orcamentos' ||
+    path.startsWith('/erp/orcamentos/') ||
+    path === '/orcamentos' ||
+    path.startsWith('/orcamentos/')
+  ) {
     return { title: 'Orçamentos' }
   }
   if (path === '/erp/configuracoes' || path.startsWith('/erp/configuracoes/')) {

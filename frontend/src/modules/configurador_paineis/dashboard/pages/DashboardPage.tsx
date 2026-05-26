@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -178,7 +179,7 @@ export default function DashboardPage() {
               value={data.catalogo.produtos_ativos}
               footer={
                 canViewCatalogo ? (
-                  <Link className="link-secondary" to="/catalogo">
+                  <Link className="link-secondary" to={catalogoPaths.produtos}>
                     Gerir catálogo →
                   </Link>
                 ) : null

@@ -77,8 +77,8 @@ export function ProjetoWizardResumoHeader({
         )}
       </div>
       <div className="d-flex gap-2">
-        <Link className="btn btn-outline-secondary" to={configuradorPaths.configuracaoDetalhe(projetoId)}>
-          Ver detalhes
+        <Link className="btn btn-outline-secondary" to={configuradorPaths.configuracaoEditar(projetoId)}>
+          Editar configuração
         </Link>
         {proxima ? (
           <Link className="btn btn-primary" to={withFluxoOrigem(proxima.href, searchParams)}>

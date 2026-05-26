@@ -1,5 +1,6 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -110,13 +111,13 @@ export default function FiscalHomePage() {
                   </div>
                   <div className="d-flex flex-wrap gap-2 flex-shrink-0">
                     <Link
-                      to={`/catalogo/${p.id}`}
+                      to={catalogoPaths.produtoDetalhe(p.id)}
                       className="btn btn-sm btn-outline-primary"
                     >
                       Ver dados fiscais
                     </Link>
                     {podeEditar ? (
-                      <Link to={`/catalogo/${p.id}/editar`} className="btn btn-sm btn-primary">
+                      <Link to={catalogoPaths.produtoEditar(p.id)} className="btn btn-sm btn-primary">
                         Editar produto
                       </Link>
                     ) : null}
@@ -144,7 +145,7 @@ export default function FiscalHomePage() {
               <p className="card-text text-muted small flex-grow-1">
                 Envio de XML no catálogo: cria ou atualiza produtos e grava os itens fiscais da nota.
               </p>
-              <Link to="/catalogo/importar-nfe" className="btn btn-primary">
+              <Link to={catalogoPaths.produtoImportarNfe} className="btn btn-primary">
                 Ir para importação
               </Link>
             </div>
@@ -170,7 +171,7 @@ export default function FiscalHomePage() {
               <p className="card-text text-muted small flex-grow-1">
                 Listagem completa de produtos por categoria.
               </p>
-              <Link to="/catalogo" className="btn btn-outline-secondary">
+              <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary">
                 Abrir catálogo
               </Link>
             </div>

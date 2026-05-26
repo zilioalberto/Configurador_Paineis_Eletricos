@@ -1,5 +1,6 @@
-import { useCallback } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useToast } from '@/components/feedback'
 import { useGerarSugestoesMutation } from '@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation'
 import { useReavaliarPendenciasMutation } from '@/modules/configurador_paineis/composicao/hooks/useReavaliarPendenciasMutation'
@@ -32,6 +33,7 @@ export default function ProjetoWizardPage() {
   const projetoId = id ?? ''
   const etapaParam = etapa ?? ''
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const etapaInvalidaNaUrl = Boolean(etapaParam) && !ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
   const etapaAtual: WizardStepId = ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
     ? (etapaParam as WizardStepId)
@@ -62,6 +64,53 @@ export default function ProjetoWizardPage() {
 
   const etapaIndex = steps.findIndex((s) => s.id === etapaAtual)
   const proxima = etapaIndex >= 0 ? steps.slice(etapaIndex).find((s) => !s.done && s.canEnter) : null
+  const onSalvarIrSugestoes = useCallback(() => {
+    navigate(withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams))
+  }, [navigate, projetoId, searchParams])
+
+  const toolbarConfig = useMemo(() => {
+    if (etapaAtual !== 'dimensionamento') return null
+
+    const retornoDimensionamento = withFluxoOrigem(
+      configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+      searchParams
+    )
+    const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
+
+    return {
+      title: 'Dimensionamento de condutores',
+      subtitle: undefined,
+      actions: (
+        <>
+          <Link
+            to={editarConfiguracaoPath}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar configurações
+          </Link>
+          <Link
+            to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar cargas
+          </Link>
+        </>
+      ),
+      primaryAction: {
+        label: 'Salvar e ir para sugestões',
+        disabled: !dimensionamentoEtapaConcluida,
+        onClick: onSalvarIrSugestoes,
+      },
+    }
+  }, [
+    dimensionamentoEtapaConcluida,
+    etapaAtual,
+    onSalvarIrSugestoes,
+    projetoId,
+    searchParams,
+  ])
+
+  useAppPageToolbar(toolbarConfig)
 
   const onRecalcular = useCallback(async () => {
     try {

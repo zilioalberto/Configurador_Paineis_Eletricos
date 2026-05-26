@@ -4,12 +4,13 @@ import { lazy, type ReactElement } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
-import { configuradorPaths } from '../configuradorPaths'
 
 const ProjetoListPage = lazy(() => import('./pages/ProjetoListPage'))
 const ProjetoCreatePage = lazy(() => import('./pages/ProjetoCreatePage'))
 const ProjetoEditPage = lazy(() => import('./pages/ProjetoEditPage'))
-const ProjetoDetailPage = lazy(() => import('./pages/ProjetoDetailPage'))
+const ProjetoConfiguracaoRedirectPage = lazy(
+  () => import('./pages/ProjetoConfiguracaoRedirectPage')
+)
 const ProjetoWizardPage = lazy(() => import('./pages/ProjetoWizardPage'))
 
 function withPermission(permission: string, element: ReactElement): ReactElement {
@@ -35,7 +36,7 @@ const configuradorConfiguracoesRoutes: ModuleRouteConfig[] = [
   },
   {
     path: '/configurador/configuracoes/:id',
-    element: withPermission(PERMISSION_KEYS.PROJETO_VISUALIZAR, <ProjetoDetailPage />),
+    element: withPermission(PERMISSION_KEYS.PROJETO_VISUALIZAR, <ProjetoConfiguracaoRedirectPage />),
   },
 ]
 
@@ -60,15 +61,9 @@ export const projetosRoutes: ModuleRouteConfig[] = [
   },
   {
     path: '/projetos/:id',
-    element: withPermission(PERMISSION_KEYS.PROJETO_VISUALIZAR, <ProjetoDetailPage />),
+    element: withPermission(PERMISSION_KEYS.PROJETO_VISUALIZAR, <ProjetoConfiguracaoRedirectPage />),
   },
 ]
 
-export const projetosMenuItems: AppMenuLinkItem[] = [
-  {
-    to: configuradorPaths.configuracoes,
-    label: 'Configurações de painel',
-    order: 10,
-    requiresPermission: PERMISSION_KEYS.PROJETO_VISUALIZAR,
-  },
-]
+/** Itens de menu ficam no agregador `configurador_paineis.registry.tsx`. */
+export const projetosMenuItems: AppMenuLinkItem[] = []

@@ -2,16 +2,23 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 
 import {
   adicionarPainelConfigurador,
   criarNovaRevisaoOrcamento,
+  iniciarConfiguradorPainel,
   obterOrcamento,
   sincronizarComposicaoPainel,
 } from '../services/erpApi'
 import type { OrcamentoConfiguradorPainelDto, OrcamentoDto } from '../types/erp'
-import { configuradorNovoPath, proximaDescricaoPainel } from '../utils/orcamentoUi'
+import {
+  configuradorFluxoOrcamentoPath,
+  configuradorNovoPath,
+  orcamentoDetalhePath,
+  proximaDescricaoPainel,
+} from '../utils/orcamentoUi'
 
 type Props = {
   orcamento: OrcamentoDto
@@ -59,16 +66,36 @@ export default function OrcamentoPainelsCard({ orcamento, podeEditar, onAtualiza
     }
   }
 
-  function abrirConfigurador(vinculo: OrcamentoConfiguradorPainelDto) {
-    navigate(
-      configuradorNovoPath({
-        orcamentoId: orcamento.id,
-        vinculoId: vinculo.id,
-        nome: vinculo.descricao_painel,
-        ordemPainel: vinculo.ordem,
-        cliente: orcamento.cliente_nome,
+  async function abrirConfigurador(vinculo: OrcamentoConfiguradorPainelDto) {
+    setProcessando(true)
+    try {
+      const atualizado = await iniciarConfiguradorPainel(orcamento.id, vinculo.id)
+      if (atualizado.projeto_configurador_id) {
+        navigate(
+          configuradorFluxoOrcamentoPath(
+            configuradorPaths.cargas(atualizado.projeto_configurador_id),
+            { orcamentoId: orcamento.id, vinculoId: vinculo.id }
+          )
+        )
+        return
+      }
+      navigate(
+        configuradorNovoPath({
+          orcamentoId: orcamento.id,
+          vinculoId: vinculo.id,
+          nome: vinculo.descricao_painel,
+          ordemPainel: vinculo.ordem,
+          cliente: orcamento.cliente_nome,
+        })
+      )
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        message: extrairMensagemErroApi(err, 'Não foi possível iniciar o configurador.'),
       })
-    )
+    } finally {
+      setProcessando(false)
+    }
   }
 
   async function handleSincronizar(vinculo: OrcamentoConfiguradorPainelDto) {
@@ -108,7 +135,7 @@ export default function OrcamentoPainelsCard({ orcamento, podeEditar, onAtualiza
       const novo = await criarNovaRevisaoOrcamento(orcamento.id, payload)
       showToast({ variant: 'success', message: `Revisão ${novo.codigo} criada.` })
       setModalRevisao(null)
-      navigate(`/erp/orcamentos/${novo.id}`)
+      navigate(orcamentoDetalhePath(novo.id))
     } catch {
       showToast({ variant: 'danger', message: 'Não foi possível criar a revisão.' })
     } finally {
@@ -141,7 +168,7 @@ export default function OrcamentoPainelsCard({ orcamento, podeEditar, onAtualiza
         {orcamento.orcamento_origem ? (
           <p className="small mb-3">
             Derivada de{' '}
-            <Link to={`/erp/orcamentos/${orcamento.orcamento_origem}`}>revisão anterior</Link>
+            <Link to={orcamentoDetalhePath(orcamento.orcamento_origem)}>revisão anterior</Link>
             {' · '}
             tipo: <span className="text-uppercase">{orcamento.tipo_revisao}</span>
           </p>
@@ -184,7 +211,7 @@ export default function OrcamentoPainelsCard({ orcamento, podeEditar, onAtualiza
                       type="button"
                       className="btn btn-sm btn-primary"
                       disabled={processando}
-                      onClick={() => abrirConfigurador(painel)}
+                      onClick={() => void abrirConfigurador(painel)}
                     >
                       Configurar painel
                     </button>
@@ -192,9 +219,12 @@ export default function OrcamentoPainelsCard({ orcamento, podeEditar, onAtualiza
                   {painel.projeto_configurador_id ? (
                     <Link
                       className="btn btn-sm btn-outline-secondary"
-                      to={configuradorPaths.composicao(painel.projeto_configurador_id)}
+                      to={configuradorFluxoOrcamentoPath(
+                        configuradorPaths.composicao(painel.projeto_configurador_id),
+                        { orcamentoId: orcamento.id, vinculoId: painel.id }
+                      )}
                     >
-                      Abrir composição
+                      Continuar configurador
                     </Link>
                   ) : null}
                   {editavel && painel.modo === 'ATIVO' && painel.projeto_configurador_id ? (

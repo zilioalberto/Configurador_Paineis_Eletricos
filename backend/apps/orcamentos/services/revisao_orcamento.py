@@ -11,8 +11,11 @@ from apps.orcamentos.models import (
     OrcamentoItem,
     OrigemItemOrcamentoChoices,
     StatusOrcamentoChoices,
+    TipoItemOrcamentoChoices,
     TipoRevisaoOrcamentoChoices,
 )
+from apps.fiscal.services import p_ipi_referencia_produto
+from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 
 _REVISOES_PERMITIDAS_ORIGEM = frozenset(
     {
@@ -26,7 +29,9 @@ _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def proxima_revisao_label(revisao_atual: str) -> str:
-    rev = (revisao_atual or "A").strip().upper()
+    rev = (revisao_atual or "").strip().upper()
+    if not rev:
+        return "A"
     if len(rev) == 1 and rev in _LETTERS:
         idx = _LETTERS.index(rev)
         if idx + 1 < len(_LETTERS):
@@ -50,7 +55,21 @@ def _copiar_item(
     configurador_painel: OrcamentoConfiguradorPainel | None,
     origem: str,
     editavel: bool,
+    atualizar_catalogo: bool = False,
 ) -> OrcamentoItem:
+    custo_unitario = item.custo_unitario
+    aliquota_ipi = item.aliquota_ipi
+    preco_unitario = item.preco_unitario
+    if atualizar_catalogo and item.tipo == TipoItemOrcamentoChoices.PRODUTO and item.produto_id:
+        item.produto.refresh_from_db(fields=("preco_base",))
+        custo_unitario = item.produto.preco_base
+        aliquota_ipi = p_ipi_referencia_produto(item.produto)
+        preco_unitario = calcular_preco_unitario_linha(
+            custo_unitario,
+            item.margem_percentual,
+            aliquota_ipi,
+        )
+
     return OrcamentoItem.objects.create(
         orcamento=novo_orcamento,
         configurador_painel=configurador_painel,
@@ -61,11 +80,11 @@ def _copiar_item(
         editavel=editavel,
         descricao=item.descricao,
         quantidade=item.quantidade,
-        custo_unitario=item.custo_unitario,
+        custo_unitario=custo_unitario,
         margem_percentual=item.margem_percentual,
-        preco_unitario=item.preco_unitario,
+        preco_unitario=preco_unitario,
         produto=item.produto,
-        aliquota_ipi=item.aliquota_ipi,
+        aliquota_ipi=aliquota_ipi,
     )
 
 
@@ -95,6 +114,7 @@ def _copiar_painel_heranca(
             configurador_painel=novo_painel,
             origem=OrigemItemOrcamentoChoices.HERANCA_REVISAO,
             editavel=False,
+            atualizar_catalogo=False,
         )
     return novo_painel
 
@@ -114,6 +134,7 @@ def _copiar_itens_sem_painel_comercial(
             configurador_painel=None,
             origem=item.origem,
             editavel=True,
+            atualizar_catalogo=True,
         )
 
 
@@ -150,6 +171,7 @@ def _copiar_paineis_comercial(
             configurador_painel=painel_novo,
             origem=item.origem,
             editavel=True,
+            atualizar_catalogo=True,
         )
 
 

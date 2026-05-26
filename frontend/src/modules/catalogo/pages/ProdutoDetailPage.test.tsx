@@ -37,9 +37,9 @@ const produto = {
 
 function renderProdutoDetailPage(id: string) {
   return render(
-    <MemoryRouter initialEntries={[`/catalogo/${id}`]}>
+    <MemoryRouter initialEntries={[`/catalogo/produtos/${id}`]}>
       <Routes>
-        <Route path="/catalogo/:id" element={<ProdutoDetailPage />} />
+        <Route path="/catalogo/produtos/:id" element={<ProdutoDetailPage />} />
       </Routes>
     </MemoryRouter>
   )
@@ -91,7 +91,7 @@ describe('ProdutoDetailPage', () => {
     renderProdutoDetailPage('pr1')
     expect(screen.getByText('ABC')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Fechar/i }))
-    expect(navigate).toHaveBeenCalledWith('/catalogo')
+    expect(navigate).toHaveBeenCalledWith('/catalogo/produtos')
   })
 
   it('mostra link editar quando permitido', () => {
@@ -99,7 +99,7 @@ describe('ProdutoDetailPage', () => {
     renderProdutoDetailPage('pr1')
     expect(screen.getByRole('link', { name: /Editar/i })).toHaveAttribute(
       'href',
-      '/catalogo/pr1/editar'
+      '/catalogo/produtos/pr1/editar'
     )
   })
 

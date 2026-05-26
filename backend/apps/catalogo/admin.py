@@ -34,6 +34,7 @@ from .models import (
     EspecificacaoTemporizador,
     EspecificacaoTrilhoDIN,
     Produto,
+    Servico,
 )
 
 
@@ -801,3 +802,17 @@ class EspecificacaoGatewayAdmin(admin.ModelAdmin):
         "modo_montagem",
     )
     search_fields = ("produto__codigo", "produto__descricao")
+
+
+@admin.register(Servico)
+class ServicoAdmin(admin.ModelAdmin):
+    list_display = (
+        "codigo",
+        "descricao",
+        "categoria",
+        "unidade_medida",
+        "preco_base",
+        "ativo",
+    )
+    list_filter = ("ativo", "unidade_medida")
+    search_fields = ("codigo", "descricao", "categoria")

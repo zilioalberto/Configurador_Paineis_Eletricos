@@ -1,6 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import AppPageToolbar from '@/components/layout/AppPageToolbar'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarState,
+} from '@/components/layout/AppPageToolbarContext'
 
 import type { ProdutoAlternativa } from '@/modules/configurador_paineis/composicao/types/composicao'
 
@@ -75,10 +80,6 @@ vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates', ()
   }),
 }))
 
-vi.mock('@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper', () => ({
-  ProjetoFluxoStepper: () => null,
-}))
-
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation', () => ({
   useGerarSugestoesMutation: () => ({
     mutateAsync: gerarMutateAsyncMock,
@@ -135,6 +136,16 @@ vi.mock('@/components/feedback', () => ({
 
 import ComposicaoPage from '@/modules/configurador_paineis/composicao/pages/ComposicaoPage'
 
+function ToolbarProbe() {
+  const toolbar = useAppPageToolbarState()
+  return toolbar ? <AppPageToolbar toolbar={toolbar} /> : null
+}
+
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="location-path">{location.pathname}</div>
+}
+
 describe('ComposicaoPage', () => {
   beforeEach(() => {
     exportarComposicaoListaPdfMock.mockClear()
@@ -160,6 +171,18 @@ describe('ComposicaoPage', () => {
     })
     lastConfirmModalProps.current = null
   })
+
+  function renderPage(initialEntries = ['/composicao']) {
+    return render(
+      <MemoryRouter initialEntries={initialEntries}>
+        <AppPageToolbarProvider>
+          <ToolbarProbe />
+          <ComposicaoPage />
+          <LocationProbe />
+        </AppPageToolbarProvider>
+      </MemoryRouter>
+    )
+  }
 
   const baseProjetos = [
     {
@@ -323,14 +346,18 @@ describe('ComposicaoPage', () => {
   it('não exibe seletor de projeto quando a URL já define ?projeto=', async () => {
     setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     expect(document.querySelector('#comp-projeto')).toBeNull()
     expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Fluxo do painel/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Projeto$/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^Dimensionamento$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Editar condutores/i })).toHaveAttribute(
+      'href',
+      '/configurador/configuracoes/p1/fluxo/dimensionamento'
+    )
+    expect(document.body.textContent).not.toMatch(/sugestão\(ões\).*pendência\(s\).*item\(ns\)/)
     await waitFor(() => {
       expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
     })
@@ -339,11 +366,7 @@ describe('ComposicaoPage', () => {
   it('oculta acao de gerar sugestoes sem permissao de separacao', () => {
     setupComposicaoPage({ user: undefined, projetos: [], snapshot: null })
 
-    render(
-      <MemoryRouter>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage()
 
     expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Excel/i })).toBeInTheDocument()
@@ -360,11 +383,7 @@ describe('ComposicaoPage', () => {
       refetch: vi.fn(),
     })
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     expect(screen.getByText('Falha no snapshot')).toBeInTheDocument()
   })
@@ -372,11 +391,7 @@ describe('ComposicaoPage', () => {
   it('permite exportar excel e pdf com projeto selecionado', async () => {
     setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     fireEvent.click(screen.getByRole('button', { name: /^Excel$/i }))
 
@@ -387,6 +402,7 @@ describe('ComposicaoPage', () => {
       )
     })
 
+    await waitFor(() => expect(screen.getByRole('button', { name: /^PDF$/i })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: /^PDF$/i }))
     await waitFor(() => {
       expect(exportarComposicaoListaPdfMock).toHaveBeenCalledWith(
@@ -403,13 +419,10 @@ describe('ComposicaoPage', () => {
       snapshot: snapshotBase,
     })
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1'])
 
-    fireEvent.click(screen.getByRole('button', { name: /Retornar à proposta/i }))
+    expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Exportar sugestões para proposta/i }))
 
     await waitFor(() => {
       expect(sincronizarComposicaoPainelMock).toHaveBeenCalledWith('orc-1', 'vinc-1')
@@ -420,6 +433,32 @@ describe('ComposicaoPage', () => {
         message: '2 item(ns) sincronizado(s) com a proposta.',
       })
     )
+    await waitFor(() =>
+      expect(screen.getByTestId('location-path')).toHaveTextContent('/orcamentos/orc-1')
+    )
+  })
+
+  it('habilita retorno para proposta quando listas abertas estão vazias mesmo com totais defasados', async () => {
+    setupComposicaoPage({
+      user: userComPermissaoSeparar(),
+      projetos: baseProjetos,
+      snapshot: {
+        ...snapshotBase,
+        sugestoes: [],
+        pendencias: [],
+        totais: { ...snapshotBase.totais, sugestoes: 2, pendencias: 1 },
+      },
+    })
+
+    renderPage(['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1'])
+
+    const botao = screen.getByRole('button', { name: /Exportar sugestões para proposta/i })
+    expect(botao).toBeEnabled()
+    fireEvent.click(botao)
+
+    await waitFor(() => {
+      expect(sincronizarComposicaoPainelMock).toHaveBeenCalledWith('orc-1', 'vinc-1')
+    })
   })
 
   it('quando há pendências abre confirmação antes de exportar', async () => {
@@ -435,11 +474,7 @@ describe('ComposicaoPage', () => {
     showToastMock.mockClear()
     lastConfirmModalProps.current = null
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     fireEvent.click(screen.getByRole('button', { name: /^Excel$/i }))
     await waitFor(() =>
@@ -452,6 +487,56 @@ describe('ComposicaoPage', () => {
     expect(onConfirm).toBeDefined()
     onConfirm?.()
     await waitFor(() => expect(exportarComposicaoListaXlsxMock).toHaveBeenCalled())
+  })
+
+  it('exibe retorno desabilitado quando fluxo veio da proposta mas há pendências', () => {
+    setupComposicaoPage({
+      user: userComPermissaoSeparar(),
+      projetos: baseProjetos,
+      snapshot: {
+        ...snapshotBase,
+        pendencias: [{ id: 'pen-1', descricao: 'x' }],
+        totais: { ...snapshotBase.totais, pendencias: 1 },
+      },
+    })
+
+    renderPage(['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1'])
+
+    expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Exportar sugestões para proposta/i })).toBeDisabled()
+    expect(screen.getByRole('region', { name: /Monitoramento da exportação para proposta/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('Orçamento')).toHaveValue('orc-1')
+    expect(screen.getByLabelText('Vínculo')).toHaveValue('vinc-1')
+    expect(screen.getByLabelText('Snapshot carregado')).toHaveValue('Sim')
+    expect(screen.getByLabelText('Pendências')).toHaveValue('1')
+    expect(screen.getByLabelText('Sugestões pendentes')).toHaveValue('0')
+    expect(screen.getByLabelText('Pode exportar')).toHaveValue('Não')
+    expect(screen.getByLabelText('Motivo')).toHaveValue(
+      'Resolva as pendências antes de exportar para a proposta.'
+    )
+  })
+
+  it('exibe retorno desabilitado quando fluxo veio da proposta mas há sugestões pendentes', () => {
+    setupComposicaoPage({
+      user: userComPermissaoSeparar(),
+      projetos: baseProjetos,
+      snapshot: {
+        ...snapshotBase,
+        sugestoes: [{ id: 'sug-1', descricao: 'x' }],
+        totais: { ...snapshotBase.totais, sugestoes: 1 },
+      },
+    })
+
+    renderPage(['/composicao?projeto=p1&orcamento=orc-1&vinculo=vinc-1'])
+
+    const botao = screen.getByRole('button', { name: /Exportar sugestões para proposta/i })
+    expect(botao).toBeDisabled()
+    expect(botao).toHaveAttribute(
+      'title',
+      'Aprove todas as sugestões antes de exportar para a proposta.'
+    )
+    fireEvent.click(botao)
+    expect(sincronizarComposicaoPainelMock).not.toHaveBeenCalled()
   })
 
   it('aprova sugestão individual, aprova todas e altera produto sugerido', async () => {
@@ -475,11 +560,7 @@ describe('ComposicaoPage', () => {
       error: null,
     }))
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     expect(await screen.findByText('Contator 9A')).toBeInTheDocument()
     expect(screen.getByText(/Catálogo incompleto/)).toBeInTheDocument()
@@ -535,11 +616,7 @@ describe('ComposicaoPage', () => {
       },
     })
 
-    render(
-      <MemoryRouter initialEntries={['/composicao?projeto=p1']}>
-        <ComposicaoPage />
-      </MemoryRouter>
-    )
+    renderPage(['/composicao?projeto=p1'])
 
     fireEvent.click(await screen.findByRole('button', { name: 'Reavaliar pendências' }))
     await waitFor(() => expect(reavaliarMutateAsyncMock).toHaveBeenCalled())

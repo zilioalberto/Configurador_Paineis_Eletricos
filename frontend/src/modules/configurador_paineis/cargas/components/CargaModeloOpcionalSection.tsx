@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useListboxKeyboardNavigation } from '@/hooks/useListboxKeyboardNavigation'
 import { listarModelosCarga } from '../services/cargaService'
@@ -19,11 +20,17 @@ export type CargaModeloOpcionalSectionProps = {
   /** Segmento estável para `queryKey` dos modelos (evita cache partilhado entre criar/editar). */
   modeloQueryScope: string
   onAplicarModelo: (modelo: CargaModelo) => void
+  /** Layout enxuto para modal de nova carga. */
+  compact?: boolean
+  /** Página de CRUD de modelos (preserva query do fluxo quando aplicável). */
+  gerenciarModelosHref?: string
 }
 
 export default function CargaModeloOpcionalSection({
   modeloQueryScope,
   onAplicarModelo,
+  compact = false,
+  gerenciarModelosHref,
 }: CargaModeloOpcionalSectionProps) {
   const [modeloBusca, setModeloBusca] = useState('')
   const [modeloBuscaDebounced, setModeloBuscaDebounced] = useState('')
@@ -90,19 +97,40 @@ export default function CargaModeloOpcionalSection({
   )
 
   return (
-    <div className="border rounded p-3 mb-3 bg-light-subtle">
-      <h2 className="h6 mb-3">Modelo de carga (opcional)</h2>
-      <div className="row g-2 align-items-end">
-        <div className="col-12">
-          <label className="form-label" htmlFor={modeloBuscaId}>
-            Modelos pré-cadastrados
+    <div
+      className={
+        compact
+          ? 'carga-modelo-picker mb-3'
+          : 'border rounded p-3 mb-3 bg-light-subtle'
+      }
+    >
+      {compact && gerenciarModelosHref ? (
+        <div className="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-1">
+          <label className="form-label mb-0" htmlFor={modeloBuscaId}>
+            Modelo pré-cadastrado
           </label>
-          <div ref={modeloBuscaWrapRef} className="position-relative">
-            <div className="input-group">
-              <input
-                id={modeloBuscaId}
-                type="search"
-                className="form-control"
+          <Link to={gerenciarModelosHref} className="small text-nowrap">
+            Gerenciar modelos
+          </Link>
+        </div>
+      ) : (
+        <label className="form-label mb-1" htmlFor={modeloBuscaId}>
+          {compact ? 'Modelo pré-cadastrado' : 'Modelos pré-cadastrados'}
+        </label>
+      )}
+      {!compact && gerenciarModelosHref ? (
+        <div className="mb-2">
+          <Link to={gerenciarModelosHref} className="small">
+            Gerenciar modelos
+          </Link>
+        </div>
+      ) : null}
+      <div ref={modeloBuscaWrapRef} className="position-relative">
+        <div className="input-group input-group-sm">
+          <input
+            id={modeloBuscaId}
+            type="search"
+            className="form-control form-control-sm"
                 role="combobox"
                 aria-expanded={modeloDropdownAberto}
                 aria-autocomplete="list"
@@ -124,12 +152,12 @@ export default function CargaModeloOpcionalSection({
                     onEscape: () => setModeloDropdownAberto(false),
                   })
                 }}
-                placeholder="Filtrar ou abrir a lista para ver todos"
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
+            placeholder={compact ? 'Buscar modelo…' : 'Filtrar ou abrir a lista para ver todos'}
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
                 title="Mostrar lista de modelos"
                 aria-label="Mostrar lista de modelos"
                 onClick={() => {
@@ -151,7 +179,15 @@ export default function CargaModeloOpcionalSection({
                 {loadingModelos ? (
                   <li className="list-group-item small text-muted">Carregando modelos...</li>
                 ) : modelos.length === 0 ? (
-                  <li className="list-group-item small text-muted">Nenhum modelo encontrado.</li>
+                  <li className="list-group-item small">
+                    <span className="text-muted">Nenhum modelo encontrado.</span>
+                    {gerenciarModelosHref ? (
+                      <>
+                        {' '}
+                        <Link to={gerenciarModelosHref}>Cadastrar ou editar</Link>
+                      </>
+                    ) : null}
+                  </li>
                 ) : (
                   modelos.map((modelo, index) => (
                     <li key={modelo.id} className="list-group-item list-group-item-action p-0">
@@ -173,13 +209,13 @@ export default function CargaModeloOpcionalSection({
                 )}
               </ul>
             ) : null}
-          </div>
-          <p className="form-text mb-0">
-            Digite para filtrar no servidor ou use ▾ para abrir a lista. Ao escolher um item, o modelo
-            é aplicado de imediato ao formulário; pode voltar a abrir a lista para selecionar outro.
-          </p>
-        </div>
       </div>
+      {!compact ? (
+        <p className="form-text mb-0 mt-1">
+          Digite para filtrar ou use ▾ para abrir a lista. Ao escolher um item, o modelo é aplicado ao
+          formulário.
+        </p>
+      ) : null}
     </div>
   )
 }

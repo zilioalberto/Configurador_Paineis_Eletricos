@@ -71,7 +71,7 @@ function renderEdit(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/catalogo/:id/editar" element={<ProdutoEditPage />} />
+        <Route path="/catalogo/produtos/:id/editar" element={<ProdutoEditPage />} />
       </Routes>
     </MemoryRouter>,
     { wrapper: W },
@@ -137,7 +137,7 @@ describe('ProdutoEditPage', () => {
       error: null,
       refetch: vi.fn(),
     })
-    renderEdit('/catalogo/pr1/editar')
+    renderEdit('/catalogo/produtos/pr1/editar')
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument()
   })
 
@@ -150,7 +150,7 @@ describe('ProdutoEditPage', () => {
       error: new Error('falhou'),
       refetch,
     })
-    renderEdit('/catalogo/pr1/editar')
+    renderEdit('/catalogo/produtos/pr1/editar')
     expect(screen.getByText(/Não foi possível carregar/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Tentar novamente/i }))
     expect(refetch).toHaveBeenCalled()
@@ -165,14 +165,14 @@ describe('ProdutoEditPage', () => {
       refetch: vi.fn(),
     })
     mutateAsyncMock.mockResolvedValue(undefined)
-    renderEdit('/catalogo/pr1/editar')
+    renderEdit('/catalogo/produtos/pr1/editar')
     expect(await screen.findByText(/Form mock idle/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Submeter mock/i }))
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalled()
     })
     await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith('/catalogo/pr1')
+      expect(navigate).toHaveBeenCalledWith('/catalogo/produtos/pr1')
     })
     expect(showToastMock).toHaveBeenCalledWith(
       expect.objectContaining({ variant: 'success' }),

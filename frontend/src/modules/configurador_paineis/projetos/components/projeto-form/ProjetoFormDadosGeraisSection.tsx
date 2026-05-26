@@ -1,12 +1,12 @@
 import {
   frequenciaOptions,
-  margemBitolaCondutoresOptions,
   numeroFasesOptions,
   statusOptions,
   tipoCorrenteOptions,
   tipoPainelOptions,
-  type FormOption,
 } from './formOptions'
+import { Link } from 'react-router-dom'
+
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
@@ -15,21 +15,13 @@ export function ProjetoFormDadosGeraisSection({
   formData,
   onFieldChange,
   responsavelOptions = [],
+  clienteOptions = [],
+  carregandoClientes = false,
   canEditResponsavel = false,
   showStatus = true,
   readOnlyExceptStatus = false,
 }: ProjetoFormSectionProps) {
   const ro = readOnlyExceptStatus
-
-  const mb = formData.degraus_margem_bitola_condutores
-  /** Inclui valor legado (>1) quando projeto antigo tinha margem fora das opções atuais. */
-  const margemBitolaSelectOptions: FormOption<number>[] =
-    mb === 0 || mb === 1
-      ? margemBitolaCondutoresOptions
-      : [
-          ...margemBitolaCondutoresOptions,
-          { value: mb, label: `${mb} — valor gravado (legado)` },
-        ]
 
   return (
     <>
@@ -85,7 +77,7 @@ export function ProjetoFormDadosGeraisSection({
           title="Código da configuração de painel."
         />
         <p className="form-text small text-muted mb-0">
-          Vinculado à proposta: CONF-MMnnn-AA (ex. CONF-05008-26). Avulso: MMnnn-AA (ex. 04001-26).
+          Proposta: CONF-MMnnn-AA · avulso: MMnnn-AA
         </p>
       </div>
 
@@ -103,15 +95,33 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-6">
-        <label className="form-label">Cliente</label>
-        <input
-          type="text"
+        <label className="form-label" htmlFor="projeto-form-cliente">
+          Cliente
+        </label>
+        <select
+          id="projeto-form-cliente"
           name="cliente"
-          className="form-control"
+          className="form-select"
           value={formData.cliente}
           onChange={onFieldChange}
-          disabled={ro}
-        />
+          disabled={ro || carregandoClientes}
+          required={clienteOptions.length > 0}
+        >
+          <option value="">
+            {carregandoClientes ? 'Carregando clientes…' : 'Selecione o cliente…'}
+          </option>
+          {clienteOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {!carregandoClientes && clienteOptions.length === 0 ? (
+          <p className="form-text small text-muted mb-0">
+            Nenhum cliente ativo no cadastro.{' '}
+            <Link to="/erp/cadastros">Cadastrar parceiro como cliente</Link>.
+          </p>
+        ) : null}
       </div>
 
       <div className="col-md-6">
@@ -234,37 +244,6 @@ export function ProjetoFormDadosGeraisSection({
           name="fator_demanda"
           className="form-control"
           value={formData.fator_demanda}
-          onChange={onFieldChange}
-          disabled={ro}
-        />
-      </div>
-
-      <div className="col-md-3">
-        <label className="form-label" htmlFor="projeto-form-margem-bitola">
-          Margem de bitola (condutores)
-        </label>
-        <select
-          id="projeto-form-margem-bitola"
-          name="degraus_margem_bitola_condutores"
-          className="form-select"
-          value={formData.degraus_margem_bitola_condutores}
-          onChange={onFieldChange}
-          disabled={ro}
-        >
-          {renderSelectOptions(margemBitolaSelectOptions)}
-        </select>
-        <span className="form-text">
-          0 = mínimo da tabela Iz; 1 = uma bitola comercial acima (ex.: 4 → 6 mm²).
-        </span>
-      </div>
-
-      <div className="col-12">
-        <label className="form-label">Descrição</label>
-        <textarea
-          name="descricao"
-          className="form-control"
-          rows={4}
-          value={formData.descricao}
           onChange={onFieldChange}
           disabled={ro}
         />

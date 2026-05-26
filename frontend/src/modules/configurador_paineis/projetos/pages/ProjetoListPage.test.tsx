@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
+import AppPageToolbar from '@/components/layout/AppPageToolbar'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarContext,
+} from '@/components/layout/AppPageToolbarContext'
 import ProjetoListPage from '@/modules/configurador_paineis/projetos/pages/ProjetoListPage'
 import { authUser } from '@/test/factories/authUser'
 
@@ -40,10 +45,18 @@ function mockListaQuery(data: unknown[]) {
   })
 }
 
+function AppPageToolbarHost() {
+  const { toolbar } = useAppPageToolbarContext()
+  return toolbar ? <AppPageToolbar toolbar={toolbar} /> : null
+}
+
 function renderLista() {
   render(
     <MemoryRouter>
-      <ProjetoListPage />
+      <AppPageToolbarProvider>
+        <AppPageToolbarHost />
+        <ProjetoListPage />
+      </AppPageToolbarProvider>
     </MemoryRouter>
   )
 }
@@ -67,12 +80,11 @@ describe('ProjetoListPage', () => {
     expect(screen.queryByRole('link', { name: /Nova configuração/i })).not.toBeInTheDocument()
   })
 
-  it('exibe botao nova configuracao e permite atualizar lista', () => {
+  it('exibe botao nova configuracao com permissao de criacao', () => {
     setupProjetoListPage({ permissoes: ['projeto.criar', 'projeto.visualizar'] })
 
     expect(screen.getByRole('link', { name: /Nova configuração/i })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Atualizar/i }))
-    expect(refetchMock).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: /Atualizar/i })).not.toBeInTheDocument()
   })
 
   it('filtra projetos pelo nome do responsável', () => {

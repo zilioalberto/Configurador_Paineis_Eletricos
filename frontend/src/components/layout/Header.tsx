@@ -7,6 +7,8 @@ import {
 import { getPortalModuleContext } from '@/app/navigation/moduleContext'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { authDisplayName } from '@/modules/auth/types'
+import AppPageToolbar from './AppPageToolbar'
+import { useAppPageToolbarState } from './AppPageToolbarContext'
 import { BellIcon, UserAvatarPlaceholder } from './headerIcons'
 
 function MenuIcon() {
@@ -58,6 +60,7 @@ export default function Header({
   const location = useLocation()
   const { user, logout } = useAuth()
   const moduleContext = getPortalModuleContext(location.pathname)
+  const pageToolbar = useAppPageToolbarState()
   const userName = user ? authDisplayName(user) : getHeaderUserDisplayName()
   const firstName = userName.split(/\s+/)[0] ?? userName
 
@@ -115,7 +118,9 @@ export default function Header({
   return (
     <header className="app-header">
       <div className="app-header-bar">
-        <div className="app-header-bar-inner">
+        <div
+          className={`app-header-bar-inner${pageToolbar ? ' has-page-toolbar' : ''}`}
+        >
           <button
             type="button"
             className="app-header-menu-btn-onbar d-lg-none"
@@ -140,7 +145,9 @@ export default function Header({
             </span>
           </Link>
 
-          <div className="app-header-bar-center flex-grow-1 min-w-0 d-flex align-items-center" />
+          <div className="app-header-bar-center flex-grow-1 min-w-0 d-flex align-items-center">
+            {pageToolbar ? <AppPageToolbar toolbar={pageToolbar} /> : null}
+          </div>
 
           <div className="app-header-bar-end">
             <div className="position-relative" ref={userRef}>

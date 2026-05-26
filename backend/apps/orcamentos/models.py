@@ -121,7 +121,7 @@ class Orcamento(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     codigo_base = models.CharField(max_length=32, db_index=True, blank=True)
-    revisao = models.CharField(max_length=4, default="A")
+    revisao = models.CharField(max_length=4, default="", blank=True)
     codigo = models.CharField(max_length=48, unique=True, db_index=True, blank=True)
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True)
@@ -200,7 +200,11 @@ class Orcamento(models.Model):
 
     @staticmethod
     def montar_codigo_exibicao(codigo_base: str, revisao: str) -> str:
-        return f"{codigo_base} Rev {revisao}"
+        base = (codigo_base or "").strip()
+        rev = (revisao or "").strip()
+        if not rev:
+            return base
+        return f"{base} Rev {rev}"
 
     def save(self, *args, **kwargs):
         if not self.codigo_base:
@@ -208,13 +212,11 @@ class Orcamento(models.Model):
             if legado and " Rev " in legado:
                 base, rev = legado.rsplit(" Rev ", 1)
                 self.codigo_base = base.strip()
-                self.revisao = (rev.strip() or "A")[:4]
+                self.revisao = rev.strip()[:4]
             elif legado:
                 self.codigo_base = legado
             else:
                 self.codigo_base = SequenciaPropostaMensal.proximo_codigo_base()
-        if not self.revisao:
-            self.revisao = "A"
         self.codigo = self.montar_codigo_exibicao(self.codigo_base, self.revisao)
         if self.cliente_id and not self.cliente_referencia:
             self.cliente_referencia = self.cliente.razao_social
@@ -336,3 +338,35 @@ class OrcamentoItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.descricao[:40]}"
+
+
+class OrcamentoSnapshot(models.Model):
+    """Cópia imutável da oferta enviada ao cliente para uma revisão do orçamento."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    orcamento = models.OneToOneField(
+        Orcamento,
+        on_delete=models.PROTECT,
+        related_name="snapshot_envio",
+    )
+    status_orcamento = models.CharField(max_length=20, choices=StatusOrcamentoChoices.choices)
+    codigo = models.CharField(max_length=48)
+    dados = models.JSONField()
+    itens = models.JSONField()
+    total = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    gerado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="gerado por",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_snapshots_gerados",
+    )
+    gerado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "orcamento_snapshot"
+        ordering = ("-gerado_em",)
+
+    def __str__(self) -> str:
+        return f"Snapshot {self.codigo} em {self.gerado_em:%Y-%m-%d %H:%M}"

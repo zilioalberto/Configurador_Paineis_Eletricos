@@ -43,4 +43,6 @@ class HasEffectivePermission(permissions.BasePermission):
             return True
 
         effective = set(getattr(user, "permissoes_efetivas", []) or [])
+        if isinstance(required, (list, tuple, set)):
+            return any(perm in effective for perm in required)
         return required in effective

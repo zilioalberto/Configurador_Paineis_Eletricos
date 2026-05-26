@@ -98,7 +98,6 @@ export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProj
         'tensao_comando',
         'numero_fases',
         'frequencia',
-        'degraus_margem_bitola_condutores',
       ]
       const updatedValue =
         name === 'responsavel'

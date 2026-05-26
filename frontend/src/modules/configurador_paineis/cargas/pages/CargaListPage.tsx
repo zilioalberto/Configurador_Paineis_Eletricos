@@ -1,21 +1,25 @@
-/** Listagem de cargas por projeto com filtros, stepper do fluxo e recálculo automático. */
+/** Listagem de cargas por projeto com resumo de dimensionamento. */
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
 import { useRecalcularDimensionamentoMutation } from '@/modules/configurador_paineis/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
-import { ProjetoIdentificacaoFluxo } from '@/modules/configurador_paineis/projetos/components/ProjetoIdentificacaoFluxo'
-import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
+import { useProjetoDetailQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoDetailQuery'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import CargaTable from '../components/CargaTable'
+import { CargasEmptyState } from '../components/CargasEmptyState'
+import { DimensionamentoResumoCard } from '../components/DimensionamentoResumoCard'
+import { EditarCargaModal } from '../components/EditarCargaModal'
+import { NovaCargaModal } from '../components/NovaCargaModal'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
 import { useDeleteCargaMutation } from '../hooks/useCargaMutations'
 import { useCargaListAutoRecalc } from '../hooks/useCargaListAutoRecalc'
@@ -23,7 +27,6 @@ import {
   filtrarProjetosComEdicaoCargas,
   projetoPermiteEdicaoCargas,
 } from '../utils/projetoEdicaoCargas'
-import type { CargaListItem } from '../types/carga'
 
 type DeleteTarget = { id: string; label: string }
 
@@ -50,7 +53,7 @@ function ProjetoFiltroCard({
     <div className="card mb-3">
       <div className="card-body">
         <label className="form-label fw-semibold" htmlFor="filtro-projeto-cargas">
-          Projeto
+          Configuração de painel
         </label>
         <select
           id="filtro-projeto-cargas"
@@ -60,7 +63,7 @@ function ProjetoFiltroCard({
           onChange={onProjetoFilterChange}
           disabled={loadingProjetos}
         >
-          <option value="">Selecione um projeto para listar as cargas</option>
+          <option value="">Selecione uma configuração para listar as cargas</option>
           {projetosNoFiltro.map((p) => (
             <option key={p.id} value={p.id}>
               {p.codigo} — {p.nome}
@@ -69,85 +72,14 @@ function ProjetoFiltroCard({
         </select>
         {!loadingProjetos && projetos.length === 0 ? (
           <p className="text-muted small mt-2 mb-0">
-            Não há projetos cadastrados.{' '}
+            Não há configurações cadastradas.{' '}
             {canCreateProjeto ? <Link to={configuradorPaths.novaConfiguracao}>Criar configuração</Link> : null}
           </p>
         ) : null}
         {!loadingProjetos && projetos.length > 0 && projetosNoFiltro.length === 0 ? (
           <p className="text-muted small mt-2 mb-0">
-            Não há projetos em andamento. Projetos finalizados não aparecem aqui para edição de
-            cargas.
+            Não há configurações em andamento disponíveis para edição de cargas.
           </p>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-function CargasCard({
-  projetoIdListagem,
-  projetoFinalizado,
-  projetoSelecionado,
-  loadingCargas,
-  isError,
-  loadError,
-  cargas,
-  onDeleteRequest,
-  canManageCargas,
-}: Readonly<{
-  projetoIdListagem: string | null
-  projetoFinalizado: boolean
-  projetoSelecionado: Projeto | undefined
-  loadingCargas: boolean
-  isError: boolean
-  loadError: unknown
-  cargas: CargaListItem[]
-  onDeleteRequest: (id: string) => void
-  canManageCargas: boolean
-}>) {
-  return (
-    <div className="card">
-      <div className="card-body">
-        {!projetoIdListagem && !projetoFinalizado ? (
-          <p className="text-muted mb-0">
-            Escolha um projeto na lista acima para visualizar e gerenciar as cargas.
-          </p>
-        ) : null}
-
-        {projetoFinalizado ? (
-          <div className="alert alert-secondary mb-0" role="status">
-            Este projeto está finalizado. A lista de cargas deste projeto não está disponível para
-            gestão nesta tela.
-          </div>
-        ) : null}
-
-        {projetoIdListagem ? (
-          <ProjetoIdentificacaoFluxo
-            embedded
-            projetoCodigo={projetoSelecionado?.codigo}
-            projetoNome={projetoSelecionado?.nome}
-            fallbackId={projetoIdListagem}
-            htmlId="carga-lista-projeto"
-          />
-        ) : null}
-
-        {projetoIdListagem && loadingCargas ? (
-          <p className="mb-0 text-muted">Carregando cargas...</p>
-        ) : null}
-
-        {projetoIdListagem && !loadingCargas && isError ? (
-          <div className="alert alert-danger mb-0" role="alert">
-            {loadError instanceof Error ? loadError.message : 'Não foi possível carregar as cargas.'}
-          </div>
-        ) : null}
-
-        {projetoIdListagem && !loadingCargas && !isError ? (
-          <CargaTable
-            cargas={cargas}
-            projetoId={projetoIdListagem}
-            onDeleteRequest={onDeleteRequest}
-            canManage={canManageCargas}
-          />
         ) : null}
       </div>
     </div>
@@ -166,18 +98,27 @@ export default function CargaListPage() {
 
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
 
+  const {
+    data: projetoDetalhe,
+    isPending: loadingProjetoDetalhe,
+    isError: erroProjetoDetalhe,
+  } = useProjetoDetailQuery(projetoId || undefined)
+
   const projetoSelecionado = useMemo(
-    () => (projetoId ? projetos.find((p) => p.id === projetoId) : undefined),
-    [projetos, projetoId]
+    () =>
+      projetoId
+        ? projetos.find((p) => p.id === projetoId) ?? projetoDetalhe
+        : undefined,
+    [projetos, projetoId, projetoDetalhe]
   )
-  const projetoFinalizado =
-    projetoSelecionado != null && !projetoPermiteEdicaoCargas(projetoSelecionado)
+  const projetoFinalizado = Boolean(
+    projetoSelecionado && !projetoPermiteEdicaoCargas(projetoSelecionado)
+  )
   const projetosNoFiltro = useMemo(
     () => filtrarProjetosComEdicaoCargas(projetos),
     [projetos]
   )
   const projetoIdListagem = projetoId && !projetoFinalizado ? projetoId : null
-
   const {
     data: cargas = [],
     isPending: loadingCargas,
@@ -217,7 +158,7 @@ export default function CargaListPage() {
       showToast({
         variant: 'warning',
         message:
-          'Projetos com status Finalizado não podem ser usados para gerenciar cargas.',
+          'Configurações finalizadas não podem ser usadas para gerenciar cargas.',
       })
     }
   }, [projetoId, loadingProjetos, projetos, setSearchParams, showToast])
@@ -234,13 +175,16 @@ export default function CargaListPage() {
     [setSearchParams]
   )
 
-  const onDeleteRequest = useCallback((id: string) => {
-    const c = cargas.find((x) => x.id === id)
-    setDeleteTarget({
-      id,
-      label: c?.tag?.trim() || c?.descricao?.trim() || 'esta carga',
-    })
-  }, [cargas])
+  const onDeleteRequest = useCallback(
+    (id: string) => {
+      const c = cargas.find((x) => x.id === id)
+      setDeleteTarget({
+        id,
+        label: c?.tag?.trim() || c?.descricao?.trim() || 'esta carga',
+      })
+    },
+    [cargas]
+  )
 
   const closeModal = useCallback(() => {
     if (!deleteMutation.isPending) setDeleteTarget(null)
@@ -263,26 +207,116 @@ export default function CargaListPage() {
     }
   }, [deleteTarget, deleteMutation, showToast])
 
-  const onRecalcularDimensionamento = useCallback(async () => {
-    if (!projetoIdListagem || !podeRecalcularDimensionamento) return
-    try {
-      await recalcMutation.mutateAsync()
-      showToast({
-        variant: 'success',
-        message: 'Dimensionamento recalculado com base nas cargas atuais.',
-      })
-    } catch (err) {
-      console.error(err)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível recalcular',
-        message: extrairMensagemErroApi(err) || 'Tente novamente.',
-      })
+  const [novaCargaAberta, setNovaCargaAberta] = useState(() => searchParams.get('novo') === '1')
+  const [cargaEmEdicaoId, setCargaEmEdicaoId] = useState<string | null>(
+    () => searchParams.get('editar') || null
+  )
+
+  useEffect(() => {
+    if (searchParams.get('novo') !== '1') return
+    setNovaCargaAberta(true)
+    setCargaEmEdicaoId(null)
+    const params = new URLSearchParams(searchParams)
+    params.delete('novo')
+    setSearchParams(params, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
+    const editar = searchParams.get('editar')
+    if (!editar) return
+    setCargaEmEdicaoId(editar)
+    setNovaCargaAberta(false)
+    const params = new URLSearchParams(searchParams)
+    params.delete('editar')
+    setSearchParams(params, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const novaCargaModalAberto = novaCargaAberta && Boolean(projetoIdListagem)
+  const editarCargaModalAberto = Boolean(cargaEmEdicaoId) && Boolean(projetoIdListagem)
+
+  const abrirNovaCargaModal = useCallback(() => {
+    if (!projetoIdListagem) return
+    setCargaEmEdicaoId(null)
+    setNovaCargaAberta(true)
+  }, [projetoIdListagem])
+
+  const fecharNovaCargaModal = useCallback(() => {
+    setNovaCargaAberta(false)
+  }, [])
+
+  const abrirEditarCargaModal = useCallback(
+    (cargaId: string) => {
+      if (!projetoIdListagem) return
+      setNovaCargaAberta(false)
+      setCargaEmEdicaoId(cargaId)
+    },
+    [projetoIdListagem]
+  )
+
+  const fecharEditarCargaModal = useCallback(() => {
+    setCargaEmEdicaoId(null)
+  }, [])
+
+  const toolbarActions = useMemo(() => {
+    if (!projetoIdListagem) return null
+    const hrefDimensionamento = withFluxoOrigem(
+      configuradorPaths.dimensionamento(projetoIdListagem),
+      searchParams
+    )
+    return (
+      <>
+        {canEditarProjeto ? (
+          <Link
+            to={configuradorPaths.configuracaoEditar(projetoIdListagem)}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar configuração
+          </Link>
+        ) : null}
+        {canManageCargas ? (
+          <Link to={hrefDimensionamento} className="btn btn-success btn-sm">
+            Salvar cargas
+          </Link>
+        ) : null}
+      </>
+    )
+  }, [canEditarProjeto, canManageCargas, projetoIdListagem, searchParams])
+
+  const toolbarConfig = useMemo(() => {
+    if (!projetoIdListagem) {
+      return {
+        title: 'Cargas do projeto',
+        subtitle: 'Selecione uma configuração de painel para gerir as cargas',
+      }
     }
-  }, [projetoIdListagem, podeRecalcularDimensionamento, recalcMutation, showToast])
+
+    return {
+      title: 'Cargas do projeto',
+      actions: toolbarActions,
+    }
+  }, [projetoIdListagem, toolbarActions])
+
+  useAppPageToolbar(toolbarConfig)
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid carga-list-page">
+      {projetoIdListagem ? (
+        <NovaCargaModal
+          show={novaCargaModalAberto}
+          projetoId={projetoIdListagem}
+          onClose={fecharNovaCargaModal}
+        />
+      ) : null}
+
+      {projetoIdListagem && cargaEmEdicaoId ? (
+        <EditarCargaModal
+          show={editarCargaModalAberto}
+          cargaId={cargaEmEdicaoId}
+          projetoId={projetoIdListagem}
+          onClose={fecharEditarCargaModal}
+        />
+      ) : null}
+
       <ConfirmModal
         show={deleteTarget !== null}
         title="Excluir carga"
@@ -299,40 +333,16 @@ export default function CargaListPage() {
         onConfirm={() => void confirmDelete()}
       />
 
-      {projetoIdListagem ? (
-        <ProjetoFluxoStepper projetoId={projetoIdListagem} etapaAtual="cargas" />
+      {projetoId && !projetoSelecionado && loadingProjetoDetalhe ? (
+        <p className="text-muted mb-3">Carregando configuração…</p>
       ) : null}
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-          <h1 className="h3 mb-1">Cargas do projeto</h1>
-          <p className="text-muted mb-0">
-            Cadastre cargas vinculadas ao projeto (motores, válvulas, sensores,
-            etc.).
-          </p>
+      {projetoId && !projetoSelecionado && erroProjetoDetalhe && !loadingProjetoDetalhe ? (
+        <div className="alert alert-danger mb-3" role="alert">
+          Não foi possível carregar esta configuração.{' '}
+          <Link to={configuradorPaths.configuracoes}>Voltar à lista</Link>.
         </div>
-        <div className="d-flex gap-2 flex-wrap">
-          {canManageCargas ? (
-            <Link
-              to={
-                projetoIdListagem
-                  ? withFluxoOrigem(
-                      configuradorPaths.novaCarga(projetoIdListagem),
-                      searchParams
-                    )
-                  : configuradorPaths.novaCarga()
-              }
-              className={`btn btn-primary${!projetoIdListagem ? ' disabled' : ''}`}
-              aria-disabled={!projetoIdListagem}
-              onClick={(e) => {
-                if (!projetoIdListagem) e.preventDefault()
-              }}
-            >
-              Nova carga
-            </Link>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
 
       <ProjetoFiltroCard
         projetoId={projetoId}
@@ -344,124 +354,72 @@ export default function CargaListPage() {
         onProjetoFilterChange={onProjetoFilterChange}
       />
 
-      <CargasCard
-        projetoIdListagem={projetoIdListagem}
-        projetoFinalizado={projetoFinalizado}
-        projetoSelecionado={projetoSelecionado}
-        loadingCargas={loadingCargas}
-        isError={isError}
-        loadError={loadError}
-        cargas={cargas}
-        onDeleteRequest={onDeleteRequest}
-        canManageCargas={canManageCargas}
-      />
+      {projetoFinalizado ? (
+        <div className="alert alert-secondary" role="status">
+          Esta configuração está finalizada. A gestão de cargas não está disponível.
+        </div>
+      ) : null}
 
       {projetoIdListagem ? (
-        <div className="card mt-3" id="dimensionamento-resumo">
+        <div className="card carga-list-panel">
           <div className="card-body">
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-              <h2 className="h5 mb-0">Resumo de dimensionamento</h2>
-              <div className="d-flex gap-2">
-                {canEditarProjeto ? (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary"
-                    disabled={!podeRecalcularDimensionamento || recalcMutation.isPending}
-                    onClick={() => void onRecalcularDimensionamento()}
-                  >
-                    {recalcMutation.isPending ? 'Recalculando...' : 'Recalcular'}
-                  </button>
+              <div>
+                <h2 className="h6 mb-0">Cargas cadastradas</h2>
+                {!loadingCargas && !isError ? (
+                  <p className="small text-muted mb-0">
+                    {cargas.length} {cargas.length === 1 ? 'carga' : 'cargas'}
+                  </p>
                 ) : null}
               </div>
+              {canManageCargas ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={abrirNovaCargaModal}
+                >
+                  Nova carga
+                </button>
+              ) : null}
             </div>
-            {autoRecalcFeedback ? (
-              <p className="small text-muted mb-3">{autoRecalcFeedback}</p>
-            ) : null}
 
-            {projetoFinalizado ? (
-              <div className="alert alert-secondary" role="status">
-                Projeto finalizado: visualização somente leitura. O recálculo não está
-                disponível.
-              </div>
-            ) : null}
+            {loadingCargas ? <p className="mb-0 text-muted">Carregando cargas…</p> : null}
 
-            {loadingResumoDimensionamento ? (
-              <p className="text-muted mb-0">Carregando resumo...</p>
-            ) : null}
-
-            {!loadingResumoDimensionamento && isResumoError ? (
+            {!loadingCargas && isError ? (
               <div className="alert alert-danger mb-0" role="alert">
-                {resumoError instanceof Error
-                  ? resumoError.message
-                  : 'Não foi possível carregar o dimensionamento.'}
+                {loadError instanceof Error ? loadError.message : 'Não foi possível carregar as cargas.'}
               </div>
             ) : null}
 
-            {!loadingResumoDimensionamento && !isResumoError && resumoDimensionamento ? (
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <div className="card border-primary h-100">
-                    <div className="card-body">
-                      <h3 className="h6 text-primary mb-3">Corrente total de entrada</h3>
-                      <p className="display-6 mb-1">
-                        {resumoDimensionamento.corrente_total_painel_a}
-                      </p>
-                      <p className="text-muted small mb-0">
-                        Ampères (A) - soma das cargas ativas consideradas no dimensionamento
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            {!loadingCargas && !isError && cargas.length === 0 ? (
+              <CargasEmptyState
+                canManage={canManageCargas}
+                onNovaCarga={abrirNovaCargaModal}
+              />
+            ) : null}
 
-                <div className="col-md-6">
-                  <div className="card h-100">
-                    <div className="card-body">
-                      <h3 className="h6 mb-3">Seccionamento geral</h3>
-                      <dl className="row small mb-0">
-                        <dt className="col-sm-5">Previsto no projeto</dt>
-                        <dd className="col-sm-7">
-                          {resumoDimensionamento.possui_seccionamento ? 'Sim' : 'Não'}
-                        </dd>
-                        <dt className="col-sm-5">Tipo</dt>
-                        <dd className="col-sm-7">
-                          {resumoDimensionamento.possui_seccionamento
-                            ? resumoDimensionamento.tipo_seccionamento_display ??
-                              resumoDimensionamento.tipo_seccionamento ??
-                              '—'
-                            : '—'}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-12">
-                  {projetoSelecionado ? (
-                    <ProjetoIdentificacaoFluxo
-                      embedded
-                      projetoCodigo={projetoSelecionado.codigo}
-                      projetoNome={projetoSelecionado.nome}
-                      fallbackId={projetoIdListagem}
-                      htmlId="carga-list-dim-resumo-projeto"
-                    />
-                  ) : (
-                    <ProjetoIdentificacaoFluxo
-                      embedded
-                      fallbackId={projetoIdListagem}
-                      htmlId="carga-list-dim-resumo-projeto"
-                    />
-                  )}
-                  {resumoDimensionamento.atualizado_em ? (
-                    <p className="small text-muted mb-0 mt-2">
-                      Atualizado em{' '}
-                      {new Date(resumoDimensionamento.atualizado_em).toLocaleString()}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+            {!loadingCargas && !isError && cargas.length > 0 ? (
+              <CargaTable
+                cargas={cargas}
+                projetoId={projetoIdListagem}
+                onDeleteRequest={onDeleteRequest}
+                onEditRequest={abrirEditarCargaModal}
+                canManage={canManageCargas}
+              />
             ) : null}
           </div>
         </div>
+      ) : null}
+
+      {projetoIdListagem ? (
+        <DimensionamentoResumoCard
+          resumo={resumoDimensionamento}
+          loading={loadingResumoDimensionamento}
+          isError={isResumoError}
+          error={resumoError}
+          totalCargas={cargas.length}
+          autoRecalcFeedback={autoRecalcFeedback}
+        />
       ) : null}
     </div>
   )

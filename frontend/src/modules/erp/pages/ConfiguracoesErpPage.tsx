@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
@@ -6,8 +6,13 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { hasPermission } from '@/modules/auth/permissions'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
+import ConfiguradorPaineisConfigTab from '../components/ConfiguradorPaineisConfigTab'
+import ParametrosErpTable from '../components/ParametrosErpTable'
+import { PREFIXO_PARAMETRO_CONFIGURADOR } from '../configuradorParametros'
 import { atualizarParametroConfiguracao, listarParametrosConfiguracao } from '../services/erpApi'
 import type { ParametroConfiguracaoDto } from '../types/erp'
+
+type AbaConfig = 'geral' | 'configurador'
 
 /** Edição de parâmetros globais do ERP (requer permissão de gerenciamento). */
 export default function ConfiguracoesErpPage() {
@@ -17,10 +22,21 @@ export default function ConfiguracoesErpPage() {
 
   const [lista, setLista] = useState<ParametroConfiguracaoDto[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [aba, setAba] = useState<AbaConfig>('configurador')
   const [editandoChave, setEditandoChave] = useState<string | null>(null)
   const [valorRascunho, setValorRascunho] = useState('')
   const [descricaoRascunho, setDescricaoRascunho] = useState('')
   const [salvandoChave, setSalvandoChave] = useState<string | null>(null)
+
+  const parametrosConfigurador = useMemo(
+    () => lista.filter((p) => p.chave.startsWith(PREFIXO_PARAMETRO_CONFIGURADOR)),
+    [lista]
+  )
+
+  const tabelaGeral = useMemo(
+    () => lista.filter((p) => !p.chave.startsWith(PREFIXO_PARAMETRO_CONFIGURADOR)),
+    [lista]
+  )
 
   const recarregar = useCallback(async () => {
     setCarregando(true)
@@ -75,6 +91,10 @@ export default function ConfiguracoesErpPage() {
     }
   }
 
+  function handleParamAtualizado(param: ParametroConfiguracaoDto) {
+    setLista((rows) => rows.map((r) => (r.chave === param.chave ? param : r)))
+  }
+
   return (
     <div className="container-fluid py-4">
       <nav aria-label="breadcrumb">
@@ -90,97 +110,59 @@ export default function ConfiguracoesErpPage() {
 
       <div className="card shadow-sm">
         <div className="card-body">
-          <h1 className="h4">Parâmetros</h1>
+          <h1 className="h4">Configurações do ERP</h1>
           <p className="text-muted">
-            Chave/valor genéricos para numeração, flags e regras.
-            {podeGerenciar ? ' Pode editar valor e descrição.' : ' Só visualização.'}
+            Parâmetros globais do sistema.
+            {podeGerenciar ? ' Pode editar conforme a aba.' : ' Só visualização.'}
           </p>
+
+          <ul className="nav nav-tabs mb-3" role="tablist">
+            <li className="nav-item" role="presentation">
+              <button
+                type="button"
+                role="tab"
+                className={`nav-link${aba === 'configurador' ? ' active' : ''}`}
+                aria-selected={aba === 'configurador'}
+                onClick={() => setAba('configurador')}
+              >
+                Configurador de painéis
+              </button>
+            </li>
+            <li className="nav-item" role="presentation">
+              <button
+                type="button"
+                role="tab"
+                className={`nav-link${aba === 'geral' ? ' active' : ''}`}
+                aria-selected={aba === 'geral'}
+                onClick={() => setAba('geral')}
+              >
+                Parâmetros gerais
+              </button>
+            </li>
+          </ul>
+
           {carregando ? (
             <p className="text-muted mb-0">A carregar…</p>
-          ) : lista.length === 0 ? (
-            <p className="text-muted mb-0">Nenhum parâmetro registado.</p>
+          ) : aba === 'configurador' ? (
+            <ConfiguradorPaineisConfigTab
+              parametros={parametrosConfigurador}
+              podeGerenciar={podeGerenciar}
+              onAtualizado={handleParamAtualizado}
+            />
           ) : (
-            <div className="table-responsive">
-              <table className="table table-sm align-middle">
-                <thead>
-                  <tr>
-                    <th>Chave</th>
-                    <th>Valor</th>
-                    <th>Descrição</th>
-                    {podeGerenciar ? <th aria-label="Ações" /> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {lista.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <code>{p.chave}</code>
-                      </td>
-                      <td>
-                        {editandoChave === p.chave && podeGerenciar ? (
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            value={valorRascunho}
-                            onChange={(e) => setValorRascunho(e.target.value)}
-                            disabled={salvandoChave === p.chave}
-                            aria-label={`Valor de ${p.chave}`}
-                          />
-                        ) : (
-                          p.valor || '—'
-                        )}
-                      </td>
-                      <td>
-                        {editandoChave === p.chave && podeGerenciar ? (
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            value={descricaoRascunho}
-                            onChange={(e) => setDescricaoRascunho(e.target.value)}
-                            disabled={salvandoChave === p.chave}
-                            aria-label={`Descrição de ${p.chave}`}
-                          />
-                        ) : (
-                          p.descricao || '—'
-                        )}
-                      </td>
-                      {podeGerenciar ? (
-                        <td>
-                          {editandoChave === p.chave ? (
-                            <div className="d-flex flex-wrap gap-1">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-primary"
-                                disabled={salvandoChave === p.chave}
-                                onClick={() => void guardarParametro(p.chave)}
-                              >
-                                {salvandoChave === p.chave ? '…' : 'Guardar'}
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                disabled={salvandoChave === p.chave}
-                                onClick={cancelarEdicao}
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => iniciarEdicao(p)}
-                            >
-                              Editar
-                            </button>
-                          )}
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ParametrosErpTable
+              lista={tabelaGeral}
+              podeGerenciar={podeGerenciar}
+              editandoChave={editandoChave}
+              valorRascunho={valorRascunho}
+              descricaoRascunho={descricaoRascunho}
+              salvandoChave={salvandoChave}
+              onIniciarEdicao={iniciarEdicao}
+              onCancelarEdicao={cancelarEdicao}
+              onValorChange={setValorRascunho}
+              onDescricaoChange={setDescricaoRascunho}
+              onGuardar={(chave) => void guardarParametro(chave)}
+            />
           )}
         </div>
       </div>

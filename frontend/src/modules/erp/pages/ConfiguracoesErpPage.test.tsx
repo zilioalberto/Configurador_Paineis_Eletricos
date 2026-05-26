@@ -47,6 +47,12 @@ describe('ConfiguracoesErpPage', () => {
         valor: 'ORC',
         descricao: 'Prefixo atual',
       },
+      {
+        id: 'p2',
+        chave: 'configurador.degraus_margem_bitola_condutores',
+        valor: '1',
+        descricao: 'Margem bitola',
+      },
     ])
     atualizarParametroConfiguracao.mockResolvedValue({
       id: 'p1',
@@ -56,9 +62,25 @@ describe('ConfiguracoesErpPage', () => {
     })
   })
 
-  it('permite editar e salvar parâmetro quando usuário tem permissão', async () => {
+  it('permite editar margem de bitola na aba configurador', async () => {
     renderPage()
 
+    expect(await screen.findByLabelText(/Margem de bitola/i)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/Margem de bitola/i), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: /Guardar margem de bitola/i }))
+
+    await waitFor(() => {
+      expect(atualizarParametroConfiguracao).toHaveBeenCalledWith(
+        'configurador.degraus_margem_bitola_condutores',
+        expect.objectContaining({ valor: '0' })
+      )
+    })
+  })
+
+  it('permite editar parâmetro geral na aba Parâmetros gerais', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByRole('tab', { name: /Parâmetros gerais/i }))
     fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
     fireEvent.change(screen.getByLabelText('Valor de orcamento.prefixo'), {
       target: { value: 'PRJ' },
@@ -100,7 +122,7 @@ describe('ConfiguracoesErpPage', () => {
         expect.objectContaining({ message: 'Não foi possível carregar os parâmetros.' })
       )
     })
-    expect(screen.getByText('Nenhum parâmetro registado.')).toBeInTheDocument()
+    expect(screen.getByText(/não encontrado/i)).toBeInTheDocument()
   })
 
   it('cancela edição e mostra erro ao falhar salvamento', async () => {
@@ -108,10 +130,12 @@ describe('ConfiguracoesErpPage', () => {
 
     renderPage()
 
+    fireEvent.click(screen.getByRole('tab', { name: /Parâmetros gerais/i }))
     fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(screen.queryByLabelText('Valor de orcamento.prefixo')).not.toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('tab', { name: /Parâmetros gerais/i }))
     fireEvent.click(screen.getByRole('button', { name: 'Editar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 

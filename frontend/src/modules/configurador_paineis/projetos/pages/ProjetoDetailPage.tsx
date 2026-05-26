@@ -3,7 +3,6 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
-import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
 import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import type { Projeto } from '../types/projeto'
 
@@ -95,11 +94,6 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
       <div className="col-md-3">
         <strong>Fator de demanda</strong>
         <div>{projeto.fator_demanda}</div>
-      </div>
-
-      <div className="col-md-3">
-        <strong>Margem de bitola (condutores)</strong>
-        <div>{projeto.degraus_margem_bitola_condutores ?? 0} degrau(is) acima do mínimo Iz</div>
       </div>
 
       <div className="col-12">
@@ -256,8 +250,6 @@ export default function ProjetoDetailPage() {
 
   return (
     <div className="container-fluid">
-      {id ? <ProjetoFluxoStepper projetoId={id} etapaAtual="projeto" /> : null}
-
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 className="h3 mb-1">Projeto</h1>

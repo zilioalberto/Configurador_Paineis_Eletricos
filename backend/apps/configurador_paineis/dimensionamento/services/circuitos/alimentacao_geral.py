@@ -15,18 +15,14 @@ from core.calculos.condutores import (
     secao_pe_mm2_a_partir_da_fase,
 )
 from core.choices import NumeroFasesChoices, TipoCorrenteChoices
+from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
 
 # Mínimo de bitola para condutores do circuito de alimentação geral (regra de projeto).
 MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2: Decimal = Decimal("2.50")
 
 
-def _degraus_margem_bitola(projeto) -> int:
-    raw = getattr(projeto, "degraus_margem_bitola_condutores", 0) or 0
-    try:
-        d = int(raw)
-    except (TypeError, ValueError):
-        d = 0
-    return max(0, min(d, 25))
+def _degraus_margem_bitola(_projeto=None) -> int:
+    return obter_degraus_margem_bitola_condutores()
 
 
 def _secao_ib(ib, projeto):

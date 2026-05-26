@@ -6,6 +6,7 @@ from apps.orcamentos.models import (
     Orcamento,
     OrcamentoConfiguradorPainel,
     OrcamentoItem,
+    OrcamentoSnapshot,
 )
 
 
@@ -18,6 +19,21 @@ class OrcamentoConfiguradorPainelInline(admin.TabularInline):
 class OrcamentoItemInline(admin.TabularInline):
     model = OrcamentoItem
     extra = 0
+
+
+class OrcamentoSnapshotInline(admin.StackedInline):
+    model = OrcamentoSnapshot
+    extra = 0
+    can_delete = False
+    readonly_fields = (
+        "codigo",
+        "status_orcamento",
+        "total",
+        "gerado_por",
+        "gerado_em",
+        "dados",
+        "itens",
+    )
 
 
 @admin.register(Orcamento)
@@ -37,7 +53,7 @@ class OrcamentoAdmin(admin.ModelAdmin):
     )
     list_filter = ("status",)
     search_fields = ("codigo", "titulo", "cliente_referencia", "cliente__razao_social")
-    inlines = (OrcamentoConfiguradorPainelInline, OrcamentoItemInline,)
+    inlines = (OrcamentoConfiguradorPainelInline, OrcamentoItemInline, OrcamentoSnapshotInline)
 
 
 @admin.register(ConfiguracaoMargemCliente)
@@ -49,3 +65,10 @@ class ConfiguracaoMargemClienteAdmin(admin.ModelAdmin):
         "atualizado_em",
     )
     search_fields = ("cliente__razao_social", "cliente__documento")
+
+
+@admin.register(OrcamentoSnapshot)
+class OrcamentoSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("codigo", "orcamento", "status_orcamento", "total", "gerado_por", "gerado_em")
+    search_fields = ("codigo", "orcamento__codigo", "orcamento__titulo")
+    readonly_fields = ("orcamento", "codigo", "status_orcamento", "total", "gerado_por", "gerado_em", "dados", "itens")

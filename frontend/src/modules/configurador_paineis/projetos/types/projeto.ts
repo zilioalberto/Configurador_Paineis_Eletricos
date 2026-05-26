@@ -163,3 +163,8 @@ export interface ProjetoResponsavelOption {
   email: string
   tipo_usuario: string
 }
+
+export type ProjetoClienteOption = {
+  value: string
+  label: string
+}

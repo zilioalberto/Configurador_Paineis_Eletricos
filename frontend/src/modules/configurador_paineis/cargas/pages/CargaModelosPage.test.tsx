@@ -77,7 +77,7 @@ describe('CargaModelosPage', () => {
 
     renderCargaModelosPage()
 
-    expect(await screen.findByRole('heading', { name: /Modelos de carga/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Novo modelo/i })).toBeInTheDocument()
     expect(await screen.findByText('Modelo A')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Salvar modelo/i }))

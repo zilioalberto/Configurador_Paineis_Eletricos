@@ -26,10 +26,11 @@ export function ProjetoFormRecursosSection({
         label="Possui PLC"
         checked={formData.possui_plc}
         onChange={onFieldChange}
+        columnClassName="col-6 col-md-4 col-lg-3"
+        alignTop
         disabled={ro}
       />
-
-      <div className="col-md-4">
+      <div className="col-6 col-md-4 col-lg-3 projeto-form-field-narrow">
         <label className="form-label" htmlFor="projeto-form-familia-plc">
           Família do PLC
         </label>
@@ -57,8 +58,7 @@ export function ProjetoFormRecursosSection({
         ) : null}
         {formData.possui_plc && opcoesFamiliaPlc.length === 0 && !carregandoFamiliasPlc ? (
           <p className="form-text text-muted mb-0">
-            Nenhuma família cadastrada em produtos PLC do catálogo. Cadastre um produto PLC com o
-            campo família preenchido para habilitar opções aqui.
+            Cadastre um produto PLC no catálogo com família preenchida.
           </p>
         ) : null}
       </div>
@@ -68,14 +68,15 @@ export function ProjetoFormRecursosSection({
         label="Possui IHM"
         checked={formData.possui_ihm}
         onChange={onFieldChange}
+        columnClassName="col-6 col-md-4 col-lg-3"
         disabled={ro}
       />
-
       <ProjetoFormCheckboxField
         name="possui_switches"
         label="Possui switches"
         checked={formData.possui_switches}
         onChange={onFieldChange}
+        columnClassName="col-6 col-md-4 col-lg-3"
         disabled={ro}
       />
 
@@ -84,10 +85,11 @@ export function ProjetoFormRecursosSection({
         label="Possui climatização"
         checked={formData.possui_climatizacao}
         onChange={onFieldChange}
+        columnClassName="col-6 col-md-4 col-lg-3"
+        alignTop
         disabled={ro}
       />
-
-      <div className="col-md-4">
+      <div className="col-6 col-md-4 col-lg-3 projeto-form-field-narrow">
         <label className="form-label" htmlFor="projeto-form-tipo-climatizacao">
           Tipo de climatização
         </label>

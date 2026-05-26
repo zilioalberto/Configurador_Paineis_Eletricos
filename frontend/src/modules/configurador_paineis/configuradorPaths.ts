@@ -15,8 +15,14 @@ export const configuradorPaths = {
     `/configurador/configuracoes/${encodeURIComponent(id)}/fluxo/${etapa}`,
 
   cargas: (projetoId?: string | null) => withProjeto('/configurador/cargas', projetoId),
+  /** Listagem com drawer de edição aberto (mesmo layout da nova carga). */
+  cargasEditar: (projetoId: string, cargaId: string) => {
+    const qs = new URLSearchParams({ projeto: projetoId, editar: cargaId })
+    return `/configurador/cargas?${qs.toString()}`
+  },
   novaCarga: (projetoId?: string | null) => withProjeto('/configurador/cargas/novo', projetoId),
   cargaDetalhe: (id: string) => `/configurador/cargas/${encodeURIComponent(id)}`,
+  /** Rota legada — redireciona para {@link cargasEditar}. */
   cargaEditar: (id: string) => `/configurador/cargas/${encodeURIComponent(id)}/editar`,
   modelosCargas: '/configurador/cargas/modelos',
 

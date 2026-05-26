@@ -14,8 +14,13 @@ vi.mock('@/services/apiClient', () => ({
 
 import {
   atualizarOrcamento,
+  atualizarMargemCliente,
   atualizarParametroConfiguracao,
+  adicionarPainelConfigurador,
+  criarMargemCliente,
+  criarNovaRevisaoOrcamento,
   criarOrcamento,
+  iniciarConfiguradorPainel,
   listarClientesOrcamento,
   listarContatosCliente,
   listarMargensClientes,
@@ -23,6 +28,8 @@ import {
   listarParametrosConfiguracao,
   obterErpModuleMeta,
   obterOrcamento,
+  sincronizarComposicaoPainel,
+  vincularProjetoConfiguradorPainel,
 } from './erpApi'
 
 describe('erpApi', () => {
@@ -211,5 +218,101 @@ describe('erpApi', () => {
     expect(getMock).toHaveBeenNthCalledWith(2, '/cadastros/contatos/', {
       params: { parceiro: 'c-1', page_size: 500 },
     })
+  })
+
+  it('cria e atualiza margem de cliente', async () => {
+    postMock.mockResolvedValueOnce({
+      data: {
+        id: 'm-1',
+        cliente: 'c-1',
+        cliente_nome: 'Cliente',
+        margem_produtos_percentual: '12',
+        margem_servicos_percentual: '8',
+      },
+    })
+    patchMock.mockResolvedValueOnce({
+      data: {
+        id: 'm-1',
+        cliente: 'c-1',
+        cliente_nome: 'Cliente',
+        margem_produtos_percentual: '15',
+        margem_servicos_percentual: '10',
+      },
+    })
+
+    await expect(
+      criarMargemCliente({ cliente: 'c-1', margem_produtos_percentual: '12' })
+    ).resolves.toMatchObject({ id: 'm-1' })
+    await expect(
+      atualizarMargemCliente('m-1', { margem_produtos_percentual: '15' })
+    ).resolves.toMatchObject({ margem_produtos_percentual: '15' })
+
+    expect(postMock).toHaveBeenCalledWith('/erp/orcamentos/margens-clientes/', {
+      cliente: 'c-1',
+      margem_produtos_percentual: '12',
+    })
+    expect(patchMock).toHaveBeenCalledWith('/erp/orcamentos/margens-clientes/m-1/', {
+      margem_produtos_percentual: '15',
+    })
+  })
+
+  it('cria nova revisão e gerencia painéis do configurador', async () => {
+    postMock
+      .mockResolvedValueOnce({
+        data: { id: 'o-2', codigo: 'Prop-05001-26 Rev B', titulo: 'Rev', itens: [] },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'vp-1', descricao_painel: 'Painel 01', ordem: 1, modo: 'ATIVO' },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'vp-1', projeto_configurador_id: 'proj-1' },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'vp-1', projeto_configurador_id: 'proj-1' },
+      })
+      .mockResolvedValueOnce({
+        data: { itens_sincronizados: 3, orcamento: { id: 'o-1', codigo: 'X', titulo: 'T', itens: [] } },
+      })
+
+    await expect(
+      criarNovaRevisaoOrcamento('o-1', {
+        tipo_revisao: 'TECNICA',
+        paineis_reconfigurar: ['vp-1'],
+      })
+    ).resolves.toMatchObject({ id: 'o-2' })
+
+    await expect(adicionarPainelConfigurador('o-1', 'Painel 02')).resolves.toMatchObject({
+      id: 'vp-1',
+    })
+    await expect(iniciarConfiguradorPainel('o-1', 'vp-1')).resolves.toMatchObject({
+      projeto_configurador_id: 'proj-1',
+    })
+    await expect(
+      vincularProjetoConfiguradorPainel('o-1', 'vp-1', 'proj-99')
+    ).resolves.toMatchObject({ projeto_configurador_id: 'proj-1' })
+    await expect(sincronizarComposicaoPainel('o-1', 'vp-1')).resolves.toMatchObject({
+      itens_sincronizados: 3,
+    })
+
+    expect(postMock).toHaveBeenNthCalledWith(1, '/erp/orcamentos/o-1/nova-revisao/', {
+      tipo_revisao: 'TECNICA',
+      paineis_reconfigurar: ['vp-1'],
+    })
+    expect(postMock).toHaveBeenNthCalledWith(2, '/erp/orcamentos/o-1/configuradores-painel/', {
+      descricao_painel: 'Painel 02',
+    })
+    expect(postMock).toHaveBeenNthCalledWith(
+      3,
+      '/erp/orcamentos/o-1/configuradores-painel/vp-1/iniciar-configurador/'
+    )
+    expect(postMock).toHaveBeenNthCalledWith(
+      4,
+      '/erp/orcamentos/o-1/configuradores-painel/vp-1/vincular-projeto/',
+      { projeto_configurador_id: 'proj-99' }
+    )
+    expect(postMock).toHaveBeenNthCalledWith(
+      5,
+      '/erp/orcamentos/o-1/configuradores-painel/vp-1/sincronizar-composicao/'
+    )
   })
 })

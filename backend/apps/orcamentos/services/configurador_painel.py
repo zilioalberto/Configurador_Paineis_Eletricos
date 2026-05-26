@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -10,8 +11,12 @@ from apps.configurador_paineis.composicao_painel.models import (
     ComposicaoInclusaoManual,
     ComposicaoItem,
     PendenciaItem,
+    SugestaoItem,
 )
 from apps.configurador_paineis.projetos.models import ProjetoConfigurador
+from apps.configurador_paineis.projetos.services.codigo_projeto import (
+    sugerir_codigo_configurador_de_proposta,
+)
 from apps.fiscal.services import p_ipi_referencia_produto
 from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 from apps.orcamentos.models import (
@@ -34,6 +39,20 @@ from core.choices import (
 
 class OrcamentoOperacaoError(Exception):
     pass
+
+
+def _formatar_erro_validacao(exc: ValidationError) -> str:
+    if hasattr(exc, "message_dict"):
+        partes: list[str] = []
+        for campo, mensagens in exc.message_dict.items():
+            for msg in mensagens:
+                if campo in ("__all__", "non_field_errors"):
+                    partes.append(str(msg))
+                else:
+                    partes.append(f"{campo}: {msg}")
+        if partes:
+            return " ".join(partes)
+    return str(exc)
 
 
 def _exigir_orcamento_editavel(orcamento: Orcamento) -> None:
@@ -91,7 +110,9 @@ def iniciar_projeto_configurador(
     if vinculo.projeto_configurador_id:
         raise OrcamentoOperacaoError("Este painel já possui projeto configurador.")
 
-    cliente_nome = _cliente_razao_social(orcamento)
+    # `ProjetoConfigurador.cliente` tem max_length=255. Dependendo do cadastro do parceiro,
+    # a razão social pode ultrapassar esse limite e quebrar o `full_clean()`/save.
+    cliente_nome = _cliente_razao_social(orcamento)[:255]
     nome = (nome_projeto or vinculo.descricao_painel or "Painel").strip()
     projeto = ProjetoConfigurador(
         nome=nome[:255],
@@ -110,7 +131,20 @@ def iniciar_projeto_configurador(
         projeto.descricao = (
             f"Revisão técnica — origem {origem.codigo}. {origem.descricao or ''}"
         ).strip()[:5000]
-    projeto.save()
+    codigo_base = (orcamento.codigo_base or "").strip()
+    if codigo_base:
+        try:
+            projeto.codigo = sugerir_codigo_configurador_de_proposta(
+                codigo_base,
+                ordem_painel=vinculo.ordem,
+            )
+        except ValidationError as exc:
+            raise OrcamentoOperacaoError(_formatar_erro_validacao(exc))
+    try:
+        projeto.save()
+    except ValidationError as exc:
+        # Evita 500 quando o cadastro do cliente/projeto inviabiliza validação.
+        raise OrcamentoOperacaoError(_formatar_erro_validacao(exc))
 
     vinculo.projeto_configurador = projeto
     vinculo.save(update_fields=("projeto_configurador", "atualizado_em"))
@@ -199,6 +233,15 @@ def _exigir_sem_pendencias_abertas(projeto: ProjetoConfigurador) -> None:
         )
 
 
+def _exigir_sem_sugestoes_pendentes(projeto: ProjetoConfigurador) -> None:
+    qtd = SugestaoItem.objects.filter(projeto=projeto).count()
+    if qtd > 0:
+        raise OrcamentoOperacaoError(
+            f"Existem {qtd} sugestão(ões) pendente(s) na composição do painel. "
+            "Aprove todos os itens antes de importar para a proposta."
+        )
+
+
 @transaction.atomic
 def sincronizar_composicao_painel(
     orcamento: Orcamento,
@@ -218,6 +261,7 @@ def sincronizar_composicao_painel(
 
     projeto = vinculo.projeto_configurador
     _exigir_sem_pendencias_abertas(projeto)
+    _exigir_sem_sugestoes_pendentes(projeto)
 
     cliente_projeto = (projeto.cliente or "").strip().upper()
     cliente_orc = _cliente_razao_social(orcamento).strip().upper()

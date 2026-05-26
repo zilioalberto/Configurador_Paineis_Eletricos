@@ -4,6 +4,7 @@ import re
 
 from rest_framework import serializers
 
+from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
 from apps.configurador_paineis.projetos.models import ProjetoConfigurador, ProjetoConfiguradorEvento
 
 
@@ -53,6 +54,7 @@ class ProjetoSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "criado_por",
             "atualizado_por",
+            "degraus_margem_bitola_condutores",
         )
         extra_kwargs = {
             "familia_plc": {"allow_null": True, "required": False},
@@ -100,6 +102,16 @@ class ProjetoSerializer(serializers.ModelSerializer):
             attrs["tipo_seccionamento"] = ""
 
         return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("degraus_margem_bitola_condutores", None)
+        validated_data["degraus_margem_bitola_condutores"] = obter_degraus_margem_bitola_condutores()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop("degraus_margem_bitola_condutores", None)
+        validated_data["degraus_margem_bitola_condutores"] = obter_degraus_margem_bitola_condutores()
+        return super().update(instance, validated_data)
 
     def get_criado_por_nome(self, obj):
         user = obj.criado_por

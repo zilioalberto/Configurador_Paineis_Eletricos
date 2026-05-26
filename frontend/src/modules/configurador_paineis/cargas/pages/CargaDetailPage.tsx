@@ -45,6 +45,11 @@ export default function CargaDetailPage() {
     [location.state, c?.projeto]
   )
 
+  const editarHref = useMemo(() => {
+    if (!id || !c?.projeto) return configuradorPaths.cargas()
+    return configuradorPaths.cargasEditar(c.projeto, id)
+  }, [c?.projeto, id])
+
   return (
     <div className="container-fluid">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -58,7 +63,7 @@ export default function CargaDetailPage() {
               Fechar
             </Link>
             {canEditCarga && podeEditar ? (
-              <Link to={configuradorPaths.cargaEditar(id)} className="btn btn-primary">
+              <Link to={editarHref} className="btn btn-primary">
                 Editar
               </Link>
             ) : null}

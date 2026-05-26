@@ -18,10 +18,21 @@ export function buildMotorPayload(
 ): Record<string, unknown> {
   const base = defaultMotor()
   const merged = { ...base, ...motor }
+
+  // Decimal fields no backend (Django DecimalField) não aceitam virgula como separador decimal.
+  // Normaliza entrada do usuário (ex.: 1,25 -> 1.25).
+  const normalizeDecimalString = (v: unknown) => {
+    if (typeof v !== 'string') return v
+    return v.replace(',', '.')
+  }
+
   const nf = Number(merged.numero_fases)
   const tm = Number(merged.tensao_motor)
   return omitEmptyStrings({
     ...merged,
+    potencia_corrente_valor: normalizeDecimalString(merged.potencia_corrente_valor),
+    rendimento_percentual: normalizeDecimalString(merged.rendimento_percentual),
+    fator_potencia: normalizeDecimalString(merged.fator_potencia),
     numero_fases: Number.isFinite(nf) ? nf : base.numero_fases,
     tensao_motor: Number.isFinite(tm) ? tm : base.tensao_motor,
   })

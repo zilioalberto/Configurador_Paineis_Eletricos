@@ -43,9 +43,9 @@ export const ERP_MODULES: ErpModule[] = [
     title: 'Catálogo',
     area: 'Base compartilhada',
     summary:
-      'Produtos, categorias, especificações técnicas e importação de XML de NF-e de fornecedores.',
+      'Produtos, serviços, categorias, especificações técnicas e importação de XML de NF-e de fornecedores.',
     status: 'available',
-    to: '/catalogo',
+    to: '/catalogo/produtos',
     permissions: [PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA],
   },
   {

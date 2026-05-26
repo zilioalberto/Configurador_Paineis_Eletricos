@@ -20,6 +20,7 @@ from core.choices import (
     TipoCorrenteChoices,
     TipoSinalChoices,
 )
+from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
 from apps.configurador_paineis.dimensionamento.models import ClassificacaoCircuitoChoices
 
 def _fd(projeto) -> Decimal:
@@ -29,13 +30,8 @@ def _fd(projeto) -> Decimal:
     return Decimal(fd)
 
 
-def _degraus_margem_bitola(projeto) -> int:
-    raw = getattr(projeto, "degraus_margem_bitola_condutores", 0) or 0
-    try:
-        d = int(raw)
-    except (TypeError, ValueError):
-        d = 0
-    return max(0, min(d, 25))
+def _degraus_margem_bitola(_projeto=None) -> int:
+    return obter_degraus_margem_bitola_condutores()
 
 
 def _secao_fase_por_corrente(corrente: Decimal, projeto) -> Decimal:

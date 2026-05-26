@@ -2,18 +2,20 @@ import { Fragment, useId } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ProjetoFluxoEtapaId } from '../hooks/useProjetoFluxoGates'
 import { useProjetoFluxoGates } from '../hooks/useProjetoFluxoGates'
-import { withFluxoOrigem } from '../utils/fluxoOrigem'
-import { configuradorPaths } from '../../configuradorPaths'
+import {
+  projetoFluxoEtapaBloqueada,
+  projetoFluxoHref,
+  projetoFluxoTituloBloqueio,
+} from '../utils/projetoFluxoNav'
 
 const ETAPAS: {
   id: ProjetoFluxoEtapaId
   label: string
   descricao: string
 }[] = [
-  { id: 'projeto', label: '1. Projeto', descricao: 'Dados do projeto' },
-  { id: 'cargas', label: '2. Cargas do projeto', descricao: 'Cadastro de cargas' },
-  { id: 'dimensionamento', label: '3. Dimensionamento', descricao: 'Condutores e revisão' },
-  { id: 'composicao', label: '4. Composição do painel', descricao: 'Materiais e sugestões' },
+  { id: 'cargas', label: '1. Cargas do projeto', descricao: 'Cadastro de cargas' },
+  { id: 'dimensionamento', label: '2. Dimensionamento', descricao: 'Condutores e revisão' },
+  { id: 'composicao', label: '3. Composição do painel', descricao: 'Materiais e sugestões' },
 ]
 
 type Props = {
@@ -32,41 +34,16 @@ export function ProjetoFluxoStepper({ projetoId, etapaAtual, compact = false }: 
   const [searchParams] = useSearchParams()
 
   function hrefPara(etapa: ProjetoFluxoEtapaId): string {
-    let href: string
-    switch (etapa) {
-      case 'projeto':
-        href = configuradorPaths.configuracaoDetalhe(projetoId)
-        break
-      case 'cargas':
-        href = configuradorPaths.cargas(projetoId)
-        break
-      case 'dimensionamento':
-        href = configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento')
-        break
-      case 'composicao':
-        href = configuradorPaths.composicao(projetoId)
-        break
-      default:
-        href = configuradorPaths.configuracaoDetalhe(projetoId)
-        break
-    }
-    return withFluxoOrigem(href, searchParams)
+    return projetoFluxoHref(etapa, projetoId, searchParams)
   }
 
   function bloqueada(etapa: ProjetoFluxoEtapaId): boolean {
-    if (etapa === 'projeto') return false
-    if (etapa === 'cargas') return false
-    if (etapa === 'dimensionamento') return !gates.podeAcessarDimensionamento
-    if (etapa === 'composicao') return !gates.podeAcessarComposicao
-    return true
+    return projetoFluxoEtapaBloqueada(etapa, gates)
   }
 
   function tituloBloqueio(etapa: ProjetoFluxoEtapaId): string | undefined {
     if (!bloqueada(etapa)) return undefined
-    if (etapa === 'dimensionamento') return 'Cadastre ao menos uma carga antes desta etapa.'
-    if (etapa === 'composicao')
-      return 'Conclua a revisão e aprovação das bitolas de condutores antes da composição.'
-    return undefined
+    return projetoFluxoTituloBloqueio(etapa)
   }
 
   const ordemAtual = ETAPAS.findIndex((e) => e.id === etapaAtual)

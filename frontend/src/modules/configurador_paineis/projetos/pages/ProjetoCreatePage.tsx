@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
@@ -6,12 +7,16 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { vincularProjetoConfiguradorPainel } from '@/modules/erp/services/erpApi'
+import { orcamentoDetalhePath } from '@/modules/erp/utils/orcamentoUi'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProjetoForm from '../components/projeto-form/ProjetoForm'
+import { PROJETO_CONFIG_FORM_ID } from '../components/projeto-form/projetoFormIds'
 import { projetoFormInitialState } from '../components/projeto-form/formOptions'
 import { useCreateProjetoMutation } from '../hooks/useProjetoMutations'
 import { projetoQueryKeys } from '../projetoQueryKeys'
+import { listarClientesProjeto } from '../services/projetoClienteService'
 import { alocarCodigoProjeto, listarResponsaveisProjeto } from '../services/projetoService'
+import { buildClienteSelectOptions, resolverClienteInicial } from '../utils/projetoClienteSelect'
 import type { ProjetoFormData } from '../types/projeto'
 import { withFluxoOrigem } from '../utils/fluxoOrigem'
 import { configuradorPaths } from '../../configuradorPaths'
@@ -71,17 +76,35 @@ export default function ProjetoCreatePage() {
     queryKey: [...projetoQueryKeys.all, 'responsaveis'],
     queryFn: listarResponsaveisProjeto,
   })
+  const {
+    data: clientesCadastro = [],
+    isPending: carregandoClientes,
+    isError: erroClientes,
+  } = useQuery({
+    queryKey: [...projetoQueryKeys.all, 'clientes'],
+    queryFn: listarClientesProjeto,
+  })
+
+  const clienteOptions = useMemo(
+    () =>
+      buildClienteSelectOptions(
+        clientesCadastro,
+        resolverClienteInicial(vinculoProposta.cliente, clientesCadastro)
+      ),
+    [clientesCadastro, vinculoProposta.cliente]
+  )
 
   const initialData = useMemo(
     () => ({
       ...projetoFormInitialState,
       codigo: codigoResposta?.codigo ?? '',
       nome: vinculoProposta.nome || projetoFormInitialState.nome,
-      cliente: vinculoProposta.cliente || projetoFormInitialState.cliente,
+      cliente: resolverClienteInicial(vinculoProposta.cliente, clientesCadastro),
       responsavel:
         responsavelOptions.length === 1 ? responsavelOptions[0].id : projetoFormInitialState.responsavel,
     }),
     [
+      clientesCadastro,
       codigoResposta?.codigo,
       responsavelOptions,
       vinculoProposta.cliente,
@@ -113,8 +136,48 @@ export default function ProjetoCreatePage() {
       variant: 'success',
       message: 'Configuração de painel criada com sucesso.',
     })
-    navigate(configuradorPaths.configuracaoDetalhe(projeto.id))
+    navigate(configuradorPaths.cargas(projeto.id))
   }
+
+  const submitLabel = vinculoProposta.orcamentoId ? 'Salvar e continuar' : 'Salvar configuração'
+
+  const voltarConfiguracoes = configuradorPaths.configuracoes
+
+  const toolbarConfig = useMemo(
+    () => ({
+      title: 'Nova configuração de painel',
+      subtitle: vinculoProposta.orcamentoId
+        ? 'Preencha os dados técnicos do painel vinculado à proposta'
+        : 'Preencha os dados técnicos e salve para iniciar o fluxo do configurador',
+      back: vinculoProposta.orcamentoId
+        ? {
+            to: orcamentoDetalhePath(vinculoProposta.orcamentoId),
+            label: '← Proposta',
+          }
+        : undefined,
+      actions: (
+        <Link to={voltarConfiguracoes} className="btn btn-outline-light btn-sm">
+          Cancelar
+        </Link>
+      ),
+      primaryAction: {
+        label: submitLabel,
+        formId: PROJETO_CONFIG_FORM_ID,
+        loading: createMutation.isPending,
+        loadingLabel: 'Salvando…',
+        disabled: carregandoCodigo,
+      },
+    }),
+    [
+      carregandoCodigo,
+      createMutation.isPending,
+      submitLabel,
+      vinculoProposta.orcamentoId,
+      voltarConfiguracoes,
+    ]
+  )
+
+  useAppPageToolbar(toolbarConfig)
 
   function handleSubmitError(err: unknown) {
     console.error('Erro ao criar configuração de painel:', err)
@@ -127,49 +190,34 @@ export default function ProjetoCreatePage() {
   }
 
   return (
-    <div className="container-fluid projeto-config-page">
-      <div className="projeto-config-header">
-        <div className="min-w-0">
-          {vinculoProposta.orcamentoId ? (
-            <Link className="small d-inline-flex mb-2" to={`/erp/orcamentos/${vinculoProposta.orcamentoId}`}>
-              ← Voltar à proposta
-            </Link>
-          ) : null}
-          <h1 className="h3 mb-1">Nova configuração de painel</h1>
-          <p className="text-muted mb-0">
-            {vinculoProposta.orcamentoId
-              ? 'Ao salvar, a configuração fica vinculada ao painel da proposta e segue para as etapas do configurador.'
-              : 'Crie a configuração base do painel e avance para cargas, dimensionamento e composição.'}
-          </p>
-        </div>
-        <div className="projeto-config-header__meta">
-          <span className="badge text-bg-light border">
-            {vinculoProposta.orcamentoId ? 'Vinculada à proposta' : 'Configuração avulsa'}
-          </span>
-          {codigoResposta?.codigo ? (
-            <span className="badge text-bg-primary">{codigoResposta.codigo}</span>
-          ) : null}
-        </div>
-      </div>
-
+    <div className="container-fluid projeto-config-page projeto-config-page--full projeto-config-page--compact">
       {erroCodigo && (
-        <div className="alert alert-warning d-flex flex-wrap align-items-center gap-2 mb-3">
+        <div className="alert alert-warning py-2 d-flex flex-wrap align-items-center gap-2 mb-2">
           <span>
             Não foi possível obter a sugestão de código
             {erroAlocacao ? `: ${extrairMensagemErroApi(erroAlocacao) || 'erro de rede'}` : '.'}{' '}
             Você ainda pode preencher e salvar: um novo código será gerado no servidor.
           </span>
-          <button type="button" className="btn btn-sm btn-outline-dark" onClick={() => void refetchCodigo()}>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-dark"
+            onClick={() => void refetchCodigo()}
+          >
             Tentar novamente
           </button>
         </div>
       )}
 
       {carregandoCodigo && (
-        <div className="card mb-3">
-          <div className="card-body py-4 text-muted">Carregando sugestão de código…</div>
-        </div>
+        <p className="text-muted small mb-2">Carregando sugestão de código…</p>
       )}
+
+      {erroClientes ? (
+        <div className="alert alert-warning py-2 mb-2">
+          Não foi possível carregar os clientes cadastrados. Atualize a página ou cadastre clientes
+          em <Link to="/erp/cadastros">Cadastros comerciais</Link>.
+        </div>
+      ) : null}
 
       {!carregandoCodigo && (
         <ProjetoForm
@@ -178,9 +226,13 @@ export default function ProjetoCreatePage() {
           loading={createMutation.isPending}
           initialData={initialData}
           responsavelOptions={responsavelOptions}
+          clienteOptions={clienteOptions}
+          carregandoClientes={carregandoClientes}
           canEditResponsavel={canEditResponsavel}
           showStatus={false}
-          submitLabel={vinculoProposta.orcamentoId ? 'Salvar e continuar' : 'Salvar configuração'}
+          submitLabel={submitLabel}
+          formId={PROJETO_CONFIG_FORM_ID}
+          workspaceLayout="grid"
         />
       )}
     </div>

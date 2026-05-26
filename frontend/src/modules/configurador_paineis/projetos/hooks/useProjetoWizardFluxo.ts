@@ -13,7 +13,7 @@ import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarHistoricoProjeto } from '../services/projetoService'
 
-export type WizardStepId = 'projeto' | 'cargas' | 'dimensionamento' | 'composicao'
+export type WizardStepId = 'cargas' | 'dimensionamento' | 'composicao'
 
 export type WizardStep = {
   id: WizardStepId
@@ -33,12 +33,7 @@ export type ChecklistItem = {
 }
 
 /** Etapas válidas na URL `/projetos/:id/fluxo/:etapa`. */
-export const ETAPAS_VALIDAS: WizardStepId[] = [
-  'projeto',
-  'cargas',
-  'dimensionamento',
-  'composicao',
-]
+export const ETAPAS_VALIDAS: WizardStepId[] = ['cargas', 'dimensionamento', 'composicao']
 
 function statusDependente(
   bloqueado: boolean,
@@ -72,8 +67,20 @@ export function useProjetoWizardFluxo(projetoId: string) {
 
   const temCargas = cargas.length > 0
   const dimensionado = Boolean(dimensionamento)
-  const condutoresRevisaoOk = Boolean(dimensionamento?.condutores_revisao_confirmada)
-  const dimensionamentoEtapaConcluida = dimensionado && condutoresRevisaoOk
+  const circuitos = dimensionamento?.circuitos_carga ?? []
+  const ag = dimensionamento?.alimentacao_geral ?? null
+  const todosCircuitosAprovados =
+    circuitos.length > 0 && circuitos.every((c) => c.condutores_aprovado === true)
+  const agAprovado = ag ? ag.condutores_aprovado === true : true
+
+  // `condutores_revisao_confirmada` pode permanecer false quando o usuário aprova
+  // linha a linha sem marcar explicitamente a "confirmação de revisão".
+  // Para o fluxo do wizard, consideramos etapa concluída quando tudo está aprovado.
+  const condutoresRevisaoEfetivamenteOk =
+    Boolean(dimensionamento?.condutores_revisao_confirmada) ||
+    (todosCircuitosAprovados && agAprovado)
+
+  const dimensionamentoEtapaConcluida = dimensionado && condutoresRevisaoEfetivamenteOk
   const composicaoGerada = Boolean(
     composicao &&
       ((composicao.totais?.sugestoes ?? 0) > 0 ||
@@ -125,7 +132,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
       {
         key: 'condutores-confirmados',
         label: 'Bitolas de condutores confirmadas no wizard',
-        status: statusDependente(!temCargas, condutoresRevisaoOk),
+        status: statusDependente(!temCargas, condutoresRevisaoEfetivamenteOk),
       },
       {
         key: 'dimensionamento-recente',
@@ -147,7 +154,7 @@ export function useProjetoWizardFluxo(projetoId: string) {
       projeto,
       temCargas,
       dimensionado,
-      condutoresRevisaoOk,
+      condutoresRevisaoEfetivamenteOk,
       dimensionamentoEtapaConcluida,
       dimensionamentoAposUltimaCarga,
       composicaoGerada,
@@ -158,14 +165,6 @@ export function useProjetoWizardFluxo(projetoId: string) {
 
   const steps: WizardStep[] = useMemo(
     () => [
-      {
-        id: 'projeto',
-        title: 'Dados do projeto',
-        description: 'Revise ou ajuste os dados de entrada do projeto.',
-        href: configuradorPaths.configuracaoEditar(projetoId),
-        canEnter: true,
-        done: Boolean(projeto),
-      },
       {
         id: 'cargas',
         title: 'Cargas do projeto',

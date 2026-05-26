@@ -14,11 +14,16 @@ from apps.catalogo.api.serializers import (
     ProdutoListSerializer,
     ProdutoWriteSerializer,
 )
+from apps.catalogo.api.servico_serializers import (
+    ServicoListSerializer,
+    ServicoWriteSerializer,
+)
 from apps.catalogo.models import (
     EspecificacaoExpansaoPLC,
     EspecificacaoModuloComunicacao,
     EspecificacaoPLC,
     Produto,
+    Servico,
 )
 from apps.fiscal.models import ItemFiscalProduto
 from core.choices.produtos import CategoriaProdutoNomeChoices, FamiliaPLCChoices
@@ -175,3 +180,58 @@ class ProdutoViewSet(ModelViewSet):
         instance.refresh_from_db()
         read = ProdutoDetailSerializer(instance, context=self.get_serializer_context())
         return Response(read.data)
+
+
+def _servico_busca_por_tokens(search: str) -> Q:
+    tokens = [t for t in search.split() if t]
+    if not tokens:
+        return Q(pk__in=[])
+    combined = Q()
+    for token in tokens:
+        parte = (
+            Q(codigo__icontains=token)
+            | Q(descricao__icontains=token)
+            | Q(categoria__icontains=token)
+        )
+        combined = parte if not combined else combined & parte
+    return combined
+
+
+class ServicoViewSet(ModelViewSet):
+    """CRUD de serviços do catálogo com busca para autocomplete."""
+
+    queryset = Servico.objects.order_by("codigo", "descricao")
+    permission_classes = [HasEffectivePermission]
+    pagination_class = None
+
+    class ServicoPagination(PageNumberPagination):
+        page_size = 50
+        page_size_query_param = "page_size"
+        max_page_size = 200
+
+    def paginate_queryset(self, queryset):
+        if self.action == "list":
+            self.pagination_class = self.ServicoPagination
+        else:
+            self.pagination_class = None
+        return super().paginate_queryset(queryset)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        search = (self.request.query_params.get("search") or "").strip()
+        if search:
+            qs = qs.filter(_servico_busca_por_tokens(search)).filter(ativo=True)
+            qs = qs.order_by("codigo", "descricao")[:40]
+        return qs
+
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update"):
+            return ServicoWriteSerializer
+        return ServicoListSerializer
+
+    def required_permission(self, request, view):
+        if self.action in ("list", "retrieve"):
+            return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return None

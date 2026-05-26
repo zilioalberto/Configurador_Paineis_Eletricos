@@ -242,13 +242,13 @@ export function useComposicaoPageActions({
 
   const executarExportacao = useCallback(
     async (fmt: 'pdf' | 'xlsx') => {
-      if (!projetoId || !snapshot) return
+      if (!projetoId) return
       setExportando(fmt)
       try {
         const nomeProjeto = montarNomeArquivoProjeto(
-          projetoSelecionado?.codigo ?? snapshot.projeto_codigo,
+          projetoSelecionado?.codigo ?? snapshot?.projeto_codigo,
           projetoSelecionado?.cliente,
-          projetoSelecionado?.nome ?? snapshot.projeto_nome
+          projetoSelecionado?.nome ?? snapshot?.projeto_nome
         )
         if (fmt === 'xlsx') await exportarComposicaoListaXlsx(projetoId, nomeProjeto)
         else await exportarComposicaoListaPdf(projetoId, nomeProjeto)
@@ -269,8 +269,8 @@ export function useComposicaoPageActions({
 
   const onExportLista = useCallback(
     (fmt: 'pdf' | 'xlsx') => {
-      if (!snapshot || !projetoId) return
-      if (snapshot.pendencias.length > 0) {
+      if (!projetoId) return
+      if ((snapshot?.pendencias.length ?? 0) > 0) {
         setConfirmExportFmt(fmt)
         return
       }

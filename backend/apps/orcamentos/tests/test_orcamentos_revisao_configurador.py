@@ -10,7 +10,11 @@ from apps.orcamentos.tests.test_orcamentos_api import _auth_client, _codigo_rev
 
 from apps.cadastros.models import ParceiroComercial
 from apps.catalogo.models import Produto
-from apps.configurador_paineis.composicao_painel.models import ComposicaoItem, PendenciaItem
+from apps.configurador_paineis.composicao_painel.models import (
+    ComposicaoItem,
+    PendenciaItem,
+    SugestaoItem,
+)
 from core.choices import PartesPainelChoices, StatusPendenciaChoices, TensaoChoices
 from core.choices.produtos import CategoriaProdutoNomeChoices
 from apps.configurador_paineis.projetos.models import ProjetoConfigurador
@@ -63,19 +67,31 @@ def projeto_ca(cliente, projeto_ca_minimo_kwargs):
 @pytest.mark.django_db
 def test_nova_revisao_comercial_copia_itens_editaveis(user_admin, cliente):
     user, raw = user_admin
+    produto = Produto.objects.create(
+        codigo="REV-CAT-001",
+        descricao="Produto revisado",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base=Decimal("100.00"),
+    )
     origem = Orcamento.objects.create(
         codigo_base="Prop-01001-26",
         titulo="Origem",
         cliente=cliente,
+        margem_produtos_percentual=Decimal("20.00"),
         status=StatusOrcamentoChoices.ENVIADO,
     )
     OrcamentoItem.objects.create(
         orcamento=origem,
         descricao="Item A",
         quantidade=1,
-        preco_unitario=100,
-        origem=OrigemItemOrcamentoChoices.MANUAL,
+        custo_unitario=Decimal("100.00"),
+        margem_percentual=Decimal("20.00"),
+        preco_unitario=Decimal("120.00"),
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        produto=produto,
     )
+    produto.preco_base = Decimal("140.00")
+    produto.save(update_fields=("preco_base",))
     client = _auth_client(user, raw)
     resp = client.post(
         reverse("erp-orcamento-nova-revisao", kwargs={"pk": origem.pk}),
@@ -84,7 +100,8 @@ def test_nova_revisao_comercial_copia_itens_editaveis(user_admin, cliente):
     )
     assert resp.status_code == 201, resp.content
     body = resp.json()
-    assert body["codigo"] == _codigo_rev("Prop-01001-26", "B")
+    assert body["codigo"] == _codigo_rev("Prop-01001-26", "A")
+    assert body["revisao"] == "A"
     assert body["tipo_revisao"] == TipoRevisaoOrcamentoChoices.COMERCIAL
     assert body["status"] == StatusOrcamentoChoices.RASCUNHO
     novo = Orcamento.objects.get(pk=body["id"])
@@ -92,6 +109,12 @@ def test_nova_revisao_comercial_copia_itens_editaveis(user_admin, cliente):
     assert len(itens) == 1
     assert itens[0].editavel is True
     assert itens[0].descricao == "Item A"
+    assert itens[0].custo_unitario == Decimal("140.0000")
+    assert itens[0].preco_unitario == Decimal("168.0000")
+
+    origem_resp = client.get(reverse("erp-orcamento-detail", kwargs={"pk": origem.pk}))
+    assert origem_resp.status_code == 200, origem_resp.content
+    assert origem_resp.json()["revisoes_derivadas"][0]["id"] == body["id"]
 
 
 @pytest.mark.django_db
@@ -207,6 +230,7 @@ def test_iniciar_configurador_em_painel_ativo_sem_projeto(
     vinculo.refresh_from_db()
     assert vinculo.projeto_configurador_id
     assert vinculo.projeto_configurador.cliente == cliente.razao_social.upper()
+    assert vinculo.projeto_configurador.codigo == "CONF-06001-26"
 
 
 @pytest.mark.django_db
@@ -298,4 +322,44 @@ def test_sincronizar_bloqueado_com_pendencias_abertas(user_admin, cliente, proje
     resp = client.post(url, format="json")
     assert resp.status_code == 400, resp.content
     assert "pendência" in resp.json()["detail"].lower()
+    assert OrcamentoItem.objects.filter(orcamento=orc).count() == 0
+
+
+@pytest.mark.django_db
+def test_sincronizar_bloqueado_com_sugestoes_pendentes(user_admin, cliente, projeto_ca):
+    user, raw = user_admin
+    produto = Produto.objects.create(
+        codigo="SYNC-SUG-001",
+        descricao="Contator pendente",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base=Decimal("10.00"),
+    )
+    SugestaoItem.objects.create(
+        projeto=projeto_ca,
+        produto=produto,
+        parte_painel=PartesPainelChoices.COMANDO,
+        categoria_produto=CategoriaProdutoNomeChoices.OUTROS,
+        quantidade=Decimal("1"),
+    )
+    orc = Orcamento.objects.create(
+        codigo_base="Prop-08001-26",
+        titulo="Sugestões pendentes",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    vinculo = OrcamentoConfiguradorPainel.objects.create(
+        orcamento=orc,
+        ordem=0,
+        descricao_painel="CCM",
+        modo=ModoConfiguradorPainelChoices.ATIVO,
+        projeto_configurador=projeto_ca,
+    )
+    client = _auth_client(user, raw)
+    url = reverse(
+        "erp-orcamento-sincronizar-composicao",
+        kwargs={"pk": orc.pk, "vinculo_id": vinculo.pk},
+    )
+    resp = client.post(url, format="json")
+    assert resp.status_code == 400, resp.content
+    assert "sugest" in resp.json()["detail"].lower()
     assert OrcamentoItem.objects.filter(orcamento=orc).count() == 0

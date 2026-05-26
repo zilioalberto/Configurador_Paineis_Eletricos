@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarState,
+} from '@/components/layout/AppPageToolbarContext'
 
 const useQueryMock = vi.hoisted(() => vi.fn())
 const useProjetoDetailQueryMock = vi.hoisted(() => vi.fn())
@@ -124,6 +128,42 @@ function renderWizard(initialEntry: string, includeListRoute = false) {
   )
 }
 
+function ToolbarStateViewer() {
+  const toolbar = useAppPageToolbarState()
+  return (
+    <div>
+      {toolbar?.actions}
+      {toolbar?.primaryAction ? (
+        <button
+          type="button"
+          disabled={toolbar.primaryAction.disabled}
+          onClick={toolbar.primaryAction.onClick}
+        >
+          {toolbar.primaryAction.label}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function renderWizardWithToolbar(initialEntry: string) {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <AppPageToolbarProvider>
+        <ToolbarStateViewer />
+        <Routes>
+          <Route
+            path="/configurador/configuracoes/:id/fluxo/:etapa"
+            element={<ProjetoWizardPage />}
+          />
+          <Route path="/configurador/composicao" element={<div>Página de composição</div>} />
+          <Route path="/configurador/cargas" element={<div>Lista de cargas</div>} />
+        </Routes>
+      </AppPageToolbarProvider>
+    </MemoryRouter>
+  )
+}
+
 describe('ProjetoWizardPage', () => {
   it('redireciona para lista quando rota não tem id', () => {
     mockWizardData({ projeto: undefined })
@@ -197,7 +237,7 @@ describe('ProjetoWizardPage', () => {
     expect(screen.getByText('Lista de cargas')).toBeInTheDocument()
   })
 
-  it('na etapa dimensionamento suprime resumo em cartões, ações rápidas, checklist e rastreabilidade', () => {
+  it('na etapa dimensionamento suprime fluxo, resumo em cartões, ações rápidas, checklist e rastreabilidade', () => {
     mockWizardData({
       cargas: cargasComItem,
       dimensionamento: dimensionamentoBase,
@@ -208,9 +248,9 @@ describe('ProjetoWizardPage', () => {
     })
     renderWizard('/projetos/p1/fluxo/dimensionamento')
 
-    expect(
-      screen.getByRole('heading', { level: 1, name: /Dimensionamento de condutores/i })
-    ).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /Etapas do fluxo do painel/i })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Resumo do dimensionamento/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Corrente do painel/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Checklist de conclusão/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Rastreabilidade do projeto/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Recalcular agora/i })).not.toBeInTheDocument()
@@ -218,6 +258,24 @@ describe('ProjetoWizardPage', () => {
     expect(screen.queryByRole('heading', { name: /Dados do projeto/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Ações rápidas do fluxo/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Gerenciar cargas/i })).not.toBeInTheDocument()
+  })
+
+  it('habilita ação da toolbar quando condutores foram aprovados linha a linha', async () => {
+    mockWizardData({
+      cargas: cargasComItem,
+      dimensionamento: {
+        corrente_total_painel_a: '33.1',
+        condutores_revisao_confirmada: false,
+        circuitos_carga: [{ id: 'cc1', condutores_aprovado: true }],
+        alimentacao_geral: { id: 'ag1', condutores_aprovado: true },
+      },
+      composicao: composicaoTotaisBase,
+    })
+    renderWizardWithToolbar('/configurador/configuracoes/p1/fluxo/dimensionamento')
+
+    expect(
+      await screen.findByRole('button', { name: /Salvar e ir para sugestões/i })
+    ).toBeEnabled()
   })
 
   it('redireciona etapa inválida na URL para fluxo/cargas', () => {

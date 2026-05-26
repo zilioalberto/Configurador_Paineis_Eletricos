@@ -9,6 +9,12 @@ export function toDateInputValue(iso: string | null): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** Rótulo da coluna Rev. (proposta inicial não tem revisão). */
+export function rotuloRevisaoOrcamento(revisao?: string | null): string {
+  const rev = (revisao ?? '').trim()
+  return rev || '—'
+}
+
 export function validadePadraoProposta(): string {
   const d = new Date()
   d.setDate(d.getDate() + 15)
@@ -25,7 +31,10 @@ export function proximaDescricaoPainel(orcamento: OrcamentoDto): string {
 }
 
 export function parseDecimalPt(valor: string): number {
-  const normalizado = valor.trim().replace(/\s/g, '').replace(',', '.')
+  const semEspacos = valor.trim().replace(/\s/g, '')
+  const normalizado = semEspacos.includes(',')
+    ? semEspacos.replace(/\./g, '').replace(',', '.')
+    : semEspacos
   const n = Number(normalizado)
   return Number.isFinite(n) ? n : NaN
 }
@@ -59,4 +68,28 @@ export function configuradorNovoPath(params: {
     qs.set('cliente', params.cliente.trim())
   }
   return `${configuradorPaths.novaConfiguracao}?${qs.toString()}`
+}
+
+export function orcamentoDetalhePath(orcamentoId: string): string {
+  return `/orcamentos/${encodeURIComponent(orcamentoId)}`
+}
+
+export function configuradorFluxoOrcamentoPath(
+  path: string,
+  params: {
+    orcamentoId: string
+    vinculoId: string
+  }
+): string {
+  const hashIndex = path.indexOf('#')
+  const pathSemHash = hashIndex >= 0 ? path.slice(0, hashIndex) : path
+  const hash = hashIndex >= 0 ? path.slice(hashIndex) : ''
+  const queryIndex = pathSemHash.indexOf('?')
+  const base = queryIndex >= 0 ? pathSemHash.slice(0, queryIndex) : pathSemHash
+  const qs = new URLSearchParams(queryIndex >= 0 ? pathSemHash.slice(queryIndex + 1) : '')
+
+  qs.set('orcamento', params.orcamentoId)
+  qs.set('vinculo', params.vinculoId)
+
+  return `${base}?${qs.toString()}${hash}`
 }

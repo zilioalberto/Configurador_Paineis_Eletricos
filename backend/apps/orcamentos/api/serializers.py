@@ -15,11 +15,14 @@ from apps.fiscal.services import p_ipi_referencia_produto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
+    OrcamentoSnapshot,
     OrcamentoItem,
     OrigemItemOrcamentoChoices,
+    StatusOrcamentoChoices,
     TipoItemOrcamentoChoices,
 )
 from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
+from apps.orcamentos.services.snapshot_orcamento import criar_snapshot_envio_orcamento
 
 _ORCAMENTO_ITEM_MERGE_FIELDS = (
     "tipo",
@@ -126,6 +129,42 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
         )
 
 
+class OrcamentoSnapshotResumoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrcamentoSnapshot
+        fields = (
+            "id",
+            "codigo",
+            "status_orcamento",
+            "total",
+            "gerado_em",
+            "gerado_por",
+            "dados",
+            "itens",
+        )
+        read_only_fields = fields
+
+
+class OrcamentoRevisaoResumoSerializer(serializers.ModelSerializer):
+    snapshot_envio = OrcamentoSnapshotResumoSerializer(read_only=True)
+
+    class Meta:
+        model = Orcamento
+        fields = (
+            "id",
+            "codigo",
+            "codigo_base",
+            "revisao",
+            "tipo_revisao",
+            "status",
+            "titulo",
+            "criado_em",
+            "atualizado_em",
+            "snapshot_envio",
+        )
+        read_only_fields = fields
+
+
 class OrcamentoSerializer(serializers.ModelSerializer):
     """Cabeçalho da proposta com itens; normaliza preços e origem ao vincular produto."""
 
@@ -140,6 +179,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     contato_cliente_email = serializers.SerializerMethodField()
     criado_por_label = serializers.SerializerMethodField()
     atualizado_por_label = serializers.SerializerMethodField()
+    snapshot_envio = serializers.SerializerMethodField()
+    revisoes_derivadas = serializers.SerializerMethodField()
 
     class Meta:
         model = Orcamento
@@ -169,6 +210,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "criado_por_label",
             "atualizado_por",
             "atualizado_por_label",
+            "snapshot_envio",
+            "revisoes_derivadas",
             "itens",
             "configuradores_painel",
         )
@@ -189,6 +232,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "criado_por_label",
             "atualizado_por",
             "atualizado_por_label",
+            "snapshot_envio",
+            "revisoes_derivadas",
         )
 
     def get_cliente_nome(self, obj):
@@ -218,6 +263,17 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     def get_editavel(self, obj):
         return obj.editavel
 
+    def get_snapshot_envio(self, obj):
+        try:
+            snapshot = obj.snapshot_envio
+        except OrcamentoSnapshot.DoesNotExist:
+            return None
+        return OrcamentoSnapshotResumoSerializer(snapshot).data
+
+    def get_revisoes_derivadas(self, obj):
+        revisoes = obj.revisoes_derivadas.order_by("criado_em")
+        return OrcamentoRevisaoResumoSerializer(revisoes, many=True).data
+
     def validate(self, attrs):
         instance = self.instance
         cliente = attrs.get("cliente", getattr(instance, "cliente", None))
@@ -240,14 +296,24 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", empty)
+        status_anterior = instance.status
         self._aplicar_margens_cliente(validated_data)
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
         if user and getattr(user, "is_authenticated", False):
             validated_data["atualizado_por"] = user
-        instance = super().update(instance, validated_data)
-        if itens_data is not empty:
-            self._sync_itens(instance, itens_data)
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+            if itens_data is not empty:
+                self._sync_itens(instance, itens_data)
+            if (
+                status_anterior == StatusOrcamentoChoices.RASCUNHO
+                and instance.status == StatusOrcamentoChoices.ENVIADO
+            ):
+                try:
+                    criar_snapshot_envio_orcamento(instance, usuario=user)
+                except ValueError as exc:
+                    raise serializers.ValidationError({"status": str(exc)}) from exc
         return instance
 
     def _aplicar_margens_cliente(self, validated_data):
@@ -404,13 +470,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                             }
                         )
                     if not item.editavel:
-                        raise serializers.ValidationError(
-                            {
-                                "itens": (
-                                    f"O item «{item.descricao[:40]}» é histórico e não pode ser alterado."
-                                )
-                            }
-                        )
+                        kept_ids.append(item.pk)
+                        continue
                     item.ordem = ordem
                     item.tipo = raw["tipo"]
                     item.origem = raw["origem"]

@@ -9,6 +9,7 @@ type CargaTableProps = {
   cargas: CargaListItem[]
   projetoId: string
   onDeleteRequest: (id: string) => void
+  onEditRequest: (id: string) => void
   canManage: boolean
 }
 
@@ -45,6 +46,7 @@ export default function CargaTable({
   cargas,
   projetoId,
   onDeleteRequest,
+  onEditRequest,
   canManage,
 }: CargaTableProps) {
   const [searchParams] = useSearchParams()
@@ -53,16 +55,7 @@ export default function CargaTable({
     : configuradorPaths.cargas()
 
   if (cargas.length === 0) {
-    return (
-      <p className="text-muted mb-0">
-        Nenhuma carga cadastrada para este projeto.{' '}
-        {canManage ? (
-          <Link to={withFluxoOrigem(configuradorPaths.novaCarga(projetoId), searchParams)}>
-            Cadastrar carga
-          </Link>
-        ) : null}
-      </p>
-    )
+    return null
   }
 
   return (
@@ -117,12 +110,13 @@ export default function CargaTable({
               {canManage ? (
                 <td className="text-end">
                   <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
-                    <Link
-                      to={withFluxoOrigem(configuradorPaths.cargaEditar(c.id), searchParams)}
+                    <button
+                      type="button"
                       className="btn btn-sm btn-outline-primary"
+                      onClick={() => onEditRequest(c.id)}
                     >
                       Editar
-                    </Link>
+                    </button>
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-danger"

@@ -461,6 +461,6 @@ describe('CargaDetailPage', () => {
     })
     renderPage()
     const edit = screen.getByRole('link', { name: 'Editar' })
-    expect(edit).toHaveAttribute('href', '/configurador/cargas/c1/editar')
+    expect(edit).toHaveAttribute('href', '/configurador/cargas?projeto=p1&editar=c1')
   })
 })

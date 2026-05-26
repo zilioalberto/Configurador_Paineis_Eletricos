@@ -14,14 +14,24 @@ from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
     OrcamentoItem,
+    OrcamentoSnapshot,
     OrigemItemOrcamentoChoices,
     StatusOrcamentoChoices,
     TipoItemOrcamentoChoices,
 )
+from core.permissions import PermissionKeys
 
 
-def _codigo_rev(base: str, revisao: str = "A") -> str:
+def _codigo_rev(base: str, revisao: str) -> str:
     return f"{base} Rev {revisao}"
+
+
+def test_proxima_revisao_label_inicial_e_sequencia():
+    from apps.orcamentos.services.revisao_orcamento import proxima_revisao_label
+
+    assert proxima_revisao_label("") == "A"
+    assert proxima_revisao_label("A") == "B"
+    assert proxima_revisao_label("B") == "C"
 from core.choices.produtos import CategoriaProdutoNomeChoices
 
 User = get_user_model()
@@ -89,9 +99,9 @@ def test_create_orcamento_gera_codigo_e_vincula_cliente_contato(
     assert resp.status_code == 201, resp.content
     body = resp.json()
     base = f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
-    assert body["codigo"] == _codigo_rev(base)
+    assert body["codigo"] == base
     assert body["codigo_base"] == base
-    assert body["revisao"] == "A"
+    assert body["revisao"] == ""
     assert body["cliente"] == str(cliente.id)
     assert body["cliente_nome"] == "Cliente Proposta LTDA"
     assert body["contato_cliente"] == str(contato.id)
@@ -115,7 +125,114 @@ def test_patch_orcamento_atualiza_atualizado_por(user_admin):
     assert resp.status_code == 200, resp.content
     orc.refresh_from_db()
     assert orc.atualizado_por_id == user.id
-    assert resp.json()["atualizado_por"] == user.id
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_exige_permissao_editar():
+    raw = secrets.token_urlsafe(32)
+    user = User.objects.create_user(
+        email="orcamentos-sem-editar@test.com",
+        password=raw,
+        is_active=True,
+        permissoes_extras=[PermissionKeys.ORCAMENTO_VISUALIZAR],
+    )
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-PERM", titulo="Permissão", status=StatusOrcamentoChoices.RASCUNHO
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"titulo": "Sem permissão"}, format="json")
+
+    assert resp.status_code == 403, resp.content
+    assert "permiss" in resp.json()["detail"].lower()
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_enviado_cria_snapshot_imutavel(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-SNAP",
+        titulo="Snapshot",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    item = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Produto enviado",
+        quantidade=Decimal("2"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"status": StatusOrcamentoChoices.ENVIADO}, format="json")
+
+    assert resp.status_code == 200, resp.content
+    snapshot = OrcamentoSnapshot.objects.get(orcamento=orc)
+    assert snapshot.codigo == orc.codigo
+    assert snapshot.total == Decimal("240.0000")
+    assert snapshot.gerado_por_id == user.id
+    assert snapshot.itens[0]["id"] == str(item.id)
+    assert snapshot.itens[0]["preco_unitario"] == "120.0000"
+    assert resp.json()["snapshot_envio"]["total"] == "240.0000"
+
+    OrcamentoItem.objects.filter(pk=item.pk).update(preco_unitario=Decimal("999"))
+    resp2 = client.patch(url, {"status": StatusOrcamentoChoices.APROVADO}, format="json")
+    assert resp2.status_code == 200, resp2.content
+    snapshot.refresh_from_db()
+    assert OrcamentoSnapshot.objects.filter(orcamento=orc).count() == 1
+    assert snapshot.itens[0]["preco_unitario"] == "120.0000"
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_enviado_rejeita_sem_itens(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-SEM-ITENS",
+        titulo="Sem itens",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"status": StatusOrcamentoChoices.ENVIADO}, format="json")
+
+    assert resp.status_code == 400
+    assert "ao menos um" in str(resp.data).lower()
+    orc.refresh_from_db()
+    assert orc.status == StatusOrcamentoChoices.RASCUNHO
+    assert not OrcamentoSnapshot.objects.filter(orcamento=orc).exists()
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_enviado_rejeita_produto_com_custo_zero(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-CUSTO-ZERO",
+        titulo="Custo zero",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Produto sem custo",
+        quantidade=1,
+        custo_unitario=0,
+        preco_unitario=10,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"status": StatusOrcamentoChoices.ENVIADO}, format="json")
+
+    assert resp.status_code == 400
+    assert "custo maior que zero" in str(resp.data).lower()
+    assert not OrcamentoSnapshot.objects.filter(orcamento=orc).exists()
 
 
 @pytest.mark.django_db
@@ -140,8 +257,8 @@ def test_create_orcamento_incrementa_codigo_no_mes(user_admin, cliente_com_conta
     assert segundo.status_code == 201
     base1 = f"Prop-{hoje.month:02d}001-{hoje.year % 100:02d}"
     base2 = f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}"
-    assert primeiro.json()["codigo"] == _codigo_rev(base1)
-    assert segundo.json()["codigo"] == _codigo_rev(base2)
+    assert primeiro.json()["codigo"] == base1
+    assert segundo.json()["codigo"] == base2
 
 
 @pytest.mark.django_db
@@ -160,7 +277,7 @@ def test_create_orcamento_pula_codigo_existente_no_mes(user_admin, cliente_com_c
     )
 
     assert resp.status_code == 201
-    assert resp.json()["codigo"] == _codigo_rev(f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}")
+    assert resp.json()["codigo"] == f"Prop-{hoje.month:02d}002-{hoje.year % 100:02d}"
 
 
 @pytest.mark.django_db
@@ -435,3 +552,61 @@ def test_patch_orcamento_sync_itens_atualiza_adiciona_remove(user_admin):
     assert manter_db.descricao == "Manter editado"
     novo = OrcamentoItem.objects.exclude(pk=manter.pk).get(orcamento=orc)
     assert novo.descricao == "Linha nova"
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_sync_itens_preserva_item_nao_editavel_enviado(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-3",
+        titulo="Itens históricos",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    historico = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        descricao="Linha histórica",
+        quantidade=1,
+        preco_unitario=100,
+        editavel=False,
+    )
+    editavel = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=1,
+        descricao="Linha editável",
+        quantidade=1,
+        preco_unitario=10,
+    )
+
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+    resp = client.patch(
+        url,
+        {
+            "itens": [
+                {
+                    "id": str(historico.id),
+                    "ordem": 0,
+                    "descricao": "Tentativa ignorada",
+                    "quantidade": "9",
+                    "preco_unitario": "999",
+                },
+                {
+                    "id": str(editavel.id),
+                    "ordem": 1,
+                    "descricao": "Linha editável atualizada",
+                    "quantidade": "2",
+                    "preco_unitario": "20",
+                },
+            ]
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    historico.refresh_from_db()
+    editavel.refresh_from_db()
+    assert historico.descricao == "Linha histórica"
+    assert historico.quantidade == 1
+    assert editavel.descricao == "Linha editável atualizada"
+    assert OrcamentoItem.objects.filter(orcamento=orc).count() == 2

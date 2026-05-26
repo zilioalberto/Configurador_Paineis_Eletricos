@@ -48,6 +48,30 @@ export type OrcamentoConfiguradorPainelDto = {
   atualizado_em: string
 }
 
+export type OrcamentoSnapshotEnvioDto = {
+  id: string
+  codigo: string
+  status_orcamento: string
+  total: string
+  gerado_em: string
+  gerado_por: number | null
+  dados: Record<string, unknown>
+  itens: Array<Record<string, unknown>>
+}
+
+export type OrcamentoRevisaoResumoDto = {
+  id: string
+  codigo: string
+  codigo_base: string
+  revisao: string
+  tipo_revisao: 'INICIAL' | 'COMERCIAL' | 'TECNICA'
+  status: string
+  titulo: string
+  criado_em: string
+  atualizado_em: string
+  snapshot_envio?: OrcamentoSnapshotEnvioDto | null
+}
+
 /** Orçamento/proposta com cabeçalho, cliente e itens. */
 export type OrcamentoDto = {
   id: string
@@ -73,6 +97,8 @@ export type OrcamentoDto = {
   atualizado_em: string
   itens: OrcamentoItemDto[]
   configuradores_painel?: OrcamentoConfiguradorPainelDto[]
+  snapshot_envio?: OrcamentoSnapshotEnvioDto | null
+  revisoes_derivadas?: OrcamentoRevisaoResumoDto[]
 }
 
 export type ParceiroClienteDto = ParceiroComercialDto

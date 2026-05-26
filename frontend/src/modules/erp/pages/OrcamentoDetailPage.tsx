@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -21,6 +22,7 @@ import OrcamentoCatalogoItemForm from '../components/OrcamentoCatalogoItemForm'
 import OrcamentoLinhaDescricaoCampo from '../components/OrcamentoLinhaDescricaoCampo'
 import OrcamentoPainelsCard from '../components/OrcamentoPainelsCard'
 import { atualizarOrcamento, obterOrcamento } from '../services/erpApi'
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import type { LinhaEditavelOrcamento } from '../types/orcamentoLinha'
 import type { OrcamentoDto, OrcamentoItemDto } from '../types/erp'
 import {
@@ -42,6 +44,8 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'REJEITADO', label: 'Rejeitado' },
   { value: 'CANCELADO', label: 'Cancelado' },
 ]
+
+const ORCAMENTO_DADOS_FORM_ID = 'orcamento-dados-form'
 
 function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavelOrcamento[] {
   return [...itens]
@@ -80,6 +84,35 @@ function formatIpiExibicao(valor: string | null | undefined): string {
   return `${n} %`
 }
 
+function produtoComCustoZero(linha: LinhaEditavelOrcamento): boolean {
+  if (linha.tipo !== 'PRODUTO') return false
+  const custo = parseDecimalPt(linha.custo_unitario || '0')
+  return !Number.isFinite(custo) || custo <= 0
+}
+
+function linhasProdutosComCustoZero(linhas: LinhaEditavelOrcamento[]): number[] {
+  return linhas
+    .map((linha, index) => (produtoComCustoZero(linha) ? index + 1 : null))
+    .filter((index): index is number => index !== null)
+}
+
+function precoUnitarioCalculado(linha: LinhaEditavelOrcamento): string {
+  return calcularPrecoUnitarioLinha(
+    linha.custo_unitario,
+    linha.margem_percentual,
+    linha.aliquota_ipi
+  )
+}
+
+function decimalPayload(valor: string, fallback: string, casasDecimais = 4): string {
+  const n = parseDecimalPt(valor.trim() || fallback)
+  if (!Number.isFinite(n)) return fallback
+  return n
+    .toFixed(casasDecimais)
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '')
+}
+
 /** Formulário completo de edição de orçamento existente. */
 export default function OrcamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -89,6 +122,11 @@ export default function OrcamentoDetailPage() {
 
   const [orcamento, setOrcamento] = useState<OrcamentoDto | null>(null)
   const podeEditar = podeEditarPerm && (orcamento?.editavel !== false)
+  const motivoBloqueioEdicao = !podeEditarPerm
+    ? 'Seu utilizador não possui permissão para editar orçamentos.'
+    : orcamento?.editavel === false
+      ? 'Esta proposta não está em rascunho. Apenas propostas em rascunho podem ser alteradas.'
+      : null
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [salvandoItens, setSalvandoItens] = useState(false)
@@ -121,11 +159,11 @@ export default function OrcamentoDetailPage() {
       setMargemProdutosMin(mp)
       setMargemServicosMin(ms)
       setLinhasItens(itensParaLinhas(dados.itens ?? []))
-    } catch {
+    } catch (err) {
       showToast({
         variant: 'danger',
         title: 'Erro',
-        message: 'Não foi possível carregar o orçamento.',
+        message: extrairMensagemErroApi(err) || 'Não foi possível carregar o orçamento.',
       })
       setOrcamento(null)
     } finally {
@@ -147,6 +185,41 @@ export default function OrcamentoDetailPage() {
     }
     return soma
   }, [linhasItens])
+
+  const linhasComCustoZero = useMemo(
+    () => linhasProdutosComCustoZero(linhasItens.filter((linha) => linha.editavel !== false)),
+    [linhasItens]
+  )
+
+  const toolbarConfig = useMemo(
+    () => ({
+      title: orcamento?.codigo ?? 'Proposta comercial',
+      subtitle: orcamento
+        ? [orcamento.titulo, orcamento.cliente_nome].filter(Boolean).join(' · ')
+        : 'Carregando proposta',
+      back: { to: '/orcamentos', label: 'Orçamentos' },
+      badges: orcamento
+        ? [
+            { key: 'status', text: orcamento.status },
+            { key: 'itens', text: `${linhasItens.length} item(ns)` },
+            ...(orcamento.snapshot_envio
+              ? [{ key: 'snapshot', text: 'Oferta congelada', variant: 'light' as const }]
+              : []),
+          ]
+        : undefined,
+      primaryAction: podeEditar
+        ? {
+            label: 'Guardar dados',
+            formId: ORCAMENTO_DADOS_FORM_ID,
+            loading: salvando,
+            loadingLabel: 'Guardando…',
+          }
+        : undefined,
+    }),
+    [linhasItens.length, orcamento, podeEditar, salvando]
+  )
+
+  useAppPageToolbar(toolbarConfig)
 
   const handleSalvarCabecalho: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
@@ -174,11 +247,11 @@ export default function OrcamentoDetailPage() {
       setOrcamento(atualizado)
       setLinhasItens(itensParaLinhas(atualizado.itens ?? []))
       showToast({ variant: 'success', message: 'Dados do orçamento guardados.' })
-    } catch {
+    } catch (err) {
       showToast({
         variant: 'danger',
         title: 'Erro',
-        message: 'Não foi possível guardar as alterações.',
+        message: extrairMensagemErroApi(err) || 'Não foi possível guardar as alterações.',
       })
     } finally {
       setSalvando(false)
@@ -195,33 +268,46 @@ export default function OrcamentoDetailPage() {
       })
       return
     }
+    const linhasEditaveis = linhasValidas.filter((linha) => linha.editavel !== false)
+    const linhasSemCusto = linhasProdutosComCustoZero(linhasEditaveis)
+    if (linhasSemCusto.length > 0) {
+      showToast({
+        variant: 'danger',
+        title: 'Custo obrigatório',
+        message: `Informe custo maior que zero nas linhas de produto: ${linhasSemCusto.join(', ')}.`,
+      })
+      return
+    }
     setSalvandoItens(true)
     try {
       const atualizado = await atualizarOrcamento(id, {
-        itens: linhasValidas.map((linha, idx) => ({
+        itens: linhasEditaveis.map((linha, idx) => ({
           ...(linha.id ? { id: linha.id } : {}),
           ordem: idx,
           tipo: linha.tipo,
           ...(linha.origem ? { origem: linha.origem as 'MANUAL' | 'CATALOGO' | 'CONFIGURADOR' } : {}),
           ...(linha.produtoId ? { produto: linha.produtoId } : {}),
           descricao: linha.descricao.trim(),
-          quantidade: linha.quantidade.trim() || '1',
-          custo_unitario: linha.custo_unitario.trim() || '0',
-          margem_percentual: clampMargemParaCima(
-            linha.margem_percentual.trim() || '0',
-            linha.margem_minima ?? linha.margem_percentual
+          quantidade: decimalPayload(linha.quantidade, '1'),
+          custo_unitario: decimalPayload(linha.custo_unitario, '0'),
+          margem_percentual: decimalPayload(
+            clampMargemParaCima(
+              linha.margem_percentual.trim() || '0',
+              linha.margem_minima ?? linha.margem_percentual
+            ),
+            '0',
+            2
           ),
-          preco_unitario: linha.preco_unitario.trim() || '0',
         })),
       })
       setOrcamento(atualizado)
       setLinhasItens(itensParaLinhas(atualizado.itens ?? []))
       showToast({ variant: 'success', message: 'Itens do orçamento guardados.' })
-    } catch {
+    } catch (err) {
       showToast({
         variant: 'danger',
         title: 'Erro',
-        message: 'Não foi possível guardar os itens.',
+        message: extrairMensagemErroApi(err) || 'Não foi possível guardar os itens.',
       })
     } finally {
       setSalvandoItens(false)
@@ -244,14 +330,6 @@ export default function OrcamentoDetailPage() {
         preco_unitario: '0',
       },
     ])
-  }
-
-  function alterarMargemProdutos(valor: string) {
-    setMargemProdutos(clampMargemParaCima(valor, margemProdutosMin))
-  }
-
-  function alterarMargemServicos(valor: string) {
-    setMargemServicos(clampMargemParaCima(valor, margemServicosMin))
   }
 
   function adicionarLinhaCatalogo(linha: LinhaEditavelOrcamento) {
@@ -293,44 +371,26 @@ export default function OrcamentoDetailPage() {
     return (
       <div className="container-fluid py-4">
         <p className="text-muted">Identificador inválido.</p>
-        <Link to="/erp/orcamentos">Voltar à lista</Link>
+        <Link to="/orcamentos">Voltar à lista</Link>
       </div>
     )
   }
 
   return (
-    <div className="container-fluid py-4">
-      <nav aria-label="breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <Link to="/">Módulos</Link>
-          </li>
-          <li className="breadcrumb-item">
-            <Link to="/erp/orcamentos">Orçamentos</Link>
-          </li>
-          <li className="breadcrumb-item active" aria-current="page">
-            {orcamento?.codigo ?? 'Detalhe'}
-          </li>
-        </ol>
-      </nav>
-
+    <div className="container-fluid py-3">
       <OrcamentoDetalheConteudo
         adicionarLinha={adicionarLinha}
         adicionarLinhaCatalogo={adicionarLinhaCatalogo}
         atualizarLinha={atualizarLinha}
         margemProdutos={margemProdutos}
-        margemServicos={margemServicos}
-        alterarMargemProdutos={alterarMargemProdutos}
-        alterarMargemServicos={alterarMargemServicos}
         carregando={carregando}
         descricao={descricao}
-        margemProdutosMin={margemProdutosMin}
-        margemServicosMin={margemServicosMin}
+        linhasComCustoZero={linhasComCustoZero}
         linhasItens={linhasItens}
+        motivoBloqueioEdicao={motivoBloqueioEdicao}
         orcamento={orcamento}
         podeEditar={podeEditar}
         removerLinha={removerLinha}
-        salvando={salvando}
         salvandoItens={salvandoItens}
         status={status}
         titulo={titulo}
@@ -354,20 +414,16 @@ export default function OrcamentoDetailPage() {
 type OrcamentoDetalheConteudoProps = {
   adicionarLinha: () => void
   adicionarLinhaCatalogo: (linha: LinhaEditavelOrcamento) => void
-  alterarMargemProdutos: (valor: string) => void
-  alterarMargemServicos: (valor: string) => void
   atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
   margemProdutos: string
-  margemServicos: string
-  margemProdutosMin: string
-  margemServicosMin: string
+  linhasComCustoZero: number[]
   carregando: boolean
   descricao: string
   linhasItens: LinhaEditavelOrcamento[]
+  motivoBloqueioEdicao: string | null
   orcamento: OrcamentoDto | null
   podeEditar: boolean
   removerLinha: (index: number) => void
-  salvando: boolean
   salvandoItens: boolean
   status: string
   titulo: string
@@ -392,7 +448,7 @@ function OrcamentoDetalheConteudo({
 
   return (
     <p className="text-muted mb-0">
-      Orçamento não encontrado. <Link to="/erp/orcamentos">Voltar à lista</Link>
+      Orçamento não encontrado. <Link to="/orcamentos">Voltar à lista</Link>
     </p>
   )
 }
@@ -400,19 +456,15 @@ function OrcamentoDetalheConteudo({
 function OrcamentoEdicao({
   adicionarLinha,
   adicionarLinhaCatalogo,
-  alterarMargemProdutos,
-  alterarMargemServicos,
   atualizarLinha,
   descricao,
+  linhasComCustoZero,
   linhasItens,
+  motivoBloqueioEdicao,
   margemProdutos,
-  margemServicos,
-  margemProdutosMin,
-  margemServicosMin,
   orcamento,
   podeEditar,
   removerLinha,
-  salvando,
   salvandoItens,
   status,
   titulo,
@@ -430,17 +482,15 @@ function OrcamentoEdicao({
 }>) {
   return (
     <div className="vstack gap-4">
+      {motivoBloqueioEdicao ? (
+        <div className="alert alert-warning mb-0" role="alert">
+          {motivoBloqueioEdicao}
+        </div>
+      ) : null}
       <OrcamentoDadosCard
-        alterarMargemProdutos={alterarMargemProdutos}
-        alterarMargemServicos={alterarMargemServicos}
         descricao={descricao}
-        margemProdutos={margemProdutos}
-        margemServicos={margemServicos}
-        margemProdutosMin={margemProdutosMin}
-        margemServicosMin={margemServicosMin}
         orcamento={orcamento}
         podeEditar={podeEditar}
-        salvando={salvando}
         status={status}
         titulo={titulo}
         validoAte={validoAte}
@@ -450,11 +500,13 @@ function OrcamentoEdicao({
         setTitulo={setTitulo}
         setValidoAte={setValidoAte}
       />
+      <OrcamentoRevisoesCard orcamento={orcamento} />
       <OrcamentoItensCard
         adicionarLinha={adicionarLinha}
         adicionarLinhaCatalogo={adicionarLinhaCatalogo}
         margemProdutos={margemProdutos}
         atualizarLinha={atualizarLinha}
+        linhasComCustoZero={linhasComCustoZero}
         linhasItens={linhasItens}
         orcamento={orcamento}
         podeEditar={podeEditar}
@@ -472,17 +524,87 @@ function OrcamentoEdicao({
   )
 }
 
+function OrcamentoRevisoesCard({ orcamento }: Readonly<{ orcamento: OrcamentoDto }>) {
+  const revisoes = orcamento.revisoes_derivadas ?? []
+  const temHistorico = Boolean(orcamento.orcamento_origem || revisoes.length > 0 || orcamento.snapshot_envio)
+  if (!temHistorico) return null
+
+  return (
+    <details className="card shadow-sm border-0" id="orcamento-revisoes">
+      <summary className="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ cursor: 'pointer' }}>
+        <span>
+          <span className="fw-semibold">Revisões da oferta</span>
+          <span className="text-muted small ms-2">
+            {revisoes.length > 0
+              ? `${revisoes.length} revisão(ões) criada(s)`
+              : 'Histórico desta proposta'}
+          </span>
+        </span>
+        <span className="btn btn-sm btn-outline-primary">Abrir revisões</span>
+      </summary>
+      <div className="card-body pt-0">
+        {orcamento.orcamento_origem ? (
+          <p className="small mb-3">
+            Esta proposta foi criada a partir de{' '}
+            <Link to={`/orcamentos/${orcamento.orcamento_origem}`}>revisão anterior</Link>.
+          </p>
+        ) : null}
+
+        {orcamento.snapshot_envio ? (
+          <div className="alert alert-light border py-2 small mb-3" role="status">
+            Oferta congelada em{' '}
+            {new Date(orcamento.snapshot_envio.gerado_em).toLocaleString('pt-BR')} com total{' '}
+            {valorMonetarioTabela(parseDecimalPt(orcamento.snapshot_envio.total))}.
+          </div>
+        ) : null}
+
+        {revisoes.length > 0 ? (
+          <div className="table-responsive">
+            <table className="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Revisão</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th>Oferta</th>
+                  <th className="text-end">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revisoes.map((rev) => (
+                  <tr key={rev.id}>
+                    <td className="fw-semibold">{rev.codigo}</td>
+                    <td>{rotuloTipoRevisao(rev.tipo_revisao)}</td>
+                    <td>{rotuloStatusOrcamento(rev.status)}</td>
+                    <td className="small text-muted">
+                      {rev.snapshot_envio
+                        ? `Congelada em ${new Date(rev.snapshot_envio.gerado_em).toLocaleDateString('pt-BR')}`
+                        : 'Em edição'}
+                    </td>
+                    <td className="text-end">
+                      <Link className="btn btn-sm btn-outline-secondary" to={`/orcamentos/${rev.id}`}>
+                        Abrir
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-muted small mb-0">
+            Nenhuma revisão posterior criada até o momento.
+          </p>
+        )}
+      </div>
+    </details>
+  )
+}
+
 function OrcamentoDadosCard({
-  alterarMargemProdutos,
-  alterarMargemServicos,
   descricao,
-  margemProdutos,
-  margemServicos,
-  margemProdutosMin,
-  margemServicosMin,
   orcamento,
   podeEditar,
-  salvando,
   status,
   titulo,
   validoAte,
@@ -492,16 +614,9 @@ function OrcamentoDadosCard({
   setTitulo,
   setValidoAte,
 }: Readonly<{
-  alterarMargemProdutos: (valor: string) => void
-  alterarMargemServicos: (valor: string) => void
   descricao: string
-  margemProdutos: string
-  margemServicos: string
-  margemProdutosMin: string
-  margemServicosMin: string
   orcamento: OrcamentoDto
   podeEditar: boolean
-  salvando: boolean
   status: string
   titulo: string
   validoAte: string
@@ -519,26 +634,31 @@ function OrcamentoDadosCard({
       <div className="card-body">
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <p className="text-muted small mb-1">Proposta comercial</p>
-            <h1 className="h4 mb-0">{orcamento.codigo}</h1>
+            <p className="text-muted small mb-1">Cliente</p>
+            <h2 className="h6 mb-0">{orcamento.cliente_nome || '—'}</h2>
+            {orcamento.contato_cliente_nome ? (
+              <p className="small text-muted mb-0 mt-1">
+                {orcamento.contato_cliente_nome}
+                {orcamento.contato_cliente_email
+                  ? ` · ${orcamento.contato_cliente_email}`
+                  : ''}
+              </p>
+            ) : null}
           </div>
           <span className="badge text-bg-secondary">{statusLabel}</span>
         </div>
 
-        <form onSubmit={onSalvarCabecalho}>
+        {orcamento.snapshot_envio ? (
+          <div className="alert alert-secondary py-2 small" role="status">
+            Oferta enviada congelada em{' '}
+            {new Date(orcamento.snapshot_envio.gerado_em).toLocaleString('pt-BR')} com total{' '}
+            {valorMonetarioTabela(parseDecimalPt(orcamento.snapshot_envio.total))}. Novas alterações
+            devem ser feitas em uma revisão.
+          </div>
+        ) : null}
+
+        <form id={ORCAMENTO_DADOS_FORM_ID} onSubmit={onSalvarCabecalho}>
           <div className="row g-3">
-            <div className="col-md-6 col-lg-4">
-              <label className="form-label text-muted small mb-1">Cliente</label>
-              <p className="mb-0 fw-semibold">{orcamento.cliente_nome || '—'}</p>
-              {orcamento.contato_cliente_nome ? (
-                <p className="small text-muted mb-0 mt-1">
-                  {orcamento.contato_cliente_nome}
-                  {orcamento.contato_cliente_email
-                    ? ` · ${orcamento.contato_cliente_email}`
-                    : ''}
-                </p>
-              ) : null}
-            </div>
             <div className="col-md-6 col-lg-4">
               <label className="form-label" htmlFor="orc-det-titulo">
                 Título da proposta
@@ -581,38 +701,6 @@ function OrcamentoDadosCard({
               />
             </div>
             <div className="col-md-6 col-lg-3">
-              <label className="form-label" htmlFor="orc-det-margem-prod">
-                Margem produtos (%)
-              </label>
-              <input
-                id="orc-det-margem-prod"
-                type="text"
-                inputMode="decimal"
-                className="form-control"
-                value={margemProdutos}
-                min={margemProdutosMin}
-                onChange={(e) => alterarMargemProdutos(e.target.value)}
-                disabled={!podeEditar}
-              />
-              <div className="form-text">Mín. {margemProdutosMin}% (só aumentar).</div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <label className="form-label" htmlFor="orc-det-margem-serv">
-                Margem serviços (%)
-              </label>
-              <input
-                id="orc-det-margem-serv"
-                type="text"
-                inputMode="decimal"
-                className="form-control"
-                value={margemServicos}
-                min={margemServicosMin}
-                onChange={(e) => alterarMargemServicos(e.target.value)}
-                disabled={!podeEditar}
-              />
-              <div className="form-text">Mín. {margemServicosMin}% (só aumentar).</div>
-            </div>
-            <div className="col-md-6 col-lg-3">
               <label className="form-label" htmlFor="orc-det-status">
                 Estado
               </label>
@@ -630,9 +718,6 @@ function OrcamentoDadosCard({
                 ))}
               </select>
             </div>
-            <div className="col-12">
-              <OrcamentoDadosSubmit podeEditar={podeEditar} salvando={salvando} />
-            </div>
           </div>
         </form>
       </div>
@@ -640,21 +725,14 @@ function OrcamentoDadosCard({
   )
 }
 
-function OrcamentoDadosSubmit({
-  podeEditar,
-  salvando,
-}: Readonly<{
-  podeEditar: boolean
-  salvando: boolean
-}>) {
-  if (podeEditar) {
-    return (
-      <button type="submit" className="btn btn-primary" disabled={salvando}>
-        {salvando ? 'A guardar…' : 'Guardar dados'}
-      </button>
-    )
-  }
-  return <p className="text-muted small mb-0">Só visualização.</p>
+function rotuloTipoRevisao(tipo: OrcamentoDto['tipo_revisao']): string {
+  if (tipo === 'COMERCIAL') return 'Comercial'
+  if (tipo === 'TECNICA') return 'Técnica'
+  return 'Inicial'
+}
+
+function rotuloStatusOrcamento(status: string): string {
+  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
 }
 
 function OrcamentoItensCard({
@@ -662,6 +740,7 @@ function OrcamentoItensCard({
   adicionarLinhaCatalogo,
   margemProdutos,
   atualizarLinha,
+  linhasComCustoZero,
   linhasItens,
   orcamento,
   podeEditar,
@@ -674,6 +753,7 @@ function OrcamentoItensCard({
   adicionarLinhaCatalogo: (linha: LinhaEditavelOrcamento) => void
   margemProdutos: string
   atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  linhasComCustoZero: number[]
   linhasItens: LinhaEditavelOrcamento[]
   orcamento: OrcamentoDto
   podeEditar: boolean
@@ -689,8 +769,7 @@ function OrcamentoItensCard({
           <div>
             <h2 className="h5 mb-1">Itens</h2>
             <p className="text-muted small mb-0">
-              Edite linhas, adicione novas ou remova. O IPI % vem do catálogo fiscal e não pode ser
-              alterado na proposta. Guarde para sincronizar com o servidor.
+              O preço unitário é calculado automaticamente a partir do custo e dados fiscais.
             </p>
           </div>
           {podeEditar ? (
@@ -711,6 +790,13 @@ function OrcamentoItensCard({
             onAdicionar={adicionarLinhaCatalogo}
             disabled={salvandoItens}
           />
+        ) : null}
+
+        {linhasComCustoZero.length > 0 ? (
+          <div className="alert alert-danger py-2 small" role="alert">
+            Produto com custo zerado nas linhas {linhasComCustoZero.join(', ')}. Informe custo
+            maior que zero antes de guardar.
+          </div>
         ) : null}
 
         <OrcamentoItensTable
@@ -780,9 +866,6 @@ function OrcamentoItensTable({
             <th className="text-end" style={{ width: '5rem' }} title="Referência do catálogo">
               IPI %
             </th>
-            <th className="text-end" style={{ width: '7rem' }}>
-              Margem %
-            </th>
             <th className="text-end" style={{ width: '8rem' }}>
               Preço unit.
             </th>
@@ -810,7 +893,7 @@ function OrcamentoItensTable({
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={10} className="text-end fw-semibold">
+            <td colSpan={9} className="text-end fw-semibold">
               Total
             </td>
             <td className="text-end fw-semibold">{valorMonetarioTabela(totalOrcamento)}</td>
@@ -841,8 +924,9 @@ function OrcamentoItemRow({
 }>) {
   const linhaEditavel = podeEditar && linha.editavel !== false
   const historico = linha.origem === 'HERANCA_REVISAO'
+  const custoZero = produtoComCustoZero(linha)
   return (
-    <tr className={historico ? 'table-secondary' : undefined}>
+    <tr className={custoZero ? 'table-danger' : historico ? 'table-secondary' : undefined}>
       <td className="text-muted">{index + 1}</td>
       <td className="small text-muted">{rotuloOrigemLinhaOrcamento(linha.origem)}</td>
       <td>
@@ -902,16 +986,10 @@ function OrcamentoItemRow({
       <td className="text-end text-muted small" title="Definido no catálogo fiscal">
         {formatIpiExibicao(linha.aliquota_ipi)}
       </td>
-      <OrcamentoCampoLinha
-        campo="margem_percentual"
-        index={index}
-        linha={linha}
-        podeEditar={linhaEditavel}
-        salvandoItens={salvandoItens}
-        atualizarLinha={atualizarLinha}
-        tituloMargemMinima={`Mínimo ${linha.margem_minima ?? linha.margem_percentual}%`}
-      />
-      <td className="text-end">{precoLinhaExibicao(linha)}</td>
+      <td className="text-end">
+        {precoLinhaExibicao(linha)}
+        {custoZero ? <div className="small text-danger">Custo obrigatório</div> : null}
+      </td>
       <td className="text-end">{subtotalLinha(linha)}</td>
       {linhaEditavel ? (
         <td className="text-end">

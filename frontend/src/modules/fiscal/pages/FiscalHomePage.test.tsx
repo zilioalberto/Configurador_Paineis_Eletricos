@@ -70,8 +70,14 @@ describe('FiscalHomePage', () => {
     await waitFor(() => expect(buscarProdutosAutocomplete).toHaveBeenCalledWith('fab', null, 1))
     await waitFor(() => expect(screen.getByText('FAB-1')).toBeInTheDocument())
 
-    expect(screen.getByRole('link', { name: /Ver dados fiscais/i })).toHaveAttribute('href', '/catalogo/p1')
-    expect(screen.getByRole('link', { name: /Editar produto/i })).toHaveAttribute('href', '/catalogo/p1/editar')
+    expect(screen.getByRole('link', { name: /Ver dados fiscais/i })).toHaveAttribute(
+      'href',
+      '/catalogo/produtos/p1'
+    )
+    expect(screen.getByRole('link', { name: /Editar produto/i })).toHaveAttribute(
+      'href',
+      '/catalogo/produtos/p1/editar'
+    )
     expect(screen.getByText('ACME')).toBeInTheDocument()
   })
 

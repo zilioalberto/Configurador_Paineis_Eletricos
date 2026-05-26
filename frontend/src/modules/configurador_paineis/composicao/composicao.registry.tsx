@@ -2,19 +2,12 @@ import { lazy } from 'react'
 import type { AppMenuLinkItem, ModuleRouteConfig } from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import RequirePermission from '@/modules/auth/RequirePermission'
-import { configuradorPaths } from '../configuradorPaths'
 
 const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 
 /** Registo de rotas e menu do módulo composição no app. */
-export const composicaoMenuItems: AppMenuLinkItem[] = [
-  {
-    to: configuradorPaths.composicao(),
-    label: 'Composição do Painel',
-    order: 50,
-    requiresPermission: PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS,
-  },
-]
+/** Sem itens no menu lateral — acesso via fluxo do wizard. */
+export const composicaoMenuItems: AppMenuLinkItem[] = []
 
 export const composicaoRoutes: ModuleRouteConfig[] = [
   {

@@ -120,7 +120,7 @@ describe('ProdutoCreatePage', () => {
     expect(showToastMock).toHaveBeenCalledWith(
       expect.objectContaining({ variant: 'success' })
     )
-    expect(navigate).toHaveBeenCalledWith('/catalogo/prod-1')
+    expect(navigate).toHaveBeenCalledWith('/catalogo/produtos/prod-1')
   })
 
   it('mostra toast de erro ao falhar criação', async () => {

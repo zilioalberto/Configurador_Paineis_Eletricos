@@ -59,7 +59,7 @@ export function getBreadcrumbItems(path = '/'): BreadcrumbItem[] {
     return [{ label: 'Utilizadores', to: '/administracao/utilizadores' }]
   }
 
-  if (path === '/erp/orcamentos') {
+  if (path === '/erp/orcamentos' || path === '/orcamentos') {
     return [{ label: 'Orçamentos' }]
   }
   if (path === '/erp/cadastros') {
@@ -68,9 +68,9 @@ export function getBreadcrumbItems(path = '/'): BreadcrumbItem[] {
   if (path === '/erp/rh') {
     return [{ label: 'RH' }]
   }
-  if (/^\/erp\/orcamentos\/[^/]+$/.exec(path)) {
+  if (/^\/(?:erp\/)?orcamentos\/[^/]+$/.exec(path)) {
     return [
-      { label: 'Orçamentos', to: '/erp/orcamentos' },
+      { label: 'Orçamentos', to: '/orcamentos' },
       { label: 'Detalhe do orçamento' },
     ]
   }
