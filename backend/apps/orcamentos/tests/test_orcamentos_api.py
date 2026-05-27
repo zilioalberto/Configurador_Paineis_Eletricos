@@ -1,6 +1,7 @@
 import secrets
 
 import pytest
+from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.cadastros.models import ContatoParceiro, ParceiroComercial
-from apps.catalogo.models import Produto
+from apps.catalogo.models import Produto, Servico
 from apps.fiscal.models import ItemFiscalProduto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
@@ -186,6 +187,248 @@ def test_patch_orcamento_enviado_cria_snapshot_imutavel(user_admin):
     snapshot.refresh_from_db()
     assert OrcamentoSnapshot.objects.filter(orcamento=orc).count() == 1
     assert snapshot.itens[0]["preco_unitario"] == "120.0000"
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_finalizado_congela_sem_enviar(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-FINAL",
+        titulo="Finalizar oferta",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Produto finalizado",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("25"),
+        preco_unitario=Decimal("125"),
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"status": StatusOrcamentoChoices.FINALIZADO}, format="json")
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["status"] == StatusOrcamentoChoices.FINALIZADO
+    assert body["editavel"] is False
+    snapshot = OrcamentoSnapshot.objects.get(orcamento=orc)
+    assert snapshot.status_orcamento == StatusOrcamentoChoices.FINALIZADO
+    assert snapshot.gerado_por_id == user.id
+    assert body["snapshot_envio"]["status_orcamento"] == StatusOrcamentoChoices.FINALIZADO
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_finalizado_rejeita_preco_catalogo_desatualizado(
+    user_admin,
+    cliente_com_contato,
+):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    client = _auth_client(user, raw)
+    produto = Produto.objects.create(
+        codigo="CAT-VENCIDO-01",
+        descricao="Produto vencido",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="100.00",
+    )
+    Produto.objects.filter(pk=produto.pk).update(
+        preco_atualizado_em=timezone.now() - timedelta(days=45)
+    )
+    orc = Orcamento.objects.create(
+        codigo_base="O-PRECO-VENCIDO",
+        titulo="Preço vencido",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        produto=produto,
+        descricao=produto.descricao,
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+
+    resp = client.patch(
+        reverse("erp-orcamento-detail", kwargs={"pk": orc.pk}),
+        {"status": StatusOrcamentoChoices.FINALIZADO},
+        format="json",
+    )
+
+    assert resp.status_code == 400
+    assert "preço sem revisão" in str(resp.data).lower()
+    orc.refresh_from_db()
+    assert orc.status == StatusOrcamentoChoices.RASCUNHO
+    assert not OrcamentoSnapshot.objects.filter(orcamento=orc).exists()
+
+    detail_resp = client.get(reverse("erp-orcamento-detail", kwargs={"pk": orc.pk}))
+    assert detail_resp.status_code == 200, detail_resp.content
+    assert detail_resp.json()["itens"][0]["catalogo_preco_desatualizado"] is True
+    assert detail_resp.json()["itens"][0]["catalogo_preco_atualizado_em"] is not None
+
+
+@pytest.mark.django_db
+def test_revisar_preco_catalogo_pelo_orcamento_atualiza_catalogo_e_linha(
+    user_admin,
+    cliente_com_contato,
+):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    client = _auth_client(user, raw)
+    produto = Produto.objects.create(
+        codigo="CAT-REV-001",
+        descricao="Produto revisão",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="100.00",
+    )
+    Produto.objects.filter(pk=produto.pk).update(
+        preco_atualizado_em=timezone.now() - timedelta(days=45)
+    )
+    orc = Orcamento.objects.create(
+        codigo_base="O-REV-PRECO",
+        titulo="Revisar preço",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    item = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        produto=produto,
+        descricao=produto.descricao,
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+
+    resp = client.post(
+        reverse(
+            "erp-orcamento-revisar-preco-catalogo-item",
+            kwargs={"pk": orc.pk, "item_id": item.pk},
+        ),
+        {"preco_base": "150.00", "justificativa": "Cotação atualizada do fornecedor."},
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    produto.refresh_from_db()
+    item.refresh_from_db()
+    assert produto.preco_base == Decimal("150.00")
+    assert produto.preco_atualizado_em is not None
+    assert item.custo_unitario == Decimal("150.00")
+    assert item.preco_unitario == Decimal("180.0000")
+    assert resp.json()["itens"][0]["catalogo_preco_desatualizado"] is False
+
+
+@pytest.mark.django_db
+def test_revisar_preco_catalogo_mantendo_valor_renova_data(
+    user_admin,
+    cliente_com_contato,
+):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    client = _auth_client(user, raw)
+    produto = Produto.objects.create(
+        codigo="CAT-REVALIDA-001",
+        descricao="Produto revalidado",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="100.00",
+    )
+    data_antiga = timezone.now() - timedelta(days=45)
+    Produto.objects.filter(pk=produto.pk).update(preco_atualizado_em=data_antiga)
+    orc = Orcamento.objects.create(
+        codigo_base="O-REVALIDA",
+        titulo="Revalidar preço",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    item = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        produto=produto,
+        descricao=produto.descricao,
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+
+    resp = client.post(
+        reverse(
+            "erp-orcamento-revisar-preco-catalogo-item",
+            kwargs={"pk": orc.pk, "item_id": item.pk},
+        ),
+        {"preco_base": "100.00", "justificativa": "Preço conferido e mantido."},
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    produto.refresh_from_db()
+    item.refresh_from_db()
+    assert produto.preco_base == Decimal("100.00")
+    assert produto.preco_atualizado_em > data_antiga
+    assert item.custo_unitario == Decimal("100.00")
+    assert resp.json()["itens"][0]["catalogo_preco_desatualizado"] is False
+
+
+@pytest.mark.django_db
+def test_reabrir_orcamento_finalizado_volta_rascunho_e_remove_snapshot(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-REABRIR",
+        titulo="Reabrir oferta",
+        status=StatusOrcamentoChoices.FINALIZADO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Produto",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+    OrcamentoSnapshot.objects.create(
+        orcamento=orc,
+        status_orcamento=StatusOrcamentoChoices.FINALIZADO,
+        codigo=orc.codigo,
+        dados={"status": StatusOrcamentoChoices.FINALIZADO},
+        itens=[],
+        total=Decimal("120"),
+        gerado_por=user,
+    )
+
+    resp = client.post(reverse("erp-orcamento-reabrir", kwargs={"pk": orc.pk}))
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["status"] == StatusOrcamentoChoices.RASCUNHO
+    assert body["editavel"] is True
+    assert body["snapshot_envio"] is None
+    assert not OrcamentoSnapshot.objects.filter(orcamento=orc).exists()
+
+    patch_resp = client.patch(
+        reverse("erp-orcamento-detail", kwargs={"pk": orc.pk}),
+        {"titulo": "Reaberta para edição"},
+        format="json",
+    )
+    assert patch_resp.status_code == 200, patch_resp.content
+    assert patch_resp.json()["titulo"] == "Reaberta para edição"
 
 
 @pytest.mark.django_db
@@ -448,6 +691,123 @@ def test_create_orcamento_item_servico_com_produto_rejeita(user_admin, cliente_c
 
 
 @pytest.mark.django_db
+def test_create_orcamento_item_servico_catalogo_aplica_margem(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    servico = Servico.objects.create(
+        codigo="SRV-MONT",
+        descricao="Montagem de painel",
+        categoria="Montagem",
+        unidade_medida="HORAS",
+        preco_base="180.00",
+    )
+    client = _auth_client(user, raw)
+
+    resp = client.post(
+        reverse("erp-orcamento-list"),
+        {
+            "titulo": "Com serviço catálogo",
+            "cliente": str(cliente.id),
+            "margem_servicos_percentual": "30.00",
+            "itens": [
+                {"servico": str(servico.id), "quantidade": "4"},
+            ],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 201, resp.content
+    item = OrcamentoItem.objects.get(orcamento_id=resp.json()["id"])
+    assert item.servico_id == servico.id
+    assert item.produto_id is None
+    assert item.origem == OrigemItemOrcamentoChoices.CATALOGO
+    assert item.tipo == TipoItemOrcamentoChoices.SERVICO
+    assert item.descricao == servico.descricao
+    assert item.custo_unitario == 180
+    assert item.margem_percentual == 30
+    assert item.preco_unitario == 234
+    assert item.aliquota_ipi is None
+    assert resp.json()["itens"][0]["servico_codigo"] == "SRV-MONT"
+
+
+@pytest.mark.django_db
+def test_atualizar_oferta_reaplica_margens_e_catalogo(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    ConfiguracaoMargemCliente.objects.create(
+        cliente=cliente,
+        margem_produtos_percentual="20.00",
+        margem_servicos_percentual="30.00",
+    )
+    produto = Produto.objects.create(
+        codigo="CAT-ATU-001",
+        descricao="Produto atualizado",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="100.00",
+    )
+    ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="5.0000")
+    servico = Servico.objects.create(
+        codigo="SRV-ATU",
+        descricao="Serviço atualizado",
+        categoria="Engenharia",
+        unidade_medida="HORAS",
+        preco_base="200.00",
+    )
+    orc = Orcamento.objects.create(
+        codigo_base="O-ATU",
+        titulo="Atualizar",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+        margem_produtos_percentual="5.00",
+        margem_servicos_percentual="5.00",
+    )
+    item_produto = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        produto=produto,
+        descricao=produto.descricao,
+        quantidade=1,
+        custo_unitario=80,
+        margem_percentual=5,
+        preco_unitario=84,
+    )
+    item_servico = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=1,
+        tipo=TipoItemOrcamentoChoices.SERVICO,
+        origem=OrigemItemOrcamentoChoices.CATALOGO,
+        servico=servico,
+        descricao=servico.descricao,
+        quantidade=1,
+        custo_unitario=150,
+        margem_percentual=5,
+        preco_unitario=157.5,
+    )
+    client = _auth_client(user, raw)
+
+    resp = client.post(reverse("erp-orcamento-atualizar-oferta", kwargs={"pk": orc.pk}))
+
+    assert resp.status_code == 200, resp.content
+    assert resp.json()["itens_atualizados"] == 2
+    orc.refresh_from_db()
+    item_produto.refresh_from_db()
+    item_servico.refresh_from_db()
+    assert orc.margem_produtos_percentual == Decimal("20.00")
+    assert orc.margem_servicos_percentual == Decimal("30.00")
+    assert item_produto.custo_unitario == Decimal("100.00")
+    assert item_produto.margem_percentual == Decimal("20.00")
+    assert item_produto.aliquota_ipi == Decimal("5.0000")
+    assert item_produto.preco_unitario == Decimal("125.0000")
+    assert item_servico.custo_unitario == Decimal("200.00")
+    assert item_servico.margem_percentual == Decimal("30.00")
+    assert item_servico.aliquota_ipi is None
+    assert item_servico.preco_unitario == Decimal("260.0000")
+    assert resp.json()["orcamento"]["margem_produtos_percentual"] == "20.00"
+
+
+@pytest.mark.django_db
 def test_patch_orcamento_ignora_ipi_informado_na_linha(user_admin, cliente_com_contato):
     user, raw = user_admin
     cliente, _contato = cliente_com_contato
@@ -497,6 +857,68 @@ def test_patch_orcamento_ignora_ipi_informado_na_linha(user_admin, cliente_com_c
     assert resp.status_code == 200, resp.content
     item.refresh_from_db()
     assert item.aliquota_ipi == 7.5
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_preserva_origem_configurador_com_produto(
+    user_admin, cliente_com_contato
+):
+    """Salvar linha do CPQ com produto vinculado n?o deve trocar origem para cat?logo."""
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    produto = Produto.objects.create(
+        codigo="CONF-PROD-01",
+        descricao="Contator do painel",
+        categoria=CategoriaProdutoNomeChoices.OUTROS,
+        preco_base="80.00",
+    )
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-CFG",
+        titulo="Painel",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+        margem_produtos_percentual="20.00",
+    )
+    item = OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        origem=OrigemItemOrcamentoChoices.CONFIGURADOR,
+        descricao="[CCM] Contator",
+        produto=produto,
+        quantidade=2,
+        custo_unitario=80,
+        margem_percentual=20,
+        preco_unitario=96,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+    resp = client.patch(
+        url,
+        {
+            "itens": [
+                {
+                    "id": str(item.id),
+                    "ordem": 0,
+                    "tipo": "PRODUTO",
+                    "origem": "CONFIGURADOR",
+                    "produto": str(produto.id),
+                    "descricao": "[CCM] Contator ajustado",
+                    "quantidade": "2",
+                    "custo_unitario": "85",
+                    "margem_percentual": "20",
+                }
+            ]
+        },
+        format="json",
+    )
+    assert resp.status_code == 200, resp.content
+    item.refresh_from_db()
+    assert item.origem == OrigemItemOrcamentoChoices.CONFIGURADOR
+    assert item.descricao == "[CCM] Contator ajustado"
+    assert item.custo_unitario == 85
+    assert resp.json()["itens"][0]["origem"] == "CONFIGURADOR"
+    assert resp.json()["itens"][0]["produto_codigo"] == "CONF-PROD-01"
 
 
 @pytest.mark.django_db

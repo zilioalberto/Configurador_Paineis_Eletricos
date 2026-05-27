@@ -31,6 +31,11 @@ def _item_snapshot(item: OrcamentoItem) -> dict:
         "produto_codigo": item.produto.codigo if item.produto_id else "",
         "produto_descricao": item.produto.descricao if item.produto_id else "",
         "produto_ncm": item.produto.ncm if item.produto_id and item.produto.ncm else "",
+        "servico": str(item.servico_id) if item.servico_id else None,
+        "servico_codigo": item.servico.codigo if item.servico_id else "",
+        "servico_descricao": item.servico.descricao if item.servico_id else "",
+        "servico_unidade_medida": item.servico.unidade_medida if item.servico_id else "",
+        "servico_categoria": item.servico.categoria if item.servico_id else "",
         "descricao": item.descricao,
         "quantidade": _decimal_str(item.quantidade),
         "custo_unitario": _decimal_str(item.custo_unitario),
@@ -64,7 +69,7 @@ def _dados_snapshot(orcamento: Orcamento) -> dict:
 
 def validar_orcamento_para_snapshot(orcamento: Orcamento) -> list[OrcamentoItem]:
     itens = list(
-        orcamento.itens.select_related("produto", "configurador_painel").order_by("ordem", "id")
+        orcamento.itens.select_related("produto", "servico", "configurador_painel").order_by("ordem", "id")
     )
     if not itens:
         raise ValueError("Inclua ao menos um produto ou serviço antes de enviar a proposta.")

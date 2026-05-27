@@ -19,6 +19,7 @@ from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 
 _REVISOES_PERMITIDAS_ORIGEM = frozenset(
     {
+        StatusOrcamentoChoices.FINALIZADO,
         StatusOrcamentoChoices.ENVIADO,
         StatusOrcamentoChoices.APROVADO,
         StatusOrcamentoChoices.REJEITADO,
@@ -69,6 +70,15 @@ def _copiar_item(
             item.margem_percentual,
             aliquota_ipi,
         )
+    elif atualizar_catalogo and item.tipo == TipoItemOrcamentoChoices.SERVICO and item.servico_id:
+        item.servico.refresh_from_db(fields=("preco_base",))
+        custo_unitario = item.servico.preco_base
+        aliquota_ipi = None
+        preco_unitario = calcular_preco_unitario_linha(
+            custo_unitario,
+            item.margem_percentual,
+            aliquota_ipi,
+        )
 
     return OrcamentoItem.objects.create(
         orcamento=novo_orcamento,
@@ -84,6 +94,7 @@ def _copiar_item(
         margem_percentual=item.margem_percentual,
         preco_unitario=preco_unitario,
         produto=item.produto,
+        servico=item.servico,
         aliquota_ipi=aliquota_ipi,
     )
 

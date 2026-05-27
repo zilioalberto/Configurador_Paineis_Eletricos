@@ -274,7 +274,13 @@ def test_sincronizar_composicao_cria_itens(user_admin, cliente, projeto_ca):
     assert itens.count() == 1
     item = itens.get()
     assert item.quantidade == Decimal("2")
-    assert "[CCM]" in item.descricao
+    assert item.descricao == produto.descricao
+    assert item.configurador_painel_id == vinculo.id
+    detalhe = client.get(reverse("erp-orcamento-detail", kwargs={"pk": orc.pk}))
+    assert detalhe.status_code == 200
+    item_api = detalhe.json()["itens"][0]
+    assert item_api["descricao"] == produto.descricao
+    assert item_api["painel_ref"] == "P1"
     assert item.preco_unitario == Decimal("88.0000")
 
 

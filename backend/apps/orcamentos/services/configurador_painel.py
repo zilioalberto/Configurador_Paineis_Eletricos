@@ -176,6 +176,11 @@ def vincular_projeto_configurador(
     return vinculo
 
 
+def rotulo_painel_ref(vinculo: OrcamentoConfiguradorPainel) -> str:
+    """Referência curta do painel na proposta (P1, P2, …)."""
+    return f"P{vinculo.ordem + 1}"
+
+
 def _agregar_linhas_composicao(projeto: ProjetoConfigurador) -> list[dict]:
     agregado: dict = defaultdict(
         lambda: {"quantidade": Decimal("0"), "produto": None, "descricao": ""}
@@ -211,10 +216,6 @@ def _agregar_linhas_composicao(projeto: ProjetoConfigurador) -> list[dict]:
             continue
         linhas.append(entry)
     return linhas
-
-
-def _prefixo_descricao_painel(vinculo: OrcamentoConfiguradorPainel) -> str:
-    return f"[{vinculo.descricao_painel}] "
 
 
 def contar_pendencias_abertas_projeto(projeto: ProjetoConfigurador) -> int:
@@ -282,7 +283,6 @@ def sincronizar_composicao_painel(
             "A composição do painel está vazia. Aprove itens antes de sincronizar."
         )
 
-    prefixo = _prefixo_descricao_painel(vinculo)
     ordem_base = (
         OrcamentoItem.objects.filter(orcamento=orcamento)
         .order_by("-ordem")
@@ -306,7 +306,7 @@ def sincronizar_composicao_painel(
                 tipo=TipoItemOrcamentoChoices.PRODUTO,
                 origem=OrigemItemOrcamentoChoices.CONFIGURADOR,
                 editavel=True,
-                descricao=prefixo + linha["descricao"],
+                descricao=linha["descricao"],
                 quantidade=linha["quantidade"],
                 custo_unitario=custo,
                 margem_percentual=margem,

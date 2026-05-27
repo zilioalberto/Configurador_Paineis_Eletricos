@@ -122,7 +122,7 @@ vi.mock('@/modules/configurador_paineis/composicao/services/composicaoService', 
   exportarComposicaoListaXlsx: exportarComposicaoListaXlsxMock,
 }))
 
-vi.mock('@/modules/erp/services/erpApi', () => ({
+vi.mock('@/modules/orcamentos/services/orcamentosApi', () => ({
   sincronizarComposicaoPainel: sincronizarComposicaoPainelMock,
 }))
 
@@ -349,6 +349,7 @@ describe('ComposicaoPage', () => {
     renderPage(['/composicao?projeto=p1'])
 
     expect(document.querySelector('#comp-projeto')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Fluxo do painel/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/^Projeto$/i)).not.toBeInTheDocument()

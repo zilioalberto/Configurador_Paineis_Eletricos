@@ -254,8 +254,7 @@ export function ComposicaoSnapshotContent({
             <p className="small text-muted mb-3">
               Cadastre no catálogo produtos compatíveis com a categoria e os parâmetros elétricos
               das pendências. Depois, reavalie para aplicar de novo as regras de composição; em
-              seguida use &quot;Gerar sugestões&quot; no topo para atualizar as sugestões de itens
-              do painel.
+              seguida as sugestões de itens do painel serão atualizadas automaticamente.
             </p>
             <div className="d-flex flex-wrap gap-2 align-items-center">
               {canEditarCatalogo ? (

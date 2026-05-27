@@ -1,4 +1,4 @@
-"""Rotas de orçamentos sob o prefixo `/erp/orcamentos/`."""
+"""Rotas de orçamentos sob o prefixo público `/orcamentos/`."""
 from django.urls import path
 
 from apps.orcamentos.api.views import (
@@ -6,9 +6,12 @@ from apps.orcamentos.api.views import (
     ConfiguracaoMargemClienteListCreateView,
     OrcamentoConfiguradorPainelListCreateView,
     OrcamentoDetailView,
+    OrcamentoAtualizarOfertaView,
     OrcamentoIniciarConfiguradorView,
     OrcamentoListCreateView,
     OrcamentoNovaRevisaoView,
+    OrcamentoReabrirOfertaView,
+    OrcamentoRevisarPrecoCatalogoItemView,
     OrcamentoSincronizarComposicaoView,
     OrcamentoVincularProjetoConfiguradorView,
 )
@@ -30,6 +33,21 @@ urlpatterns = [
         "<uuid:pk>/nova-revisao/",
         OrcamentoNovaRevisaoView.as_view(),
         name="erp-orcamento-nova-revisao",
+    ),
+    path(
+        "<uuid:pk>/atualizar-oferta/",
+        OrcamentoAtualizarOfertaView.as_view(),
+        name="erp-orcamento-atualizar-oferta",
+    ),
+    path(
+        "<uuid:pk>/reabrir/",
+        OrcamentoReabrirOfertaView.as_view(),
+        name="erp-orcamento-reabrir",
+    ),
+    path(
+        "<uuid:pk>/itens/<uuid:item_id>/revisar-preco-catalogo/",
+        OrcamentoRevisarPrecoCatalogoItemView.as_view(),
+        name="erp-orcamento-revisar-preco-catalogo-item",
     ),
     path(
         "<uuid:pk>/configuradores-painel/",

@@ -4,6 +4,7 @@ import re
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.cadastros.models import ParceiroComercial
 from core.models import BaseModel
@@ -66,6 +67,11 @@ class Produto(
         decimal_places=2,
         default=0,
         help_text="Preço de referência (lista). Tabelas por cliente/região ficam fora do catálogo.",
+    )
+    preco_atualizado_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data da última revisão comercial do preço de referência.",
     )
     fabricante_parceiro = models.ForeignKey(
         ParceiroComercial,
@@ -137,6 +143,20 @@ class Produto(
 
     def __str__(self):
         return f"{self.codigo} - {self.descricao}"
+
+    def save(self, *args, **kwargs):
+        preco_mudou = self._state.adding
+        if not self._state.adding and self.pk:
+            preco_anterior = (
+                type(self).objects.filter(pk=self.pk).values_list("preco_base", flat=True).first()
+            )
+            preco_mudou = preco_anterior != self.preco_base
+        if preco_mudou:
+            self.preco_atualizado_em = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"preco_atualizado_em"}
+        super().save(*args, **kwargs)
 
     def clean(self):
         super().clean()

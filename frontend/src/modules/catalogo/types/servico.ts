@@ -6,6 +6,7 @@ export type ServicoListItem = {
   unidade_medida: string
   unidade_medida_display?: string
   preco_base: string
+  preco_atualizado_em?: string | null
   ativo: boolean
   criado_em?: string
   atualizado_em?: string

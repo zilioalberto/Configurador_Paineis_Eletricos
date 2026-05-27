@@ -105,8 +105,10 @@ export function useComposicaoPageActions({
     setAutoGerando(false)
   }, [projetoId])
 
+  const snapshotCarregado = !loadingSnap && !isError && snapshot != null
+
   useEffect(() => {
-    if (!projetoId || !podeEditar || loadingSnap || isError || !snapshot) return
+    if (!projetoId || !podeEditar || !snapshotCarregado) return
     if (jaDisparouAutoGerarRef.current) return
 
     const now = Date.now()
@@ -145,7 +147,9 @@ export function useComposicaoPageActions({
       cancelled = true
       setAutoGerando(false)
     }
-  }, [projetoId, podeEditar, loadingSnap, isError, snapshot, notificarResultadoGeracao, showToast])
+    // Usar flag booleana evita reexecutar/cancelar quando o snapshot é atualizado
+    // após a geração (nova referência de objeto), o que deixava o botão em "Gerando…".
+  }, [projetoId, podeEditar, snapshotCarregado, notificarResultadoGeracao, showToast])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return

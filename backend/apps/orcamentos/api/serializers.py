@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.serializers import empty
 
-from apps.catalogo.models import Produto
+from apps.catalogo.models import Produto, Servico
 from apps.fiscal.services import p_ipi_referencia_produto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
@@ -23,6 +23,10 @@ from apps.orcamentos.models import (
 )
 from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 from apps.orcamentos.services.snapshot_orcamento import criar_snapshot_envio_orcamento
+from apps.orcamentos.services.politica_preco_catalogo import (
+    preco_catalogo_item_desatualizado,
+    validar_finalizacao_preco_catalogo,
+)
 
 _ORCAMENTO_ITEM_MERGE_FIELDS = (
     "tipo",
@@ -33,6 +37,14 @@ _ORCAMENTO_ITEM_MERGE_FIELDS = (
     "margem_percentual",
     "preco_unitario",
     "produto",
+    "servico",
+)
+
+_ORIGENS_ITEM_PROTEGIDAS = frozenset(
+    {
+        OrigemItemOrcamentoChoices.CONFIGURADOR,
+        OrigemItemOrcamentoChoices.HERANCA_REVISAO,
+    }
 )
 
 
@@ -82,11 +94,22 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
     descricao = serializers.CharField(max_length=500, required=False, allow_blank=True)
     produto_codigo = serializers.SerializerMethodField()
     produto_ncm = serializers.SerializerMethodField()
+    painel_ref = serializers.SerializerMethodField()
     produto = serializers.PrimaryKeyRelatedField(
         queryset=Produto.objects.all(),
         required=False,
         allow_null=True,
     )
+    servico = serializers.PrimaryKeyRelatedField(
+        queryset=Servico.objects.filter(ativo=True),
+        required=False,
+        allow_null=True,
+    )
+    servico_codigo = serializers.SerializerMethodField()
+    servico_unidade_medida = serializers.SerializerMethodField()
+    servico_categoria = serializers.SerializerMethodField()
+    catalogo_preco_atualizado_em = serializers.SerializerMethodField()
+    catalogo_preco_desatualizado = serializers.SerializerMethodField()
 
     def get_produto_codigo(self, obj):
         return obj.produto.codigo if obj.produto_id else ""
@@ -97,6 +120,35 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
         if obj.produto_id and obj.produto.ncm:
             return obj.produto.ncm
         return ""
+
+    def get_painel_ref(self, obj):
+        if not obj.configurador_painel_id:
+            return ""
+        from apps.orcamentos.services.configurador_painel import rotulo_painel_ref
+
+        return rotulo_painel_ref(obj.configurador_painel)
+
+    def get_servico_codigo(self, obj):
+        return obj.servico.codigo if obj.servico_id else ""
+
+    def get_servico_unidade_medida(self, obj):
+        return obj.servico.unidade_medida if obj.servico_id else ""
+
+    def get_servico_categoria(self, obj):
+        return obj.servico.categoria if obj.servico_id else ""
+
+    def get_catalogo_preco_atualizado_em(self, obj):
+        referencia = None
+        if obj.tipo == TipoItemOrcamentoChoices.SERVICO and obj.servico_id:
+            referencia = obj.servico
+        elif obj.tipo == TipoItemOrcamentoChoices.PRODUTO and obj.produto_id:
+            referencia = obj.produto
+        if referencia is None:
+            return None
+        return referencia.preco_atualizado_em
+
+    def get_catalogo_preco_desatualizado(self, obj):
+        return preco_catalogo_item_desatualizado(obj)
 
     class Meta:
         model = OrcamentoItem
@@ -111,6 +163,13 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "produto",
             "produto_codigo",
             "produto_ncm",
+            "servico",
+            "servico_codigo",
+            "servico_unidade_medida",
+            "servico_categoria",
+            "catalogo_preco_atualizado_em",
+            "catalogo_preco_desatualizado",
+            "painel_ref",
             "descricao",
             "quantidade",
             "custo_unitario",
@@ -125,6 +184,12 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             "origem",
             "produto_codigo",
             "produto_ncm",
+            "servico_codigo",
+            "servico_unidade_medida",
+            "servico_categoria",
+            "catalogo_preco_atualizado_em",
+            "catalogo_preco_desatualizado",
+            "painel_ref",
             "aliquota_ipi",
         )
 
@@ -296,6 +361,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", empty)
+        status_destino = validated_data.pop("status", empty)
         status_anterior = instance.status
         self._aplicar_margens_cliente(validated_data)
         request = self.context.get("request")
@@ -306,11 +372,19 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             instance = super().update(instance, validated_data)
             if itens_data is not empty:
                 self._sync_itens(instance, itens_data)
+            if status_destino is not empty:
+                instance.status = status_destino
+                instance.save(update_fields=("status", "atualizado_em"))
             if (
                 status_anterior == StatusOrcamentoChoices.RASCUNHO
-                and instance.status == StatusOrcamentoChoices.ENVIADO
+                and instance.status
+                in (
+                    StatusOrcamentoChoices.FINALIZADO,
+                    StatusOrcamentoChoices.ENVIADO,
+                )
             ):
                 try:
+                    validar_finalizacao_preco_catalogo(instance)
                     criar_snapshot_envio_orcamento(instance, usuario=user)
                 except ValueError as exc:
                     raise serializers.ValidationError({"status": str(exc)}) from exc
@@ -352,21 +426,60 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             )
         data["tipo"] = TipoItemOrcamentoChoices.PRODUTO
         data["origem"] = OrigemItemOrcamentoChoices.CATALOGO
+        data["servico"] = None
         desc = (data.get("descricao") or "").strip()
         data["descricao"] = desc or produto.descricao
         data["custo_unitario"] = produto.preco_base
+
+    def _preencher_item_servico_catalogo(self, data, servico: Servico) -> None:
+        if data.get("tipo") == TipoItemOrcamentoChoices.PRODUTO:
+            raise serializers.ValidationError(
+                {"itens": "Produto não pode referenciar serviço do catálogo."}
+            )
+        data["tipo"] = TipoItemOrcamentoChoices.SERVICO
+        data["origem"] = OrigemItemOrcamentoChoices.CATALOGO
+        data["produto"] = None
+        desc = (data.get("descricao") or "").strip()
+        data["descricao"] = desc or servico.descricao
+        data["custo_unitario"] = servico.preco_base
 
     def _limpar_produto_catalogo_item(self, data) -> None:
         data["produto"] = None
         if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
             data["origem"] = OrigemItemOrcamentoChoices.MANUAL
 
-    def _normalizar_origem_tipo_item(self, data, produto, rehydrate_catalogo) -> None:
+    def _limpar_servico_catalogo_item(self, data) -> None:
+        data["servico"] = None
+        if data.get("origem") == OrigemItemOrcamentoChoices.CATALOGO:
+            data["origem"] = OrigemItemOrcamentoChoices.MANUAL
+
+    def _normalizar_origem_tipo_item(
+        self,
+        data,
+        produto,
+        servico,
+        rehydrate_catalogo,
+    ) -> None:
+        origem = data.get("origem")
         if rehydrate_catalogo and produto is not None:
+            if origem in _ORIGENS_ITEM_PROTEGIDAS:
+                data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
+                return
             self._preencher_item_produto_catalogo(data, produto)
             return
+        if rehydrate_catalogo and servico is not None:
+            self._preencher_item_servico_catalogo(data, servico)
+            return
+        if produto is not None and data.get("tipo") == TipoItemOrcamentoChoices.SERVICO:
+            raise serializers.ValidationError(
+                {"itens": "Serviço não pode referenciar produto do catálogo."}
+            )
+        if servico is not None and data.get("tipo") == TipoItemOrcamentoChoices.PRODUTO:
+            raise serializers.ValidationError(
+                {"itens": "Produto não pode referenciar serviço do catálogo."}
+            )
         data["tipo"] = data.get("tipo") or TipoItemOrcamentoChoices.PRODUTO
-        data["origem"] = data.get("origem") or OrigemItemOrcamentoChoices.MANUAL
+        data["origem"] = origem or OrigemItemOrcamentoChoices.MANUAL
 
     def _preencher_valores_padrao_item(self, orcamento, data, rehydrate_catalogo) -> None:
         data["quantidade"] = data.get("quantidade", 1)
@@ -390,13 +503,20 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         *,
         rehydrate_catalogo=False,
         clear_produto=False,
+        clear_servico=False,
     ):
         data = dict(item_data)
         if clear_produto:
             self._limpar_produto_catalogo_item(data)
         data["ordem"] = data.get("ordem", idx)
         produto = data.get("produto")
-        self._normalizar_origem_tipo_item(data, produto, rehydrate_catalogo)
+        servico = data.get("servico")
+        if clear_produto:
+            produto = None
+        if clear_servico:
+            self._limpar_servico_catalogo_item(data)
+            servico = None
+        self._normalizar_origem_tipo_item(data, produto, servico, rehydrate_catalogo)
         self._preencher_valores_padrao_item(orcamento, data, rehydrate_catalogo)
         self._aplicar_ipi_do_catalogo(data)
         self._recalcular_preco_item(data)
@@ -423,14 +543,20 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                 raw[field] = getattr(existing, field)
         if "produto" not in raw_in and existing.produto_id:
             raw["produto"] = existing.produto
+        if "servico" not in raw_in and existing.servico_id:
+            raw["servico"] = existing.servico
         return raw
 
     def _normalize_itens_list(self, orcamento, itens_data):
         normalized = []
         for idx, raw_in in enumerate(itens_data):
             raw = self._mesclar_campos_item_existente(orcamento, raw_in)
-            rehydrate = "produto" in raw_in and raw_in.get("produto") is not None
+            origem_in = raw.get("origem")
+            tem_produto = "produto" in raw_in and raw_in.get("produto") is not None
+            tem_servico = "servico" in raw_in and raw_in.get("servico") is not None
+            rehydrate = (tem_produto or tem_servico) and origem_in not in _ORIGENS_ITEM_PROTEGIDAS
             clear_prod = "produto" in raw_in and raw_in.get("produto") is None
+            clear_serv = "servico" in raw_in and raw_in.get("servico") is None
             normalized.append(
                 self._normalizar_item_data(
                     orcamento,
@@ -438,6 +564,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                     idx,
                     rehydrate_catalogo=rehydrate,
                     clear_produto=clear_prod,
+                    clear_servico=clear_serv,
                 )
             )
         return normalized
@@ -481,6 +608,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                     item.margem_percentual = raw["margem_percentual"]
                     item.preco_unitario = raw["preco_unitario"]
                     item.produto = raw.get("produto")
+                    item.servico = raw.get("servico")
                     item.aliquota_ipi = raw.get("aliquota_ipi")
                     item.save(update_fields=(
                         "ordem",
@@ -492,6 +620,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                         "margem_percentual",
                         "preco_unitario",
                         "produto",
+                        "servico",
                         "aliquota_ipi",
                     ))
                     kept_ids.append(item.pk)
@@ -507,6 +636,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                         margem_percentual=raw["margem_percentual"],
                         preco_unitario=raw["preco_unitario"],
                         produto=raw.get("produto"),
+                        servico=raw.get("servico"),
                         aliquota_ipi=raw.get("aliquota_ipi"),
                     )
                     kept_ids.append(novo.pk)
@@ -540,6 +670,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                     margem_percentual=raw["margem_percentual"],
                     preco_unitario=raw["preco_unitario"],
                     produto=raw.get("produto"),
+                    servico=raw.get("servico"),
                     aliquota_ipi=raw.get("aliquota_ipi"),
                 )
         return orcamento

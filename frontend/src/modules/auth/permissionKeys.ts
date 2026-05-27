@@ -15,6 +15,7 @@ export const PERMISSION_KEYS = {
 
   MATERIAL_VISUALIZAR_LISTA: 'material.visualizar_lista',
   MATERIAL_EDITAR_LISTA: 'material.editar_lista',
+  CATALOGO_REVISAR_PRECO: 'catalogo.revisar_preco',
 
   CADASTRO_VISUALIZAR: 'cadastro.visualizar',
   CADASTRO_EDITAR: 'cadastro.editar',

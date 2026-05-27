@@ -1,6 +1,7 @@
 """Catálogo de serviços prestados (propostas comerciais)."""
 
 from django.db import models
+from django.utils import timezone
 
 from core.models import BaseModel
 from core.models.mixins import AtivacaoMixin, UpperCaseMixin
@@ -36,7 +37,26 @@ class Servico(BaseModel, UpperCaseMixin, AtivacaoMixin):
         default=0,
         help_text="Preço/custo de referência para propostas.",
     )
+    preco_atualizado_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data da última revisão comercial do preço de referência.",
+    )
     observacoes = models.TextField(blank=True)
 
     def __str__(self) -> str:
         return f"{self.codigo} — {self.descricao}"
+
+    def save(self, *args, **kwargs):
+        preco_mudou = self._state.adding
+        if not self._state.adding and self.pk:
+            preco_anterior = (
+                type(self).objects.filter(pk=self.pk).values_list("preco_base", flat=True).first()
+            )
+            preco_mudou = preco_anterior != self.preco_base
+        if preco_mudou:
+            self.preco_atualizado_em = timezone.now()
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"preco_atualizado_em"}
+        super().save(*args, **kwargs)

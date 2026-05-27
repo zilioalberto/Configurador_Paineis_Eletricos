@@ -21,6 +21,7 @@ class ServicoListSerializer(serializers.ModelSerializer):
             "unidade_medida",
             "unidade_medida_display",
             "preco_base",
+            "preco_atualizado_em",
             "ativo",
             "observacoes",
             "criado_em",
@@ -37,6 +38,7 @@ class ServicoWriteSerializer(serializers.ModelSerializer):
             "categoria",
             "unidade_medida",
             "preco_base",
+            "preco_atualizado_em",
             "ativo",
             "observacoes",
         )

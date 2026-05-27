@@ -1,5 +1,5 @@
 """
-API REST de orçamentos e margens por cliente (`/erp/orcamentos/`).
+API REST de orçamentos e margens por cliente (`/orcamentos/`).
 """
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
@@ -12,6 +12,7 @@ from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.orcamentos.api.action_serializers import (
     AdicionarPainelConfiguradorSerializer,
     NovaRevisaoOrcamentoSerializer,
+    RevisarPrecoCatalogoItemSerializer,
     VincularProjetoConfiguradorSerializer,
 )
 from apps.orcamentos.api.serializers import (
@@ -27,6 +28,9 @@ from apps.orcamentos.services.configurador_painel import (
     sincronizar_composicao_painel,
     vincular_projeto_configurador,
 )
+from apps.orcamentos.services.atualizar_oferta import atualizar_oferta_rascunho
+from apps.orcamentos.services.reabrir_oferta import reabrir_oferta_finalizada
+from apps.orcamentos.services.revisar_preco_catalogo import revisar_preco_catalogo_item_orcamento
 from apps.orcamentos.services.revisao_orcamento import criar_revisao_orcamento
 
 
@@ -42,6 +46,8 @@ def _orcamento_queryset():
         )
         .prefetch_related(
             "itens__produto",
+            "itens__servico",
+            "itens__configurador_painel",
             "configuradores_painel__projeto_configurador",
             "revisoes_derivadas__snapshot_envio",
         )
@@ -99,6 +105,71 @@ class OrcamentoNovaRevisaoView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         data = OrcamentoSerializer(novo, context={"request": request}).data
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class OrcamentoAtualizarOfertaView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_EDITAR
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        try:
+            itens = atualizar_oferta_rascunho(orcamento)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        orcamento.refresh_from_db()
+        return Response(
+            {
+                "itens_atualizados": len(itens),
+                "orcamento": OrcamentoSerializer(
+                    orcamento,
+                    context={"request": request},
+                ).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrcamentoReabrirOfertaView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_EDITAR
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        try:
+            reaberto = reabrir_oferta_finalizada(orcamento)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        data = OrcamentoSerializer(reaberto, context={"request": request}).data
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class OrcamentoRevisarPrecoCatalogoItemView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.CATALOGO_REVISAR_PRECO
+
+    def post(self, request, pk, item_id):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        ser = RevisarPrecoCatalogoItemSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            revisar_preco_catalogo_item_orcamento(
+                orcamento,
+                item_id,
+                preco_base=ser.validated_data["preco_base"],
+                justificativa=ser.validated_data["justificativa"],
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        orcamento.refresh_from_db()
+        data = OrcamentoSerializer(orcamento, context={"request": request}).data
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class OrcamentoConfiguradorPainelListCreateView(APIView):

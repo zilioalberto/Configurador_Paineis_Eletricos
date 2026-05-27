@@ -11,8 +11,8 @@ import { useProjetoFluxoGates } from '@/modules/configurador_paineis/projetos/ho
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
-import { orcamentoDetalhePath } from '@/modules/erp/utils/orcamentoUi'
-import { sincronizarComposicaoPainel } from '@/modules/erp/services/erpApi'
+import { orcamentoDetalhePath } from '@/modules/orcamentos/utils/orcamentoUi'
+import { sincronizarComposicaoPainel } from '@/modules/orcamentos/services/orcamentosApi'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ComposicaoAlterarSugestaoModal } from '../components/ComposicaoAlterarSugestaoModal'
 import { ComposicaoSnapshotContent } from '../components/ComposicaoSnapshotContent'
@@ -208,11 +208,9 @@ export default function ComposicaoPage() {
 
   const {
     autoGerando,
-    gerandoSugestoes,
     reavaliarPendenciasMutation,
     aprovarMutation,
     reabrirComposicaoItemMutation,
-    onGerar,
     onReavaliarPendencias,
     onAprovar,
     onReabrirItemAprovado,
@@ -376,26 +374,12 @@ export default function ComposicaoPage() {
         >
           {exportando === 'pdf' ? 'PDF…' : 'PDF'}
         </button>
-        {canSepararMaterial && !fluxoVinculadoOrcamento ? (
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            disabled={!projetoId || !podeEditar || gerandoSugestoes}
-            onClick={onGerar}
-          >
-            {gerandoSugestoes ? 'Gerando…' : 'Gerar sugestões'}
-          </button>
-        ) : null}
       </>
     ),
     [
-      canSepararMaterial,
       exportando,
-      gerandoSugestoes,
       onExportLista,
-      onGerar,
       onRetornarOrcamento,
-      podeEditar,
       fluxoVinculadoOrcamento,
       botaoExportarPropostaHabilitado,
       motivoBloqueioRetornoOrcamento,
@@ -419,7 +403,6 @@ export default function ComposicaoPage() {
         botaoExportarPropostaHabilitado ? 'retorno-ok' : 'retorno-bloqueado',
         sincronizandoOrcamento ? 'sync' : 'idle',
         exportando ?? 'sem-export',
-        gerandoSugestoes ? 'gerando' : 'pronto',
       ].join('|'),
     }),
     [
@@ -427,7 +410,6 @@ export default function ComposicaoPage() {
       composicaoItens.length,
       exportando,
       fluxoVinculadoOrcamento,
-      gerandoSugestoes,
       pendenciasAbertas,
       podeRetornarOrcamento,
       projetoSelecionado,

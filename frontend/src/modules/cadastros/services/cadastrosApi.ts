@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP de cadastros comerciais.
- * Rota exposta em `/erp/cadastros` via `erp.registry`.
+ * Rota exposta em `/erp/cadastros` via `orcamentos.registry`.
  */
 
 import apiClient from '@/services/apiClient'

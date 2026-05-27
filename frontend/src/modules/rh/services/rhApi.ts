@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP do módulo RH (CRUD de cadastros organizacionais).
- * Rota exposta em `/erp/rh` via `erp.registry`.
+ * Rota exposta em `/erp/rh` via `orcamentos.registry`.
  */
 
 import apiClient from '@/services/apiClient'

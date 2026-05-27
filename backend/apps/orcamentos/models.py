@@ -16,11 +16,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.cadastros.models import ContatoParceiro, ParceiroComercial
-from apps.catalogo.models import Produto
+from apps.catalogo.models import Produto, Servico
 
 
 class StatusOrcamentoChoices(models.TextChoices):
     RASCUNHO = "RASCUNHO", "Rascunho"
+    FINALIZADO = "FINALIZADO", "Finalizado"
     ENVIADO = "ENVIADO", "Enviado"
     APROVADO = "APROVADO", "Aprovado"
     REJEITADO = "REJEITADO", "Rejeitado"
@@ -318,6 +319,13 @@ class OrcamentoItem(models.Model):
     preco_unitario = models.DecimalField(max_digits=16, decimal_places=4, default=0)
     produto = models.ForeignKey(
         Produto,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="orcamento_itens",
+    )
+    servico = models.ForeignKey(
+        Servico,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

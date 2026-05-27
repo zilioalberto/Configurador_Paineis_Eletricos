@@ -1,0 +1,369 @@
+/* Documento comercial — visual ERP para detalhe de proposta */
+
+.orcamento-doc-page {
+  max-width: 100%;
+}
+
+.orcamento-doc {
+  background: var(--cp-surface-elevated);
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: var(--cp-radius-lg);
+  box-shadow: var(--cp-shadow-md);
+  overflow: hidden;
+}
+
+.orcamento-doc__header {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--cp-border-subtle);
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+@media (min-width: 992px) {
+  .orcamento-doc__header {
+    grid-template-columns: 1fr min(16rem, 28%);
+  }
+}
+
+.orcamento-doc__header-main {
+  padding: 1rem 1.25rem;
+}
+
+.orcamento-doc__header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.orcamento-doc__doctype {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cp-primary);
+}
+
+.orcamento-doc__codigo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: rgba(0, 64, 128, 0.06);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--cp-radius-sm);
+}
+
+.orcamento-doc__meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .orcamento-doc__meta-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.orcamento-doc__field label,
+.orcamento-doc__field-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.orcamento-doc__field--wide {
+  grid-column: 1 / -1;
+}
+
+.orcamento-doc__field-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.orcamento-doc__field-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+}
+
+.orcamento-doc__resumo {
+  padding: 1rem 1.25rem;
+  background: rgba(0, 64, 128, 0.04);
+  border-top: 1px solid var(--cp-border-subtle);
+}
+
+@media (min-width: 992px) {
+  .orcamento-doc__resumo {
+    border-top: none;
+    border-left: 1px solid var(--cp-border-subtle);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+.orcamento-doc__resumo-total {
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cp-primary);
+  line-height: 1.2;
+}
+
+.orcamento-doc__resumo-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.15rem;
+}
+
+.orcamento-doc__resumo-meta {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+}
+
+.orcamento-doc__section {
+  padding: 0;
+}
+
+.orcamento-doc__section--primary {
+  border-bottom: 1px solid var(--cp-border-subtle);
+}
+
+.orcamento-doc__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--cp-border-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.orcamento-doc__section-body {
+  padding: 0.75rem 1.25rem 1rem;
+}
+
+.orcamento-doc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid var(--cp-border-subtle);
+}
+
+.orcamento-doc__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  background: #f8fafc;
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: var(--cp-radius-md);
+}
+
+.orcamento-doc__toolbar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.orcamento-doc__toolbar-search {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+}
+
+.orcamento-doc-itens-table {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+}
+
+.orcamento-doc-itens-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #e2e8f0;
+  border-bottom: 2px solid #cbd5e1;
+  font-size: var(--cp-font-size-table-header);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.orcamento-doc-itens-table tbody tr:nth-child(even):not(.table-danger):not(.table-secondary) {
+  background-color: rgba(241, 245, 249, 0.55);
+}
+
+.orcamento-doc-itens-table tbody tr:hover:not(.table-danger) {
+  background-color: rgba(0, 64, 128, 0.04);
+}
+
+.orcamento-doc-itens-table td {
+  vertical-align: middle;
+}
+
+.orcamento-doc-itens-table .font-monospace,
+.orcamento-doc-itens-table .text-end {
+  font-variant-numeric: tabular-nums;
+}
+
+.orcamento-doc-itens-table tfoot td {
+  background: #f1f5f9;
+  border-top: 2px solid #cbd5e1;
+  font-weight: 600;
+}
+
+.orcamento-doc-itens-table tfoot .orcamento-doc__total-valor {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cp-primary);
+}
+
+.orcamento-doc__totais-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 1rem;
+  max-width: 28rem;
+  margin: 0.85rem 0 0 auto;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: var(--cp-radius-md);
+  font-size: 0.875rem;
+}
+
+.orcamento-doc__totais-grid span {
+  color: #64748b;
+}
+
+.orcamento-doc__totais-grid strong {
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.orcamento-doc__totais-grid span:last-of-type,
+.orcamento-doc__totais-grid strong:last-of-type {
+  padding-top: 0.35rem;
+  border-top: 1px solid #cbd5e1;
+  color: var(--cp-primary);
+  font-weight: 700;
+}
+
+.orcamento-doc__section--secondary {
+  background: #fafbfc;
+}
+
+.orcamento-doc__subsection {
+  border-top: 1px solid var(--cp-border-subtle);
+}
+
+.orcamento-doc__subsection:first-child {
+  border-top: none;
+}
+
+.orcamento-doc__subsection-head {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: transparent;
+}
+
+.orcamento-doc__subsection-body {
+  padding: 0 1.25rem 0.85rem;
+}
+
+.orcamento-doc__status-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--cp-radius-sm);
+}
+
+.orcamento-doc__status-badge--rascunho {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.orcamento-doc__status-badge--finalizado {
+  background: rgba(15, 118, 110, 0.14);
+  color: #0f766e;
+}
+
+.orcamento-doc__status-badge--enviado {
+  background: rgba(0, 64, 128, 0.12);
+  color: var(--cp-primary);
+}
+
+.orcamento-doc__status-badge--aprovado {
+  background: rgba(0, 122, 61, 0.14);
+  color: #006633;
+}
+
+.orcamento-doc__status-badge--rejeitado {
+  background: rgba(220, 53, 69, 0.12);
+  color: #b42318;
+}
+
+.orcamento-doc__status-badge--cancelado {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.orcamento-doc__empty-itens {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--cp-radius-md);
+  background: #fff;
+  font-size: 0.875rem;
+}
+
+.orcamento-doc-paineis .table {
+  margin-bottom: 0;
+  background: #fff;
+  border: 1px solid var(--cp-border-subtle);
+  border-radius: var(--cp-radius-md);
+}
+
+.orcamento-doc-paineis .table thead th {
+  font-size: var(--cp-font-size-table-header);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #f8fafc;
+}

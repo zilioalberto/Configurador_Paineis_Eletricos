@@ -28,6 +28,7 @@ class PermissaoUsuarioChoices(models.TextChoices):
         "Ver lista de materiais",
     )
     MATERIAL_EDITAR_LISTA = PermissionKeys.MATERIAL_EDITAR_LISTA, "Editar lista de materiais"
+    CATALOGO_REVISAR_PRECO = PermissionKeys.CATALOGO_REVISAR_PRECO, "Revisar preços do catálogo"
     CADASTRO_VISUALIZAR = PermissionKeys.CADASTRO_VISUALIZAR, "Ver cadastros"
     CADASTRO_EDITAR = PermissionKeys.CADASTRO_EDITAR, "Editar cadastros"
     RH_VISUALIZAR = PermissionKeys.RH_VISUALIZAR, "Ver RH"
@@ -143,6 +144,7 @@ def _build_default_permissions_map():
             PermissaoUsuarioChoices.TAREFA_VISUALIZAR_RELATORIOS.value,
             PermissaoUsuarioChoices.MATERIAL_VISUALIZAR_LISTA.value,
             PermissaoUsuarioChoices.MATERIAL_EDITAR_LISTA.value,
+            PermissaoUsuarioChoices.CATALOGO_REVISAR_PRECO.value,
             PermissaoUsuarioChoices.CADASTRO_VISUALIZAR.value,
             PermissaoUsuarioChoices.CADASTRO_EDITAR.value,
             PermissaoUsuarioChoices.RELATORIO_VISUALIZAR.value,

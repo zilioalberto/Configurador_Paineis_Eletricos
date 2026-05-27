@@ -27,3 +27,8 @@ class AdicionarPainelConfiguradorSerializer(serializers.Serializer):
 
 class VincularProjetoConfiguradorSerializer(serializers.Serializer):
     projeto_configurador_id = serializers.UUIDField()
+
+
+class RevisarPrecoCatalogoItemSerializer(serializers.Serializer):
+    preco_base = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+    justificativa = serializers.CharField(max_length=500, trim_whitespace=True)
