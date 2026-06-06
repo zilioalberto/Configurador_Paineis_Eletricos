@@ -199,6 +199,10 @@ require_file "infra/monitoring/prometheus/rules/alerts.yml"
 require_file "backend/manage.py"
 require_file "$SHARED_DIR/.env"
 
+log "VALIDANDO COMPOSE"
+cd "$COMPOSE_DIR"
+compose_new config > /dev/null
+
 backup_database_if_possible
 
 log "PARANDO STACK ANTERIOR"
