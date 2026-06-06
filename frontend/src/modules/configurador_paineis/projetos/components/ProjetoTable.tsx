@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { Projeto } from '../types/projeto'
 
 type ProjetoTableProps = {
@@ -25,13 +26,13 @@ function formatarTipoCorrente(tipo: string): string {
 function getStatusBadgeClass(status: string): string {
   switch (status) {
     case 'FINALIZADO':
-      return 'badge bg-success'
+      return 'badge text-bg-success'
     case 'EM_ANDAMENTO':
-      return 'badge bg-warning text-dark'
+      return 'badge text-bg-warning'
     case 'RASCUNHO':
-      return 'badge bg-secondary'
+      return 'badge text-bg-secondary'
     default:
-      return 'badge bg-light text-dark'
+      return 'badge text-bg-light'
   }
 }
 
@@ -91,23 +92,10 @@ export default function ProjetoTable({
 
               <td className="text-end">
                 <div className="table-actions d-flex justify-content-end flex-wrap">
-                  <Link
-                    to={`/projetos/${projeto.id}`}
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Visualizar
-                  </Link>
-                  <Link
-                    to={`/projetos/${projeto.id}/fluxo/cargas`}
-                    className="btn btn-sm btn-outline-info"
-                  >
-                    Fluxo do painel
-                  </Link>
-
                   {canEdit ? (
                     <Link
-                      to={`/projetos/${projeto.id}/editar`}
-                      className="btn btn-sm btn-outline-warning"
+                      to={configuradorPaths.configuracaoEditar(projeto.id)}
+                      className="btn btn-sm btn-outline-primary"
                     >
                       Editar
                     </Link>

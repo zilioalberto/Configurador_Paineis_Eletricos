@@ -35,6 +35,7 @@ describe('CargaTable', () => {
           cargas={[makeCarga()]}
           projetoId="p-1"
           onDeleteRequest={vi.fn()}
+          onEditRequest={vi.fn()}
           canManage={false}
         />
       </MemoryRouter>
@@ -46,16 +47,21 @@ describe('CargaTable', () => {
 
   it('mostra botoes de editar/excluir com permissao', () => {
     const onDeleteRequest = vi.fn()
+    const onEditRequest = vi.fn()
     render(
       <MemoryRouter>
         <CargaTable
           cargas={[makeCarga()]}
           projetoId="p-1"
           onDeleteRequest={onDeleteRequest}
+          onEditRequest={onEditRequest}
           canManage={true}
         />
       </MemoryRouter>
     )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }))
+    expect(onEditRequest).toHaveBeenCalledWith('c-1')
 
     fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
     expect(onDeleteRequest).toHaveBeenCalledWith('c-1')

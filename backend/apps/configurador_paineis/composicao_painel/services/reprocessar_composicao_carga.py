@@ -34,18 +34,18 @@ from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes impor
     reprocessar_bornes_para_carga,
 )
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 @transaction.atomic
-def reprocessar_composicao_painel_para_carga(projeto: Projeto, carga: Carga) -> None:
+def reprocessar_composicao_painel_para_carga(projeto: ProjetoConfigurador, carga: Carga) -> None:
     """
     Qualquer alteração relevante à carga exige nova seleção de componentes:
     remove itens aprovados desta carga e todo o fluxo de sugestões/pendências
     associadas a ela; em seguida regera disjuntor motor e contatora conforme as regras atuais.
     """
     if projeto.pk != carga.projeto_id:
-        projeto = Projeto.objects.get(pk=carga.projeto_id)
+        projeto = ProjetoConfigurador.objects.get(pk=carga.projeto_id)
 
     ComposicaoItem.objects.filter(projeto=projeto, carga=carga).delete()
 

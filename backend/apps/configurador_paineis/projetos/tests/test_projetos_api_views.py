@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from core.choices import StatusProjetoChoices, TensaoChoices
 from core.choices.usuarios import TipoUsuarioChoices
-from apps.configurador_paineis.projetos.models import ProjetoEvento
+from apps.configurador_paineis.projetos.models import ProjetoConfiguradorEvento
 
 User = get_user_model()
 
@@ -50,6 +50,26 @@ def test_dashboard_resumo_e_alocar_codigo(admin_client, criar_projeto):
     r2 = client.post(reverse("projetos-alocar-codigo"), {}, format="json")
     assert r2.status_code == 200
     assert "codigo" in r2.data
+
+
+@pytest.mark.django_db
+def test_alocar_codigo_vinculado_a_proposta(admin_client):
+    from apps.orcamentos.models import Orcamento, StatusOrcamentoChoices
+
+    client, _ = admin_client
+    orc = Orcamento.objects.create(
+        codigo_base="Prop-05008-26",
+        codigo="Prop-05008-26 Rev A",
+        titulo="Proposta teste",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    r = client.post(
+        reverse("projetos-alocar-codigo"),
+        {"orcamento_id": str(orc.pk), "ordem_painel": 0},
+        format="json",
+    )
+    assert r.status_code == 200, r.content
+    assert r.data["codigo"] == "CONF-05008-26"
 
 
 @pytest.mark.django_db
@@ -108,8 +128,8 @@ def test_historico_projeto_retorna_eventos(admin_client, criar_projeto):
         tensao_nominal=TensaoChoices.V380,
         status=StatusProjetoChoices.EM_ANDAMENTO,
     )
-    ProjetoEvento.objects.create(
-        projeto=projeto,
+    ProjetoConfiguradorEvento.objects.create(
+        projeto_configurador=projeto,
         usuario=user,
         modulo="projeto",
         acao="teste",

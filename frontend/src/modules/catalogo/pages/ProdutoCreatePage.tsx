@@ -8,6 +8,7 @@ import { useCreateProdutoMutation } from '../hooks/useProdutoMutations'
 import type { ProdutoFormData } from '../types/produto'
 import { produtoFormEmpty } from '../utils/produtoFormDefaults'
 import { produtoFormToApiPayload } from '../utils/produtoPayload'
+import { catalogoPaths } from '../catalogoPaths'
 
 /** Cadastro de novo produto com especificação por categoria. */
 export default function ProdutoCreatePage() {
@@ -24,7 +25,7 @@ export default function ProdutoCreatePage() {
         produtoFormToApiPayload(data, categorias)
       )
       showToast({ variant: 'success', message: 'Produto criado com sucesso.' })
-      navigate(`/catalogo/${created.id}`)
+      navigate(catalogoPaths.produtoDetalhe(created.id))
     } catch (err) {
       console.error(err)
       showToast({
@@ -63,7 +64,7 @@ export default function ProdutoCreatePage() {
             />
           )}
           <p className="small text-muted mt-3 mb-0">
-            <Link to="/catalogo">Voltar à lista</Link>
+            <Link to={catalogoPaths.produtos}>Voltar à lista</Link>
           </p>
         </div>
       </div>

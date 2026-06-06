@@ -16,7 +16,7 @@ from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamen
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from apps.configurador_paineis.dimensionamento.services.circuitos.escolhas_usuario import aplicar_escolhas_condutores
 from core.permissions import PermissionKeys
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.projetos.services.rastreabilidade import registrar_evento_projeto
 
 
@@ -32,7 +32,7 @@ class DimensionamentoPorProjetoView(APIView):
     required_permission = PermissionKeys.PROJETO_VISUALIZAR
 
     def get(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         ResumoDimensionamento.objects.select_related("projeto").get_or_create(
             projeto=projeto
         )
@@ -50,7 +50,7 @@ class DimensionamentoRecalcularView(APIView):
     required_permission = PermissionKeys.PROJETO_EDITAR
 
     def post(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         resumo = calcular_e_salvar_dimensionamento_basico(projeto)
         resumo = ResumoDimensionamento.objects.select_related("projeto").get(pk=resumo.pk)
         registrar_evento_projeto(
@@ -76,7 +76,7 @@ class DimensionamentoCondutoresPatchView(APIView):
     required_permission = PermissionKeys.PROJETO_EDITAR
 
     def patch(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         input_serializer = EscolhasCondutoresInputSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         data = input_serializer.validated_data

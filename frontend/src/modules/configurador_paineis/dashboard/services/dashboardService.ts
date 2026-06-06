@@ -7,6 +7,6 @@ import type { DashboardResumo } from '../types/dashboard'
 
 /** Obtém contadores e projetos recentes para o painel inicial. */
 export async function obterDashboardResumo(): Promise<DashboardResumo> {
-  const response = await apiClient.get<DashboardResumo>('/dashboard/resumo/')
+  const response = await apiClient.get<DashboardResumo>('/configurador/dashboard/resumo/')
   return response.data
 }

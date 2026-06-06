@@ -1,7 +1,20 @@
 """Registo Django Admin de orçamentos e margens por cliente."""
 from django.contrib import admin
 
-from apps.orcamentos.models import ConfiguracaoMargemCliente, Orcamento, OrcamentoItem
+from apps.orcamentos.models import (
+    ConfiguracaoMargemCliente,
+    Orcamento,
+    OrcamentoConfiguradorPainel,
+    OrcamentoOfertaBloco,
+    OrcamentoItem,
+    OrcamentoSnapshot,
+)
+
+
+class OrcamentoConfiguradorPainelInline(admin.TabularInline):
+    model = OrcamentoConfiguradorPainel
+    extra = 0
+    readonly_fields = ("projeto_configurador", "sincronizado_em")
 
 
 class OrcamentoItemInline(admin.TabularInline):
@@ -9,11 +22,35 @@ class OrcamentoItemInline(admin.TabularInline):
     extra = 0
 
 
+class OrcamentoOfertaBlocoInline(admin.TabularInline):
+    model = OrcamentoOfertaBloco
+    extra = 0
+
+
+class OrcamentoSnapshotInline(admin.StackedInline):
+    model = OrcamentoSnapshot
+    extra = 0
+    can_delete = False
+    readonly_fields = (
+        "codigo",
+        "status_orcamento",
+        "total",
+        "gerado_por",
+        "gerado_em",
+        "dados",
+        "itens",
+    )
+
+
 @admin.register(Orcamento)
 class OrcamentoAdmin(admin.ModelAdmin):
     list_display = (
         "codigo",
+        "codigo_base",
+        "revisao",
+        "tipo_revisao",
         "titulo",
+        "perfil_oferta",
         "status",
         "cliente",
         "contato_cliente",
@@ -21,9 +58,14 @@ class OrcamentoAdmin(admin.ModelAdmin):
         "atualizado_por",
         "criado_em",
     )
-    list_filter = ("status",)
+    list_filter = ("status", "perfil_oferta")
     search_fields = ("codigo", "titulo", "cliente_referencia", "cliente__razao_social")
-    inlines = (OrcamentoItemInline,)
+    inlines = (
+        OrcamentoConfiguradorPainelInline,
+        OrcamentoItemInline,
+        OrcamentoOfertaBlocoInline,
+        OrcamentoSnapshotInline,
+    )
 
 
 @admin.register(ConfiguracaoMargemCliente)
@@ -35,3 +77,10 @@ class ConfiguracaoMargemClienteAdmin(admin.ModelAdmin):
         "atualizado_em",
     )
     search_fields = ("cliente__razao_social", "cliente__documento")
+
+
+@admin.register(OrcamentoSnapshot)
+class OrcamentoSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("codigo", "orcamento", "status_orcamento", "total", "gerado_por", "gerado_em")
+    search_fields = ("codigo", "orcamento__codigo", "orcamento__titulo")
+    readonly_fields = ("orcamento", "codigo", "status_orcamento", "total", "gerado_por", "gerado_em", "dados", "itens")

@@ -1,0 +1,541 @@
+.orcamento-oferta-print {
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+/* Improved default typography for a more professional look */
+.orcamento-oferta-print {
+  font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+  color: #111827;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.orcamento-oferta-print h1,
+.orcamento-oferta-print h2 {
+  font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  color: #0f172a;
+}
+
+.orcamento-oferta-print__cover-brand-copy h1 {
+  font-family: "Georgia", "Times New Roman", serif;
+  color: #0b3a91;
+  letter-spacing: 0.02em;
+}
+
+.orcamento-oferta-print__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.orcamento-oferta-print__document {
+  display: grid;
+  gap: 1rem;
+}
+
+.orcamento-oferta-print__cover-page,
+.orcamento-oferta-print__sheet {
+  background: #fff;
+  border: 1px solid #d8e2ef;
+  box-shadow: var(--cp-shadow-md);
+  color: #111827;
+}
+
+.orcamento-oferta-print__cover-page {
+  min-height: 78rem;
+  padding: 1.1rem 1.35rem 1.35rem;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  align-items: start;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+}
+
+.orcamento-oferta-print__cover-band {
+  height: 4.8rem;
+  margin: -1.2rem -1.35rem 0;
+  background:
+    linear-gradient(135deg, rgba(30, 64, 175, 0.96), rgba(59, 130, 246, 0.92) 52%, rgba(191, 219, 254, 0.96)),
+    linear-gradient(90deg, transparent 0 7%, rgba(255, 255, 255, 0.4) 7% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 65%, 0 100%);
+}
+
+.orcamento-oferta-print__cover-header {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.orcamento-oferta-print__cover-header img {
+  width: min(19rem, 56vw);
+  height: auto;
+  object-fit: contain;
+}
+
+.orcamento-oferta-print__cover-header-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  padding-top: 0.2rem;
+  font-size: 0.82rem;
+  color: #475569;
+  text-align: right;
+}
+
+.orcamento-oferta-print__cover-brand-copy {
+  margin-top: 4.8rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.orcamento-oferta-print__cover-brand-copy h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 2vw, 2.3rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  color: #1f4fb8;
+}
+
+.orcamento-oferta-print__cover-brand-copy p {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.orcamento-oferta-print__cover-meta {
+  margin: 2.6rem 0 0;
+  width: min(34rem, 100%);
+  justify-self: start;
+  display: grid;
+  gap: 0.8rem;
+  font-size: 1.01rem;
+}
+
+.orcamento-oferta-print__cover-meta div {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.orcamento-oferta-print__cover-meta dt {
+  margin: 0;
+  font-weight: 700;
+  color: #7ca339;
+  text-transform: none;
+}
+
+.orcamento-oferta-print__cover-meta dd {
+  margin: 0;
+  color: #1f2937;
+}
+
+.orcamento-oferta-print__cover-date {
+  margin-top: 1.2rem;
+  justify-self: center;
+  align-self: end;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.orcamento-oferta-print__cover-summary {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  width: min(44rem, 100%);
+}
+
+.orcamento-oferta-print__cover-summary > div {
+  padding: 0.9rem 1rem;
+  border: 1px solid #d8e2ef;
+  border-radius: 0.35rem;
+  background: #f8fafc;
+}
+
+.orcamento-oferta-print__cover-summary-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.orcamento-oferta-print__cover-summary strong {
+  display: block;
+  color: #1f2937;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.orcamento-oferta-print__cover-footer {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.orcamento-oferta-print__sheet {
+  min-height: 78rem;
+  padding: 0.75rem 1rem 0.95rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.75rem;
+  break-after: page;
+  page-break-after: always;
+}
+
+.orcamento-oferta-print__sheet-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  padding-top: 0.1rem;
+}
+
+.orcamento-oferta-print__sheet-logo {
+  width: 8.4rem;
+  height: auto;
+  object-fit: contain;
+}
+
+.orcamento-oferta-print__sheet-company {
+  justify-self: end;
+  text-align: right;
+  color: #6b7280;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.orcamento-oferta-print__sheet-company span {
+  display: block;
+}
+
+.orcamento-oferta-print__sheet-body {
+  padding: 0.85rem 0.25rem 0;
+}
+
+.orcamento-oferta-print__salutation {
+  margin: 0 0 1.2rem;
+  text-align: center;
+  font-size: 1.02rem;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.orcamento-oferta-print__section {
+  margin-top: 0.95rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.orcamento-oferta-print__section:first-child {
+  margin-top: 0;
+}
+
+.orcamento-oferta-print__section h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.orcamento-oferta-print__section p {
+  margin: 0;
+  white-space: pre-wrap;
+  text-align: justify;
+  text-indent: 1.2rem;
+  color: #1f2937;
+  line-height: 1.62;
+}
+
+.orcamento-oferta-print__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.orcamento-oferta-print__table th,
+.orcamento-oferta-print__table td {
+  border: 1px solid #4b5563;
+  padding: 0.28rem 0.38rem;
+  vertical-align: top;
+}
+
+.orcamento-oferta-print__table th {
+  background: #f4f4f4;
+  color: #111827;
+  font-size: 0.73rem;
+  text-transform: none;
+  font-weight: 700;
+}
+
+.orcamento-oferta-print__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.orcamento-oferta-print__total {
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+  margin-top: 0.7rem;
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 700;
+}
+
+.orcamento-oferta-print__total strong {
+  color: #1d4ed8;
+  font-size: 1.22rem;
+}
+
+.orcamento-oferta-print__approval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin-top: 2rem;
+}
+
+.orcamento-oferta-print__line {
+  border-top: 1px solid #1f2937;
+  padding-top: 0.3rem;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.orcamento-oferta-print__stamp {
+  min-height: 9rem;
+  border: 1px solid #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.92rem;
+  padding: 0.8rem;
+  text-align: center;
+}
+
+.orcamento-oferta-print__signoff {
+  margin-top: 4rem;
+  text-align: left;
+  text-indent: 0;
+}
+
+.orcamento-oferta-print__signature-block {
+  margin-top: 3.4rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  color: #1d4ed8;
+  font-size: 1.1rem;
+}
+
+.orcamento-oferta-print__sheet-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  padding-top: 0.3rem;
+  border-top: 1.5px solid #1f2937;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.orcamento-oferta-print__sheet--approval .orcamento-oferta-print__sheet-body {
+  padding-top: 1.4rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .app-sidebar,
+  .app-header,
+  .app-footer,
+  .orcamento-oferta-print__toolbar {
+    display: none !important;
+  }
+
+  .app-main,
+  .app-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .orcamento-oferta-print {
+    max-width: none;
+  }
+
+  .orcamento-oferta-print__document > .orcamento-oferta-print__cover-page,
+  .orcamento-oferta-print__document > .orcamento-oferta-print__sheet {
+    box-shadow: none;
+    border: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .orcamento-oferta-print__document > .orcamento-oferta-print__cover-page {
+    min-height: auto;
+    padding: 6mm 8mm 8mm;
+  }
+
+  .orcamento-oferta-print__document > .orcamento-oferta-print__cover-page .orcamento-oferta-print__cover-band,
+  .orcamento-oferta-print__document > .orcamento-oferta-print__cover-page .orcamento-oferta-print__cover-footer {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .orcamento-oferta-print__document > .orcamento-oferta-print__sheet {
+    min-height: auto;
+    padding: 6mm 8mm 8mm;
+  }
+
+  /* Slightly larger headings and tighter leading for print */
+  .orcamento-oferta-print__cover-brand-copy h1 {
+    font-size: 2.2rem;
+    line-height: 1.08;
+  }
+
+  .orcamento-oferta-print__section h2 {
+    font-size: 1.02rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .orcamento-oferta-print__section p {
+    font-size: 0.98rem;
+    line-height: 1.58;
+  }
+
+  .orcamento-oferta-print__cover-band {
+    margin: 0;
+  }
+
+  .orcamento-oferta-print__sheet-logo {
+    width: 7.3rem;
+  }
+
+  .orcamento-oferta-print__section p {
+    text-align: justify;
+  }
+
+  .orcamento-oferta-print__sheet-footer {
+    margin-top: 0.2rem;
+  }
+
+  .orcamento-oferta-print__document > :last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
+
+/* Modal de pré-visualização na página de detalhe do orçamento */
+.orcamento-oferta-print__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orcamento-oferta-print__modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.orcamento-oferta-print__modal-content {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, 96%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: var(--cp-shadow-lg, 0 10px 30px rgba(2, 6, 23, 0.3));
+}
+
+.orcamento-oferta-print__modal-body {
+  padding-top: 0.5rem;
+}
+
+.orcamento-oferta-print__document--compact .orcamento-oferta-print__cover-page,
+.orcamento-oferta-print__document--compact .orcamento-oferta-print__sheet {
+  border: 0;
+  box-shadow: none;
+  padding: 0.6rem;
+}
+
+@media (max-width: 720px) {
+  .orcamento-oferta-print__cover-page,
+  .orcamento-oferta-print__sheet {
+    padding: 1rem;
+  }
+
+  .orcamento-oferta-print__cover-page {
+    min-height: auto;
+  }
+
+  .orcamento-oferta-print__sheet {
+    min-height: auto;
+  }
+
+  .orcamento-oferta-print__sheet-header,
+  .orcamento-oferta-print__approval-grid,
+  .orcamento-oferta-print__cover-meta,
+  .orcamento-oferta-print__cover-meta div {
+    grid-template-columns: 1fr;
+  }
+
+  .orcamento-oferta-print__sheet-company {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .orcamento-oferta-print__cover-brand {
+    margin-top: 2rem;
+  }
+
+  .orcamento-oferta-print__cover-meta {
+    width: 100%;
+  }
+
+  .orcamento-oferta-print__cover-meta div {
+    gap: 0.1rem;
+  }
+
+  .orcamento-oferta-print__cover-meta dt {
+    color: #7ca339;
+  }
+
+  .orcamento-oferta-print__sheet-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -3,12 +3,14 @@
  * checklist de conclusão e histórico de rastreabilidade.
  */
 
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { CargaListItem } from '@/modules/configurador_paineis/cargas/types/carga'
 import type { ComposicaoSnapshot } from '@/modules/configurador_paineis/composicao/types/composicao'
 import type { ResumoDimensionamento } from '@/modules/configurador_paineis/dimensionamento/types/dimensionamento'
 import type { Projeto, ProjetoEvento } from '../types/projeto'
 import type { ChecklistItem, ChecklistStatus, WizardStep, WizardStepId } from '../hooks/useProjetoWizardFluxo'
+import { withFluxoOrigem } from '../utils/fluxoOrigem'
+import { configuradorPaths } from '../../configuradorPaths'
 
 export function badgeClass(done: boolean, active: boolean): string {
   if (active) return 'badge bg-primary'
@@ -35,6 +37,7 @@ export function ProjetoWizardResumoHeader({
   ultimaAcaoComUsuarioIdentificado: boolean
   proxima: WizardStep | null | undefined
 }) {
+  const [searchParams] = useSearchParams()
   return (
     <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
@@ -74,11 +77,11 @@ export function ProjetoWizardResumoHeader({
         )}
       </div>
       <div className="d-flex gap-2">
-        <Link className="btn btn-outline-secondary" to={`/projetos/${projetoId}`}>
-          Ver detalhes
+        <Link className="btn btn-outline-secondary" to={configuradorPaths.configuracaoEditar(projetoId)}>
+          Editar configuração
         </Link>
         {proxima ? (
-          <Link className="btn btn-primary" to={proxima.href}>
+          <Link className="btn btn-primary" to={withFluxoOrigem(proxima.href, searchParams)}>
             Continuar em {proxima.title}
           </Link>
         ) : null}
@@ -94,6 +97,7 @@ export function ProjetoWizardStepsGrid({
   steps: WizardStep[]
   etapaAtual: WizardStepId
 }) {
+  const [searchParams] = useSearchParams()
   return (
     <div className="row g-3 mb-4">
       {steps.map((step) => {
@@ -112,7 +116,7 @@ export function ProjetoWizardStepsGrid({
                 <div className="mt-auto">
                   <Link
                     className={`btn btn-sm ${step.canEnter ? 'btn-outline-primary' : 'btn-outline-secondary disabled'}`}
-                    to={step.canEnter ? step.href : '#'}
+                    to={step.canEnter ? withFluxoOrigem(step.href, searchParams) : '#'}
                     aria-disabled={!step.canEnter}
                     onClick={(e) => {
                       if (!step.canEnter) e.preventDefault()
@@ -157,6 +161,7 @@ export function ProjetoWizardAcoesRapidas({
   onGerarSugestoes: () => void
   onReavaliarPendencias: () => void
 }) {
+  const [searchParams] = useSearchParams()
   return (
     <div className="card mb-4">
       <div className="card-body">
@@ -170,7 +175,7 @@ export function ProjetoWizardAcoesRapidas({
               </p>
               <Link
                 className="btn btn-sm btn-outline-primary"
-                to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}
+                to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
               >
                 Gerenciar cargas
               </Link>
@@ -195,7 +200,7 @@ export function ProjetoWizardAcoesRapidas({
                 </button>
                 <Link
                   className="btn btn-sm btn-outline-secondary"
-                  to={`/projetos/${projetoId}/fluxo/dimensionamento`}
+                  to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'), searchParams)}
                 >
                   Abrir revisão de condutores
                 </Link>
@@ -244,6 +249,7 @@ export function ProjetoWizardChecklistCard({
   projetoId: string
   prontoParaExportar: boolean
 }) {
+  const [searchParams] = useSearchParams()
   return (
     <div className="card mb-4">
       <div className="card-body">
@@ -275,7 +281,7 @@ export function ProjetoWizardChecklistCard({
             )}
           </div>
           <Link
-            to={`/composicao?projeto=${encodeURIComponent(projetoId)}`}
+            to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)}
             className={`btn btn-sm ${prontoParaExportar ? 'btn-success' : 'btn-outline-secondary'}`}
           >
             {prontoParaExportar ? 'Ir para exportação da composição' : 'Abrir composição'}

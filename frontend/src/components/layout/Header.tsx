@@ -7,6 +7,9 @@ import {
 import { getPortalModuleContext } from '@/app/navigation/moduleContext'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { authDisplayName } from '@/modules/auth/types'
+import AppPageToolbar from './AppPageToolbar'
+import { useAppPageToolbarState } from './AppPageToolbarContext'
+import NotificacoesHeaderPanel, { useNotificacoesInternas } from './NotificacoesHeaderPanel'
 import { BellIcon, UserAvatarPlaceholder } from './headerIcons'
 
 function MenuIcon() {
@@ -58,6 +61,7 @@ export default function Header({
   const location = useLocation()
   const { user, logout } = useAuth()
   const moduleContext = getPortalModuleContext(location.pathname)
+  const pageToolbar = useAppPageToolbarState()
   const userName = user ? authDisplayName(user) : getHeaderUserDisplayName()
   const firstName = userName.split(/\s+/)[0] ?? userName
 
@@ -66,6 +70,8 @@ export default function Header({
 
   const [userOpen, setUserOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const { naoLidas: notifNaoLidas, atualizarContagem: atualizarNotifContagem } =
+    useNotificacoesInternas()
 
   const userRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -78,7 +84,7 @@ export default function Header({
   const handleLogout = useCallback(() => {
     closeAll()
     logout()
-    void navigate('/login', { replace: true })
+    navigate('/login', { replace: true })
   }, [closeAll, logout, navigate])
 
   useEffect(() => {
@@ -115,7 +121,9 @@ export default function Header({
   return (
     <header className="app-header">
       <div className="app-header-bar">
-        <div className="app-header-bar-inner">
+        <div
+          className={`app-header-bar-inner${pageToolbar ? ' has-page-toolbar' : ''}`}
+        >
           <button
             type="button"
             className="app-header-menu-btn-onbar d-lg-none"
@@ -140,7 +148,9 @@ export default function Header({
             </span>
           </Link>
 
-          <div className="app-header-bar-center flex-grow-1 min-w-0 d-flex align-items-center" />
+          <div className="app-header-bar-center flex-grow-1 min-w-0 d-flex align-items-center">
+            {pageToolbar ? <AppPageToolbar toolbar={pageToolbar} /> : null}
+          </div>
 
           <div className="app-header-bar-end">
             <div className="position-relative" ref={userRef}>
@@ -194,28 +204,32 @@ export default function Header({
             <div className="position-relative" ref={notifRef}>
               <button
                 type="button"
-                className="btn btn-link text-white p-2 rounded-2 app-header-icon-btn"
-                aria-label="Alertas do sistema"
+                className="btn btn-link text-white p-2 rounded-2 app-header-icon-btn position-relative"
+                aria-label={
+                  notifNaoLidas > 0
+                    ? `Alertas do sistema, ${notifNaoLidas} não lida(s)`
+                    : 'Alertas do sistema'
+                }
                 aria-expanded={notifOpen}
                 aria-haspopup="true"
                 aria-controls={notifId}
                 onClick={openNotif}
               >
                 <BellIcon />
+                {notifNaoLidas > 0 ? (
+                  <span className="app-header-notif-badge" aria-hidden>
+                    {notifNaoLidas > 9 ? '9+' : notifNaoLidas}
+                  </span>
+                ) : null}
               </button>
-              {notifOpen ? (
-                <dialog
-                  open
-                  className="app-header-dropdown app-header-notif-panel shadow-sm"
-                  id={notifId}
-                  aria-label="Notificações"
-                >
-                  <p className="small text-muted mb-0 px-1">
-                    Sem alertas no momento. Avisos de pendências e exportações poderão aparecer
-                    aqui no futuro.
-                  </p>
-                </dialog>
-              ) : null}
+              <NotificacoesHeaderPanel
+                aberto={notifOpen}
+                panelId={notifId}
+                onContagemChange={() => {
+                  atualizarNotifContagem().catch(() => undefined)
+                }}
+                onNavigate={closeOnNavigate}
+              />
             </div>
           </div>
         </div>

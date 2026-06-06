@@ -7,7 +7,7 @@ export async function obterDimensionamentoPorProjeto(
   projetoId: string
 ): Promise<ResumoDimensionamento> {
   const response = await apiClient.get<ResumoDimensionamento>(
-    `/dimensionamento/projeto/${projetoId}/`
+    `/configurador/dimensionamento/projeto/${projetoId}/`
   )
   return response.data
 }
@@ -16,7 +16,7 @@ export async function recalcularDimensionamento(
   projetoId: string
 ): Promise<ResumoDimensionamento> {
   const response = await apiClient.post<ResumoDimensionamento>(
-    `/dimensionamento/projeto/${projetoId}/recalcular/`
+    `/configurador/dimensionamento/projeto/${projetoId}/recalcular/`
   )
   return response.data
 }
@@ -26,7 +26,7 @@ export async function patchCondutoresDimensionamento(
   payload: PatchCondutoresPayload
 ): Promise<ResumoDimensionamento> {
   const response = await apiClient.patch<ResumoDimensionamento>(
-    `/dimensionamento/projeto/${projetoId}/condutores/`,
+    `/configurador/dimensionamento/projeto/${projetoId}/condutores/`,
     payload
   )
   return response.data

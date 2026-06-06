@@ -48,10 +48,10 @@ export function ConfirmModal({
 
   return (
     <>
-      <dialog
-        open
+      <div
         className="modal fade show d-block"
         tabIndex={-1}
+        role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
       >
@@ -92,7 +92,7 @@ export function ConfirmModal({
             </div>
           </div>
         </div>
-      </dialog>
+      </div>
       <div className="modal-backdrop fade show" aria-hidden="true" />
     </>
   )

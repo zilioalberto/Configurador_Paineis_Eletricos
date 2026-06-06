@@ -6,6 +6,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import ProdutoTable from '../components/ProdutoTable'
+import { catalogoPaths } from '../catalogoPaths'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
 import { useDeleteProdutoMutation } from '../hooks/useProdutoMutations'
 import { useProdutoListQuery } from '../hooks/useProdutoListQuery'
@@ -114,10 +115,10 @@ export default function ProdutoListPage() {
           </button>
           {canManageProdutos ? (
             <>
-              <Link to="/catalogo/importar-nfe" className="btn btn-outline-primary">
+              <Link to={catalogoPaths.produtoImportarNfe} className="btn btn-outline-primary">
                 Importar NF-e
               </Link>
-              <Link to="/catalogo/novo" className="btn btn-primary">
+              <Link to={catalogoPaths.produtoNovo} className="btn btn-primary">
                 Novo produto
               </Link>
             </>

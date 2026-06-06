@@ -1,7 +1,11 @@
 /** Props compartilhadas pelas seções visuais do formulário de projeto. */
 
 import type { ChangeEvent } from 'react'
-import type { ProjetoFormData, ProjetoResponsavelOption } from '../../types/projeto'
+import type {
+  ProjetoClienteOption,
+  ProjetoFormData,
+  ProjetoResponsavelOption,
+} from '../../types/projeto'
 
 export type ProjetoFormFieldChangeHandler = (
   event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -13,6 +17,8 @@ export type ProjetoFormSectionProps = {
   /** Erros de validação (cliente ou API) por nome do campo. */
   fieldErrors?: Record<string, string>
   responsavelOptions?: ProjetoResponsavelOption[]
+  clienteOptions?: ProjetoClienteOption[]
+  carregandoClientes?: boolean
   canEditResponsavel?: boolean
   showStatus?: boolean
   /**

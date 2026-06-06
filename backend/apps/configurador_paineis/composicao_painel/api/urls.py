@@ -22,9 +22,19 @@ urlpatterns = [
         name="composicao-projeto-snapshot",
     ),
     path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/",
+        ComposicaoProjetoSnapshotView.as_view(),
+        name="configurador-composicao-projeto-snapshot",
+    ),
+    path(
         "composicao/projeto/<uuid:projeto_id>/gerar-sugestoes/",
         ComposicaoGerarSugestoesView.as_view(),
         name="composicao-projeto-gerar-sugestoes",
+    ),
+    path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/gerar-sugestoes/",
+        ComposicaoGerarSugestoesView.as_view(),
+        name="configurador-composicao-projeto-gerar-sugestoes",
     ),
     path(
         "composicao/projeto/<uuid:projeto_id>/reavaliar-pendencias/",
@@ -32,9 +42,19 @@ urlpatterns = [
         name="composicao-projeto-reavaliar-pendencias",
     ),
     path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/reavaliar-pendencias/",
+        ComposicaoReavaliarPendenciasView.as_view(),
+        name="configurador-composicao-projeto-reavaliar-pendencias",
+    ),
+    path(
         "composicao/projeto/<uuid:projeto_id>/export/xlsx/",
         ComposicaoExportXlsxView.as_view(),
         name="composicao-projeto-export-xlsx",
+    ),
+    path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/export/xlsx/",
+        ComposicaoExportXlsxView.as_view(),
+        name="configurador-composicao-projeto-export-xlsx",
     ),
     path(
         "composicao/projeto/<uuid:projeto_id>/export/pdf/",
@@ -42,9 +62,19 @@ urlpatterns = [
         name="composicao-projeto-export-pdf",
     ),
     path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/export/pdf/",
+        ComposicaoExportPdfView.as_view(),
+        name="configurador-composicao-projeto-export-pdf",
+    ),
+    path(
         "composicao/sugestoes/<uuid:sugestao_id>/alternativas/",
         SugestaoAlternativasView.as_view(),
         name="composicao-sugestao-alternativas",
+    ),
+    path(
+        "configurador/composicao/sugestoes/<uuid:sugestao_id>/alternativas/",
+        SugestaoAlternativasView.as_view(),
+        name="configurador-composicao-sugestao-alternativas",
     ),
     path(
         "composicao/sugestoes/<uuid:sugestao_id>/aprovar/",
@@ -52,9 +82,19 @@ urlpatterns = [
         name="composicao-sugestao-aprovar",
     ),
     path(
+        "configurador/composicao/sugestoes/<uuid:sugestao_id>/aprovar/",
+        SugestaoAprovarView.as_view(),
+        name="configurador-composicao-sugestao-aprovar",
+    ),
+    path(
         "composicao/projeto/<uuid:projeto_id>/inclusoes-manuais/",
         ComposicaoInclusaoManualCreateView.as_view(),
         name="composicao-projeto-inclusoes-manuais",
+    ),
+    path(
+        "configurador/composicao/projeto/<uuid:projeto_id>/inclusoes-manuais/",
+        ComposicaoInclusaoManualCreateView.as_view(),
+        name="configurador-composicao-projeto-inclusoes-manuais",
     ),
     path(
         "composicao/inclusoes-manuais/<uuid:inclusao_id>/",
@@ -62,8 +102,18 @@ urlpatterns = [
         name="composicao-inclusao-manual-detail",
     ),
     path(
+        "configurador/composicao/inclusoes-manuais/<uuid:inclusao_id>/",
+        ComposicaoInclusaoManualDestroyView.as_view(),
+        name="configurador-composicao-inclusao-manual-detail",
+    ),
+    path(
         "composicao/itens/<uuid:composicao_item_id>/reabrir/",
         ComposicaoItemReabrirView.as_view(),
         name="composicao-item-reabrir",
+    ),
+    path(
+        "configurador/composicao/itens/<uuid:composicao_item_id>/reabrir/",
+        ComposicaoItemReabrirView.as_view(),
+        name="configurador-composicao-item-reabrir",
     ),
 ]

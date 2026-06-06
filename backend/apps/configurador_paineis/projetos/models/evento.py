@@ -6,11 +6,11 @@ from django.db import models
 from core.models import BaseModel
 
 
-class ProjetoEvento(BaseModel):
+class ProjetoConfiguradorEvento(BaseModel):
     """Ação registrada no histórico do projeto (criação, edição, mudanças em módulos)."""
 
-    projeto = models.ForeignKey(
-        "projetos.Projeto",
+    projeto_configurador = models.ForeignKey(
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="eventos",
     )
@@ -19,7 +19,7 @@ class ProjetoEvento(BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="projeto_eventos",
+        related_name="projeto_configurador_eventos",
     )
     modulo = models.CharField(max_length=40)
     acao = models.CharField(max_length=60)
@@ -27,13 +27,14 @@ class ProjetoEvento(BaseModel):
     detalhes = models.JSONField(default=dict, blank=True)
 
     class Meta:
-        verbose_name = "Evento de projeto"
-        verbose_name_plural = "Eventos de projeto"
+        db_table = "configurador_projeto_evento"
+        verbose_name = "Evento de projeto configurador"
+        verbose_name_plural = "Eventos de projeto configurador"
         ordering = ["-criado_em"]
         indexes = [
-            models.Index(fields=["projeto", "-criado_em"]),
+            models.Index(fields=["projeto_configurador", "-criado_em"]),
             models.Index(fields=["modulo", "acao"]),
         ]
 
     def __str__(self):
-        return f"{self.projeto_id} | {self.modulo}:{self.acao}"
+        return f"{self.projeto_configurador_id} | {self.modulo}:{self.acao}"

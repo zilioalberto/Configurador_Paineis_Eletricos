@@ -6,6 +6,7 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import { useCargaDetailQuery } from '../hooks/useCargaDetailQuery'
 import { CargaDetailTipoEspecifico } from '../components/CargaDetailTipoSections'
 import { projetoPermiteEdicaoCargas } from '../utils/projetoEdicaoCargas'
@@ -22,9 +23,9 @@ function hrefListaCargasSeguro(state: unknown, projetoId: string | undefined): s
     return from
   }
   if (projetoId) {
-    return `/cargas?projeto=${encodeURIComponent(projetoId)}`
+    return configuradorPaths.cargas(projetoId)
   }
-  return '/cargas'
+  return configuradorPaths.cargas()
 }
 
 export default function CargaDetailPage() {
@@ -44,6 +45,11 @@ export default function CargaDetailPage() {
     [location.state, c?.projeto]
   )
 
+  const editarHref = useMemo(() => {
+    if (!id || !c?.projeto) return configuradorPaths.cargas()
+    return configuradorPaths.cargasEditar(c.projeto, id)
+  }, [c?.projeto, id])
+
   return (
     <div className="container-fluid">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -57,7 +63,7 @@ export default function CargaDetailPage() {
               Fechar
             </Link>
             {canEditCarga && podeEditar ? (
-              <Link to={`/cargas/${id}/editar`} className="btn btn-primary">
+              <Link to={editarHref} className="btn btn-primary">
                 Editar
               </Link>
             ) : null}

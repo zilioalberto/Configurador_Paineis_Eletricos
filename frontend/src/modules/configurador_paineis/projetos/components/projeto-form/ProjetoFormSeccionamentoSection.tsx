@@ -19,21 +19,16 @@ export function ProjetoFormSeccionamentoSection({
 
   return (
     <>
-      <div className="col-12">
-        <hr />
-        <h2 className="h5">Seccionamento</h2>
-      </div>
-
       <ProjetoFormCheckboxField
         name="possui_seccionamento"
         label="Possui seccionamento"
         checked={formData.possui_seccionamento}
         onChange={onFieldChange}
+        columnClassName="col-6 col-md-4 col-lg-3"
         alignTop
         disabled={ro}
       />
-
-      <div className="col-md-4">
+      <div className="col-6 col-md-4 col-lg-3 projeto-form-field-narrow">
         <label className="form-label" htmlFor="projeto-form-tipo-seccionamento">
           Tipo de seccionamento
         </label>

@@ -18,6 +18,8 @@ import {
   atualizarContatoParceiro,
   atualizarEnderecoParceiro,
   atualizarParceiro,
+  atualizarParceiroPorCnpj,
+  consultarCnpj,
   criarContatoParceiro,
   criarEnderecoParceiro,
   criarParceiro,
@@ -28,6 +30,7 @@ import {
   listarEnderecosParceiro,
   listarParceiros,
   obterParceiro,
+  salvarParceiroPorCnpj,
 } from './cadastrosApi'
 
 describe('cadastrosApi', () => {
@@ -126,5 +129,55 @@ describe('cadastrosApi', () => {
     expect(postMock).toHaveBeenCalledWith('/cadastros/enderecos/', payload)
     expect(patchMock).toHaveBeenCalledWith('/cadastros/enderecos/e-1/', { uf: 'SC' })
     expect(deleteMock).toHaveBeenCalledWith('/cadastros/enderecos/e-1/')
+  })
+
+  it('lista parceiros como array direto e retorna vazio para payload inválido', async () => {
+    getMock.mockResolvedValueOnce({
+      data: [{ id: 'p-9', razao_social: 'X', documento: '1' }],
+    })
+    await expect(listarParceiros()).resolves.toHaveLength(1)
+
+    getMock.mockResolvedValueOnce({ data: { foo: 1 } })
+    await expect(listarParceiros()).resolves.toEqual([])
+  })
+
+  it('consulta e persiste parceiro por CNPJ (apenas dígitos na URL)', async () => {
+    const consulta = { cnpj: '12345678000190', razao_social: 'Empresa' }
+    const parceiro = { id: 'p-cnpj', razao_social: 'Empresa', documento: '12345678000190' }
+
+    getMock.mockResolvedValueOnce({ data: consulta })
+    postMock
+      .mockResolvedValueOnce({ data: { parceiro, consulta, aviso: 'ok' } })
+      .mockResolvedValueOnce({ data: { parceiro, consulta } })
+
+    await expect(consultarCnpj('12.345.678/0001-90')).resolves.toEqual(consulta)
+    await expect(
+      salvarParceiroPorCnpj('12345678000190', {
+        eh_cliente: true,
+        eh_fornecedor: false,
+        eh_parceiro: false,
+      })
+    ).resolves.toMatchObject({ aviso: 'ok' })
+    await expect(
+      atualizarParceiroPorCnpj('12345678000190', {
+        parceiro_id: 'p-cnpj',
+        eh_cliente: true,
+        eh_fornecedor: false,
+        eh_parceiro: false,
+      })
+    ).resolves.toMatchObject({ parceiro: { id: 'p-cnpj' } })
+
+    expect(getMock).toHaveBeenCalledWith('/cadastros/cnpj/12345678000190/')
+    expect(postMock).toHaveBeenNthCalledWith(1, '/cadastros/cnpj/12345678000190/salvar/', {
+      eh_cliente: true,
+      eh_fornecedor: false,
+      eh_parceiro: false,
+    })
+    expect(postMock).toHaveBeenNthCalledWith(2, '/cadastros/cnpj/12345678000190/atualizar/', {
+      parceiro_id: 'p-cnpj',
+      eh_cliente: true,
+      eh_fornecedor: false,
+      eh_parceiro: false,
+    })
   })
 })

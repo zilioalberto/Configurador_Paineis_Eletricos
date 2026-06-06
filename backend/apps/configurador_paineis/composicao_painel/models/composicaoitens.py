@@ -14,7 +14,7 @@ class ComposicaoItem(BaseModel):
     """Material aprovado na composição; escopo único por parte/categoria/carga/índice."""
 
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="composicao_itens",
     )

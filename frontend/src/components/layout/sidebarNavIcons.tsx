@@ -305,14 +305,18 @@ function NavIconKanban({ className, ...rest }: IconProps) {
 
 const ICON_BY_MENU_GROUP_ID: Record<string, ComponentType<IconProps>> = {
   'configurador-paineis': NavIconLayoutSplit,
+  catalogo: NavIconPackage,
 }
 
 const ICON_BY_PATH: Record<string, ComponentType<IconProps>> = {
   '/': NavIconHome,
+  '/configurador/configuracoes': NavIconLayoutSplit,
   '/dashboard': NavIconLayoutSplit,
   '/projetos': NavIconFolder,
   '/cargas': NavIconZap,
   '/cargas/modelos': NavIconClipboard,
+  '/catalogo/produtos': NavIconPackage,
+  '/catalogo/servicos': NavIconBriefcase,
   '/catalogo': NavIconPackage,
   '/fiscal': NavIconFileText,
   '/erp/cadastros': NavIconBookOpen,

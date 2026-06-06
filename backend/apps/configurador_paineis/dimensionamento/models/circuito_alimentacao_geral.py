@@ -2,7 +2,7 @@ from django.db import models
 
 from core.models import BaseModel
 from core.choices import TipoCorrenteChoices
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 class DimensionamentoCircuitoAlimentacaoGeral(BaseModel):
@@ -12,7 +12,7 @@ class DimensionamentoCircuitoAlimentacaoGeral(BaseModel):
     """
 
     projeto = models.OneToOneField(
-        Projeto,
+        ProjetoConfigurador,
         on_delete=models.CASCADE,
         related_name="dimensionamento_alimentacao_geral",
     )

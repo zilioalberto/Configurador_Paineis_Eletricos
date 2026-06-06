@@ -1,4 +1,4 @@
-import { type ChangeEvent, useCallback, useEffect, useRef } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import { montarNomeArquivoProjeto } from '../utils/composicaoDisplay'
@@ -54,6 +54,9 @@ export function useComposicaoPageActions({
   itemReabrir,
 }: Params) {
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
+  const gerarMutateAsyncRef = useRef(gerarMutation.mutateAsync)
+  gerarMutateAsyncRef.current = gerarMutation.mutateAsync
+  const [autoGerando, setAutoGerando] = useState(false)
   const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
   const aprovarMutation = useAprovarSugestaoMutation(projetoId || null)
   const reabrirComposicaoItemMutation = useReabrirComposicaoItemMutation(projetoId || null)
@@ -99,10 +102,13 @@ export function useComposicaoPageActions({
   const jaDisparouAutoGerarRef = useRef(false)
   useEffect(() => {
     jaDisparouAutoGerarRef.current = false
+    setAutoGerando(false)
   }, [projetoId])
 
+  const snapshotCarregado = !loadingSnap && !isError && snapshot != null
+
   useEffect(() => {
-    if (!projetoId || !podeEditar || loadingSnap || isError || !snapshot) return
+    if (!projetoId || !podeEditar || !snapshotCarregado) return
     if (jaDisparouAutoGerarRef.current) return
 
     const now = Date.now()
@@ -110,44 +116,40 @@ export function useComposicaoPageActions({
       composicaoAutoGerarDedup?.projetoId === projetoId &&
       now - composicaoAutoGerarDedup.at < COMPOSICAO_AUTO_GERAR_DEDUP_MS
     ) {
+      jaDisparouAutoGerarRef.current = true
       return
     }
     composicaoAutoGerarDedup = { projetoId, at: now }
     jaDisparouAutoGerarRef.current = true
 
     let cancelled = false
+    setAutoGerando(true)
     const autoGerar = async () => {
       try {
-        const data = await gerarMutation.mutateAsync(true)
+        const data = await gerarMutateAsyncRef.current(true)
         if (cancelled) return
         notificarResultadoGeracao(data)
       } catch (err) {
         if (cancelled) return
-        jaDisparouAutoGerarRef.current = false
-        composicaoAutoGerarDedup = null
         console.error(err)
         showToast({
           variant: 'danger',
           title: 'Não foi possível gerar sugestões',
           message: extrairMensagemErroApi(err) || 'Tente novamente.',
         })
+      } finally {
+        if (!cancelled) setAutoGerando(false)
       }
     }
     autoGerar().catch(() => undefined)
 
     return () => {
       cancelled = true
+      setAutoGerando(false)
     }
-  }, [
-    projetoId,
-    podeEditar,
-    loadingSnap,
-    isError,
-    snapshot,
-    gerarMutation,
-    notificarResultadoGeracao,
-    showToast,
-  ])
+    // Usar flag booleana evita reexecutar/cancelar quando o snapshot é atualizado
+    // após a geração (nova referência de objeto), o que deixava o botão em "Gerando…".
+  }, [projetoId, podeEditar, snapshotCarregado, notificarResultadoGeracao, showToast])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return
@@ -244,13 +246,13 @@ export function useComposicaoPageActions({
 
   const executarExportacao = useCallback(
     async (fmt: 'pdf' | 'xlsx') => {
-      if (!projetoId || !snapshot) return
+      if (!projetoId) return
       setExportando(fmt)
       try {
         const nomeProjeto = montarNomeArquivoProjeto(
-          projetoSelecionado?.codigo ?? snapshot.projeto_codigo,
+          projetoSelecionado?.codigo ?? snapshot?.projeto_codigo,
           projetoSelecionado?.cliente,
-          projetoSelecionado?.nome ?? snapshot.projeto_nome
+          projetoSelecionado?.nome ?? snapshot?.projeto_nome
         )
         if (fmt === 'xlsx') await exportarComposicaoListaXlsx(projetoId, nomeProjeto)
         else await exportarComposicaoListaPdf(projetoId, nomeProjeto)
@@ -271,8 +273,8 @@ export function useComposicaoPageActions({
 
   const onExportLista = useCallback(
     (fmt: 'pdf' | 'xlsx') => {
-      if (!snapshot || !projetoId) return
-      if (snapshot.pendencias.length > 0) {
+      if (!projetoId) return
+      if ((snapshot?.pendencias.length ?? 0) > 0) {
         setConfirmExportFmt(fmt)
         return
       }
@@ -281,8 +283,12 @@ export function useComposicaoPageActions({
     [executarExportacao, projetoId, snapshot, setConfirmExportFmt]
   )
 
+  const gerandoSugestoes = autoGerando || gerarMutation.isPending
+
   return {
     gerarMutation,
+    autoGerando,
+    gerandoSugestoes,
     reavaliarPendenciasMutation,
     aprovarMutation,
     reabrirComposicaoItemMutation,

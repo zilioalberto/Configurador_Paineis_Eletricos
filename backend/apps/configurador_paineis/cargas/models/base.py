@@ -5,7 +5,7 @@ from django.db import models
 
 from core.models import BaseModel
 from core.models.mixins import AtivacaoMixin
-from apps.configurador_paineis.projetos.models.base import Projeto
+from apps.configurador_paineis.projetos.models.base import ProjetoConfigurador
 from core.choices import TipoCargaChoices
 
 
@@ -16,7 +16,7 @@ class Carga(BaseModel, AtivacaoMixin):
     """
 
     projeto = models.ForeignKey(
-        Projeto,
+        ProjetoConfigurador,
         on_delete=models.CASCADE,
         related_name="cargas",
     )

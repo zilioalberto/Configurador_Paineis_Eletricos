@@ -13,9 +13,13 @@ describe('collectNavigation', () => {
     expect(appChildRoutes.some((route) => route.path === '/erp/rh')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/erp/orcamentos/:id')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/orcamentos')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/orcamentos/:id')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/erp/m/:moduleId')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/fiscal')).toBe(true)
     expect(appChildRoutes.some((route) => route.path === '/fiscal/itens-fiscais')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/catalogo/produtos')).toBe(true)
+    expect(appChildRoutes.some((route) => route.path === '/catalogo/servicos')).toBe(true)
   })
 
   it('ordena menu pelo campo order', () => {

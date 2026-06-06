@@ -31,22 +31,16 @@ type PanelSlice = {
 
 export function WizardCondutoresToolbar({
   embedded,
-  revisaoEfetivaOk,
   podeAprovarTodas,
   patchPending,
-  recalcPending,
   canEditar,
   onAprovarTodas,
-  onRecalcular,
 }: {
   embedded: boolean
-  revisaoEfetivaOk: boolean
   podeAprovarTodas: boolean
   patchPending: boolean
-  recalcPending: boolean
   canEditar: boolean
   onAprovarTodas: () => void
-  onRecalcular: () => void
 }) {
   const toolbarIntro = embedded ? null : (
     <>
@@ -56,11 +50,6 @@ export function WizardCondutoresToolbar({
         para a tabela de aprovados; <strong>Revisar</strong> devolve às sugestões.{' '}
         <strong>Aprovar todas</strong> confirma a revisão completa do projeto.
       </p>
-      {revisaoEfetivaOk ? (
-        <span className="badge bg-success mt-2">Revisão confirmada</span>
-      ) : (
-        <span className="badge bg-warning text-dark mt-2">Revisão pendente</span>
-      )}
     </>
   )
 
@@ -70,31 +59,16 @@ export function WizardCondutoresToolbar({
     >
       <div>{toolbarIntro}</div>
       <div className="d-flex flex-wrap gap-2 align-items-center">
-        {embedded ? (
-          revisaoEfetivaOk ? (
-            <span className="badge bg-success">Revisão confirmada</span>
-          ) : (
-            <span className="badge bg-warning text-dark">Revisão pendente</span>
-          )
-        ) : null}
         {podeAprovarTodas ? (
           <button
             type="button"
             className={`btn ${embedded ? 'btn-success' : 'btn-sm btn-success'}`}
-            disabled={patchPending || recalcPending}
+            disabled={patchPending || !canEditar}
             onClick={onAprovarTodas}
           >
             {patchPending ? 'Aprovando…' : 'Aprovar todas'}
           </button>
         ) : null}
-        <button
-          type="button"
-          className={`btn ${embedded ? 'btn-outline-primary' : 'btn-sm btn-outline-primary'}`}
-          disabled={!canEditar || recalcPending}
-          onClick={onRecalcular}
-        >
-          {recalcPending ? 'Recalculando...' : 'Recalcular dimensionamento'}
-        </button>
       </div>
     </div>
   )

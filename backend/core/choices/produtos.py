@@ -127,8 +127,7 @@ class UnidadeMedidaChoices(models.TextChoices):
     KG = "KG", "Kilograma"
     G = "G", "Gramas"
     L = "L", "Litro"
-
-
+    HORAS = "HORAS", "Horas"
 
 class TipoModuloExpansaoPLCChoices(models.TextChoices):
     DI = "DI", "Entradas digitais"

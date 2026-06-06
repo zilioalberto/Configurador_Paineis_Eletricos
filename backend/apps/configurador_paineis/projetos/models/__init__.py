@@ -1,7 +1,7 @@
-from .base import Projeto
-from .evento import ProjetoEvento
+from .base import ProjetoConfigurador
+from .evento import ProjetoConfiguradorEvento
 
 __all__ = [
-    "Projeto",
-    "ProjetoEvento",
+    "ProjetoConfigurador",
+    "ProjetoConfiguradorEvento",
 ]

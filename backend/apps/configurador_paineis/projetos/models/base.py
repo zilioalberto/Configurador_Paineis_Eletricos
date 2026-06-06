@@ -22,7 +22,7 @@ from core.choices import (
 )
 
 
-class Projeto(BaseModel, AtivacaoMixin):
+class ProjetoConfigurador(BaseModel, AtivacaoMixin):
     """
     Entidade central do configurador: agrupa dados elétricos, recursos do painel
     e parâmetros que alimentam dimensionamento e composição.
@@ -244,8 +244,9 @@ class Projeto(BaseModel, AtivacaoMixin):
     )
 
     class Meta:
-        verbose_name = "Projeto"
-        verbose_name_plural = "Projetos"
+        db_table = "configurador_projeto"
+        verbose_name = "Projeto configurador"
+        verbose_name_plural = "Projetos configurador"
         ordering = ["codigo", "nome"]
         indexes = [
             models.Index(fields=["codigo"]),
@@ -421,7 +422,8 @@ class Projeto(BaseModel, AtivacaoMixin):
 
     def save(self, *args, **kwargs):
         """Normaliza, valida e persiste; atribui código automático na criação."""
-        is_new = self.pk is None
+        # BaseModel pré-atribui UUID antes do INSERT; `pk is None` falha nesse caso.
+        is_new = self._state.adding
         self._definir_codigo_inicial_se_obrigatorio(is_new)
         self._normalizar_campos_texto_maiusculas()
         self._aplicar_padroes_antes_write()

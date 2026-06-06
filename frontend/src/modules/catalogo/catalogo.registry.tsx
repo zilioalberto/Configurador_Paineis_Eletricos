@@ -1,50 +1,30 @@
 /**
- * Registo de rotas e menu do módulo catálogo (produtos e importação NF-e).
+ * Agregador do módulo Catálogo: menu lateral (produtos + serviços) e rotas.
  */
 
-import { lazy, type ReactElement } from 'react'
-import type { AppMenuItem, ModuleRouteConfig } from '@/app/navigation/types'
+import type {
+  AppMenuGroupItem,
+  AppMenuItem,
+  AppMenuLinkItem,
+  ModuleRouteConfig,
+} from '@/app/navigation/types'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
-import RequirePermission from '@/modules/auth/RequirePermission'
+import { produtosMenuItems, produtosRoutes } from './produtos.registry'
+import { servicosMenuItems, servicosRoutes } from './servicos.registry'
 
-const ProdutoListPage = lazy(() => import('./pages/ProdutoListPage'))
-const ProdutoCreatePage = lazy(() => import('./pages/ProdutoCreatePage'))
-const ProdutoEditPage = lazy(() => import('./pages/ProdutoEditPage'))
-const ProdutoDetailPage = lazy(() => import('./pages/ProdutoDetailPage'))
-const NfeImportPage = lazy(() => import('./pages/NfeImportPage'))
-
-function withPermission(permission: string, element: ReactElement): ReactElement {
-  return <RequirePermission permission={permission}>{element}</RequirePermission>
+function mergeChildren(...chunks: AppMenuLinkItem[][]): AppMenuLinkItem[] {
+  return chunks.flat().sort((a, b) => (a.order ?? 100) - (b.order ?? 100))
 }
 
-export const catalogoMenuItems: AppMenuItem[] = [
-  {
-    to: '/catalogo',
-    label: 'Catálogo',
-    order: 30,
-    requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
-  },
-]
+export const catalogoRoutes: ModuleRouteConfig[] = [...produtosRoutes, ...servicosRoutes]
 
-export const catalogoRoutes: ModuleRouteConfig[] = [
-  {
-    path: '/catalogo',
-    element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <ProdutoListPage />),
-  },
-  {
-    path: '/catalogo/novo',
-    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <ProdutoCreatePage />),
-  },
-  {
-    path: '/catalogo/importar-nfe',
-    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <NfeImportPage />),
-  },
-  {
-    path: '/catalogo/:id/editar',
-    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <ProdutoEditPage />),
-  },
-  {
-    path: '/catalogo/:id',
-    element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <ProdutoDetailPage />),
-  },
-]
+const catalogoGroup: AppMenuGroupItem = {
+  type: 'group',
+  id: 'catalogo',
+  label: 'Catálogo',
+  order: 30,
+  requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
+  children: mergeChildren(produtosMenuItems, servicosMenuItems),
+}
+
+export const catalogoMenuItems: AppMenuItem[] = [catalogoGroup]

@@ -16,7 +16,6 @@ export const ROTULOS_CAMPOS_PROJETO: Record<string, string> = {
   nome: 'Nome',
   cliente: 'Cliente',
   fator_demanda: 'Fator de demanda',
-  degraus_margem_bitola_condutores: 'Margem de bitola (condutores)',
 }
 
 function textoVazio(v: unknown): boolean {

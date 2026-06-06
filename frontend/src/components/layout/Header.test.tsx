@@ -18,28 +18,29 @@ vi.mock('@/modules/auth/AuthContext', () => ({
   }),
 }))
 
+import { AppPageToolbarProvider } from '@/components/layout/AppPageToolbarContext'
 import Header from '@/components/layout/Header'
 
-describe('Header', () => {
-  it('nao exibe o botao de atalhos', () => {
-    render(
-      <MemoryRouter>
+function renderHeader() {
+  return render(
+    <MemoryRouter>
+      <AppPageToolbarProvider>
         <Routes>
           <Route path="*" element={<Header />} />
         </Routes>
-      </MemoryRouter>
-    )
+      </AppPageToolbarProvider>
+    </MemoryRouter>
+  )
+}
+
+describe('Header', () => {
+  it('nao exibe o botao de atalhos', () => {
+    renderHeader()
     expect(screen.queryByRole('button', { name: /Atalhos/i })).not.toBeInTheDocument()
   })
 
   it('abre menu de utilizador e chama logout em Sair', async () => {
-    render(
-      <MemoryRouter>
-        <Routes>
-          <Route path="*" element={<Header />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderHeader()
     fireEvent.click(screen.getByRole('button', { name: /Olá/i }))
     fireEvent.click(screen.getByRole('button', { name: /^Sair$/i }))
     expect(mockLogout).toHaveBeenCalled()

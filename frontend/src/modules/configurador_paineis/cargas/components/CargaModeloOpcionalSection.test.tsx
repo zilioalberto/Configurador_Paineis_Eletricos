@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CargaModelo } from '@/modules/configurador_paineis/cargas/types/carga'
@@ -47,12 +48,12 @@ describe('CargaModeloOpcionalSection', () => {
       <CargaModeloOpcionalSection modeloQueryScope="test" onAplicarModelo={onAplicar} />
     )
 
-    expect(screen.getByRole('heading', { name: /Modelo de carga \(opcional\)/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Modelos pré-cadastrados/i)).toBeInTheDocument()
     expect(
       screen.getByPlaceholderText(/Filtrar ou abrir a lista para ver todos/i)
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/Digite para filtrar no servidor ou use/i)
+      screen.getByText(/Digite para filtrar ou use/i)
     ).toBeInTheDocument()
   })
 
@@ -88,6 +89,25 @@ describe('CargaModeloOpcionalSection', () => {
         return opts.queryKey?.join('|') === 'cargas|modelos|test-scope|mo'
       })
     ).toBe(true)
+  })
+
+  it('mostra link para gerenciar modelos quando href é informado (compact)', () => {
+    const onAplicar = vi.fn()
+    render(
+      <MemoryRouter>
+        <CargaModeloOpcionalSection
+          modeloQueryScope="test"
+          onAplicarModelo={onAplicar}
+          compact
+          gerenciarModelosHref="/configurador/cargas/modelos"
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('link', { name: /Gerenciar modelos/i })).toHaveAttribute(
+      'href',
+      '/configurador/cargas/modelos'
+    )
   })
 
   it('Enter na lista aplica modelo diretamente', async () => {

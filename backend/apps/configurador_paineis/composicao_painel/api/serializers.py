@@ -15,7 +15,7 @@ from apps.configurador_paineis.composicao_painel.models import (
     SugestaoItem,
 )
 from core.choices.cargas import TipoCargaChoices
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 STATUS_MARKER = "[STATUS_APROVACAO]"
 
@@ -235,7 +235,7 @@ class ProjetoAlimentacaoSerializer(serializers.ModelSerializer):
     numero_fases_display = serializers.SerializerMethodField()
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = (
             "tensao_nominal",
             "tensao_nominal_display",

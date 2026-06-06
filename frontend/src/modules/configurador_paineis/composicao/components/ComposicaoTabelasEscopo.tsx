@@ -126,8 +126,8 @@ export function ComposicaoTabelaSugestoes({
   if (vazio) {
     return (
       <p className="text-muted small mb-0">
-        Nenhuma sugestão ainda. Use &quot;Gerar sugestões&quot; após cadastrar cargas e dimensionar o
-        projeto.
+        Nenhuma sugestão ainda. As sugestões são geradas automaticamente após cadastrar cargas e
+        dimensionar o projeto.
       </p>
     )
   }

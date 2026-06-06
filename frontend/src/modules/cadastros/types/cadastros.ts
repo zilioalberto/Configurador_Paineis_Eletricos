@@ -4,7 +4,28 @@
 
 export type TipoPessoaParceiro = 'PJ' | 'PF' | 'EX'
 
-export type OrigemCadastroParceiro = 'MANUAL' | 'NFE' | 'IMPORTACAO'
+export type OrigemCadastroParceiro = 'MANUAL' | 'NFE' | 'IMPORTACAO' | 'BRASILAPI'
+
+export type CnaeParceiroDto = {
+  id: string
+  ordem: number
+  codigo: string
+  descricao: string
+  principal: boolean
+  criado_em?: string
+  atualizado_em?: string
+}
+
+export type SocioParceiroDto = {
+  id: string
+  ordem: number
+  nome: string
+  qualificacao: string
+  data_entrada: string | null
+  faixa_etaria: string
+  criado_em?: string
+  atualizado_em?: string
+}
 
 export type ParceiroTipoFiltro = '' | 'cliente' | 'fornecedor' | 'parceiro'
 
@@ -53,8 +74,18 @@ export type ParceiroComercialDto = {
   eh_parceiro: boolean
   ativo: boolean
   origem: OrigemCadastroParceiro
+  situacao_cadastral?: string
+  situacao_cadastral_codigo?: number | null
+  data_inicio_atividade?: string | null
+  capital_social?: string | null
+  cnae_fiscal?: string
+  cnae_fiscal_descricao?: string
+  natureza_juridica?: string
+  consulta_receita_em?: string | null
   enderecos: EnderecoParceiroDto[]
   contatos: ContatoParceiroDto[]
+  cnaes?: CnaeParceiroDto[]
+  socios?: SocioParceiroDto[]
   criado_em?: string
   atualizado_em?: string
 }

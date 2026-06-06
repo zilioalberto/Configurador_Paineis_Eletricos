@@ -101,10 +101,10 @@ describe('ProdutoListPage', () => {
 
     renderPage()
 
-    expect(screen.getByRole('link', { name: /Novo produto/i })).toHaveAttribute('href', '/catalogo/novo')
+    expect(screen.getByRole('link', { name: /Novo produto/i })).toHaveAttribute('href', '/catalogo/produtos/novo')
     expect(screen.getByRole('link', { name: /Importar NF-e/i })).toHaveAttribute(
       'href',
-      '/catalogo/importar-nfe'
+      '/catalogo/produtos/importar-nfe'
     )
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar' }))
     expect(refetch).toHaveBeenCalled()
@@ -165,7 +165,7 @@ describe('ProdutoListPage', () => {
 
     renderPage()
 
-    expect(screen.getByRole('link', { name: 'COD-1' })).toHaveAttribute('href', '/catalogo/p1')
+    expect(screen.getByRole('link', { name: 'COD-1' })).toHaveAttribute('href', '/catalogo/produtos/p1')
     expect(screen.getByText('Item um')).toBeInTheDocument()
     expect(screen.getByText(/Mostrando 1 de 120 itens/)).toBeInTheDocument()
     expect(screen.getByText('Todas as categorias')).toBeInTheDocument()
@@ -186,7 +186,7 @@ describe('ProdutoListPage', () => {
     expect(screen.getByText(/Nenhum produto encontrado/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Cadastrar produto/i })).toHaveAttribute(
       'href',
-      '/catalogo/novo'
+      '/catalogo/produtos/novo'
     )
   })
 

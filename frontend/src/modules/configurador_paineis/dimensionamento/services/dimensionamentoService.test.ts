@@ -28,7 +28,7 @@ describe('dimensionamentoService', () => {
 
     await expect(obterDimensionamentoPorProjeto('proj-1')).resolves.toEqual({ id: 'dim-1' })
 
-    expect(getMock).toHaveBeenCalledWith('/dimensionamento/projeto/proj-1/')
+    expect(getMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-1/')
   })
 
   it('recalcula dimensionamento do projeto', async () => {
@@ -36,7 +36,7 @@ describe('dimensionamentoService', () => {
 
     await expect(recalcularDimensionamento('proj-2')).resolves.toEqual({ id: 'dim-2' })
 
-    expect(postMock).toHaveBeenCalledWith('/dimensionamento/projeto/proj-2/recalcular/')
+    expect(postMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-2/recalcular/')
   })
 
   it('atualiza escolhas de condutores', async () => {
@@ -48,6 +48,6 @@ describe('dimensionamentoService', () => {
 
     await expect(patchCondutoresDimensionamento('proj-3', payload)).resolves.toEqual({ id: 'dim-3' })
 
-    expect(patchMock).toHaveBeenCalledWith('/dimensionamento/projeto/proj-3/condutores/', payload)
+    expect(patchMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-3/condutores/', payload)
   })
 })

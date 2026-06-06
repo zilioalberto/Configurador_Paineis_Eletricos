@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { AppPageToolbarProvider } from './AppPageToolbarContext'
 import AppFooter from './AppFooter'
 import Header from './Header'
 import Sidebar from './Sidebar'
@@ -98,6 +99,7 @@ export default function MainLayout() {
   }, [location.hash, location.pathname])
 
   return (
+    <AppPageToolbarProvider>
     <div className="d-flex app-shell" style={{ minHeight: '100vh' }}>
       <button
         type="button"
@@ -135,5 +137,6 @@ export default function MainLayout() {
         <AppFooter />
       </div>
     </div>
+    </AppPageToolbarProvider>
   )
 }

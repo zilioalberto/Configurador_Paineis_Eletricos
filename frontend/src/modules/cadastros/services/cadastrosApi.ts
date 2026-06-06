@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP de cadastros comerciais.
- * Rota exposta em `/erp/cadastros` via `erp.registry`.
+ * Rota exposta em `/erp/cadastros` via `orcamentos.registry`.
  */
 
 import apiClient from '@/services/apiClient'
@@ -13,6 +13,7 @@ import type {
   ParceiroComercialPayload,
   ParceiroListFilters,
 } from '../types/cadastros'
+import type { CnpjAtualizarPayload, CnpjConsultaDto, CnpjSalvarPayload } from '../types/cnpj'
 
 const PARCEIROS_URL = '/cadastros/parceiros/'
 const CONTATOS_URL = '/cadastros/contatos/'
@@ -124,4 +125,49 @@ export async function atualizarEnderecoParceiro(
 
 export async function excluirEnderecoParceiro(id: string): Promise<void> {
   await apiClient.delete(`${ENDERECOS_URL}${id}/`)
+}
+
+function cnpjPath(cnpj: string): string {
+  const digits = cnpj.replace(/\D/g, '')
+  return `/cadastros/cnpj/${digits}/`
+}
+
+/** Consulta CNPJ na Receita (preview, sem gravar). */
+export async function consultarCnpj(cnpj: string): Promise<CnpjConsultaDto> {
+  const { data } = await apiClient.get<CnpjConsultaDto>(cnpjPath(cnpj))
+  return data
+}
+
+/** Consulta e persiste parceiro com os papéis informados. */
+export async function salvarParceiroPorCnpj(
+  cnpj: string,
+  payload: CnpjSalvarPayload
+): Promise<{
+  parceiro: ParceiroComercialDto
+  consulta: CnpjConsultaDto
+  aviso?: string
+}> {
+  const { data } = await apiClient.post<{
+    parceiro: ParceiroComercialDto
+    consulta: CnpjConsultaDto
+    aviso?: string
+  }>(`${cnpjPath(cnpj)}salvar/`, payload)
+  return data
+}
+
+/** Reconsulta CNPJ e atualiza cadastro existente. */
+export async function atualizarParceiroPorCnpj(
+  cnpj: string,
+  payload: CnpjAtualizarPayload
+): Promise<{
+  parceiro: ParceiroComercialDto
+  consulta: CnpjConsultaDto
+  aviso?: string
+}> {
+  const { data } = await apiClient.post<{
+    parceiro: ParceiroComercialDto
+    consulta: CnpjConsultaDto
+    aviso?: string
+  }>(`${cnpjPath(cnpj)}atualizar/`, payload)
+  return data
 }

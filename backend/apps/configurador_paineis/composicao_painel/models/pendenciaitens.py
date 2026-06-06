@@ -15,7 +15,7 @@ class PendenciaItem(BaseModel):
     """Gap de engenharia/compras: regra aplicável mas sem match de catálogo."""
 
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="pendencias_itens",
     )

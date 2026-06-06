@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useToast } from '@/components/feedback'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
+import { catalogoPaths } from '../catalogoPaths'
 import { useNfeExistentePorItem } from '../hooks/useNfeExistentePorItem'
 import {
   aplicarImportacaoNfe,
@@ -731,7 +732,7 @@ export default function NfeImportPage() {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-2">
               <li className="breadcrumb-item">
-                <Link to="/catalogo">Catálogo</Link>
+                <Link to={catalogoPaths.produtos}>Catálogo</Link>
               </li>
               <li className="breadcrumb-item active" aria-current="page">
                 Importar NF-e
@@ -748,7 +749,7 @@ export default function NfeImportPage() {
             com os valores da nota (a categoria do produto existente é preenchida automaticamente).
           </p>
         </div>
-        <Link to="/catalogo" className="btn btn-outline-secondary">
+        <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary">
           Voltar à lista
         </Link>
       </div>

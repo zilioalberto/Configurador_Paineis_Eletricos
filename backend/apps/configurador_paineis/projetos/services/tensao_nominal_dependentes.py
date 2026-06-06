@@ -16,7 +16,7 @@ from core.choices import (
     UnidadePotenciaCorrenteChoices,
 )
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 def _escalar_entrada_ampere_motores(
@@ -61,7 +61,7 @@ def _alinhar_tensao_motor_com_projeto(motor: CargaMotor, tensao_projeto: int | N
 
 @transaction.atomic
 def reiniciar_dependentes_apos_alteracao_tensao_nominal(
-    projeto: Projeto,
+    projeto: ProjetoConfigurador,
     *,
     tensao_nominal_anterior: int | None = None,
 ) -> None:

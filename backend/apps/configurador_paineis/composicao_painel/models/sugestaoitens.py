@@ -15,7 +15,7 @@ class SugestaoItem(BaseModel):
     """Produto sugerido pelo motor de regras; passa a ComposicaoItem após aprovação."""
 
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="sugestoes_itens",
     )

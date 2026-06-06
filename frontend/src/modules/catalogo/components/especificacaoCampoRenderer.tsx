@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react'
 import { selectOptionsParaCampo } from '../constants/specSelectRegistry'
-import { usePlcFamiliasQuery } from '../hooks/usePlcFamiliasQuery'
 import type { CategoriaProdutoNome } from '../types/categoria'
 import { patchIntEspecField } from '../utils/especificacaoFieldPatch'
 import { labelCampoEspec } from '../utils/specFormHelpers'
+import { PlcFamiliaCampo } from './PlcFamiliaCampo'
 
 const FUSIVEL_TAMANHOS_NH = [
   { value: 'NH000', label: 'NH000' },
@@ -103,46 +103,6 @@ function deveOcultarCampoPainel(
     categoria === 'PAINEL' &&
     campo === 'cor' &&
     String(value.material ?? '') === 'ACO_INOX'
-  )
-}
-
-function PlcFamiliaCampo({
-  label,
-  value,
-  onChange,
-  fieldId = 'spec-plc-familia',
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  fieldId?: string
-}) {
-  const { data } = usePlcFamiliasQuery()
-  const listId = `${fieldId}-sugestoes`
-  return (
-    <div className="col-md-6">
-      <label className="form-label" htmlFor={fieldId}>
-        {label}
-      </label>
-      <input
-        id={fieldId}
-        type="text"
-        className="form-control"
-        list={listId}
-        autoComplete="off"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <datalist id={listId}>
-        {(data?.familias ?? []).map((f) => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
-      <p className="form-text small text-muted mb-0">
-        Escolha uma família já usada no catálogo ou digite outra. O servidor normaliza o texto
-        e impede duplicar nomes muito parecidos.
-      </p>
-    </div>
   )
 }
 

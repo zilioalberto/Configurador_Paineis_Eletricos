@@ -41,12 +41,6 @@ export const frequenciaOptions: FormOption<number>[] = [
   { value: 60, label: '60 Hz' },
 ]
 
-/** Margem sobre o mínimo Iz (interface limitada a 0 ou 1; valores superiores são legado). */
-export const margemBitolaCondutoresOptions: FormOption<number>[] = [
-  { value: 0, label: '0 — mínimo da tabela Iz' },
-  { value: 1, label: '1 — uma bitola comercial acima' },
-]
-
 export const tipoConexaoOptions: FormOption<TipoConexaoAlimentacao>[] = [
   { value: 'BARRAMENTO', label: 'Barramento' },
   { value: 'BORNE', label: 'Borne' },

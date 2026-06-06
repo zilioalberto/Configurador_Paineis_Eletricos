@@ -19,6 +19,6 @@ describe('dashboardService', () => {
     getMock.mockResolvedValueOnce({ data: { projetos: 2 } })
 
     await expect(obterDashboardResumo()).resolves.toEqual({ projetos: 2 })
-    expect(getMock).toHaveBeenCalledWith('/dashboard/resumo/')
+    expect(getMock).toHaveBeenCalledWith('/configurador/dashboard/resumo/')
   })
 })

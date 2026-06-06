@@ -3,7 +3,7 @@
 import apiClient from '@/services/apiClient'
 import type { CargaDetail, CargaListItem, CargaModelo, TipoCarga } from '../types/carga'
 
-const BASE_URL = '/cargas/'
+const BASE_URL = '/configurador/cargas/'
 
 type ListResponse<T> = {
   results?: T[]
@@ -54,7 +54,7 @@ export async function listarModelosCarga(params?: {
   tipo?: TipoCarga
   q?: string
 }): Promise<CargaModelo[]> {
-  const response = await apiClient.get<CargaModelo[]>('/cargas/modelos/', { params })
+  const response = await apiClient.get<CargaModelo[]>('/configurador/cargas/modelos/', { params })
   return response.data
 }
 
@@ -64,7 +64,7 @@ export async function criarModeloCarga(body: {
   payload: Record<string, unknown>
   ativo?: boolean
 }): Promise<CargaModelo> {
-  const response = await apiClient.post<CargaModelo>('/cargas/modelos/', body)
+  const response = await apiClient.post<CargaModelo>('/configurador/cargas/modelos/', body)
   return response.data
 }
 
@@ -77,10 +77,10 @@ export async function atualizarModeloCarga(
     ativo?: boolean
   }
 ): Promise<CargaModelo> {
-  const response = await apiClient.put<CargaModelo>(`/cargas/modelos/${id}/`, body)
+  const response = await apiClient.put<CargaModelo>(`/configurador/cargas/modelos/${id}/`, body)
   return response.data
 }
 
 export async function deletarModeloCarga(id: string): Promise<void> {
-  await apiClient.delete(`/cargas/modelos/${id}/`)
+  await apiClient.delete(`/configurador/cargas/modelos/${id}/`)
 }

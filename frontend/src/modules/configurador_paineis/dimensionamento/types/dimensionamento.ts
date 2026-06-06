@@ -3,7 +3,7 @@
  * e payload de revisão/aprovação de bitolas.
  */
 
-/** Resposta GET/PATCH `/dimensionamento/projeto/:id/` (detalhe com condutores). */
+/** Resposta GET/PATCH `/configurador/dimensionamento/projeto/:id/` (detalhe com condutores). */
 export type TabelaReferenciaCondutor = {
   secao_mm2: string
   iz_a: string

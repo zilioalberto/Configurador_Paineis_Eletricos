@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -19,6 +20,7 @@ def _projeto_stub():
     )
 
 
+@pytest.mark.django_db
 def test_motor_corrente_baixa_forca_minimo_um_e_meio_mm2():
     espec = SimpleNamespace(
         corrente_calculada_a=Decimal("0.05"),
@@ -28,6 +30,7 @@ def test_motor_corrente_baixa_forca_minimo_um_e_meio_mm2():
     assert d["secao_condutor_fase_mm2"] == Decimal("1.50")
 
 
+@pytest.mark.django_db
 def test_resistencia_corrente_baixa_forca_minimo_um_mm2():
     espec = SimpleNamespace(
         corrente_calculada_a=Decimal("0.05"),

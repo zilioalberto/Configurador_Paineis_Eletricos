@@ -45,7 +45,10 @@ class CargaViewSet(ModelViewSet):
 
     def required_permission(self, request, view):
         if self.action in ("list", "retrieve"):
-            return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+            return (
+                PermissionKeys.MATERIAL_VISUALIZAR_LISTA,
+                PermissionKeys.PROJETO_VISUALIZAR,
+            )
         if self.action in ("create", "update", "partial_update", "destroy"):
             return PermissionKeys.MATERIAL_EDITAR_LISTA
         return None

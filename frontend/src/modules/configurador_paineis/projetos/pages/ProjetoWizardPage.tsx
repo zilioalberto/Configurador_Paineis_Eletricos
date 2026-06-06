@@ -1,5 +1,6 @@
-import { useCallback } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useToast } from '@/components/feedback'
 import { useGerarSugestoesMutation } from '@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation'
 import { useReavaliarPendenciasMutation } from '@/modules/configurador_paineis/composicao/hooks/useReavaliarPendenciasMutation'
@@ -20,6 +21,8 @@ import {
   useProjetoWizardFluxo,
   type WizardStepId,
 } from '../hooks/useProjetoWizardFluxo'
+import { withFluxoOrigem } from '../utils/fluxoOrigem'
+import { configuradorPaths } from '../../configuradorPaths'
 
 /**
  * Shell do wizard por etapa (`/projetos/:id/fluxo/:etapa`):
@@ -29,6 +32,8 @@ export default function ProjetoWizardPage() {
   const { id, etapa } = useParams<{ id: string; etapa: string }>()
   const projetoId = id ?? ''
   const etapaParam = etapa ?? ''
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const etapaInvalidaNaUrl = Boolean(etapaParam) && !ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
   const etapaAtual: WizardStepId = ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
     ? (etapaParam as WizardStepId)
@@ -59,6 +64,53 @@ export default function ProjetoWizardPage() {
 
   const etapaIndex = steps.findIndex((s) => s.id === etapaAtual)
   const proxima = etapaIndex >= 0 ? steps.slice(etapaIndex).find((s) => !s.done && s.canEnter) : null
+  const onSalvarIrSugestoes = useCallback(() => {
+    navigate(withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams))
+  }, [navigate, projetoId, searchParams])
+
+  const toolbarConfig = useMemo(() => {
+    if (etapaAtual !== 'dimensionamento') return null
+
+    const retornoDimensionamento = withFluxoOrigem(
+      configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+      searchParams
+    )
+    const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
+
+    return {
+      title: 'Dimensionamento de condutores',
+      subtitle: undefined,
+      actions: (
+        <>
+          <Link
+            to={editarConfiguracaoPath}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar configurações
+          </Link>
+          <Link
+            to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar cargas
+          </Link>
+        </>
+      ),
+      primaryAction: {
+        label: 'Salvar e ir para sugestões',
+        disabled: !dimensionamentoEtapaConcluida,
+        onClick: onSalvarIrSugestoes,
+      },
+    }
+  }, [
+    dimensionamentoEtapaConcluida,
+    etapaAtual,
+    onSalvarIrSugestoes,
+    projetoId,
+    searchParams,
+  ])
+
+  useAppPageToolbar(toolbarConfig)
 
   const onRecalcular = useCallback(async () => {
     try {
@@ -107,19 +159,19 @@ export default function ProjetoWizardPage() {
   }, [reavaliarMutation, showToast])
 
   if (!id) {
-    return <Navigate to="/projetos" replace />
+    return <Navigate to={configuradorPaths.configuracoes} replace />
   }
 
   if (etapaInvalidaNaUrl) {
-    return <Navigate to={`/projetos/${projetoId}/fluxo/cargas`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'cargas'), searchParams)} replace />
   }
 
   if (etapaAtual === 'composicao') {
-    return <Navigate to={`/composicao?projeto=${encodeURIComponent(projetoId)}`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)} replace />
   }
 
   if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {
-    return <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
   }
 
   const mostrarOverview = etapaAtual !== 'dimensionamento'
@@ -145,7 +197,6 @@ export default function ProjetoWizardPage() {
       {etapaAtual === 'dimensionamento' ? (
         <DimensionamentoWizardShell
           projetoId={projetoId}
-          projetoCodigo={projeto?.codigo}
           projetoNome={projeto?.nome}
           temCargas={temCargas}
         >
@@ -158,7 +209,7 @@ export default function ProjetoWizardPage() {
               </p>
               <Link
                 className="btn btn-sm btn-outline-primary"
-                to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}
+                to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
               >
                 Gerenciar cargas
               </Link>

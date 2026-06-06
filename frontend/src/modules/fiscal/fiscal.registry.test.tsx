@@ -13,7 +13,14 @@ describe('fiscal.registry', () => {
         requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
       }),
     ])
-    expect(fiscalRoutes.map((r) => r.path)).toEqual(['/fiscal', '/fiscal/itens-fiscais'])
+    expect(fiscalRoutes.map((r) => r.path)).toEqual([
+      '/fiscal',
+      '/fiscal/itens-fiscais',
+      '/fiscal/nfes',
+      '/fiscal/nfes/importar',
+      '/fiscal/nfes/:id',
+      '/fiscal/nsu',
+    ])
     expect(fiscalRoutes.every((r) => r.element != null)).toBe(true)
   })
 })
