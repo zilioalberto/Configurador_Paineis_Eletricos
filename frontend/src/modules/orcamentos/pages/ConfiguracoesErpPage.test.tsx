@@ -63,11 +63,27 @@ describe('ConfiguracoesErpPage', () => {
   })
 
   it('permite editar margem de bitola na aba configurador', async () => {
+    atualizarParametroConfiguracao.mockResolvedValueOnce({
+      id: 'p2',
+      chave: 'configurador.degraus_margem_bitola_condutores',
+      valor: '0',
+      descricao: 'Margem bitola',
+    })
+
     renderPage()
 
-    expect(await screen.findByLabelText(/Margem de bitola/i)).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText(/Margem de bitola/i), { target: { value: '0' } })
-    fireEvent.click(screen.getByRole('button', { name: /Guardar margem de bitola/i }))
+    const select = await screen.findByLabelText(/Margem de bitola/i)
+    await waitFor(() => {
+      expect(select).toHaveValue('1')
+    })
+
+    fireEvent.change(select, { target: { value: '0' } })
+
+    const saveBtn = screen.getByRole('button', { name: /Guardar margem de bitola/i })
+    await waitFor(() => {
+      expect(saveBtn).toBeEnabled()
+    })
+    fireEvent.click(saveBtn)
 
     await waitFor(() => {
       expect(atualizarParametroConfiguracao).toHaveBeenCalledWith(

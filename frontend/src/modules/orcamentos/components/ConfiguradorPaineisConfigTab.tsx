@@ -27,12 +27,13 @@ export default function ConfiguradorPaineisConfigTab({
 }: Props) {
   const { showToast } = useToast()
   const paramMargem = parametros.find((p) => p.chave === CHAVE_DEGRAUS_MARGEM_BITOLA_CONDUTORES)
-  const [degraus, setDegraus] = useState(() => parseDegraus(paramMargem?.valor))
+  const valorServidor = parseDegraus(paramMargem?.valor)
+  const [degraus, setDegraus] = useState(valorServidor)
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
-    setDegraus(parseDegraus(paramMargem?.valor))
-  }, [paramMargem?.valor])
+    setDegraus(valorServidor)
+  }, [valorServidor])
 
   const guardarMargem = useCallback(async () => {
     if (!paramMargem || !podeGerenciar) return
@@ -99,7 +100,7 @@ export default function ConfiguradorPaineisConfigTab({
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                disabled={salvando || degraus === parseDegraus(paramMargem.valor)}
+                disabled={salvando || degraus === valorServidor}
                 onClick={() => void guardarMargem()}
               >
                 {salvando ? 'Guardando…' : 'Guardar margem de bitola'}
