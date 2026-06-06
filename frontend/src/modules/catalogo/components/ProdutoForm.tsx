@@ -67,11 +67,18 @@ export default function ProdutoForm({
       ...fornecedores,
       {
         id,
-        razao_social: formData.fabricante.trim() || id,
-        documento: '',
+        razao_social:
+          formData.fabricante_parceiro_nome.trim() || formData.fabricante.trim() || id,
+        documento: formData.fabricante_parceiro_documento.trim(),
       },
     ]
-  }, [fornecedores, formData.fabricante_parceiro, formData.fabricante])
+  }, [
+    fornecedores,
+    formData.fabricante_parceiro,
+    formData.fabricante,
+    formData.fabricante_parceiro_nome,
+    formData.fabricante_parceiro_documento,
+  ])
 
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -94,7 +101,12 @@ export default function ProdutoForm({
     (e: ChangeEvent<HTMLSelectElement>) => {
       const id = e.target.value.trim()
       if (!id) {
-        setFormData((prev) => ({ ...prev, fabricante_parceiro: '' }))
+        setFormData((prev) => ({
+          ...prev,
+          fabricante_parceiro: '',
+          fabricante_parceiro_nome: '',
+          fabricante_parceiro_documento: '',
+        }))
         return
       }
       const f = opcoesFabricanteParceiro.find((x) => x.id === id)
@@ -102,6 +114,8 @@ export default function ProdutoForm({
       setFormData((prev) => ({
         ...prev,
         fabricante_parceiro: id,
+        fabricante_parceiro_nome: nome,
+        fabricante_parceiro_documento: f?.documento ?? '',
         fabricante: nome,
       }))
     },
@@ -297,7 +311,7 @@ export default function ProdutoForm({
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="produto-fabricante-parceiro">
-          Fabricante (cadastro)
+          Fornecedor/Fabricante (cadastro)
         </label>
         <select
           id="produto-fabricante-parceiro"
@@ -317,7 +331,18 @@ export default function ProdutoForm({
         {!canVerCadastro ? (
           <p className="form-text small text-muted mb-0">
             É necessária a permissão de visualizar cadastros para listar fornecedores/fabricantes. Sem
-            ela, o vínculo permanece em branco.
+            ela, o vínculo atual é exibido, mas não pode ser alterado por aqui.
+          </p>
+        ) : null}
+        {formData.fabricante_parceiro.trim() && formData.fabricante_parceiro_nome.trim() ? (
+          <p className="form-text small text-muted mb-0">
+            Fornecedor vinculado:{' '}
+            <strong>
+              {formData.fabricante_parceiro_nome}
+              {formData.fabricante_parceiro_documento
+                ? ` — ${formData.fabricante_parceiro_documento}`
+                : ''}
+            </strong>
           </p>
         ) : null}
         {formData.fabricante.trim() && !formData.fabricante_parceiro.trim() ? (

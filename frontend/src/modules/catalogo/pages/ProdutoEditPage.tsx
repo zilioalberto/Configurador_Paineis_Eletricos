@@ -75,8 +75,9 @@ export default function ProdutoEditPage() {
       <div className="mb-4">
         <h1 className="h3 mb-1">Editar produto</h1>
         <p className="text-muted mb-0">
-          A categoria não pode ser alterada após o cadastro. A especificação técnica é editável e
-          corresponde ao modelo da categoria na API.
+          Atualize categoria, fornecedor/fabricante, dados comerciais e a especificação técnica do
+          produto. Ao trocar a categoria, o formulário passa a usar os campos técnicos da nova
+          classificação.
         </p>
       </div>
 
@@ -112,7 +113,6 @@ export default function ProdutoEditPage() {
               initialData={initialData}
               onSubmit={handleSubmit}
               loading={updateMutation.isPending}
-              lockCategoria
             />
           )}
 

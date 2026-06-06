@@ -13,6 +13,8 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   preco_base: '0',
   aliquota_ipi: '',
   fabricante_parceiro: '',
+  fabricante_parceiro_nome: '',
+  fabricante_parceiro_documento: '',
   fabricante: '',
   referencia_fabricante: '',
   largura_mm: '',

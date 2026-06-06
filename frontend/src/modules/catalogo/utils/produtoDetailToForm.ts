@@ -43,6 +43,8 @@ export function produtoDetailToForm(
     preco_base: String(p.preco_base ?? '0'),
     aliquota_ipi: strDecApi(p.aliquota_ipi),
     fabricante_parceiro: p.fabricante_parceiro ?? '',
+    fabricante_parceiro_nome: p.fabricante_parceiro_nome ?? '',
+    fabricante_parceiro_documento: p.fabricante_parceiro_documento ?? '',
     fabricante: String(p.fabricante ?? ''),
     referencia_fabricante: String(p.referencia_fabricante ?? ''),
     largura_mm: p.largura_mm != null ? String(p.largura_mm) : '',

@@ -62,6 +62,8 @@ export type ProdutoFormData = {
   aliquota_ipi: string
   /** UUID do parceiro fornecedor (fabricante) ou vazio. */
   fabricante_parceiro: string
+  fabricante_parceiro_nome: string
+  fabricante_parceiro_documento: string
   fabricante: string
   referencia_fabricante: string
   largura_mm: string
