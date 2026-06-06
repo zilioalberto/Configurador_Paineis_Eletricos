@@ -8,10 +8,10 @@ import {
   projetoFluxoTituloBloqueio,
 } from '../utils/projetoFluxoNav'
 
-type Props = {
+type Props = Readonly<{
   projetoId: string
   etapaAtual: ProjetoFluxoEtapaId
-}
+}>
 
 /** Etapas compactas do fluxo na barra azul superior. */
 export function ProjetoFluxoHeaderSteps({ projetoId, etapaAtual }: Props) {

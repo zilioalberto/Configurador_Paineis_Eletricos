@@ -201,8 +201,10 @@ describe('ProjetoWizardPage', () => {
     const blockedStepLink = screen
       .getAllByRole('link', { name: /Abrir etapa/i })
       .find((link) => link.getAttribute('aria-disabled') === 'true')
-    expect(blockedStepLink).toBeTruthy()
-    fireEvent.click(blockedStepLink!)
+    if (!blockedStepLink) {
+      throw new Error('Expected blocked step link')
+    }
+    fireEvent.click(blockedStepLink)
   })
 
   it('aciona recalculo e geração de composição pelos botões rápidos', () => {

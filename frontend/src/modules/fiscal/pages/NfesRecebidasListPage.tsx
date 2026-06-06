@@ -104,7 +104,7 @@ export default function NfesRecebidasListPage() {
           <Link to={fiscalPaths.nfeImportarManual} className="btn btn-primary">
             Importar XML
           </Link>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => void refetch()}>
+          <button type="button" className="btn btn-outline-secondary" onClick={() => refetch().catch(() => undefined)}>
             Atualizar
           </button>
         </div>

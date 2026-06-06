@@ -45,17 +45,17 @@ function aplicarTokensTecnicos(texto: string): string {
     (_, num, sigla) => `${num}${sigla.toUpperCase()}`
   )
   for (const sigla of [...SIGLAS].sort((a, b) => b.length - a.length)) {
-    const re = new RegExp(`\\b${sigla.replace('/', '\\/')}\\b`, 'gi')
+    const escaped = sigla.replace('/', String.raw`\/`)
+    const re = new RegExp(String.raw`\b${escaped}\b`, 'gi')
     resultado = resultado.replace(re, sigla.toUpperCase())
   }
   return resultado
 }
 
-export function capitalizarTextoTecnico(valor: string): string {
-  const texto = valor ?? ''
-  if (!texto.trim()) return texto
+export function capitalizarTextoTecnico(valor = ''): string {
+  if (!valor.trim()) return valor
 
-  return texto
+  return valor
     .split('\n')
     .map((linha) => {
       const conteudo = linha.trim()

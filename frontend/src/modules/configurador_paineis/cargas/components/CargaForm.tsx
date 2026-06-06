@@ -63,6 +63,24 @@ type CargaFormProps = {
   hideOptionalFields?: boolean
 }
 
+function gridColSm(isPanel: boolean, compact: boolean): string {
+  if (isPanel) return 'col-6 col-lg-4 col-xl-3'
+  if (compact) return 'col-sm-6 col-lg-4'
+  return 'col-md-4'
+}
+
+function gridColMd(isPanel: boolean, compact: boolean): string {
+  if (isPanel) return 'col-6 col-lg-4 col-xl-3'
+  if (compact) return 'col-sm-6 col-md-4'
+  return 'col-md-4'
+}
+
+function gridColMd3(isPanel: boolean, compact: boolean): string {
+  if (isPanel) return 'col-6 col-lg-4 col-xl-3'
+  if (compact) return 'col-6 col-md-4 col-lg-3'
+  return 'col-md-3'
+}
+
 export default function CargaForm({
   projetos,
   onSubmit,
@@ -79,23 +97,11 @@ export default function CargaForm({
 }: CargaFormProps) {
   const compact = layout === 'compact' || layout === 'panel'
   const isPanel = layout === 'panel'
-  const colSm = isPanel
-    ? 'col-6 col-lg-4 col-xl-3'
-    : compact
-      ? 'col-sm-6 col-lg-4'
-      : 'col-md-4'
-  const colMd = isPanel
-    ? 'col-6 col-lg-4 col-xl-3'
-    : compact
-      ? 'col-sm-6 col-md-4'
-      : 'col-md-4'
+  const colSm = gridColSm(isPanel, compact)
+  const colMd = gridColMd(isPanel, compact)
   const colMd6 = compact ? 'col-sm-6' : 'col-md-6'
   const colMd8 = compact ? 'col-sm-6 col-lg-8' : 'col-md-8'
-  const colMd3 = isPanel
-    ? 'col-6 col-lg-4 col-xl-3'
-    : compact
-      ? 'col-6 col-md-4 col-lg-3'
-      : 'col-md-3'
+  const colMd3 = gridColMd3(isPanel, compact)
   const sectionTitleClass = compact ? 'h6 text-muted mb-0' : 'h5'
   const rowGap = compact ? 'g-2' : 'g-3'
   const [formData, setFormData] = useState<CargaFormData>(initialData)
@@ -363,7 +369,7 @@ export default function CargaForm({
                   )
                 )}
               </div>
-              {!esconderCamposAnalogicosIo ? (
+              {esconderCamposAnalogicosIo ? null : (
                 <div className="carga-form-panel__io-row carga-form-panel__io-row--analog">
                   {ioAnalogFields.map(([name, label]) =>
                     renderIoQuantityInput(
@@ -373,7 +379,7 @@ export default function CargaForm({
                     )
                   )}
                 </div>
-              ) : null}
+              )}
             </>
           ) : null}
         </div>
@@ -386,11 +392,11 @@ export default function CargaForm({
 
     return (
     <>
-      {!omitSectionTitle ? (
+      {omitSectionTitle ? null : (
         <div className="col-12">
           <h2 className={`${sectionTitleClass} mt-2`}>Requisitos</h2>
         </div>
-      ) : null}
+      )}
 
       {(
         [['exige_comando', 'Exige comando']] as const
@@ -578,8 +584,11 @@ export default function CargaForm({
             </div>
 
             <div className={colMd8}>
-              <label className="form-label">Descrição</label>
+              <label className="form-label" htmlFor="carga-descricao">
+                Descrição
+              </label>
               <input
+                id="carga-descricao"
                 type="text"
                 name="descricao"
                 className={controlClass}
@@ -589,7 +598,7 @@ export default function CargaForm({
               />
             </div>
 
-            {!hideOptionalFields ? (
+            {hideOptionalFields ? null : (
               <>
                 <div className={colMd6}>
                   <label className="form-label">Local de instalação</label>
@@ -614,7 +623,7 @@ export default function CargaForm({
                   />
                 </div>
               </>
-            ) : null}
+            )}
           </>
         ) : null}
 
@@ -1199,7 +1208,7 @@ export default function CargaForm({
             {!isPanel ? <hr /> : null}
             <p className="text-muted small mb-0">
               Não há parâmetros específicos adicionais para este tipo no sistema.
-              {!hideOptionalFields ? ' Use observações para detalhar a carga.' : null}
+              {hideOptionalFields ? null : ' Use observações para detalhar a carga.'}
             </p>
           </div>
         )}

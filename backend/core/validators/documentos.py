@@ -36,7 +36,8 @@ def validar_cnpj_digitos(cnpj: str) -> str:
     primeiro = _calcular_digito_cnpj(base, (5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2))
     segundo = _calcular_digito_cnpj(base + str(primeiro), (6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2))
 
-    if digits[-2:] != f"{primeiro}{segundo}":
+    expected = f"{primeiro}{segundo}"
+    if not digits.endswith(expected):
         raise DocumentoInvalidoError("CNPJ invalido (digitos verificadores).")
 
     return digits
@@ -54,7 +55,8 @@ def validar_cpf_digitos(cpf: str) -> str:
     primeiro = _calcular_digito_cnpj(digits[:9], (10, 9, 8, 7, 6, 5, 4, 3, 2))
     segundo = _calcular_digito_cnpj(digits[:10], (11, 10, 9, 8, 7, 6, 5, 4, 3, 2))
 
-    if digits[-2:] != f"{primeiro}{segundo}":
+    expected = f"{primeiro}{segundo}"
+    if not digits.endswith(expected):
         raise DocumentoInvalidoError("CPF invalido (digitos verificadores).")
 
     return digits

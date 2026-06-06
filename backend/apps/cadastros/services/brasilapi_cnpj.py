@@ -280,40 +280,50 @@ def _cnae_principal(cnaes: list[CnaeCnpjPreview]) -> CnaeCnpjPreview | None:
     return cnaes[0] if cnaes else None
 
 
+def _append_cnae_preview(
+    cnaes: list[CnaeCnpjPreview],
+    vistos: set[str],
+    codigo_raw: Any,
+    descricao: str,
+    *,
+    principal: bool,
+) -> None:
+    if codigo_raw is None or not str(codigo_raw).strip():
+        return
+    codigo_limpo = re.sub(r"\D", "", str(codigo_raw))[:7]
+    if not codigo_limpo or codigo_limpo in vistos:
+        return
+    vistos.add(codigo_limpo)
+    cnaes.append(
+        CnaeCnpjPreview(
+            codigo=codigo_limpo,
+            descricao=descricao[:255],
+            principal=principal,
+        )
+    )
+
+
 def _map_cnaes(payload: dict[str, Any]) -> list[CnaeCnpjPreview]:
     cnaes: list[CnaeCnpjPreview] = []
     vistos: set[str] = set()
 
-    codigo_principal = payload.get("cnae_fiscal")
-    if codigo_principal is not None and str(codigo_principal).strip():
-        codigo = str(codigo_principal).strip()
-        codigo_limpo = re.sub(r"\D", "", codigo)[:7]
-        if codigo_limpo and codigo_limpo not in vistos:
-            vistos.add(codigo_limpo)
-            cnaes.append(
-                CnaeCnpjPreview(
-                    codigo=codigo_limpo,
-                    descricao=(payload.get("cnae_fiscal_descricao") or "").strip()[:255],
-                    principal=True,
-                )
-            )
+    _append_cnae_preview(
+        cnaes,
+        vistos,
+        payload.get("cnae_fiscal"),
+        (payload.get("cnae_fiscal_descricao") or "").strip(),
+        principal=True,
+    )
 
     for item in payload.get("cnaes_secundarios") or []:
         if not isinstance(item, dict):
             continue
-        codigo_raw = item.get("codigo")
-        if codigo_raw is None:
-            continue
-        codigo_limpo = re.sub(r"\D", "", str(codigo_raw))[:7]
-        if not codigo_limpo or codigo_limpo in vistos:
-            continue
-        vistos.add(codigo_limpo)
-        cnaes.append(
-            CnaeCnpjPreview(
-                codigo=codigo_limpo,
-                descricao=(item.get("descricao") or "").strip()[:255],
-                principal=False,
-            )
+        _append_cnae_preview(
+            cnaes,
+            vistos,
+            item.get("codigo"),
+            (item.get("descricao") or "").strip(),
+            principal=False,
         )
 
     return cnaes[:max_cnaes_cnpj()]

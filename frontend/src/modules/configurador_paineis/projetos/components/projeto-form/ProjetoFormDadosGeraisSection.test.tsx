@@ -31,15 +31,14 @@ describe('ProjetoFormDadosGeraisSection', () => {
           />
     )
 
-    fireEvent.change(document.querySelector('input[name="nome"]')!, {
+    fireEvent.change(screen.getByDisplayValue('A'), {
       target: { value: 'Novo' },
     })
-    expect(onFieldChange).toHaveBeenCalled()
 
     fireEvent.change(screen.getByLabelText('Cliente'), {
       target: { value: 'Cliente X' },
     })
-    expect(onFieldChange).toHaveBeenCalled()
+    expect(onFieldChange).toHaveBeenCalledTimes(2)
   })
 
   it('mostra hint de bloqueio quando finalizado', () => {
@@ -76,7 +75,6 @@ describe('ProjetoFormDadosGeraisSection', () => {
     const responsavelSelect = screen
       .getAllByRole('combobox')
       .find((el) => el.getAttribute('name') === 'responsavel')
-    expect(responsavelSelect).toBeTruthy()
     expect(responsavelSelect).toBeEnabled()
   })
 })

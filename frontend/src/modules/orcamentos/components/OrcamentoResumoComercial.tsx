@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import type { OrcamentoPreviewTotaisDto } from '../types/orcamentos'
 import { formatarPercentualExibicao } from '../utils/orcamentoUi'
 
@@ -25,6 +27,16 @@ export default function OrcamentoResumoComercial({
   onDescontoPercentualChange,
 }: Props) {
   const controlesDesconto = podeEditar && podeConfigurarDesconto
+
+  let avisoDescontoSomenteLeitura: ReactNode = null
+  if (!controlesDesconto && descontoAtivo) {
+    avisoDescontoSomenteLeitura = (
+      <p className="text-muted small mb-2">
+        Desconto comercial aplicado ({formatarPercentualExibicao(descontoPercentual)}%). Você não
+        tem permissão para alterar este valor.
+      </p>
+    )
+  }
 
   return (
     <div className="orcamento-doc__resumo-comercial" aria-label="Resumo comercial da proposta">
@@ -56,12 +68,9 @@ export default function OrcamentoResumoComercial({
             </div>
           ) : null}
         </>
-      ) : descontoAtivo ? (
-        <p className="text-muted small mb-2">
-          Desconto comercial aplicado ({formatarPercentualExibicao(descontoPercentual)}%). Você não
-          tem permissão para alterar este valor.
-        </p>
-      ) : null}
+      ) : (
+        avisoDescontoSomenteLeitura
+      )}
 
       <ResumoFinanceiroOferta totais={totais} />
     </div>

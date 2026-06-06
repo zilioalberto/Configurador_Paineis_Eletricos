@@ -84,7 +84,7 @@ export default function Header({
   const handleLogout = useCallback(() => {
     closeAll()
     logout()
-    void navigate('/login', { replace: true })
+    navigate('/login', { replace: true })
   }, [closeAll, logout, navigate])
 
   useEffect(() => {
@@ -225,7 +225,9 @@ export default function Header({
               <NotificacoesHeaderPanel
                 aberto={notifOpen}
                 panelId={notifId}
-                onContagemChange={() => void atualizarNotifContagem()}
+                onContagemChange={() => {
+                  atualizarNotifContagem().catch(() => undefined)
+                }}
                 onNavigate={closeOnNavigate}
               />
             </div>

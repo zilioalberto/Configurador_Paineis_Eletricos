@@ -201,7 +201,7 @@ export default function ProjetoCreatePage() {
           <button
             type="button"
             className="btn btn-sm btn-outline-dark"
-            onClick={() => void refetchCodigo()}
+            onClick={() => refetchCodigo().catch(() => undefined)}
           >
             Tentar novamente
           </button>

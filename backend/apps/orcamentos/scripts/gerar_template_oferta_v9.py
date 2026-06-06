@@ -88,7 +88,7 @@ def transformar_documento_xml(xml: str) -> str:
                     or texto == "Exclusões"
                 ):
                     indices_remover.add(i)
-                elif texto.startswith("Exclus") or texto.startswith("Observ"):
+                elif texto.startswith(("Exclus", "Observ")):
                     indices_remover.add(i)
 
     # Remove "Sistema elétrico" e título fixo duplicado antes do corpo

@@ -3,7 +3,6 @@ import {
   useMemo,
   useState,
   type Dispatch,
-  type DragEvent,
   type SetStateAction,
 } from 'react'
 
@@ -19,13 +18,8 @@ import { INVESTIMENTO_DESCRICAO_DEMAIS_PADRAO } from '../utils/investimentoDescr
 import { formatarNcmInvestimentoInput } from '../utils/ncmInvestimento'
 import {
   agruparBlocosEditorOferta,
-  blocoEditavelNoDocumento,
-  dicaSecaoOferta,
-  estimarLinhasTextarea,
-  rotuloTipoBlocoOferta,
   secaoOfertaComConteudo,
   secoesTemplateParaPerfil,
-  tituloExibicaoBlocoOferta,
   tituloPadraoTipoBloco,
 } from '../utils/ofertaBlocoUi'
 import {
@@ -43,6 +37,7 @@ import {
 import { parseDecimalPt, valorMonetarioTabela } from '../utils/orcamentoUi'
 
 import PropostaClienteDocument from './PropostaClienteDocument'
+import OfertaSecaoCard from './OfertaSecaoCard'
 
 import './OrcamentoOfertaDocumentoEditor.css'
 import './PropostaClienteDocument.css'
@@ -235,90 +230,26 @@ export default function OrcamentoOfertaDocumentoEditor({
     bloco: OrcamentoOfertaBlocoDto,
     grupoOrdem?: GrupoOrdemSecao,
     totalNoGrupo = 1
-  ) => {
-    const editavel = blocoEditavelNoDocumento(bloco, podeEditar)
-    const incluida = secaoOfertaComConteudo(bloco)
-    const podeArrastar = Boolean(podeEditar && grupoOrdem && totalNoGrupo > 1)
-    const ehAlvo = alvoArrasteTipo === bloco.tipo && arrastandoTipo !== bloco.tipo
-
-    return (
-      <section
-        key={bloco.tipo}
-        id={`orc-oferta-secao-${bloco.tipo}`}
-        className={[
-          'orcamento-oferta-secao-card',
-          incluida ? '' : ' orcamento-oferta-secao-card--oculta',
-          podeArrastar ? ' orcamento-oferta-secao-card--arrastavel' : '',
-          ehAlvo ? ' orcamento-oferta-secao-card--arraste-alvo' : '',
-          arrastandoTipo === bloco.tipo ? ' orcamento-oferta-secao-card--arrastando' : '',
-        ].join('')}
-        draggable={podeArrastar}
-        onDragStart={(e: DragEvent<HTMLElement>) => {
-          if (!podeArrastar) return
-          setArrastandoTipo(bloco.tipo)
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', bloco.tipo)
-        }}
-        onDragEnd={() => {
-          setArrastandoTipo(null)
-          setAlvoArrasteTipo(null)
-        }}
-        onDragOver={(e: DragEvent<HTMLElement>) => {
-          if (!podeArrastar || !arrastandoTipo || arrastandoTipo === bloco.tipo) return
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'move'
-          setAlvoArrasteTipo(bloco.tipo)
-        }}
-        onDragLeave={() => {
-          if (alvoArrasteTipo === bloco.tipo) setAlvoArrasteTipo(null)
-        }}
-        onDrop={(e: DragEvent<HTMLElement>) => {
-          e.preventDefault()
-          if (!grupoOrdem || !arrastandoTipo || arrastandoTipo === bloco.tipo) return
-          reordenarGrupo(grupoOrdem, arrastandoTipo, bloco.tipo)
-          setArrastandoTipo(null)
-          setAlvoArrasteTipo(null)
-        }}
-      >
-        <div className="orcamento-oferta-secao-card__head">
-          {podeArrastar ? (
-            <span
-              className="orcamento-oferta-secao-card__arraste"
-              title="Arrastar para reordenar na proposta ao cliente"
-              aria-hidden
-            >
-              ⠿
-            </span>
-          ) : null}
-          <h3 className="orcamento-oferta-secao-card__titulo">
-            {tituloExibicaoBlocoOferta(bloco)}
-          </h3>
-          {incluida && editavel ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-link text-danger p-0"
-              onClick={() => limparSecao(bloco.tipo)}
-            >
-              Retirar da proposta
-            </button>
-          ) : null}
-          {!incluida ? (
-            <span className="orcamento-oferta-secao-card__badge">Não incluída</span>
-          ) : null}
-        </div>
-        <p className="orcamento-oferta-secao-card__dica">{dicaSecaoOferta(bloco.tipo)}</p>
-        <textarea
-          className="orcamento-oferta-secao-card__textarea"
-          value={bloco.conteudo || ''}
-          onChange={(e) => atualizarConteudoBloco(bloco.tipo, e.target.value)}
-          disabled={!editavel}
-          rows={estimarLinhasTextarea(bloco.conteudo || '', 3, 14)}
-          aria-label={bloco.titulo || rotuloTipoBlocoOferta(bloco.tipo)}
-          placeholder="Parágrafos separados por linha em branco. Use «- » para listas."
-        />
-      </section>
-    )
-  }
+  ) => (
+    <OfertaSecaoCard
+      key={bloco.tipo}
+      bloco={bloco}
+      podeEditar={podeEditar}
+      grupoOrdem={grupoOrdem}
+      totalNoGrupo={totalNoGrupo}
+      arrastandoTipo={arrastandoTipo}
+      alvoArrasteTipo={alvoArrasteTipo}
+      onArrastarInicio={setArrastandoTipo}
+      onArrastarFim={() => {
+        setArrastandoTipo(null)
+        setAlvoArrasteTipo(null)
+      }}
+      onArrastarAlvo={setAlvoArrasteTipo}
+      onReordenar={reordenarGrupo}
+      onAtualizarConteudo={atualizarConteudoBloco}
+      onLimparSecao={limparSecao}
+    />
+  )
 
   const secoesDisponiveisParaIncluir = useMemo(
     () =>

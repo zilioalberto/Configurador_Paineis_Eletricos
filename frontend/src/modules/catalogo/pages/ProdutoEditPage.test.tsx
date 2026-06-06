@@ -108,7 +108,7 @@ describe('ProdutoEditPage', () => {
   })
 
   it('sem id mostra alerta', () => {
-    useParams.mockReturnValue({} as { id: string })
+    useParams.mockReturnValue({})
     useProdutoDetailQueryMock.mockReturnValue({
       data: undefined,
       isPending: false,
@@ -126,7 +126,7 @@ describe('ProdutoEditPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     )
-    expect(screen.getByText(/Produto não informado/i)).toBeInTheDocument()
+    screen.getByText(/Produto não informado/i)
   })
 
   it('mostra carregamento', () => {

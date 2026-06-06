@@ -63,8 +63,10 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
       }),
     onSuccess: (res) => {
       showToast({ variant: 'success', message: res.message })
-      void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.nfeRecebida(documento.id) })
-      void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all })
+      queryClient
+        .invalidateQueries({ queryKey: fiscalQueryKeys.nfeRecebida(documento.id) })
+        .catch(() => undefined)
+      queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all }).catch(() => undefined)
       setTipoJustificativa(null)
       setJustificativa('')
     },
@@ -144,9 +146,9 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
           ) : null}
         </dl>
 
-        {!podeEditar ? (
+        {podeEditar ? null : (
           <p className="small text-muted mb-0">Sem permissão para solicitar manifestação.</p>
-        ) : null}
+        )}
 
         {pendente ? (
           <div className="alert alert-warning small mb-0" role="status">

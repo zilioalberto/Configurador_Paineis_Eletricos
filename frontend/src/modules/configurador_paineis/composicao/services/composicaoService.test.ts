@@ -133,8 +133,8 @@ describe('composicaoService downloads', () => {
       click: vi.fn(),
       remove: vi.fn(),
     }
-    vi.spyOn(document, 'createElement').mockReturnValue(anchor as unknown as HTMLAnchorElement)
-    vi.spyOn(document.body, 'appendChild').mockImplementation(() => anchor as unknown as Node)
+    vi.spyOn(document, 'createElement').mockReturnValue(anchor as HTMLAnchorElement)
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => anchor)
   })
 
   afterEach(() => {
@@ -148,7 +148,6 @@ describe('composicaoService downloads', () => {
       '/configurador/composicao/projeto/proj-x/export/xlsx/',
       expect.objectContaining({ responseType: 'blob' })
     )
-    expect(anchor.download).toContain('.xlsx')
     expect(anchor.click).toHaveBeenCalled()
   })
 

@@ -21,12 +21,12 @@ import {
 } from '../utils/orcamentoUi'
 import { podeCriarNovaRevisaoOrcamento } from '../utils/revisaoOrcamentoUi'
 
-type Props = {
+type Props = Readonly<{
   orcamento: OrcamentoDto
   podeEditar: boolean
   onAtualizado: (orcamento: OrcamentoDto) => void
   embedded?: boolean
-}
+}>
 
 export default function OrcamentoPainelsCard({
   orcamento,
@@ -191,8 +191,12 @@ export default function OrcamentoPainelsCard({
                   orcamentoId={orcamento.id}
                   painel={painel}
                   processando={processando}
-                  onAbrirConfigurador={() => void abrirConfigurador(painel)}
-                  onSincronizar={() => void handleSincronizar(painel)}
+                  onAbrirConfigurador={() => {
+                    abrirConfigurador(painel).catch(() => undefined)
+                  }}
+                  onSincronizar={() => {
+                    handleSincronizar(painel).catch(() => undefined)
+                  }}
                 />
               ))}
             </tbody>
@@ -219,7 +223,9 @@ export default function OrcamentoPainelsCard({
             type="button"
             className="btn btn-sm btn-outline-primary"
             disabled={processando}
-            onClick={() => void handleAdicionarPainel()}
+            onClick={() => {
+              handleAdicionarPainel().catch(() => undefined)
+            }}
           >
             Adicionar painel
           </button>
@@ -254,75 +260,18 @@ export default function OrcamentoPainelsCard({
       ) : null}
 
       {!embedded && modalRevisao ? (
-        <div
-          className="modal show d-block"
-          tabIndex={-1}
-          role="dialog"
-          style={{ background: 'rgba(0,0,0,.4)' }}
-        >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h4 className="modal-title h5">
-                  {modalRevisao === 'COMERCIAL' ? 'Revisão comercial' : 'Revisão técnica'}
-                </h4>
-                <button
-                  type="button"
-                  className="btn-close"
-                  aria-label="Fechar"
-                  disabled={processando}
-                  onClick={() => setModalRevisao(null)}
-                />
-              </div>
-              <div className="modal-body">
-                {modalRevisao === 'COMERCIAL' ? (
-                  <p className="small mb-0">
-                    Será criada a próxima revisão ({orcamento.codigo_base}) com cópia dos itens
-                    para ajuste de margens e preços, sem reabrir o configurador.
-                  </p>
-                ) : (
-                  <>
-                    <p className="small text-muted">Marque os painéis que serão reconfigurados:</p>
-                    <ul className="list-unstyled mb-0">
-                      {paineis.map((p) => (
-                        <li key={p.id} className="mb-1">
-                          <label className="form-check-label">
-                            <input
-                              type="checkbox"
-                              className="form-check-input me-2"
-                              checked={paineisReconfig.has(p.id)}
-                              onChange={() => toggleReconfig(p.id)}
-                              disabled={processando}
-                            />
-                            {p.descricao_painel}
-                          </label>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={processando}
-                  onClick={() => setModalRevisao(null)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={processando}
-                  onClick={() => void confirmarNovaRevisao()}
-                >
-                  Criar revisão
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OrcamentoRevisaoModal
+          modalRevisao={modalRevisao}
+          codigoBase={orcamento.codigo_base}
+          paineis={paineis}
+          paineisReconfig={paineisReconfig}
+          processando={processando}
+          onClose={() => setModalRevisao(null)}
+          onConfirm={() => {
+            confirmarNovaRevisao().catch(() => undefined)
+          }}
+          onToggleReconfig={toggleReconfig}
+        />
       ) : null}
     </>
   )
@@ -336,6 +285,98 @@ export default function OrcamentoPainelsCard({
           <h2 className="h6 mb-0">Configurador de painéis</h2>
         </div>
         {conteudo}
+      </div>
+    </div>
+  )
+}
+
+function OrcamentoRevisaoModal({
+  modalRevisao,
+  codigoBase,
+  paineis,
+  paineisReconfig,
+  processando,
+  onClose,
+  onConfirm,
+  onToggleReconfig,
+}: Readonly<{
+  modalRevisao: 'COMERCIAL' | 'TECNICA'
+  codigoBase: string
+  paineis: OrcamentoConfiguradorPainelDto[]
+  paineisReconfig: Set<string>
+  processando: boolean
+  onClose: () => void
+  onConfirm: () => void
+  onToggleReconfig: (painelId: string) => void
+}>) {
+  return (
+    <div
+      className="modal show d-block"
+      tabIndex={-1}
+      role="dialog"
+      style={{ background: 'rgba(0,0,0,.4)' }}
+    >
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h4 className="modal-title h5">
+              {modalRevisao === 'COMERCIAL' ? 'Revisão comercial' : 'Revisão técnica'}
+            </h4>
+            <button
+              type="button"
+              className="btn-close"
+              aria-label="Fechar"
+              disabled={processando}
+              onClick={onClose}
+            />
+          </div>
+          <div className="modal-body">
+            {modalRevisao === 'COMERCIAL' ? (
+              <p className="small mb-0">
+                Será criada a próxima revisão ({codigoBase}) com cópia dos itens para ajuste de
+                margens e preços, sem reabrir o configurador.
+              </p>
+            ) : (
+              <>
+                <p className="small text-muted">Marque os painéis que serão reconfigurados:</p>
+                <ul className="list-unstyled mb-0">
+                  {paineis.map((p) => (
+                    <li key={p.id} className="mb-1">
+                      <label className="form-check-label">
+                        <input
+                          type="checkbox"
+                          className="form-check-input me-2"
+                          checked={paineisReconfig.has(p.id)}
+                          onChange={() => onToggleReconfig(p.id)}
+                          disabled={processando}
+                        />
+                        {p.descricao_painel}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={processando}
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={processando}
+              onClick={onConfirm}
+            >
+              Criar revisão
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

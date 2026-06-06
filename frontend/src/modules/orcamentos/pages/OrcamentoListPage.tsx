@@ -41,7 +41,7 @@ export default function OrcamentoListPage() {
   }, [showToast])
 
   useEffect(() => {
-    void recarregar()
+    recarregar().catch(() => undefined)
   }, [recarregar])
 
   const statusOptions = useMemo(
@@ -93,7 +93,7 @@ export default function OrcamentoListPage() {
 
   const handlePropostaCriada = useCallback(
     (orcamentoId: string) => {
-      void recarregar()
+      recarregar().catch(() => undefined)
       navigate(`/orcamentos/${orcamentoId}`)
     },
     [navigate, recarregar]

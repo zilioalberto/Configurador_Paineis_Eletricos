@@ -55,7 +55,7 @@ export default function ConfiguracoesErpPage() {
   }, [showToast])
 
   useEffect(() => {
-    void recarregar()
+    recarregar().catch(() => undefined)
   }, [recarregar])
 
   function iniciarEdicao(p: ParametroConfiguracaoDto) {
@@ -117,7 +117,7 @@ export default function ConfiguracoesErpPage() {
           </p>
 
           <ul className="nav nav-tabs mb-3" role="tablist">
-            <li className="nav-item" role="presentation">
+            <li className="nav-item">
               <button
                 type="button"
                 role="tab"
@@ -128,7 +128,7 @@ export default function ConfiguracoesErpPage() {
                 Configurador de painéis
               </button>
             </li>
-            <li className="nav-item" role="presentation">
+            <li className="nav-item">
               <button
                 type="button"
                 role="tab"
@@ -161,7 +161,7 @@ export default function ConfiguracoesErpPage() {
               onCancelarEdicao={cancelarEdicao}
               onValorChange={setValorRascunho}
               onDescricaoChange={setDescricaoRascunho}
-              onGuardar={(chave) => void guardarParametro(chave)}
+              onGuardar={(chave) => guardarParametro(chave).catch(() => undefined)}
             />
           )}
         </div>

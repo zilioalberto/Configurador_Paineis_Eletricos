@@ -292,7 +292,7 @@ export default function OrcamentoDetailPage() {
   }, [aplicarOrcamentoAtualizado, id, showToast])
 
   useEffect(() => {
-    void recarregar()
+    recarregar().catch(() => undefined)
   }, [recarregar])
 
   const linhasProdutos = useMemo(
@@ -349,7 +349,7 @@ export default function OrcamentoDetailPage() {
 
   const handleSalvarProposta: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
-    void salvarPropostaAsync()
+    salvarPropostaAsync().catch(() => undefined)
   }
 
   function montarPayloadItens(linhas: LinhaEditavelOrcamento[]) {
@@ -447,7 +447,7 @@ export default function OrcamentoDetailPage() {
 
   async function atualizarOfertaAsync() {
     if (!id || !podeEditar) return
-    const confirmou = window.confirm(
+    const confirmou = globalThis.confirm(
       'Atualizar a oferta com as margens do cliente e os valores atuais do catálogo? Alterações não salvas na tela serão substituídas pelos dados gravados.'
     )
     if (!confirmou) return
@@ -473,7 +473,7 @@ export default function OrcamentoDetailPage() {
 
   async function finalizarOfertaAsync() {
     if (!id || !podeEditar) return
-    const confirmou = window.confirm(
+    const confirmou = globalThis.confirm(
       'Finalizar esta oferta? Ela ficará congelada para edição interna. Finalizar não significa que a oferta foi enviada ao cliente.'
     )
     if (!confirmou) return
@@ -530,7 +530,7 @@ export default function OrcamentoDetailPage() {
 
   async function reabrirOfertaAsync() {
     if (!id || !podeEditarPerm || orcamento?.status !== 'FINALIZADO') return
-    const confirmou = window.confirm(
+    const confirmou = globalThis.confirm(
       'Reabrir esta oferta para edição? Ela voltará ao modo rascunho e poderá ser alterada integralmente.'
     )
     if (!confirmou) return
@@ -564,14 +564,14 @@ export default function OrcamentoDetailPage() {
     setBaixandoDocxOferta(true)
     try {
       const blob = await baixarDocxOfertaOrcamento(id)
-      const url = window.URL.createObjectURL(blob)
+      const url = globalThis.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `${orcamento.codigo || 'proposta'}_oferta.docx`
       document.body.appendChild(a)
       a.click()
       a.remove()
-      window.URL.revokeObjectURL(url)
+      globalThis.URL.revokeObjectURL(url)
     } catch (err) {
       showToast({
         variant: 'danger',
@@ -609,14 +609,14 @@ export default function OrcamentoDetailPage() {
     setBaixandoArquivoOfertaId(arquivo.id)
     try {
       const blob = await baixarArquivoOfertaOrcamento(id, arquivo.id)
-      const url = window.URL.createObjectURL(blob)
+      const url = globalThis.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = arquivo.nome_original
       document.body.appendChild(a)
       a.click()
       a.remove()
-      window.URL.revokeObjectURL(url)
+      globalThis.URL.revokeObjectURL(url)
     } catch (err) {
       showToast({
         variant: 'danger',
@@ -638,7 +638,7 @@ export default function OrcamentoDetailPage() {
       })
       return
     }
-    const confirmou = window.confirm(
+    const confirmou = globalThis.confirm(
       'Marcar esta oferta como enviada ao cliente? O sistema registrará o PDF final mais recente no histórico.'
     )
     if (!confirmou) return
@@ -669,7 +669,7 @@ export default function OrcamentoDetailPage() {
     const temTextoOferta = ofertaBlocos.some((b) => (b.conteudo || '').trim())
     const confirmou =
       !temTextoOferta ||
-      window.confirm('Substituir os textos atuais da oferta pelos textos padrão gerados pelo ERP?')
+      globalThis.confirm('Substituir os textos atuais da oferta pelos textos padrão gerados pelo ERP?')
     if (!confirmou) return
 
     setGerandoBlocosPadrao(true)
@@ -887,17 +887,33 @@ export default function OrcamentoDetailPage() {
         investimentoDescricao={investimentoDescricao}
         setInvestimentoDescricao={setInvestimentoDescricao}
         validoAte={validoAte}
-        onAtualizarOferta={() => void atualizarOfertaAsync()}
-        onFinalizarOferta={() => void finalizarOfertaAsync()}
-        onReabrirOferta={() => void reabrirOfertaAsync()}
+        onAtualizarOferta={() => {
+          atualizarOfertaAsync().catch(() => undefined)
+        }}
+        onFinalizarOferta={() => {
+          finalizarOfertaAsync().catch(() => undefined)
+        }}
+        onReabrirOferta={() => {
+          reabrirOfertaAsync().catch(() => undefined)
+        }}
         onPropostaCliente={abrirPropostaCliente}
-        onBaixarDocxOferta={() => void baixarDocxOfertaAsync()}
-        onUploadArquivoOferta={(tipo, arquivo) => void uploadArquivoOfertaAsync(tipo, arquivo)}
-        onBaixarArquivoOferta={(arquivo) => void baixarArquivoOfertaAsync(arquivo)}
-        onMarcarOfertaEnviada={() => void marcarOfertaEnviadaAsync()}
+        onBaixarDocxOferta={() => {
+          baixarDocxOfertaAsync().catch(() => undefined)
+        }}
+        onUploadArquivoOferta={(tipo, arquivo) => {
+          uploadArquivoOfertaAsync(tipo, arquivo).catch(() => undefined)
+        }}
+        onBaixarArquivoOferta={(arquivo) => {
+          baixarArquivoOfertaAsync(arquivo).catch(() => undefined)
+        }}
+        onMarcarOfertaEnviada={() => {
+          marcarOfertaEnviadaAsync().catch(() => undefined)
+        }}
         onAbrirEnviarOferta={() => setModalEnviarOferta(true)}
         ultimoLinkPublico={ultimoLinkPublico}
-        onGerarBlocosPadrao={() => void gerarBlocosPadraoAsync()}
+        onGerarBlocosPadrao={() => {
+          gerarBlocosPadraoAsync().catch(() => undefined)
+        }}
         onRevisarPrecoCatalogo={abrirRevisaoPrecoCatalogo}
         onSalvarProposta={handleSalvarProposta}
         onOrcamentoAtualizado={aplicarOrcamentoAtualizado}
@@ -919,7 +935,9 @@ export default function OrcamentoDetailPage() {
         <OrcamentoEnviarOfertaModal
           orcamento={orcamento}
           finalizando={finalizandoOferta}
-          onSolicitarFinalizar={() => void finalizarOfertaAsync()}
+          onSolicitarFinalizar={() => {
+            finalizarOfertaAsync().catch(() => undefined)
+          }}
           onClose={() => setModalEnviarOferta(false)}
           onEnviado={(atualizado, link) => {
             aplicarOrcamentoAtualizado(atualizado)
@@ -938,7 +956,9 @@ export default function OrcamentoDetailPage() {
         onChangeJustificativa={setRevisaoPrecoJustificativa}
         onChangeManterAtual={setRevisaoPrecoManterAtual}
         onClose={fecharRevisaoPrecoCatalogo}
-        onConfirm={() => void revisarPrecoCatalogoAsync()}
+        onConfirm={() => {
+          revisarPrecoCatalogoAsync().catch(() => undefined)
+        }}
       />
     </div>
   )
@@ -1574,40 +1594,7 @@ function OrcamentoOfertaClienteSecao({
           </button>
         </div>
 
-        {envios.length > 0 ? (
-          <div className="orcamento-doc-envios small mb-2">
-            <strong>Histórico de envios</strong>
-            <ul className="list-unstyled mb-0 mt-1">
-              {envios.map((envio) => (
-                <li key={envio.id} className="mb-1">
-                  {new Date(envio.enviado_em).toLocaleString('pt-BR')} —{' '}
-                  {envio.destinatario_emails || envio.destinatario_email || envio.destinatario_nome || '—'}
-                  {envio.link_publico ? (
-                    <>
-                      {' '}
-                      <a href={envio.link_publico} target="_blank" rel="noreferrer">
-                        Link do cliente
-                      </a>
-                    </>
-                  ) : null}
-                  {envio.email_enviado ? ' · e-mail enviado' : null}
-                  {envio.email_erro ? (
-                    <span className="text-warning"> · e-mail: {envio.email_erro}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {ultimoLinkPublico ? (
-          <div className="alert alert-info py-2 small mb-2">
-            Link público copiado:{' '}
-            <a href={ultimoLinkPublico} target="_blank" rel="noreferrer">
-              {ultimoLinkPublico}
-            </a>
-          </div>
-        ) : null}
+        <OrcamentoOfertaEnviosHistorico envios={envios} ultimoLinkPublico={ultimoLinkPublico} />
 
         <p className="orcamento-doc-oferta__hint text-muted small mb-2">
           Arraste ⠿ nas seções para alterar a ordem na prévia/PDF. Edite textos na coluna da esquerda
@@ -1647,105 +1634,194 @@ function OrcamentoOfertaClienteSecao({
           }}
         />
 
-        <details className="orcamento-doc-oferta-final orcamento-doc-oferta-final--opcional">
-          <summary className="orcamento-doc-oferta-final__summary">
-            <strong>Anexos e registro de envio</strong>
-            <span className="text-muted small ms-2">
-              Opcional — use só se revisar fora do portal ou arquivar PDF assinado
-            </span>
-          </summary>
-          <div className="orcamento-doc-oferta-final__body">
-          <div className="orcamento-doc-oferta-final__head">
-            <div>
-              <strong>Versão final da oferta</strong>
-              <p className="text-muted small mb-0">
-                Anexe o DOCX revisado e o PDF final que será registrado no histórico.
-              </p>
-            </div>
-            {podeGerenciarFinal ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-primary"
-                onClick={onMarcarEnviada}
-                disabled={!pdfFinal || marcandoEnviada || ofertaEnviada}
-              >
-                {marcandoEnviada ? 'Registrando...' : ofertaEnviada ? 'Oferta enviada' : 'Marcar como enviada'}
-              </button>
-            ) : null}
-          </div>
-
-          {podeGerenciarFinal ? (
-            <div className="orcamento-doc-oferta-final__uploads">
-              <label className="btn btn-sm btn-outline-primary mb-0">
-                {uploadingArquivo === 'DOCX_REVISADO' ? 'Anexando DOCX...' : 'Anexar DOCX revisado'}
-                <input
-                  type="file"
-                  accept=".docx"
-                  className="visually-hidden"
-                  disabled={Boolean(uploadingArquivo)}
-                  onChange={(event) => {
-                    onUploadArquivo('DOCX_REVISADO', event.currentTarget.files?.[0] ?? null)
-                    event.currentTarget.value = ''
-                  }}
-                />
-              </label>
-              <label className="btn btn-sm btn-outline-primary mb-0">
-                {uploadingArquivo === 'PDF_FINAL' ? 'Anexando PDF...' : 'Anexar PDF final'}
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="visually-hidden"
-                  disabled={Boolean(uploadingArquivo)}
-                  onChange={(event) => {
-                    onUploadArquivo('PDF_FINAL', event.currentTarget.files?.[0] ?? null)
-                    event.currentTarget.value = ''
-                  }}
-                />
-              </label>
-            </div>
-          ) : null}
-
-          {arquivosOrdenados.length === 0 ? (
-            <p className="orcamento-doc__empty-itens mb-0">
-              Nenhum DOCX revisado ou PDF final anexado.
-            </p>
-          ) : (
-            <div className="orcamento-doc-oferta-final__files">
-              {arquivosOrdenados.map((arquivo) => (
-                <div className="orcamento-doc-oferta-final__file" key={arquivo.id}>
-                  <div>
-                    <span className="badge text-bg-light me-2">
-                      {arquivo.tipo === 'PDF_FINAL' ? 'PDF final' : 'DOCX revisado'} v{arquivo.versao}
-                    </span>
-                    <strong>{arquivo.nome_original}</strong>
-                    <div className="text-muted small">
-                      {formatarDataHoraExibicao(arquivo.criado_em)}
-                      {arquivo.criado_por_label ? ` · ${arquivo.criado_por_label}` : ''}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => onBaixarArquivo(arquivo)}
-                    disabled={baixandoArquivoId === arquivo.id}
-                  >
-                    {baixandoArquivoId === arquivo.id ? 'Baixando...' : 'Baixar'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {envios.length > 0 ? (
-            <div className="orcamento-doc-oferta-final__sent">
-              Último envio registrado em {formatarDataHoraExibicao(envios[0].enviado_em)}
-              {envios[0].destinatario_email ? ` para ${envios[0].destinatario_email}` : ''}.
-            </div>
-          ) : null}
-          </div>
-        </details>
+        <OrcamentoOfertaAnexosFinal
+          arquivosOrdenados={arquivosOrdenados}
+          baixandoArquivoId={baixandoArquivoId}
+          envios={envios}
+          marcandoEnviada={marcandoEnviada}
+          ofertaEnviada={ofertaEnviada}
+          pdfFinal={pdfFinal}
+          podeGerenciarFinal={podeGerenciarFinal}
+          uploadingArquivo={uploadingArquivo}
+          onBaixarArquivo={onBaixarArquivo}
+          onMarcarEnviada={onMarcarEnviada}
+          onUploadArquivo={onUploadArquivo}
+        />
       </div>
     </section>
+  )
+}
+
+function OrcamentoOfertaEnviosHistorico({
+  envios,
+  ultimoLinkPublico,
+}: Readonly<{
+  envios: NonNullable<OrcamentoDto['oferta_envios']>
+  ultimoLinkPublico: string
+}>) {
+  return (
+    <>
+      {envios.length > 0 ? (
+        <div className="orcamento-doc-envios small mb-2">
+          <strong>Histórico de envios</strong>
+          <ul className="list-unstyled mb-0 mt-1">
+            {envios.map((envio) => (
+              <li key={envio.id} className="mb-1">
+                {new Date(envio.enviado_em).toLocaleString('pt-BR')} —{' '}
+                {envio.destinatario_emails || envio.destinatario_email || envio.destinatario_nome || '—'}
+                {envio.link_publico ? (
+                  <>
+                    {' '}
+                    <a href={envio.link_publico} target="_blank" rel="noreferrer">
+                      Link do cliente
+                    </a>
+                  </>
+                ) : null}
+                {envio.email_enviado ? ' · e-mail enviado' : null}
+                {envio.email_erro ? (
+                  <span className="text-warning"> · e-mail: {envio.email_erro}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {ultimoLinkPublico ? (
+        <div className="alert alert-info py-2 small mb-2">
+          Link público copiado:{' '}
+          <a href={ultimoLinkPublico} target="_blank" rel="noreferrer">
+            {ultimoLinkPublico}
+          </a>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function OrcamentoOfertaAnexosFinal({
+  arquivosOrdenados,
+  baixandoArquivoId,
+  envios,
+  marcandoEnviada,
+  ofertaEnviada,
+  pdfFinal,
+  podeGerenciarFinal,
+  uploadingArquivo,
+  onBaixarArquivo,
+  onMarcarEnviada,
+  onUploadArquivo,
+}: Readonly<{
+  arquivosOrdenados: OrcamentoOfertaArquivoDto[]
+  baixandoArquivoId: string | null
+  envios: NonNullable<OrcamentoDto['oferta_envios']>
+  marcandoEnviada: boolean
+  ofertaEnviada: boolean
+  pdfFinal: OrcamentoOfertaArquivoDto | undefined
+  podeGerenciarFinal: boolean
+  uploadingArquivo: string | null
+  onBaixarArquivo: (arquivo: OrcamentoOfertaArquivoDto) => void
+  onMarcarEnviada: () => void
+  onUploadArquivo: (tipo: 'DOCX_REVISADO' | 'PDF_FINAL', arquivo: File | null) => void
+}>) {
+  return (
+    <details className="orcamento-doc-oferta-final orcamento-doc-oferta-final--opcional">
+      <summary className="orcamento-doc-oferta-final__summary">
+        <strong>Anexos e registro de envio</strong>
+        <span className="text-muted small ms-2">
+          Opcional — use só se revisar fora do portal ou arquivar PDF assinado
+        </span>
+      </summary>
+      <div className="orcamento-doc-oferta-final__body">
+        <div className="orcamento-doc-oferta-final__head">
+          <div>
+            <strong>Versão final da oferta</strong>
+            <p className="text-muted small mb-0">
+              Anexe o DOCX revisado e o PDF final que será registrado no histórico.
+            </p>
+          </div>
+          {podeGerenciarFinal ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={onMarcarEnviada}
+              disabled={!pdfFinal || marcandoEnviada || ofertaEnviada}
+            >
+              {marcandoEnviada ? 'Registrando...' : ofertaEnviada ? 'Oferta enviada' : 'Marcar como enviada'}
+            </button>
+          ) : null}
+        </div>
+
+        {podeGerenciarFinal ? (
+          <div className="orcamento-doc-oferta-final__uploads">
+            <label className="btn btn-sm btn-outline-primary mb-0">
+              {uploadingArquivo === 'DOCX_REVISADO' ? 'Anexando DOCX...' : 'Anexar DOCX revisado'}
+              <input
+                type="file"
+                accept=".docx"
+                className="visually-hidden"
+                disabled={Boolean(uploadingArquivo)}
+                onChange={(event) => {
+                  onUploadArquivo('DOCX_REVISADO', event.currentTarget.files?.[0] ?? null)
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+            <label className="btn btn-sm btn-outline-primary mb-0">
+              {uploadingArquivo === 'PDF_FINAL' ? 'Anexando PDF...' : 'Anexar PDF final'}
+              <input
+                type="file"
+                accept=".pdf"
+                className="visually-hidden"
+                disabled={Boolean(uploadingArquivo)}
+                onChange={(event) => {
+                  onUploadArquivo('PDF_FINAL', event.currentTarget.files?.[0] ?? null)
+                  event.currentTarget.value = ''
+                }}
+              />
+            </label>
+          </div>
+        ) : null}
+
+        {arquivosOrdenados.length === 0 ? (
+          <p className="orcamento-doc__empty-itens mb-0">
+            Nenhum DOCX revisado ou PDF final anexado.
+          </p>
+        ) : (
+          <div className="orcamento-doc-oferta-final__files">
+            {arquivosOrdenados.map((arquivo) => (
+              <div className="orcamento-doc-oferta-final__file" key={arquivo.id}>
+                <div>
+                  <span className="badge text-bg-light me-2">
+                    {arquivo.tipo === 'PDF_FINAL' ? 'PDF final' : 'DOCX revisado'} v{arquivo.versao}
+                  </span>
+                  <strong>{arquivo.nome_original}</strong>
+                  <div className="text-muted small">
+                    {formatarDataHoraExibicao(arquivo.criado_em)}
+                    {arquivo.criado_por_label ? ` · ${arquivo.criado_por_label}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => onBaixarArquivo(arquivo)}
+                  disabled={baixandoArquivoId === arquivo.id}
+                >
+                  {baixandoArquivoId === arquivo.id ? 'Baixando...' : 'Baixar'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {envios.length > 0 ? (
+          <div className="orcamento-doc-oferta-final__sent">
+            Último envio registrado em {formatarDataHoraExibicao(envios[0].enviado_em)}
+            {envios[0].destinatario_email ? ` para ${envios[0].destinatario_email}` : ''}.
+          </div>
+        ) : null}
+      </div>
+    </details>
   )
 }
 
@@ -2351,14 +2427,14 @@ function OrcamentoItemRow({
           </>
         ) : null}
       </td>
-      {!tabelaServicos ? (
+      {tabelaServicos ? null : (
         <td
           className="small text-center fw-semibold text-primary"
           title={tituloPainelRef(linha.painelRef) || undefined}
         >
           {linha.painelRef?.trim() || '—'}
         </td>
-      ) : null}
+      )}
       <td>
         {linhaEditavel ? (
           <select

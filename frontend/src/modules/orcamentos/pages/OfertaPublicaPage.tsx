@@ -41,7 +41,7 @@ export default function OfertaPublicaPage() {
   }, [token])
 
   useEffect(() => {
-    void recarregar()
+    recarregar().catch(() => undefined)
   }, [recarregar])
 
   async function responder(decisao: 'APROVADO' | 'REJEITADO') {
@@ -175,8 +175,11 @@ export default function OfertaPublicaPage() {
               <p className="small fw-semibold mb-1">Assinatura (opcional, ao aprovar)</p>
               <AssinaturaCanvas onChange={setAssinatura} disabled={processando} />
               <div className="mt-2">
-                <label className="form-label small">Ou anexe PDF já assinado (após aprovar)</label>
+                <label className="form-label small" htmlFor="oferta-publica-pdf-assinado">
+                  Ou anexe PDF já assinado (após aprovar)
+                </label>
                 <input
+                  id="oferta-publica-pdf-assinado"
                   type="file"
                   accept="application/pdf"
                   className="form-control form-control-sm"
@@ -189,7 +192,7 @@ export default function OfertaPublicaPage() {
                   type="button"
                   className="btn btn-success btn-sm"
                   disabled={processando || !nome.trim()}
-                  onClick={() => void responder('APROVADO')}
+                  onClick={() => responder('APROVADO').catch(() => undefined)}
                 >
                   {processando ? 'Registrando...' : 'Aprovar proposta'}
                 </button>
@@ -197,7 +200,7 @@ export default function OfertaPublicaPage() {
                   type="button"
                   className="btn btn-outline-danger btn-sm"
                   disabled={processando || !nome.trim()}
-                  onClick={() => void responder('REJEITADO')}
+                  onClick={() => responder('REJEITADO').catch(() => undefined)}
                 >
                   Recusar
                 </button>

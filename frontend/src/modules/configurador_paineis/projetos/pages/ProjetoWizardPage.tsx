@@ -197,7 +197,6 @@ export default function ProjetoWizardPage() {
       {etapaAtual === 'dimensionamento' ? (
         <DimensionamentoWizardShell
           projetoId={projetoId}
-          projetoCodigo={projeto?.codigo}
           projetoNome={projeto?.nome}
           temCargas={temCargas}
         >

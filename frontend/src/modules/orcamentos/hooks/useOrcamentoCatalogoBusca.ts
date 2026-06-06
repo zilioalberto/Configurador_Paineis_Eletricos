@@ -33,7 +33,7 @@ export function useOrcamentoCatalogoBusca(termo: string) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      void buscar(termo)
+      buscar(termo).catch(() => undefined)
     }, DEBOUNCE_MS)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)

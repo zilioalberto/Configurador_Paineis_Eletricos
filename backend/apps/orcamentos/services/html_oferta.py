@@ -135,6 +135,14 @@ def _linhas_descricao(descricao: str) -> tuple[str, str]:
     return titulo.strip() or "-", detalhe.strip()
 
 
+def _flush_paragrafo_html(html: list[str], paragrafo: list[str]) -> None:
+    if not paragrafo:
+        return
+    html.append(
+        f'<p class="oferta-conteudo-formatado__paragrafo">{"<br>".join(_safe(p) for p in paragrafo)}</p>'
+    )
+
+
 def _conteudo_formatado(conteudo: str) -> str:
     linhas = [linha.rstrip() for linha in (conteudo or "").splitlines()]
     html: list[str] = []
@@ -151,29 +159,20 @@ def _conteudo_formatado(conteudo: str) -> str:
     for linha in linhas:
         item = re.match(r"^\s*[-•]\s+(.*)$", linha)
         if item:
-            if paragrafo:
-                html.append(
-                    f'<p class="oferta-conteudo-formatado__paragrafo">{"<br>".join(_safe(p) for p in paragrafo)}</p>'
-                )
-                paragrafo = []
+            _flush_paragrafo_html(html, paragrafo)
+            paragrafo = []
             lista.append(item.group(1))
             continue
         if not linha.strip():
             flush_lista()
-            if paragrafo:
-                html.append(
-                    f'<p class="oferta-conteudo-formatado__paragrafo">{"<br>".join(_safe(p) for p in paragrafo)}</p>'
-                )
-                paragrafo = []
+            _flush_paragrafo_html(html, paragrafo)
+            paragrafo = []
             continue
         flush_lista()
         paragrafo.append(linha)
 
     flush_lista()
-    if paragrafo:
-        html.append(
-            f'<p class="oferta-conteudo-formatado__paragrafo">{"<br>".join(_safe(p) for p in paragrafo)}</p>'
-        )
+    _flush_paragrafo_html(html, paragrafo)
     return "".join(html) or '<p class="oferta-conteudo-formatado__paragrafo">-</p>'
 
 

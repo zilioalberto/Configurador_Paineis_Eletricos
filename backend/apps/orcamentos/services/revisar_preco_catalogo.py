@@ -38,22 +38,20 @@ def revisar_preco_catalogo_item_orcamento(
     if not justificativa.strip():
         raise ValueError("Informe a justificativa da revisão de preço.")
 
-    aliquota_ipi = item.aliquota_ipi
     if item.tipo == TipoItemOrcamentoChoices.PRODUTO and item.produto_id:
         item.produto.preco_base = preco_base
         item.produto.preco_atualizado_em = timezone.now()
         item.produto.save(update_fields=("preco_base", "preco_atualizado_em"))
-        aliquota_ipi = p_ipi_referencia_produto(item.produto)
+        item.aliquota_ipi = p_ipi_referencia_produto(item.produto)
     elif item.tipo == TipoItemOrcamentoChoices.SERVICO and item.servico_id:
         item.servico.preco_base = preco_base
         item.servico.preco_atualizado_em = timezone.now()
         item.servico.save(update_fields=("preco_base", "preco_atualizado_em"))
-        aliquota_ipi = None
+        item.aliquota_ipi = None
     else:
         raise ValueError("A linha não possui vínculo com produto ou serviço do catálogo.")
 
     item.custo_unitario = preco_base
-    item.aliquota_ipi = aliquota_ipi
     item.preco_unitario = calcular_preco_unitario_linha(
         item.custo_unitario,
         item.margem_percentual,

@@ -351,7 +351,7 @@ export default function ComposicaoPage() {
             className="btn btn-success btn-sm"
             disabled={!botaoExportarPropostaHabilitado}
             title={!botaoExportarPropostaHabilitado ? motivoBloqueioRetornoOrcamento : undefined}
-            onClick={() => void onRetornarOrcamento()}
+            onClick={() => onRetornarOrcamento().catch(() => undefined)}
           >
             {sincronizandoOrcamento ? 'Exportando…' : 'Exportar sugestões para proposta'}
           </button>

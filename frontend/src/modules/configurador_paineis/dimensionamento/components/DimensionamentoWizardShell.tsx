@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 
 type Props = {
   projetoId: string
-  projetoCodigo?: string | null
   projetoNome?: string | null
   temCargas: boolean
   children: ReactNode

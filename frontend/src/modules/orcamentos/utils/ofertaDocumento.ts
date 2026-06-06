@@ -88,7 +88,7 @@ export function extrairSecoesDocumento(texto: string): SecaoDocumentoOferta[] {
   }
 
   for (const linha of normalizado.split('\n')) {
-    const match = linha.match(HEADING_LINE_RE)
+    const match = HEADING_LINE_RE.exec(linha)
     if (match) {
       flush()
       tituloAtual = match[1].trim()

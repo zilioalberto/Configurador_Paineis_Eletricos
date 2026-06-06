@@ -53,13 +53,24 @@ function segmentarConteudo(conteudo: string): BlocoSegmento[] {
   return blocos.length ? blocos : [{ kind: 'paragraph', lines: ['—'] }]
 }
 
+function chaveBloco(bloco: BlocoSegmento): string {
+  if (bloco.kind === 'list') {
+    return `list:${bloco.items.join('\u001f')}`
+  }
+  return `paragraph:${bloco.lines.join('\u001f')}`
+}
+
+function chaveParteInline(parte: string): string {
+  return parte.startsWith('**') && parte.endsWith('**') ? `bold:${parte}` : `text:${parte}`
+}
+
 function renderInlineComNegrito(texto: string): ReactNode[] {
   const partes = texto.split(/(\*\*[^*]+\*\*)/g)
-  return partes.map((parte, index) => {
+  return partes.map((parte) => {
     if (parte.startsWith('**') && parte.endsWith('**') && parte.length > 4) {
-      return <strong key={index}>{parte.slice(2, -2)}</strong>
+      return <strong key={chaveParteInline(parte)}>{parte.slice(2, -2)}</strong>
     }
-    return <Fragment key={index}>{parte}</Fragment>
+    return <Fragment key={chaveParteInline(parte)}>{parte}</Fragment>
   })
 }
 
@@ -73,19 +84,20 @@ export default function OfertaConteudoFormatado({ conteudo, className }: Props) 
 
   return (
     <div className={className ?? 'oferta-conteudo-formatado'}>
-      {blocos.map((bloco, index) => {
+      {blocos.map((bloco) => {
+        const blocoKey = chaveBloco(bloco)
         if (bloco.kind === 'list') {
           return (
-            <ul key={index} className="oferta-conteudo-formatado__lista">
-              {bloco.items.map((item, i) => (
-                <li key={i}>{renderInlineComNegrito(item)}</li>
+            <ul key={blocoKey} className="oferta-conteudo-formatado__lista">
+              {bloco.items.map((item) => (
+                <li key={`${blocoKey}:${item}`}>{renderInlineComNegrito(item)}</li>
               ))}
             </ul>
           )
         }
         const textoParagrafo = bloco.lines.join('\n')
         return (
-          <p key={index} className="oferta-conteudo-formatado__paragrafo">
+          <p key={blocoKey} className="oferta-conteudo-formatado__paragrafo">
             {renderInlineComNegrito(textoParagrafo)}
           </p>
         )

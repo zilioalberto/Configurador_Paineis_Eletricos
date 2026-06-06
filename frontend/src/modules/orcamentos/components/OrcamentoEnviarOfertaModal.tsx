@@ -157,8 +157,11 @@ export default function OrcamentoEnviarOfertaModal({
                 </p>
                 <div className="row g-2">
                   <div className="col-md-6">
-                    <label className="form-label small">Destinatário</label>
+                    <label className="form-label small" htmlFor="orc-enviar-destinatario">
+                      Destinatário
+                    </label>
                     <input
+                      id="orc-enviar-destinatario"
                       type="text"
                       className="form-control form-control-sm"
                       value={destinatarioNome}
@@ -167,8 +170,11 @@ export default function OrcamentoEnviarOfertaModal({
                     />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label small">E-mails</label>
+                    <label className="form-label small" htmlFor="orc-enviar-emails">
+                      E-mails
+                    </label>
                     <textarea
+                      id="orc-enviar-emails"
                       className="form-control form-control-sm"
                       rows={2}
                       value={destinatarioEmails}
@@ -178,8 +184,11 @@ export default function OrcamentoEnviarOfertaModal({
                     <p className="form-text mb-0">Separe múltiplos e-mails por vírgula, ponto e vírgula ou linha.</p>
                   </div>
                   <div className="col-12">
-                    <label className="form-label small">Assunto do e-mail</label>
+                    <label className="form-label small" htmlFor="orc-enviar-assunto">
+                      Assunto do e-mail
+                    </label>
                     <input
+                      id="orc-enviar-assunto"
                       type="text"
                       className="form-control form-control-sm"
                       value={assunto}
@@ -188,8 +197,11 @@ export default function OrcamentoEnviarOfertaModal({
                     />
                   </div>
                   <div className="col-12">
-                    <label className="form-label small">Mensagem</label>
+                    <label className="form-label small" htmlFor="orc-enviar-mensagem">
+                      Mensagem
+                    </label>
                     <textarea
+                      id="orc-enviar-mensagem"
                       className="form-control form-control-sm"
                       rows={10}
                       value={mensagem}
@@ -230,7 +242,9 @@ export default function OrcamentoEnviarOfertaModal({
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => void confirmarEnvio()}
+                onClick={() => {
+                  confirmarEnvio().catch(() => undefined)
+                }}
                 disabled={processando}
               >
                 {processando ? 'Enviando...' : 'Confirmar envio'}

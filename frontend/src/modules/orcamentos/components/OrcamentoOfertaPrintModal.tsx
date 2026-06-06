@@ -38,7 +38,7 @@ export default function OrcamentoOfertaPrintModal({
   }, [id])
 
   useEffect(() => {
-    void carregar()
+    carregar().catch(() => undefined)
   }, [carregar])
 
   useEffect(() => {
@@ -72,14 +72,14 @@ export default function OrcamentoOfertaPrintModal({
                     responseType: 'blob',
                     headers: { Accept: '*/*' },
                   })
-                  const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+                  const url = globalThis.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
                   const a = document.createElement('a')
                   a.href = url
                   a.download = `orcamento_${id}.pdf`
                   document.body.appendChild(a)
                   a.click()
                   a.remove()
-                  window.URL.revokeObjectURL(url)
+                  globalThis.URL.revokeObjectURL(url)
                 } catch {
                   imprimirPropostaCliente()
                 }
@@ -90,7 +90,7 @@ export default function OrcamentoOfertaPrintModal({
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary"
-              onClick={() => window.open(`/orcamentos/${id}/oferta`, '_blank', 'noopener,noreferrer')}
+              onClick={() => globalThis.open(`/orcamentos/${id}/oferta`, '_blank', 'noopener,noreferrer')}
             >
               Abrir página de impressão
             </button>
