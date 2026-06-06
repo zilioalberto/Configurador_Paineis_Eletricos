@@ -14,7 +14,7 @@ import { importarNfeXmlManual } from '../services/fiscalNfeService'
 /** Envio de XML para o armazenamento fiscal (NF-e recebida no servidor). */
 export default function NfeImportarManualPage() {
   const navigate = useNavigate()
-  const toast = useToast()
+  const { showToast } = useToast()
   const queryClient = useQueryClient()
 
   const [xml, setXml] = useState('')
@@ -31,11 +31,14 @@ export default function NfeImportarManualPage() {
       }),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all })
-      toast.success(result.message)
+      showToast({ variant: 'success', message: result.message })
       navigate(fiscalPaths.nfeDetalhe(result.documento_id))
     },
     onError: (err) => {
-      toast.error(extrairMensagemErroApi(err, 'Não foi possível importar o XML.'))
+      showToast({
+        variant: 'danger',
+        message: extrairMensagemErroApi(err) || 'Não foi possível importar o XML.',
+      })
     },
   })
 
@@ -55,12 +58,12 @@ export default function NfeImportarManualPage() {
     (e: FormEvent) => {
       e.preventDefault()
       if (!xml.trim()) {
-        toast.error('Selecione ou cole o conteúdo do XML da NF-e.')
+        showToast({ variant: 'danger', message: 'Selecione ou cole o conteúdo do XML da NF-e.' })
         return
       }
       mutation.mutate()
     },
-    [xml, mutation, toast],
+    [xml, mutation, showToast],
   )
 
   return (

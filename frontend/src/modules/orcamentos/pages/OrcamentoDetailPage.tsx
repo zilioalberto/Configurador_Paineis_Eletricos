@@ -257,7 +257,7 @@ export default function OrcamentoDetailPage() {
 
   const ofertaBlocosDirty = useMemo(() => {
     if (!orcamento) return false
-    const original = ([...((orcamento.oferta_blocos ?? []) as OrcamentoOfertaBlocoDto[])] || [])
+    const original = [...(orcamento.oferta_blocos ?? [])]
       .slice()
       .sort((a, b) => a.ordem - b.ordem)
     const current = [...ofertaBlocos].slice().sort((a, b) => a.ordem - b.ordem)
@@ -1320,10 +1320,8 @@ function OrcamentoEdicao({
           salvando={salvando}
           atualizandoOferta={atualizandoOferta}
           finalizandoOferta={finalizandoOferta}
-          reabrindoOferta={reabrindoOferta}
           onAtualizarOferta={onAtualizarOferta}
           onFinalizarOferta={onFinalizarOferta}
-          onReabrirOferta={onReabrirOferta}
           onRevisarPrecoCatalogo={onRevisarPrecoCatalogo}
           resumoOferta={resumoOferta}
           descontoComercialAtivo={descontoComercialAtivo}
@@ -1977,12 +1975,10 @@ function OrcamentoItensSecao({
   podeEditarPerm,
   podeRevisarPrecoCatalogo,
   removerLinha,
-  reabrindoOferta,
   revisandoPrecoItemId,
   salvando,
   onAtualizarOferta,
   onFinalizarOferta,
-  onReabrirOferta,
   onRevisarPrecoCatalogo,
   ofertaBlocosDirty,
   resumoOferta,
@@ -2011,12 +2007,10 @@ function OrcamentoItensSecao({
   podeEditarPerm: boolean
   podeRevisarPrecoCatalogo: boolean
   removerLinha: (index: number) => void
-  reabrindoOferta: boolean
   revisandoPrecoItemId: string | null
   salvando: boolean
   onAtualizarOferta: () => void
   onFinalizarOferta: () => void
-  onReabrirOferta: () => void
   onRevisarPrecoCatalogo: (linha: LinhaEditavelOrcamento) => void
   resumoOferta: OrcamentoPreviewTotaisDto
   descontoComercialAtivo: boolean

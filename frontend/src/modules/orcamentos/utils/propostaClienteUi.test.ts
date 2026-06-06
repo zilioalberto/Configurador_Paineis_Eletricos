@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { TipoBlocoOferta } from '../types/orcamentos'
+
 import {
   formatarNomeEmpresaExibicao,
   linhasDescricaoItem,
@@ -14,7 +16,7 @@ import {
 
 describe('propostaClienteUi', () => {
   it('separa condições comerciais do corpo', () => {
-    const secoes = [
+    const secoes: Array<{ tipo: TipoBlocoOferta; titulo: string; conteudo: string }> = [
       { tipo: 'ESCOPO', titulo: 'Escopo', conteudo: 'A' },
       { tipo: 'PRAZO_ENTREGA', titulo: 'Prazo', conteudo: '30 dias' },
     ]
@@ -23,7 +25,7 @@ describe('propostaClienteUi', () => {
   })
 
   it('preserva ordem customizada no corpo da proposta', () => {
-    const secoes = [
+    const secoes: Array<{ tipo: TipoBlocoOferta; titulo: string; conteudo: string }> = [
       { tipo: 'SERVICOS', titulo: 'Serviços', conteudo: 'S' },
       { tipo: 'ITENS_FORNECIMENTO', titulo: 'Itens', conteudo: 'I' },
       { tipo: 'ESCOPO', titulo: 'Escopo', conteudo: 'E' },
@@ -36,7 +38,7 @@ describe('propostaClienteUi', () => {
   })
 
   it('coloca exclusões após investimento, fora do corpo anterior', () => {
-    const secoes = [
+    const secoes: Array<{ tipo: TipoBlocoOferta; titulo: string; conteudo: string }> = [
       { tipo: 'ESCOPO', titulo: 'Escopo', conteudo: 'A' },
       { tipo: 'EXCLUSOES', titulo: 'Exclusões', conteudo: 'Não inclui frete.' },
     ]

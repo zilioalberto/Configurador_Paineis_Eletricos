@@ -16,6 +16,6 @@ export function descricaoInvestimentoExibicao(
   return valor || padrao
 }
 
-export function placeholderDescricaoInvestimento(titulo: string): string {
+export function placeholderDescricaoInvestimento(_titulo: string): string {
   return INVESTIMENTO_DESCRICAO_DEMAIS_PADRAO
 }

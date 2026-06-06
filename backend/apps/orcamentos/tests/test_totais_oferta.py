@@ -13,10 +13,12 @@ from apps.orcamentos.services.totais_oferta import calcular_resumo_financeiro_of
 
 @pytest.mark.django_db
 def test_resumo_sem_desconto_mantem_total(user_admin, cliente_com_contato):
+    user, _raw = user_admin
+    cliente, _contato = cliente_com_contato
     orc = Orcamento.objects.create(
         titulo="Teste",
-        cliente=cliente_com_contato,
-        criado_por=user_admin,
+        cliente=cliente,
+        criado_por=user,
     )
     item = OrcamentoItem.objects.create(
         orcamento=orc,
@@ -39,10 +41,12 @@ def test_resumo_sem_desconto_mantem_total(user_admin, cliente_com_contato):
 
 @pytest.mark.django_db
 def test_resumo_com_desconto_total_liquido_sem_linha_impostos(user_admin, cliente_com_contato):
+    user, _raw = user_admin
+    cliente, _contato = cliente_com_contato
     orc = Orcamento.objects.create(
         titulo="Teste desc",
-        cliente=cliente_com_contato,
-        criado_por=user_admin,
+        cliente=cliente,
+        criado_por=user,
         desconto_comercial_ativo=True,
         desconto_percentual=Decimal("5"),
     )

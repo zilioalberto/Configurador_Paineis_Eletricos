@@ -85,33 +85,6 @@ def _auth_client(user, password):
     return client
 
 
-@pytest.fixture
-def user_admin():
-    raw = secrets.token_urlsafe(32)
-    user = User.objects.create_superuser(
-        email="orcamentos-admin@test.com",
-        password=raw,
-        is_active=True,
-    )
-    return user, raw
-
-
-@pytest.fixture
-def cliente_com_contato():
-    cliente = ParceiroComercial.objects.create(
-        documento="12345678000199",
-        razao_social="Cliente Proposta LTDA",
-        eh_cliente=True,
-    )
-    contato = ContatoParceiro.objects.create(
-        parceiro=cliente,
-        nome="Compras Cliente",
-        email="compras@example.com",
-        principal=True,
-    )
-    return cliente, contato
-
-
 @pytest.mark.django_db
 def test_create_orcamento_gera_codigo_e_vincula_cliente_contato(
     user_admin,
@@ -546,7 +519,7 @@ def test_upload_arquivos_oferta_e_marca_envio(user_admin, cliente_com_contato):
         status=StatusOrcamentoChoices.FINALIZADO,
     )
 
-    with tempfile.TemporaryDirectory(dir="C:/tmp") as media_root, override_settings(
+    with tempfile.TemporaryDirectory() as media_root, override_settings(
         MEDIA_ROOT=media_root
     ):
         docx_resp = client.post(

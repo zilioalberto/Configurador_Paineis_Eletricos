@@ -21,13 +21,14 @@ def test_normalizar_ncm_usa_padrao_painel():
 
 @pytest.mark.django_db
 def test_investimento_solucao_completa_usa_ncm_manual(user_admin):
+    user, _raw = user_admin
     orc = Orcamento.objects.create(
         codigo_base="O-NCM",
         titulo="Painel custom",
         perfil_oferta=PerfilOfertaChoices.SOLUCAO_COMPLETA,
         ncm_investimento="12345678",
         status=StatusOrcamentoChoices.RASCUNHO,
-        criado_por=user_admin,
+        criado_por=user,
     )
     OrcamentoItem.objects.create(
         orcamento=orc,

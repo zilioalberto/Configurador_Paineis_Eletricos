@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import type { TipoBlocoOferta } from '../types/orcamentos'
+
 import { agruparSecoesEmPaginas, totalPaginasProposta } from './propostaClientePaginas'
 
 describe('propostaClientePaginas', () => {
   it('agrupa seções por peso estimado', () => {
-    const secoes = [
+    const secoes: Array<{ tipo: TipoBlocoOferta; titulo: string; conteudo: string }> = [
       { tipo: 'ESCOPO', titulo: 'A', conteudo: 'x'.repeat(400) },
       { tipo: 'GARANTIA', titulo: 'B', conteudo: 'y'.repeat(400) },
     ]

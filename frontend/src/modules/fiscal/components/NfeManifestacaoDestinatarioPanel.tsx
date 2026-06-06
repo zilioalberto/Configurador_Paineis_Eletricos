@@ -46,7 +46,7 @@ type Props = {
 /** Painel de manifestação do destinatário (envio via ponte A3). */
 export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
   const { user } = useAuth()
-  const toast = useToast()
+  const { showToast } = useToast()
   const queryClient = useQueryClient()
   const podeEditar = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
 
@@ -62,14 +62,18 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
         justificativa: tipo === 'NAO_REALIZADA' ? justificativa : undefined,
       }),
     onSuccess: (res) => {
-      toast.success(res.message)
+      showToast({ variant: 'success', message: res.message })
       void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.nfeRecebida(documento.id) })
       void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all })
       setTipoJustificativa(null)
       setJustificativa('')
     },
     onError: (err) => {
-      toast.error(extrairMensagemErroApi(err, 'Não foi possível solicitar a manifestação.'))
+      showToast({
+        variant: 'danger',
+        message:
+          extrairMensagemErroApi(err) || 'Não foi possível solicitar a manifestação.',
+      })
     },
   })
 
@@ -78,13 +82,16 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
       if (tipo === 'NAO_REALIZADA') {
         setTipoJustificativa(tipo)
         if (justificativa.trim().length < 15) {
-          toast.error('Informe a justificativa (mínimo 15 caracteres).')
+          showToast({
+            variant: 'danger',
+            message: 'Informe a justificativa (mínimo 15 caracteres).',
+          })
           return
         }
       }
       mutation.mutate(tipo)
     },
-    [justificativa, mutation, toast],
+    [justificativa, mutation, showToast],
   )
 
   const pendente = documento.manifestacao_status === 'PENDENTE'
