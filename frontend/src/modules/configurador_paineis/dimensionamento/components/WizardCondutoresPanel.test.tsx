@@ -46,6 +46,7 @@ vi.mock('../hooks/usePatchCondutoresDimensionamentoMutation', () => ({
 }))
 
 import WizardCondutoresPanel from './WizardCondutoresPanel'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const tabelaReferencia = [
   { secao_mm2: '1.5', iz_a: '15' },
@@ -146,7 +147,17 @@ function mockDimensionamentoQuery(data: ResumoDimensionamento | null) {
 }
 
 function renderPanel(props: Partial<ComponentProps<typeof WizardCondutoresPanel>> = {}) {
-  return render(<WizardCondutoresPanel projetoId="proj-1" {...props} />)
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const result = render(
+    <QueryClientProvider client={qc}>
+      <WizardCondutoresPanel projetoId="proj-1" {...props} />
+    </QueryClientProvider>
+  )
+  const originalRerender = result.rerender
+  // override rerender so callers don't need to wrap again
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(result as any).rerender = (ui: any) => originalRerender(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+  return result
 }
 
 describe('WizardCondutoresPanel', () => {
@@ -373,7 +384,7 @@ describe('WizardCondutoresPanel', () => {
     )
     renderPanel({ embedded: true })
 
-    expect(screen.getByText('Revisão confirmada')).toBeInTheDocument()
+    expect(screen.getByText(/Revisão confirmada/i)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /Condutores \(revisão\)/i })).not.toBeInTheDocument()
 
     const circuitoRow = screen.getByRole('row', { name: /M01/i })

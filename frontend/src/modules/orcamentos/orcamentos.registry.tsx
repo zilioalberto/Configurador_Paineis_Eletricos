@@ -12,6 +12,7 @@ const ErpModuleShellPage = lazy(() => import('./pages/ErpModuleShellPage'))
 const CadastrosPage = lazy(() => import('@/modules/cadastros/pages/CadastrosPage'))
 const RhPage = lazy(() => import('@/modules/rh/pages/RhPage'))
 const OrcamentoDetailPage = lazy(() => import('./pages/OrcamentoDetailPage'))
+const OrcamentoOfertaPrintPage = lazy(() => import('./pages/OrcamentoOfertaPrintPage'))
 const OrcamentoListPage = lazy(() => import('./pages/OrcamentoListPage'))
 const ConfiguracoesErpPage = lazy(() => import('./pages/ConfiguracoesErpPage'))
 const MargensClientesPage = lazy(() => import('./pages/MargensClientesPage'))
@@ -61,6 +62,14 @@ export const orcamentosRoutes: ModuleRouteConfig[] = [
   {
     path: '/erp/rh',
     element: withPermission(PERMISSION_KEYS.RH_VISUALIZAR, <RhPage />),
+  },
+  {
+    path: '/erp/orcamentos/:id/oferta',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoOfertaPrintPage />),
+  },
+  {
+    path: '/orcamentos/:id/oferta',
+    element: withPermission(PERMISSION_KEYS.ORCAMENTO_VISUALIZAR, <OrcamentoOfertaPrintPage />),
   },
   {
     path: '/erp/orcamentos/:id',

@@ -10,7 +10,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useToast } from '@/components/feedback'
@@ -20,25 +20,48 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
 import OrcamentoCatalogoItemForm from '../components/OrcamentoCatalogoItemForm'
 import OrcamentoLinhaDescricaoCampo from '../components/OrcamentoLinhaDescricaoCampo'
+import OrcamentoOfertaDocumentoEditor from '../components/OrcamentoOfertaDocumentoEditor'
+import OrcamentoResumoComercial from '../components/OrcamentoResumoComercial'
 import OrcamentoPainelsCard from '../components/OrcamentoPainelsCard'
+import OrcamentoEnviarOfertaModal from '../components/OrcamentoEnviarOfertaModal'
+import OrcamentoRevisoesPainel from '../components/OrcamentoRevisoesPainel'
 import OrcamentoServicoAutocomplete from '../components/OrcamentoServicoAutocomplete'
 import {
   atualizarOfertaOrcamento,
   atualizarOrcamento,
+  baixarArquivoOfertaOrcamento,
+  baixarDocxOfertaOrcamento,
+  gerarBlocosPadraoOfertaOrcamento,
+  marcarOfertaEnviadaOrcamento,
   obterOrcamento,
   reabrirOfertaOrcamento,
   revisarPrecoCatalogoItemOrcamento,
+  uploadArquivoOfertaOrcamento,
 } from '../services/orcamentosApi'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import type { LinhaEditavelOrcamento } from '../types/orcamentoLinha'
-import type { OrcamentoDto, OrcamentoItemDto } from '../types/orcamentos'
+import type {
+  OrcamentoDto,
+  OrcamentoOfertaArquivoDto,
+  OrcamentoItemDto,
+  OrcamentoOfertaBlocoDto,
+  OrcamentoPreviewTotaisDto,
+  PerfilOferta,
+} from '../types/orcamentos'
+import {
+  blocosOfertaParaPersistencia,
+  normalizarBlocosOfertaTemplate,
+} from '../utils/ofertaBlocoUi'
 import {
   clampMargemParaCima,
   parseDecimalPt,
   toDateInputValue,
   validadePadraoProposta,
+  valorMonetarioTabela,
 } from '../utils/orcamentoUi'
 import { calcularPrecoUnitarioLinha } from '../utils/orcamentoPrecoLinha'
+import { calcularResumoFinanceiroOferta } from '../utils/totaisOferta'
+import { normalizarNcmInvestimento } from '../utils/ncmInvestimento'
 import {
   exibirNcmLinhaOrcamento,
   rotuloOrigemLinhaOrcamento,
@@ -138,12 +161,27 @@ function decimalPayload(valor: string, fallback: string, casasDecimais = 4): str
     .replace(/\.$/, '')
 }
 
+function blocosOfertaPayload(blocos: OrcamentoOfertaBlocoDto[], perfil: PerfilOferta) {
+  return blocosOfertaParaPersistencia(blocos, perfil).map((bloco) => ({
+    ...(bloco.id ? { id: bloco.id } : {}),
+    ordem: bloco.ordem,
+    tipo: bloco.tipo,
+    titulo: bloco.titulo.trim(),
+    conteudo: bloco.conteudo ?? '',
+  }))
+}
+
 /** Formulário completo de edição de orçamento existente. */
 export default function OrcamentoDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const { user } = useAuth()
   const podeEditarPerm = hasPermission(user, PERMISSION_KEYS.ORCAMENTO_EDITAR)
+  const podeAplicarDescontoComercial = hasPermission(
+    user,
+    PERMISSION_KEYS.ORCAMENTO_APLICAR_DESCONTO
+  )
   const podeRevisarPrecoCatalogo = hasPermission(user, PERMISSION_KEYS.CATALOGO_REVISAR_PRECO)
 
   const [orcamento, setOrcamento] = useState<OrcamentoDto | null>(null)
@@ -158,6 +196,13 @@ export default function OrcamentoDetailPage() {
   const [atualizandoOferta, setAtualizandoOferta] = useState(false)
   const [finalizandoOferta, setFinalizandoOferta] = useState(false)
   const [reabrindoOferta, setReabrindoOferta] = useState(false)
+  const [baixandoDocxOferta, setBaixandoDocxOferta] = useState(false)
+  const [uploadingArquivoOferta, setUploadingArquivoOferta] = useState<string | null>(null)
+  const [baixandoArquivoOfertaId, setBaixandoArquivoOfertaId] = useState<string | null>(null)
+  const [marcandoOfertaEnviada, setMarcandoOfertaEnviada] = useState(false)
+  const [modalEnviarOferta, setModalEnviarOferta] = useState(false)
+  const [ultimoLinkPublico, setUltimoLinkPublico] = useState('')
+  const [gerandoBlocosPadrao, setGerandoBlocosPadrao] = useState(false)
   const [revisandoPrecoItemId, setRevisandoPrecoItemId] = useState<string | null>(null)
   const [revisaoPrecoLinha, setRevisaoPrecoLinha] = useState<LinhaEditavelOrcamento | null>(null)
   const [revisaoPrecoValor, setRevisaoPrecoValor] = useState('')
@@ -171,6 +216,13 @@ export default function OrcamentoDetailPage() {
   const [margemServicos, setMargemServicos] = useState('0')
   const [margemProdutosMin, setMargemProdutosMin] = useState('0')
   const [margemServicosMin, setMargemServicosMin] = useState('0')
+  const [perfilOferta, setPerfilOferta] = useState<PerfilOferta>('MATERIAIS')
+  const [descontoComercialAtivo, setDescontoComercialAtivo] = useState(false)
+  const [descontoPercentual, setDescontoPercentual] = useState('0')
+  const [ncmInvestimento, setNcmInvestimento] = useState('')
+  const [investimentoDescricao, setInvestimentoDescricao] = useState('')
+  const [ofertaBlocos, setOfertaBlocos] = useState<OrcamentoOfertaBlocoDto[]>([])
+  const [ofertaFonteVersao, setOfertaFonteVersao] = useState(0)
   const [linhasItens, setLinhasItens] = useState<LinhaEditavelOrcamento[]>([])
 
   const aplicarOrcamentoAtualizado = useCallback((dados: OrcamentoDto) => {
@@ -187,8 +239,39 @@ export default function OrcamentoDetailPage() {
     setMargemServicos(ms)
     setMargemProdutosMin(mp)
     setMargemServicosMin(ms)
+    const perfil = dados.perfil_oferta ?? 'MATERIAIS'
+    setPerfilOferta(perfil)
+    setDescontoComercialAtivo(dados.desconto_comercial_ativo === true)
+    setDescontoPercentual(String(dados.desconto_percentual ?? '0'))
+    setNcmInvestimento(normalizarNcmInvestimento(dados.ncm_investimento))
+    setInvestimentoDescricao((dados.investimento_descricao ?? '').trim())
+    setOfertaBlocos(
+      normalizarBlocosOfertaTemplate(
+        [...(dados.oferta_blocos ?? [])].sort((a, b) => a.ordem - b.ordem),
+        perfil
+      )
+    )
+    setOfertaFonteVersao((v) => v + 1)
     setLinhasItens(itensParaLinhas(dados.itens ?? []))
   }, [])
+
+  const ofertaBlocosDirty = useMemo(() => {
+    if (!orcamento) return false
+    const original = ([...((orcamento.oferta_blocos ?? []) as OrcamentoOfertaBlocoDto[])] || [])
+      .slice()
+      .sort((a, b) => a.ordem - b.ordem)
+    const current = [...ofertaBlocos].slice().sort((a, b) => a.ordem - b.ordem)
+    if (original.length !== current.length) return true
+    for (let i = 0; i < original.length; i++) {
+      const o = original[i]
+      const c = current[i]
+      if (!c) return true
+      if ((o.tipo || '') !== (c.tipo || '')) return true
+      if ((o.titulo || '').trim() !== (c.titulo || '').trim()) return true
+      if ((o.conteudo || '').trim() !== (c.conteudo || '').trim()) return true
+    }
+    return false
+  }, [ofertaBlocos, orcamento])
 
   const recarregar = useCallback(async () => {
     if (!id) return
@@ -224,6 +307,16 @@ export default function OrcamentoDetailPage() {
   const totalServicos = useMemo(() => totalizarLinhas(linhasServicos), [linhasServicos])
   const totalOrcamento = totalProdutos + totalServicos
 
+  const resumoOferta = useMemo(
+    () =>
+      calcularResumoFinanceiroOferta({
+        linhas: linhasItens,
+        descontoComercialAtivo,
+        descontoPercentual,
+      }),
+    [descontoComercialAtivo, descontoPercentual, linhasItens]
+  )
+
   const linhasComCustoZero = useMemo(
     () => linhasProdutosComCustoZero(linhasItens.filter((linha) => linha.editavel !== false)),
     [linhasItens]
@@ -248,17 +341,8 @@ export default function OrcamentoDetailPage() {
               : []),
           ]
         : undefined,
-      primaryAction: podeEditar
-        ? {
-            label: 'Salvar proposta',
-            formId: ORCAMENTO_DADOS_FORM_ID,
-            loading: salvando,
-            loadingLabel: 'Salvando…',
-            disabled: linhasComCustoZero.length > 0,
-          }
-        : undefined,
     }),
-    [linhasComCustoZero.length, linhasItens.length, orcamento, podeEditar, salvando]
+    [linhasItens.length, orcamento]
   )
 
   useAppPageToolbar(toolbarConfig)
@@ -324,6 +408,7 @@ export default function OrcamentoDetailPage() {
         descricao: descricao.trim(),
         status,
         valido_ate: validoAte.trim() ? validoAte.trim() : null,
+        perfil_oferta: perfilOferta,
         margem_produtos_percentual: clampMargemParaCima(
           margemProdutos.trim() || '0',
           margemProdutosMin
@@ -332,7 +417,20 @@ export default function OrcamentoDetailPage() {
           margemServicos.trim() || '0',
           margemServicosMin
         ),
+        ...(perfilOferta === 'SOLUCAO_COMPLETA'
+          ? {
+              ncm_investimento: normalizarNcmInvestimento(ncmInvestimento),
+              investimento_descricao: investimentoDescricao.trim(),
+            }
+          : {}),
+        ...(podeAplicarDescontoComercial
+          ? {
+              desconto_comercial_ativo: descontoComercialAtivo,
+              desconto_percentual: descontoPercentual.trim() || '0',
+            }
+          : {}),
         itens,
+        oferta_blocos: blocosOfertaPayload(ofertaBlocos, perfilOferta),
       })
       aplicarOrcamentoAtualizado(atualizado)
       showToast({ variant: 'success', message: 'Proposta salva.' })
@@ -390,6 +488,7 @@ export default function OrcamentoDetailPage() {
         descricao: descricao.trim(),
         status: 'FINALIZADO',
         valido_ate: validoAte.trim() ? validoAte.trim() : null,
+        perfil_oferta: perfilOferta,
         margem_produtos_percentual: clampMargemParaCima(
           margemProdutos.trim() || '0',
           margemProdutosMin
@@ -398,7 +497,20 @@ export default function OrcamentoDetailPage() {
           margemServicos.trim() || '0',
           margemServicosMin
         ),
+        ...(perfilOferta === 'SOLUCAO_COMPLETA'
+          ? {
+              ncm_investimento: normalizarNcmInvestimento(ncmInvestimento),
+              investimento_descricao: investimentoDescricao.trim(),
+            }
+          : {}),
+        ...(podeAplicarDescontoComercial
+          ? {
+              desconto_comercial_ativo: descontoComercialAtivo,
+              desconto_percentual: descontoPercentual.trim() || '0',
+            }
+          : {}),
         itens,
+        oferta_blocos: blocosOfertaPayload(ofertaBlocos, perfilOferta),
       })
       aplicarOrcamentoAtualizado(atualizado)
       showToast({
@@ -442,6 +554,140 @@ export default function OrcamentoDetailPage() {
     }
   }
 
+  function abrirPropostaCliente() {
+    if (!id) return
+    navigate(`/orcamentos/${id}/oferta`)
+  }
+
+  async function baixarDocxOfertaAsync() {
+    if (!id || !orcamento) return
+    setBaixandoDocxOferta(true)
+    try {
+      const blob = await baixarDocxOfertaOrcamento(id)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${orcamento.codigo || 'proposta'}_oferta.docx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Erro',
+        message: extrairMensagemErroApi(err) || 'Não foi possível gerar o DOCX da oferta.',
+      })
+    } finally {
+      setBaixandoDocxOferta(false)
+    }
+  }
+
+  async function uploadArquivoOfertaAsync(tipo: 'DOCX_REVISADO' | 'PDF_FINAL', arquivo: File | null) {
+    if (!id || !arquivo) return
+    setUploadingArquivoOferta(tipo)
+    try {
+      const atualizado = await uploadArquivoOfertaOrcamento(id, tipo, arquivo)
+      aplicarOrcamentoAtualizado(atualizado)
+      showToast({
+        variant: 'success',
+        message: tipo === 'DOCX_REVISADO' ? 'DOCX revisado anexado.' : 'PDF final anexado.',
+      })
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Erro',
+        message: extrairMensagemErroApi(err) || 'Não foi possível anexar o arquivo.',
+      })
+    } finally {
+      setUploadingArquivoOferta(null)
+    }
+  }
+
+  async function baixarArquivoOfertaAsync(arquivo: OrcamentoOfertaArquivoDto) {
+    if (!id) return
+    setBaixandoArquivoOfertaId(arquivo.id)
+    try {
+      const blob = await baixarArquivoOfertaOrcamento(id, arquivo.id)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = arquivo.nome_original
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Erro',
+        message: extrairMensagemErroApi(err) || 'Não foi possível baixar o arquivo.',
+      })
+    } finally {
+      setBaixandoArquivoOfertaId(null)
+    }
+  }
+
+  async function marcarOfertaEnviadaAsync() {
+    if (!id || !orcamento) return
+    const pdfFinal = [...(orcamento.oferta_arquivos ?? [])].find((arquivo) => arquivo.tipo === 'PDF_FINAL')
+    if (!pdfFinal) {
+      showToast({
+        variant: 'warning',
+        message: 'Anexe o PDF final antes de marcar a oferta como enviada.',
+      })
+      return
+    }
+    const confirmou = window.confirm(
+      'Marcar esta oferta como enviada ao cliente? O sistema registrará o PDF final mais recente no histórico.'
+    )
+    if (!confirmou) return
+
+    setMarcandoOfertaEnviada(true)
+    try {
+      const atualizado = await marcarOfertaEnviadaOrcamento(id, {
+        pdf_final_id: pdfFinal.id,
+        destinatario_nome: orcamento.contato_cliente_nome,
+        destinatario_email: orcamento.contato_cliente_email,
+        assunto: `Proposta comercial ZFW ${orcamento.codigo}`,
+      })
+      aplicarOrcamentoAtualizado(atualizado)
+      showToast({ variant: 'success', message: 'Oferta marcada como enviada.' })
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Erro',
+        message: extrairMensagemErroApi(err) || 'Não foi possível marcar a oferta como enviada.',
+      })
+    } finally {
+      setMarcandoOfertaEnviada(false)
+    }
+  }
+
+  async function gerarBlocosPadraoAsync() {
+    if (!id || !podeEditar) return
+    const temTextoOferta = ofertaBlocos.some((b) => (b.conteudo || '').trim())
+    const confirmou =
+      !temTextoOferta ||
+      window.confirm('Substituir os textos atuais da oferta pelos textos padrão gerados pelo ERP?')
+    if (!confirmou) return
+
+    setGerandoBlocosPadrao(true)
+    try {
+      const atualizado = await gerarBlocosPadraoOfertaOrcamento(id, perfilOferta)
+      aplicarOrcamentoAtualizado(atualizado)
+      showToast({ variant: 'success', message: 'Blocos padrão gerados para a oferta.' })
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Erro',
+        message: extrairMensagemErroApi(err) || 'Não foi possível gerar os blocos padrão.',
+      })
+    } finally {
+      setGerandoBlocosPadrao(false)
+    }
+  }
+
   function abrirRevisaoPrecoCatalogo(linha: LinhaEditavelOrcamento) {
     setRevisaoPrecoLinha(linha)
     setRevisaoPrecoValor(linha.custo_unitario)
@@ -459,7 +705,7 @@ export default function OrcamentoDetailPage() {
 
   async function revisarPrecoCatalogoAsync() {
     const linha = revisaoPrecoLinha
-    if (!id || !linha.id || !podeRevisarPrecoCatalogo || !podeEditar) return
+    if (!id || !linha || !linha.id || !podeRevisarPrecoCatalogo || !podeEditar) return
     const precoBase = decimalPayload(revisaoPrecoValor, '')
     if (!precoBase || parseDecimalPt(precoBase) < 0) {
       showToast({
@@ -608,6 +854,7 @@ export default function OrcamentoDetailPage() {
         finalizandoOferta={finalizandoOferta}
         reabrindoOferta={reabrindoOferta}
         margemProdutos={margemProdutos}
+        gerandoBlocosPadrao={gerandoBlocosPadrao}
         carregando={carregando}
         descricao={descricao}
         linhasComCustoZero={linhasComCustoZero}
@@ -615,7 +862,9 @@ export default function OrcamentoDetailPage() {
         linhasProdutos={linhasProdutos}
         linhasServicos={linhasServicos}
         motivoBloqueioEdicao={motivoBloqueioEdicao}
+        ofertaBlocos={ofertaBlocos}
         orcamento={orcamento}
+        perfilOferta={perfilOferta}
         podeEditar={podeEditar}
         podeEditarPerm={podeEditarPerm}
         podeRevisarPrecoCatalogo={podeRevisarPrecoCatalogo}
@@ -627,18 +876,58 @@ export default function OrcamentoDetailPage() {
         totalOrcamento={totalOrcamento}
         totalProdutos={totalProdutos}
         totalServicos={totalServicos}
+        resumoOferta={resumoOferta}
+        descontoComercialAtivo={descontoComercialAtivo}
+        descontoPercentual={descontoPercentual}
+        podeAplicarDescontoComercial={podeAplicarDescontoComercial}
+        setDescontoComercialAtivo={setDescontoComercialAtivo}
+        setDescontoPercentual={setDescontoPercentual}
+        ncmInvestimento={ncmInvestimento}
+        setNcmInvestimento={setNcmInvestimento}
+        investimentoDescricao={investimentoDescricao}
+        setInvestimentoDescricao={setInvestimentoDescricao}
         validoAte={validoAte}
         onAtualizarOferta={() => void atualizarOfertaAsync()}
         onFinalizarOferta={() => void finalizarOfertaAsync()}
         onReabrirOferta={() => void reabrirOfertaAsync()}
+        onPropostaCliente={abrirPropostaCliente}
+        onBaixarDocxOferta={() => void baixarDocxOfertaAsync()}
+        onUploadArquivoOferta={(tipo, arquivo) => void uploadArquivoOfertaAsync(tipo, arquivo)}
+        onBaixarArquivoOferta={(arquivo) => void baixarArquivoOfertaAsync(arquivo)}
+        onMarcarOfertaEnviada={() => void marcarOfertaEnviadaAsync()}
+        onAbrirEnviarOferta={() => setModalEnviarOferta(true)}
+        ultimoLinkPublico={ultimoLinkPublico}
+        onGerarBlocosPadrao={() => void gerarBlocosPadraoAsync()}
         onRevisarPrecoCatalogo={abrirRevisaoPrecoCatalogo}
         onSalvarProposta={handleSalvarProposta}
         onOrcamentoAtualizado={aplicarOrcamentoAtualizado}
+        ofertaBlocosDirty={ofertaBlocosDirty}
+        baixandoDocxOferta={baixandoDocxOferta}
+        uploadingArquivoOferta={uploadingArquivoOferta}
+        baixandoArquivoOfertaId={baixandoArquivoOfertaId}
+        marcandoOfertaEnviada={marcandoOfertaEnviada}
         setDescricao={setDescricao}
+        setOfertaBlocos={setOfertaBlocos}
+        ofertaFonteVersao={ofertaFonteVersao}
+        onOfertaFonteVersaoBump={() => setOfertaFonteVersao((v) => v + 1)}
+        setPerfilOferta={setPerfilOferta}
         setStatus={setStatus}
         setTitulo={setTitulo}
         setValidoAte={setValidoAte}
       />
+      {modalEnviarOferta && orcamento ? (
+        <OrcamentoEnviarOfertaModal
+          orcamento={orcamento}
+          finalizando={finalizandoOferta}
+          onSolicitarFinalizar={() => void finalizarOfertaAsync()}
+          onClose={() => setModalEnviarOferta(false)}
+          onEnviado={(atualizado, link) => {
+            aplicarOrcamentoAtualizado(atualizado)
+            setUltimoLinkPublico(link)
+          }}
+        />
+      ) : null}
+
       <RevisarPrecoCatalogoModal
         linha={revisaoPrecoLinha}
         valor={revisaoPrecoValor}
@@ -664,6 +953,7 @@ type OrcamentoDetalheConteudoProps = {
   atualizandoOferta: boolean
   finalizandoOferta: boolean
   reabrindoOferta: boolean
+  gerandoBlocosPadrao: boolean
   margemProdutos: string
   linhasComCustoZero: number[]
   carregando: boolean
@@ -672,7 +962,9 @@ type OrcamentoDetalheConteudoProps = {
   linhasProdutos: LinhaEditavelOrcamento[]
   linhasServicos: LinhaEditavelOrcamento[]
   motivoBloqueioEdicao: string | null
+  ofertaBlocos: OrcamentoOfertaBlocoDto[]
   orcamento: OrcamentoDto | null
+  perfilOferta: PerfilOferta
   podeEditar: boolean
   podeEditarPerm: boolean
   podeRevisarPrecoCatalogo: boolean
@@ -684,14 +976,41 @@ type OrcamentoDetalheConteudoProps = {
   totalOrcamento: number
   totalProdutos: number
   totalServicos: number
+  resumoOferta: OrcamentoPreviewTotaisDto
+  descontoComercialAtivo: boolean
+  descontoPercentual: string
+  podeAplicarDescontoComercial: boolean
+  setDescontoComercialAtivo: Dispatch<SetStateAction<boolean>>
+  setDescontoPercentual: Dispatch<SetStateAction<string>>
+  ncmInvestimento: string
+  setNcmInvestimento: Dispatch<SetStateAction<string>>
+  investimentoDescricao: string
+  setInvestimentoDescricao: Dispatch<SetStateAction<string>>
   validoAte: string
+  ofertaBlocosDirty: boolean
   onAtualizarOferta: () => void
   onFinalizarOferta: () => void
+  onGerarBlocosPadrao: () => void
+  onBaixarDocxOferta: () => void
+  onPropostaCliente: () => void
+  onUploadArquivoOferta: (tipo: 'DOCX_REVISADO' | 'PDF_FINAL', arquivo: File | null) => void
+  onBaixarArquivoOferta: (arquivo: OrcamentoOfertaArquivoDto) => void
+  onMarcarOfertaEnviada: () => void
+  onAbrirEnviarOferta: () => void
+  ultimoLinkPublico: string
   onReabrirOferta: () => void
   onRevisarPrecoCatalogo: (linha: LinhaEditavelOrcamento) => void
   onSalvarProposta: FormEventHandler<HTMLFormElement>
   onOrcamentoAtualizado: (orcamento: OrcamentoDto) => void
+  baixandoDocxOferta: boolean
+  uploadingArquivoOferta: string | null
+  baixandoArquivoOfertaId: string | null
+  marcandoOfertaEnviada: boolean
   setDescricao: Dispatch<SetStateAction<string>>
+  setOfertaBlocos: Dispatch<SetStateAction<OrcamentoOfertaBlocoDto[]>>
+  ofertaFonteVersao: number
+  onOfertaFonteVersaoBump: () => void
+  setPerfilOferta: Dispatch<SetStateAction<PerfilOferta>>
   setStatus: Dispatch<SetStateAction<string>>
   setTitulo: Dispatch<SetStateAction<string>>
   setValidoAte: Dispatch<SetStateAction<string>>
@@ -895,13 +1214,16 @@ function OrcamentoEdicao({
   atualizandoOferta,
   descricao,
   finalizandoOferta,
+  gerandoBlocosPadrao,
   linhasComCustoZero,
   linhasItens,
   linhasProdutos,
   linhasServicos,
   motivoBloqueioEdicao,
   margemProdutos,
+  ofertaBlocos,
   orcamento,
+  perfilOferta,
   podeEditar,
   podeEditarPerm,
   podeRevisarPrecoCatalogo,
@@ -917,14 +1239,41 @@ function OrcamentoEdicao({
   validoAte,
   onAtualizarOferta,
   onFinalizarOferta,
+  onGerarBlocosPadrao,
+  onBaixarDocxOferta,
+  onPropostaCliente,
+  onUploadArquivoOferta,
+  onBaixarArquivoOferta,
+  onMarcarOfertaEnviada,
+  onAbrirEnviarOferta,
+  ultimoLinkPublico,
   onReabrirOferta,
   onRevisarPrecoCatalogo,
   onSalvarProposta,
   onOrcamentoAtualizado,
+  baixandoDocxOferta,
+  uploadingArquivoOferta,
+  baixandoArquivoOfertaId,
+  marcandoOfertaEnviada,
   setDescricao,
+  setOfertaBlocos,
+  ofertaFonteVersao,
+  onOfertaFonteVersaoBump,
+  setPerfilOferta,
   setStatus,
   setTitulo,
   setValidoAte,
+  ofertaBlocosDirty,
+  resumoOferta,
+  descontoComercialAtivo,
+  descontoPercentual,
+  podeAplicarDescontoComercial,
+  setDescontoComercialAtivo,
+  setDescontoPercentual,
+  ncmInvestimento,
+  setNcmInvestimento,
+  investimentoDescricao,
+  setInvestimentoDescricao,
 }: Readonly<Omit<OrcamentoDetalheConteudoProps, 'carregando' | 'orcamento'> & {
   orcamento: OrcamentoDto
 }>) {
@@ -941,54 +1290,15 @@ function OrcamentoEdicao({
           linhasItens={linhasItens.length}
           orcamento={orcamento}
           podeEditar={podeEditar}
+          podeEditarPerm={podeEditarPerm}
           status={status}
-          titulo={titulo}
           totalOrcamento={totalOrcamento}
           validoAte={validoAte}
+          reabrindoOferta={reabrindoOferta}
           setStatus={setStatus}
-          setTitulo={setTitulo}
           setValidoAte={setValidoAte}
+          onReabrirOferta={onReabrirOferta}
         />
-
-        {podeEditar || (podeEditarPerm && orcamento.status === 'FINALIZADO') ? (
-          <div className="orcamento-doc__actions" aria-label="Ações da oferta">
-            {podeEditar ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={onAtualizarOferta}
-                  disabled={salvando || atualizandoOferta || finalizandoOferta}
-                >
-                  {atualizandoOferta ? 'Atualizando oferta...' : 'Atualizar oferta'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={onFinalizarOferta}
-                  disabled={
-                    salvando ||
-                    atualizandoOferta ||
-                    finalizandoOferta ||
-                    linhasComCustoZero.length > 0
-                  }
-                >
-                  {finalizandoOferta ? 'Finalizando...' : 'Finalizar oferta'}
-                </button>
-              </>
-            ) : null}
-            {podeEditarPerm && orcamento.status === 'FINALIZADO' ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                onClick={onReabrirOferta}
-                disabled={reabrindoOferta}
-              >
-                {reabrindoOferta ? 'Reabrindo...' : 'Reabrir oferta'}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
 
         <OrcamentoItensSecao
           adicionarLinha={adicionarLinha}
@@ -1003,14 +1313,75 @@ function OrcamentoEdicao({
           linhasServicos={linhasServicos}
           orcamento={orcamento}
           podeEditar={podeEditar}
+          podeEditarPerm={podeEditarPerm}
           podeRevisarPrecoCatalogo={podeRevisarPrecoCatalogo}
           removerLinha={removerLinha}
           revisandoPrecoItemId={revisandoPrecoItemId}
           salvando={salvando}
+          atualizandoOferta={atualizandoOferta}
+          finalizandoOferta={finalizandoOferta}
+          reabrindoOferta={reabrindoOferta}
+          onAtualizarOferta={onAtualizarOferta}
+          onFinalizarOferta={onFinalizarOferta}
+          onReabrirOferta={onReabrirOferta}
           onRevisarPrecoCatalogo={onRevisarPrecoCatalogo}
-          totalOrcamento={totalOrcamento}
+          resumoOferta={resumoOferta}
+          descontoComercialAtivo={descontoComercialAtivo}
+          descontoPercentual={descontoPercentual}
+          podeAplicarDescontoComercial={podeAplicarDescontoComercial}
+          setDescontoComercialAtivo={setDescontoComercialAtivo}
+          setDescontoPercentual={setDescontoPercentual}
           totalProdutos={totalProdutos}
           totalServicos={totalServicos}
+          ofertaBlocosDirty={ofertaBlocosDirty}
+        />
+
+        <OrcamentoOfertaClienteSecao
+          blocos={ofertaBlocos}
+          linhasItens={linhasItens}
+          configuradoresPainel={orcamento.configuradores_painel ?? []}
+          descontoComercialAtivo={descontoComercialAtivo}
+          descontoPercentual={descontoPercentual}
+          ncmInvestimento={ncmInvestimento}
+          setNcmInvestimento={setNcmInvestimento}
+          investimentoDescricao={investimentoDescricao}
+          setInvestimentoDescricao={setInvestimentoDescricao}
+          codigo={orcamento.codigo}
+          codigoBase={orcamento.codigo_base}
+          revisao={orcamento.revisao}
+          titulo={titulo}
+          setTitulo={setTitulo}
+          tituloProposta={titulo}
+          validade={validoAte.trim() ? validoAte.trim() : null}
+          clienteNome={orcamento.cliente_nome || orcamento.cliente_referencia || ''}
+          clienteContato={orcamento.contato_cliente_nome || ''}
+          clienteEmail={orcamento.contato_cliente_email || ''}
+          clienteTelefone={orcamento.contato_cliente_telefone || ''}
+          clienteEndereco={orcamento.cliente_endereco || ''}
+          clienteCnpj={orcamento.cliente_cnpj || ''}
+          arquivos={orcamento.oferta_arquivos ?? []}
+          envios={orcamento.oferta_envios ?? []}
+          status={orcamento.status}
+          perfil={perfilOferta}
+          podeEditar={podeEditar}
+          podeGerenciarFinal={podeEditarPerm}
+          setBlocos={setOfertaBlocos}
+          setPerfil={setPerfilOferta}
+          fonteBlocosVersao={ofertaFonteVersao}
+          onPerfilAlterado={onOfertaFonteVersaoBump}
+          baixandoDocx={baixandoDocxOferta}
+          gerandoBlocosPadrao={gerandoBlocosPadrao}
+          onGerarBlocosPadrao={onGerarBlocosPadrao}
+          onBaixarDocx={onBaixarDocxOferta}
+          onPropostaCliente={onPropostaCliente}
+          onUploadArquivo={onUploadArquivoOferta}
+          onBaixarArquivo={onBaixarArquivoOferta}
+          onMarcarEnviada={onMarcarOfertaEnviada}
+          onEnviarOferta={onAbrirEnviarOferta}
+          ultimoLinkPublico={ultimoLinkPublico}
+          uploadingArquivo={uploadingArquivoOferta}
+          baixandoArquivoId={baixandoArquivoOfertaId}
+          marcandoEnviada={marcandoOfertaEnviada}
         />
 
         <div className="orcamento-doc__section orcamento-doc__section--secondary">
@@ -1025,8 +1396,6 @@ function OrcamentoEdicao({
               />
             </div>
           </div>
-
-          <OrcamentoRevisoesSecao orcamento={orcamento} />
 
           <div className="orcamento-doc__subsection">
             <div className="orcamento-doc__subsection-head">Observações e escopo</div>
@@ -1044,87 +1413,341 @@ function OrcamentoEdicao({
   )
 }
 
-function OrcamentoRevisoesSecao({ orcamento }: Readonly<{ orcamento: OrcamentoDto }>) {
-  const revisoes = orcamento.revisoes_derivadas ?? []
-  const temHistorico = Boolean(
-    orcamento.orcamento_origem || revisoes.length > 0 || orcamento.snapshot_envio
+function OrcamentoOfertaClienteSecao({
+  arquivos,
+  blocos,
+  linhasItens: linhasItensOferta,
+  configuradoresPainel,
+  descontoComercialAtivo,
+  descontoPercentual,
+  ncmInvestimento,
+  setNcmInvestimento,
+  investimentoDescricao,
+  setInvestimentoDescricao,
+  codigo,
+  codigoBase,
+  revisao,
+  titulo,
+  setTitulo,
+  tituloProposta,
+  validade,
+  clienteNome,
+  clienteContato,
+  clienteEmail,
+  clienteTelefone,
+  clienteEndereco,
+  clienteCnpj,
+  envios,
+  baixandoDocx,
+  baixandoArquivoId,
+  gerandoBlocosPadrao,
+  marcandoEnviada,
+  onBaixarDocx,
+  onBaixarArquivo,
+  onGerarBlocosPadrao,
+  onMarcarEnviada,
+  onEnviarOferta,
+  ultimoLinkPublico,
+  onPropostaCliente,
+  onUploadArquivo,
+  perfil,
+  podeEditar,
+  podeGerenciarFinal,
+  setBlocos,
+  setPerfil,
+  fonteBlocosVersao,
+  onPerfilAlterado,
+  status,
+  uploadingArquivo,
+}: Readonly<{
+  arquivos: OrcamentoOfertaArquivoDto[]
+  blocos: OrcamentoOfertaBlocoDto[]
+  linhasItens: LinhaEditavelOrcamento[]
+  configuradoresPainel: NonNullable<OrcamentoDto['configuradores_painel']>
+  descontoComercialAtivo: boolean
+  descontoPercentual: string
+  ncmInvestimento: string
+  setNcmInvestimento: Dispatch<SetStateAction<string>>
+  investimentoDescricao: string
+  setInvestimentoDescricao: Dispatch<SetStateAction<string>>
+  codigo: string
+  codigoBase?: string
+  revisao: string
+  titulo: string
+  setTitulo: Dispatch<SetStateAction<string>>
+  tituloProposta: string
+  validade: string | null
+  clienteNome: string
+  clienteContato: string
+  clienteEmail: string
+  clienteTelefone: string
+  clienteEndereco: string
+  clienteCnpj: string
+  envios: NonNullable<OrcamentoDto['oferta_envios']>
+  baixandoDocx: boolean
+  baixandoArquivoId: string | null
+  gerandoBlocosPadrao: boolean
+  marcandoEnviada: boolean
+  onBaixarDocx: () => void
+  onBaixarArquivo: (arquivo: OrcamentoOfertaArquivoDto) => void
+  onGerarBlocosPadrao: () => void
+  onMarcarEnviada: () => void
+  onEnviarOferta: () => void
+  ultimoLinkPublico: string
+  onPropostaCliente: () => void
+  onUploadArquivo: (tipo: 'DOCX_REVISADO' | 'PDF_FINAL', arquivo: File | null) => void
+  perfil: PerfilOferta
+  podeEditar: boolean
+  podeGerenciarFinal: boolean
+  setBlocos: Dispatch<SetStateAction<OrcamentoOfertaBlocoDto[]>>
+  setPerfil: Dispatch<SetStateAction<PerfilOferta>>
+  fonteBlocosVersao: number
+  onPerfilAlterado: () => void
+  status: string
+  uploadingArquivo: string | null
+}>) {
+  const arquivosOrdenados = [...arquivos].sort(
+    (a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
   )
-  if (!temHistorico) return null
+  const pdfFinal = arquivosOrdenados.find((arquivo) => arquivo.tipo === 'PDF_FINAL')
+  const ofertaEnviada = status === 'ENVIADO' || envios.length > 0
 
   return (
-    <details className="orcamento-doc__subsection" id="orcamento-revisoes">
-      <summary
-        className="orcamento-doc__subsection-head d-flex flex-wrap justify-content-between align-items-center gap-2"
-        style={{ cursor: 'pointer' }}
-      >
-        <span>
-          Revisões da oferta
-          <span className="text-muted fw-normal ms-2" style={{ textTransform: 'none', letterSpacing: 0 }}>
-            {revisoes.length > 0
-              ? `${revisoes.length} revisão(ões)`
-              : 'Histórico'}
-          </span>
+    <section className="orcamento-doc__section orcamento-doc__section--primary">
+      <div className="orcamento-doc__section-head">
+        <span>Oferta ao cliente</span>
+        <span className="fw-normal text-muted" style={{ textTransform: 'none', letterSpacing: 0 }}>
+          {rotuloPerfilOferta(perfil)}
         </span>
-        <span className="btn btn-sm btn-outline-secondary py-0">Ver detalhes</span>
-      </summary>
-      <div className="orcamento-doc__subsection-body">
-        {orcamento.orcamento_origem ? (
-          <p className="small mb-2">
-            Criada a partir de{' '}
-            <Link to={`/orcamentos/${orcamento.orcamento_origem}`}>revisão anterior</Link>.
-          </p>
-        ) : null}
-
-        {orcamento.snapshot_envio ? (
-          <div className="alert alert-light border py-2 small mb-2" role="status">
-            Oferta congelada em{' '}
-            {new Date(orcamento.snapshot_envio.gerado_em).toLocaleString('pt-BR')} · total{' '}
-            {valorMonetarioTabela(parseDecimalPt(orcamento.snapshot_envio.total))}.
-          </div>
-        ) : null}
-
-        {revisoes.length > 0 ? (
-          <div className="table-responsive">
-            <table className="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Revisão</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Oferta</th>
-                  <th className="text-end">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {revisoes.map((rev) => (
-                  <tr key={rev.id}>
-                    <td className="fw-semibold font-monospace">{rev.codigo}</td>
-                    <td>{rotuloTipoRevisao(rev.tipo_revisao)}</td>
-                    <td>
-                      <span className={classeBadgeStatusOrcamento(rev.status)}>
-                        {rotuloStatusOrcamento(rev.status)}
-                      </span>
-                    </td>
-                    <td className="small text-muted">
-                      {rev.snapshot_envio
-                        ? `Congelada em ${new Date(rev.snapshot_envio.gerado_em).toLocaleDateString('pt-BR')}`
-                        : 'Em edição'}
-                    </td>
-                    <td className="text-end">
-                      <Link className="btn btn-sm btn-outline-secondary" to={`/orcamentos/${rev.id}`}>
-                        Abrir
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-muted small mb-0">Nenhuma revisão posterior criada.</p>
-        )}
       </div>
-    </details>
+      <div className="orcamento-doc__section-body">
+        <div className="orcamento-doc-oferta__top">
+          <div className="orcamento-doc__field">
+            <label htmlFor="orc-perfil-oferta">Perfil da oferta</label>
+            <select
+              id="orc-perfil-oferta"
+              className="form-select form-select-sm"
+              value={perfil}
+              onChange={(e) => {
+                const novoPerfil = e.target.value as PerfilOferta
+                setPerfil(novoPerfil)
+                if (novoPerfil === 'SOLUCAO_COMPLETA') {
+                  setNcmInvestimento((atual) => normalizarNcmInvestimento(atual))
+                }
+                setBlocos((atuais) => normalizarBlocosOfertaTemplate(atuais, novoPerfil))
+                onPerfilAlterado()
+              }}
+              disabled={!podeEditar}
+            >
+              <option value="MATERIAIS">Materiais com valores unitários</option>
+              <option value="SOLUCAO_COMPLETA">Solução completa com escopo descritivo</option>
+            </select>
+          </div>
+          {podeEditar ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={onGerarBlocosPadrao}
+              disabled={gerandoBlocosPadrao}
+            >
+              {gerandoBlocosPadrao ? 'Gerando...' : 'Gerar textos padrão'}
+            </button>
+          ) : null}
+          <button type="button" className="btn btn-sm btn-primary" onClick={onPropostaCliente}>
+            Proposta para o cliente
+          </button>
+          {podeGerenciarFinal ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-success"
+              onClick={onEnviarOferta}
+              disabled={ofertaEnviada && status === 'APROVADO'}
+            >
+              {ofertaEnviada ? 'Reenviar ao cliente' : 'Enviar ao cliente'}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={onBaixarDocx}
+            disabled={baixandoDocx}
+          >
+            {baixandoDocx ? 'Gerando DOCX...' : 'Exportar DOCX (revisão)'}
+          </button>
+        </div>
+
+        {envios.length > 0 ? (
+          <div className="orcamento-doc-envios small mb-2">
+            <strong>Histórico de envios</strong>
+            <ul className="list-unstyled mb-0 mt-1">
+              {envios.map((envio) => (
+                <li key={envio.id} className="mb-1">
+                  {new Date(envio.enviado_em).toLocaleString('pt-BR')} —{' '}
+                  {envio.destinatario_emails || envio.destinatario_email || envio.destinatario_nome || '—'}
+                  {envio.link_publico ? (
+                    <>
+                      {' '}
+                      <a href={envio.link_publico} target="_blank" rel="noreferrer">
+                        Link do cliente
+                      </a>
+                    </>
+                  ) : null}
+                  {envio.email_enviado ? ' · e-mail enviado' : null}
+                  {envio.email_erro ? (
+                    <span className="text-warning"> · e-mail: {envio.email_erro}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {ultimoLinkPublico ? (
+          <div className="alert alert-info py-2 small mb-2">
+            Link público copiado:{' '}
+            <a href={ultimoLinkPublico} target="_blank" rel="noreferrer">
+              {ultimoLinkPublico}
+            </a>
+          </div>
+        ) : null}
+
+        <p className="orcamento-doc-oferta__hint text-muted small mb-2">
+          Arraste ⠿ nas seções para alterar a ordem na prévia/PDF. Edite textos na coluna da esquerda
+          ou na prévia (campos destacados). NCM e descrição do investimento ficam na seção
+          Investimento. Use{' '}
+          <strong>Texto avançado</strong> só para colar markdown. Salve a proposta antes de enviar.
+        </p>
+
+        <OrcamentoOfertaDocumentoEditor
+          blocos={blocos}
+          setBlocos={setBlocos}
+          perfil={perfil}
+          podeEditar={podeEditar}
+          linhasItens={linhasItensOferta}
+          configuradoresPainel={configuradoresPainel}
+          descontoComercialAtivo={descontoComercialAtivo}
+          descontoPercentual={descontoPercentual}
+          ncmInvestimento={ncmInvestimento}
+          setNcmInvestimento={setNcmInvestimento}
+          investimentoDescricao={investimentoDescricao}
+          setInvestimentoDescricao={setInvestimentoDescricao}
+          titulo={titulo}
+          setTitulo={setTitulo}
+          fonteBlocosVersao={fonteBlocosVersao}
+          contexto={{
+            codigo,
+            codigoBase,
+            revisao,
+            titulo: tituloProposta,
+            validade,
+            clienteNome,
+            clienteContato,
+            clienteEmail,
+            clienteTelefone,
+            clienteEndereco,
+            clienteCnpj,
+          }}
+        />
+
+        <details className="orcamento-doc-oferta-final orcamento-doc-oferta-final--opcional">
+          <summary className="orcamento-doc-oferta-final__summary">
+            <strong>Anexos e registro de envio</strong>
+            <span className="text-muted small ms-2">
+              Opcional — use só se revisar fora do portal ou arquivar PDF assinado
+            </span>
+          </summary>
+          <div className="orcamento-doc-oferta-final__body">
+          <div className="orcamento-doc-oferta-final__head">
+            <div>
+              <strong>Versão final da oferta</strong>
+              <p className="text-muted small mb-0">
+                Anexe o DOCX revisado e o PDF final que será registrado no histórico.
+              </p>
+            </div>
+            {podeGerenciarFinal ? (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={onMarcarEnviada}
+                disabled={!pdfFinal || marcandoEnviada || ofertaEnviada}
+              >
+                {marcandoEnviada ? 'Registrando...' : ofertaEnviada ? 'Oferta enviada' : 'Marcar como enviada'}
+              </button>
+            ) : null}
+          </div>
+
+          {podeGerenciarFinal ? (
+            <div className="orcamento-doc-oferta-final__uploads">
+              <label className="btn btn-sm btn-outline-primary mb-0">
+                {uploadingArquivo === 'DOCX_REVISADO' ? 'Anexando DOCX...' : 'Anexar DOCX revisado'}
+                <input
+                  type="file"
+                  accept=".docx"
+                  className="visually-hidden"
+                  disabled={Boolean(uploadingArquivo)}
+                  onChange={(event) => {
+                    onUploadArquivo('DOCX_REVISADO', event.currentTarget.files?.[0] ?? null)
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+              <label className="btn btn-sm btn-outline-primary mb-0">
+                {uploadingArquivo === 'PDF_FINAL' ? 'Anexando PDF...' : 'Anexar PDF final'}
+                <input
+                  type="file"
+                  accept=".pdf"
+                  className="visually-hidden"
+                  disabled={Boolean(uploadingArquivo)}
+                  onChange={(event) => {
+                    onUploadArquivo('PDF_FINAL', event.currentTarget.files?.[0] ?? null)
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
+
+          {arquivosOrdenados.length === 0 ? (
+            <p className="orcamento-doc__empty-itens mb-0">
+              Nenhum DOCX revisado ou PDF final anexado.
+            </p>
+          ) : (
+            <div className="orcamento-doc-oferta-final__files">
+              {arquivosOrdenados.map((arquivo) => (
+                <div className="orcamento-doc-oferta-final__file" key={arquivo.id}>
+                  <div>
+                    <span className="badge text-bg-light me-2">
+                      {arquivo.tipo === 'PDF_FINAL' ? 'PDF final' : 'DOCX revisado'} v{arquivo.versao}
+                    </span>
+                    <strong>{arquivo.nome_original}</strong>
+                    <div className="text-muted small">
+                      {formatarDataHoraExibicao(arquivo.criado_em)}
+                      {arquivo.criado_por_label ? ` · ${arquivo.criado_por_label}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => onBaixarArquivo(arquivo)}
+                    disabled={baixandoArquivoId === arquivo.id}
+                  >
+                    {baixandoArquivoId === arquivo.id ? 'Baixando...' : 'Baixar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {envios.length > 0 ? (
+            <div className="orcamento-doc-oferta-final__sent">
+              Último envio registrado em {formatarDataHoraExibicao(envios[0].enviado_em)}
+              {envios[0].destinatario_email ? ` para ${envios[0].destinatario_email}` : ''}.
+            </div>
+          ) : null}
+          </div>
+        </details>
+      </div>
+    </section>
   )
 }
 
@@ -1148,6 +1771,16 @@ function formatarDataExibicao(iso: string | null | undefined): string {
   return d.toLocaleDateString('pt-BR')
 }
 
+function formatarDataHoraExibicao(iso: string | null | undefined): string {
+  if (!iso?.trim()) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
+
 function margensClientePath(clienteId: string | null | undefined): string {
   if (!clienteId) return '/orcamentos/margens-clientes'
   return `/orcamentos/margens-clientes?cliente=${encodeURIComponent(clienteId)}`
@@ -1157,24 +1790,26 @@ function OrcamentoDocumentoCabecalho({
   linhasItens,
   orcamento,
   podeEditar,
+  podeEditarPerm,
   status,
-  titulo,
   totalOrcamento,
   validoAte,
+  reabrindoOferta,
   setStatus,
-  setTitulo,
   setValidoAte,
+  onReabrirOferta,
 }: Readonly<{
   linhasItens: number
   orcamento: OrcamentoDto
   podeEditar: boolean
+  podeEditarPerm: boolean
   status: string
-  titulo: string
   totalOrcamento: number
   validoAte: string
+  reabrindoOferta: boolean
   setStatus: Dispatch<SetStateAction<string>>
-  setTitulo: Dispatch<SetStateAction<string>>
   setValidoAte: Dispatch<SetStateAction<string>>
+  onReabrirOferta: () => void
 }>) {
   const contatoResumo = [
     orcamento.contato_cliente_nome,
@@ -1264,17 +1899,12 @@ function OrcamentoDocumentoCabecalho({
               </Link>
             ) : null}
           </div>
-          <div className="orcamento-doc__field orcamento-doc__field--wide">
-            <label htmlFor="orc-det-titulo">Título / referência</label>
-            <input
-              id="orc-det-titulo"
-              className="form-control form-control-sm"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              maxLength={200}
-              required
-              disabled={!podeEditar}
-              placeholder="Ex.: Painel QGBT — linha de envase"
+          <div className="orcamento-doc__field orcamento-doc__field--revisoes">
+            <OrcamentoRevisoesPainel
+              orcamento={orcamento}
+              podeEditarPerm={podeEditarPerm}
+              reabrindoOferta={reabrindoOferta}
+              onReabrirOferta={onReabrirOferta}
             />
           </div>
         </div>
@@ -1320,14 +1950,13 @@ function OrcamentoDescricaoCampo({
   )
 }
 
-function rotuloTipoRevisao(tipo: OrcamentoDto['tipo_revisao']): string {
-  if (tipo === 'COMERCIAL') return 'Comercial'
-  if (tipo === 'TECNICA') return 'Técnica'
-  return 'Inicial'
-}
-
 function rotuloStatusOrcamento(status: string): string {
   return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
+}
+
+function rotuloPerfilOferta(perfil: PerfilOferta): string {
+  if (perfil === 'SOLUCAO_COMPLETA') return 'Solução completa'
+  return 'Materiais'
 }
 
 function OrcamentoItensSecao({
@@ -1337,18 +1966,31 @@ function OrcamentoItensSecao({
   adicionarLinhaServicoManual,
   margemProdutos,
   atualizarLinha,
+  atualizandoOferta,
+  finalizandoOferta,
   linhasComCustoZero,
   linhasItens,
   linhasProdutos,
   linhasServicos,
   orcamento,
   podeEditar,
+  podeEditarPerm,
   podeRevisarPrecoCatalogo,
   removerLinha,
+  reabrindoOferta,
   revisandoPrecoItemId,
   salvando,
+  onAtualizarOferta,
+  onFinalizarOferta,
+  onReabrirOferta,
   onRevisarPrecoCatalogo,
-  totalOrcamento,
+  ofertaBlocosDirty,
+  resumoOferta,
+  descontoComercialAtivo,
+  descontoPercentual,
+  podeAplicarDescontoComercial,
+  setDescontoComercialAtivo,
+  setDescontoPercentual,
   totalProdutos,
   totalServicos,
 }: Readonly<{
@@ -1358,20 +2000,33 @@ function OrcamentoItensSecao({
   adicionarLinhaServicoManual: () => void
   margemProdutos: string
   atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
+  atualizandoOferta: boolean
+  finalizandoOferta: boolean
   linhasComCustoZero: number[]
   linhasItens: LinhaEditavelOrcamento[]
   linhasProdutos: LinhaEditavelOrcamento[]
   linhasServicos: LinhaEditavelOrcamento[]
   orcamento: OrcamentoDto
   podeEditar: boolean
+  podeEditarPerm: boolean
   podeRevisarPrecoCatalogo: boolean
   removerLinha: (index: number) => void
+  reabrindoOferta: boolean
   revisandoPrecoItemId: string | null
   salvando: boolean
+  onAtualizarOferta: () => void
+  onFinalizarOferta: () => void
+  onReabrirOferta: () => void
   onRevisarPrecoCatalogo: (linha: LinhaEditavelOrcamento) => void
-  totalOrcamento: number
+  resumoOferta: OrcamentoPreviewTotaisDto
+  descontoComercialAtivo: boolean
+  descontoPercentual: string
+  podeAplicarDescontoComercial: boolean
+  setDescontoComercialAtivo: Dispatch<SetStateAction<boolean>>
+  setDescontoPercentual: Dispatch<SetStateAction<string>>
   totalProdutos: number
   totalServicos: number
+  ofertaBlocosDirty: boolean
 }>) {
   const [termoServico, setTermoServico] = useState('')
 
@@ -1475,14 +2130,57 @@ function OrcamentoItensSecao({
           </div>
         </div>
 
-        <div className="orcamento-doc__totais-grid" aria-label="Resumo da oferta">
-          <span>Subtotal produtos</span>
-          <strong>R$ {valorMonetarioTabela(totalProdutos)}</strong>
-          <span>Subtotal serviços</span>
-          <strong>R$ {valorMonetarioTabela(totalServicos)}</strong>
-          <span>Total da proposta</span>
-          <strong>R$ {valorMonetarioTabela(totalOrcamento)}</strong>
-        </div>
+        <OrcamentoResumoComercial
+          podeEditar={podeEditar}
+          podeConfigurarDesconto={podeAplicarDescontoComercial}
+          descontoAtivo={descontoComercialAtivo}
+          descontoPercentual={descontoPercentual}
+          totais={resumoOferta}
+          onDescontoAtivoChange={setDescontoComercialAtivo}
+          onDescontoPercentualChange={setDescontoPercentual}
+        />
+
+        {podeEditar || (podeEditarPerm && orcamento.status === 'FINALIZADO') ? (
+          <div className="orcamento-doc__actions mt-3" aria-label="Ações da oferta">
+            {podeEditar ? (
+              <>
+                <button
+                  type="submit"
+                  className="btn btn-sm btn-primary"
+                  disabled={salvando || linhasComCustoZero.length > 0}
+                >
+                  {salvando ? 'Salvando...' : 'Salvar proposta'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={onAtualizarOferta}
+                  disabled={salvando || atualizandoOferta || finalizandoOferta}
+                >
+                  {atualizandoOferta ? 'Atualizando oferta...' : 'Atualizar oferta'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={onFinalizarOferta}
+                  disabled={
+                    salvando ||
+                    atualizandoOferta ||
+                    finalizandoOferta ||
+                    linhasComCustoZero.length > 0
+                  }
+                >
+                  {finalizandoOferta ? 'Finalizando...' : 'Finalizar oferta'}
+                </button>
+                {ofertaBlocosDirty ? (
+                  <span className="badge bg-warning text-dark ms-2" title="Há alterações de oferta não salvas">
+                    Alterações locais
+                  </span>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </section>
   )
@@ -1835,11 +2533,4 @@ function subtotalLinha(linha: LinhaEditavelOrcamento): string {
   const preco = parseDecimalPt(linha.preco_unitario)
   if (!Number.isFinite(quantidade) || !Number.isFinite(preco)) return '—'
   return `R$ ${valorMonetarioTabela(quantidade * preco)}`
-}
-
-function valorMonetarioTabela(valor: number): string {
-  return valor.toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
 }

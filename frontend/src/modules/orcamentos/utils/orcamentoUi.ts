@@ -30,6 +30,13 @@ export function proximaDescricaoPainel(orcamento: OrcamentoDto): string {
   return partes.join(' — ')
 }
 
+export function valorMonetarioTabela(valor: number): string {
+  return valor.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function parseDecimalPt(valor: string): number {
   const semEspacos = valor.trim().replace(/\s/g, '')
   const normalizado = semEspacos.includes(',')
@@ -37,6 +44,16 @@ export function parseDecimalPt(valor: string): number {
     : semEspacos
   const n = Number(normalizado)
   return Number.isFinite(n) ? n : NaN
+}
+
+/** Percentual para rótulos (ex.: 10, 5.25, 1.42) — não remove o zero de "10". */
+export function formatarPercentualExibicao(valor: string): string {
+  const n = parseDecimalPt(valor)
+  if (!Number.isFinite(n)) return valor.trim() || '0'
+  return n.toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
 }
 
 /** Impede reduzir margem abaixo do valor de referência (mínimo). */
@@ -72,6 +89,10 @@ export function configuradorNovoPath(params: {
 
 export function orcamentoDetalhePath(orcamentoId: string): string {
   return `/orcamentos/${encodeURIComponent(orcamentoId)}`
+}
+
+export function orcamentoOfertaPath(orcamentoId: string): string {
+  return `${orcamentoDetalhePath(orcamentoId)}/oferta`
 }
 
 export function configuradorFluxoOrcamentoPath(

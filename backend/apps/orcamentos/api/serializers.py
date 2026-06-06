@@ -4,6 +4,7 @@ Serializers de orçamento: itens aninhados, sync por lista e integração catál
 from __future__ import annotations
 
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
@@ -15,12 +16,20 @@ from apps.fiscal.services import p_ipi_referencia_produto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
+    PerfilOfertaChoices,
+    OrcamentoOfertaArquivo,
+    OrcamentoOfertaBloco,
+    OrcamentoOfertaEnvio,
     OrcamentoSnapshot,
     OrcamentoItem,
     OrigemItemOrcamentoChoices,
     StatusOrcamentoChoices,
     TipoItemOrcamentoChoices,
 )
+from core.permissions import PermissionKeys
+
+from apps.orcamentos.services.formatacao_oferta import cnpj_exibicao, endereco_exibicao_parceiro
+from apps.orcamentos.services.ncm_investimento import normalizar_ncm_investimento
 from apps.orcamentos.services.preco_linha import calcular_preco_unitario_linha
 from apps.orcamentos.services.snapshot_orcamento import criar_snapshot_envio_orcamento
 from apps.orcamentos.services.politica_preco_catalogo import (
@@ -85,6 +94,62 @@ class OrcamentoConfiguradorPainelSerializer(serializers.ModelSerializer):
         )
 
         return contar_pendencias_abertas_projeto(obj.projeto_configurador)
+
+
+class OrcamentoOfertaArquivoSerializer(serializers.ModelSerializer):
+    criado_por_label = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrcamentoOfertaArquivo
+        fields = (
+            "id",
+            "tipo",
+            "nome_original",
+            "content_type",
+            "tamanho_bytes",
+            "versao",
+            "criado_por",
+            "criado_por_label",
+            "criado_em",
+            "download_url",
+        )
+        read_only_fields = fields
+
+    def get_criado_por_label(self, obj):
+        return OrcamentoSerializer._usuario_label(obj.criado_por)
+
+    def get_download_url(self, obj):
+        return f"/orcamentos/{obj.orcamento_id}/arquivos-oferta/{obj.id}/download/"
+
+
+class OrcamentoOfertaEnvioSerializer(serializers.ModelSerializer):
+    enviado_por_label = serializers.SerializerMethodField()
+    pdf_final = OrcamentoOfertaArquivoSerializer(read_only=True)
+
+    class Meta:
+        model = OrcamentoOfertaEnvio
+        fields = (
+            "id",
+            "pdf_final",
+            "convite",
+            "canal",
+            "link_publico",
+            "email_enviado",
+            "email_erro",
+            "destinatario_nome",
+            "destinatario_email",
+            "destinatario_emails",
+            "assunto",
+            "mensagem",
+            "enviado_por",
+            "enviado_por_label",
+            "enviado_em",
+        )
+        read_only_fields = fields
+
+    def get_enviado_por_label(self, obj):
+        return OrcamentoSerializer._usuario_label(obj.enviado_por)
 
 
 class OrcamentoItemSerializer(serializers.ModelSerializer):
@@ -210,6 +275,24 @@ class OrcamentoSnapshotResumoSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class OrcamentoOfertaBlocoSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(required=False, allow_null=True)
+    titulo = serializers.CharField(max_length=120, allow_blank=False)
+    conteudo = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = OrcamentoOfertaBloco
+        fields = (
+            "id",
+            "ordem",
+            "tipo",
+            "titulo",
+            "conteudo",
+            "editavel",
+        )
+        read_only_fields = ("editavel",)
+
+
 class OrcamentoRevisaoResumoSerializer(serializers.ModelSerializer):
     snapshot_envio = OrcamentoSnapshotResumoSerializer(read_only=True)
 
@@ -234,14 +317,20 @@ class OrcamentoSerializer(serializers.ModelSerializer):
     """Cabeçalho da proposta com itens; normaliza preços e origem ao vincular produto."""
 
     itens = OrcamentoItemSerializer(many=True, required=False)
+    oferta_blocos = OrcamentoOfertaBlocoSerializer(many=True, required=False)
     configuradores_painel = OrcamentoConfiguradorPainelSerializer(
         many=True,
         read_only=True,
     )
+    oferta_arquivos = OrcamentoOfertaArquivoSerializer(many=True, read_only=True)
+    oferta_envios = OrcamentoOfertaEnvioSerializer(many=True, read_only=True)
     editavel = serializers.SerializerMethodField()
     cliente_nome = serializers.SerializerMethodField()
     contato_cliente_nome = serializers.SerializerMethodField()
     contato_cliente_email = serializers.SerializerMethodField()
+    contato_cliente_telefone = serializers.SerializerMethodField()
+    cliente_endereco = serializers.SerializerMethodField()
+    cliente_cnpj = serializers.SerializerMethodField()
     criado_por_label = serializers.SerializerMethodField()
     atualizado_por_label = serializers.SerializerMethodField()
     snapshot_envio = serializers.SerializerMethodField()
@@ -264,9 +353,17 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "contato_cliente",
             "contato_cliente_nome",
             "contato_cliente_email",
+            "contato_cliente_telefone",
+            "cliente_endereco",
+            "cliente_cnpj",
             "cliente_referencia",
             "margem_produtos_percentual",
             "margem_servicos_percentual",
+            "desconto_comercial_ativo",
+            "desconto_percentual",
+            "ncm_investimento",
+            "investimento_descricao",
+            "perfil_oferta",
             "status",
             "valido_ate",
             "criado_em",
@@ -278,6 +375,9 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "snapshot_envio",
             "revisoes_derivadas",
             "itens",
+            "oferta_blocos",
+            "oferta_arquivos",
+            "oferta_envios",
             "configuradores_painel",
         )
         read_only_fields = (
@@ -291,6 +391,9 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "cliente_nome",
             "contato_cliente_nome",
             "contato_cliente_email",
+            "contato_cliente_telefone",
+            "cliente_endereco",
+            "cliente_cnpj",
             "criado_em",
             "atualizado_em",
             "criado_por",
@@ -299,6 +402,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             "atualizado_por_label",
             "snapshot_envio",
             "revisoes_derivadas",
+            "oferta_arquivos",
+            "oferta_envios",
         )
 
     def get_cliente_nome(self, obj):
@@ -309,6 +414,15 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     def get_contato_cliente_email(self, obj):
         return obj.contato_cliente.email if obj.contato_cliente_id else ""
+
+    def get_contato_cliente_telefone(self, obj):
+        return obj.contato_cliente.telefone if obj.contato_cliente_id else ""
+
+    def get_cliente_endereco(self, obj):
+        return endereco_exibicao_parceiro(obj.cliente) if obj.cliente_id else ""
+
+    def get_cliente_cnpj(self, obj):
+        return cnpj_exibicao(obj.cliente.documento) if obj.cliente_id else ""
 
     @staticmethod
     def _usuario_label(user) -> str:
@@ -339,7 +453,87 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         revisoes = obj.revisoes_derivadas.order_by("criado_em")
         return OrcamentoRevisaoResumoSerializer(revisoes, many=True).data
 
+    @staticmethod
+    def _usuario_pode_aplicar_desconto_comercial(user) -> bool:
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return PermissionKeys.ORCAMENTO_APLICAR_DESCONTO in set(
+            getattr(user, "permissoes_efetivas", []) or []
+        )
+
+    def _validar_desconto_comercial(self, attrs):
+        """Desconto comercial só pode ser definido/alterado com permissão dedicada."""
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if self._usuario_pode_aplicar_desconto_comercial(user):
+            return attrs
+
+        instance = self.instance
+        if instance is None:
+            attrs["desconto_comercial_ativo"] = False
+            attrs["desconto_percentual"] = Decimal("0")
+            return attrs
+
+        erros = {}
+        if (
+            "desconto_comercial_ativo" in attrs
+            and bool(attrs["desconto_comercial_ativo"])
+            != bool(instance.desconto_comercial_ativo)
+        ):
+            erros["desconto_comercial_ativo"] = (
+                "Sem permissão para alterar o desconto comercial da proposta."
+            )
+        if "desconto_percentual" in attrs:
+            novo = Decimal(str(attrs["desconto_percentual"] or 0))
+            antigo = Decimal(str(instance.desconto_percentual or 0))
+            if novo != antigo:
+                erros["desconto_percentual"] = (
+                    "Sem permissão para alterar o desconto comercial da proposta."
+                )
+        if erros:
+            raise serializers.ValidationError(erros)
+
+        attrs.pop("desconto_comercial_ativo", None)
+        attrs.pop("desconto_percentual", None)
+        return attrs
+
+    def _validar_ncm_investimento(self, attrs):
+        perfil = attrs.get(
+            "perfil_oferta",
+            getattr(self.instance, "perfil_oferta", None) or PerfilOfertaChoices.MATERIAIS,
+        )
+        if perfil != PerfilOfertaChoices.SOLUCAO_COMPLETA:
+            return attrs
+        bruto = attrs.get(
+            "ncm_investimento",
+            getattr(self.instance, "ncm_investimento", None) if self.instance else None,
+        )
+        attrs["ncm_investimento"] = normalizar_ncm_investimento(bruto)
+        ncm = attrs["ncm_investimento"]
+        if len(ncm) != 8:
+            raise serializers.ValidationError(
+                {"ncm_investimento": "Informe o NCM com 8 dígitos (ex.: 85371090)."}
+            )
+        return attrs
+
+    def _validar_investimento_descricao(self, attrs):
+        perfil = attrs.get(
+            "perfil_oferta",
+            getattr(self.instance, "perfil_oferta", None) or PerfilOfertaChoices.MATERIAIS,
+        )
+        if perfil != PerfilOfertaChoices.SOLUCAO_COMPLETA:
+            return attrs
+        bruto = attrs.get(
+            "investimento_descricao",
+            getattr(self.instance, "investimento_descricao", None) if self.instance else None,
+        )
+        attrs["investimento_descricao"] = str(bruto or "").strip()[:255]
+        return attrs
+
     def validate(self, attrs):
+        attrs = self._validar_desconto_comercial(attrs)
+        attrs = self._validar_ncm_investimento(attrs)
+        attrs = self._validar_investimento_descricao(attrs)
         instance = self.instance
         cliente = attrs.get("cliente", getattr(instance, "cliente", None))
         contato = attrs.get("contato_cliente", getattr(instance, "contato_cliente", None))
@@ -361,6 +555,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop("itens", empty)
+        oferta_blocos_data = validated_data.pop("oferta_blocos", empty)
         status_destino = validated_data.pop("status", empty)
         status_anterior = instance.status
         self._aplicar_margens_cliente(validated_data)
@@ -372,6 +567,8 @@ class OrcamentoSerializer(serializers.ModelSerializer):
             instance = super().update(instance, validated_data)
             if itens_data is not empty:
                 self._sync_itens(instance, itens_data)
+            if oferta_blocos_data is not empty:
+                self._sync_oferta_blocos(instance, oferta_blocos_data)
             if status_destino is not empty:
                 instance.status = status_destino
                 instance.save(update_fields=("status", "atualizado_em"))
@@ -644,8 +841,55 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                 pk__in=kept_ids
             ).delete()
 
+    def _sync_oferta_blocos(self, orcamento, blocos_data):
+        if not orcamento.editavel:
+            raise serializers.ValidationError(
+                {"oferta_blocos": "Não é possível alterar textos da oferta fora do rascunho."}
+            )
+        kept_ids = list(
+            OrcamentoOfertaBloco.objects.filter(orcamento=orcamento, editavel=False).values_list(
+                "pk", flat=True
+            )
+        )
+        with transaction.atomic():
+            for idx, raw in enumerate(blocos_data):
+                bloco_id = raw.get("id")
+                dados = {
+                    "ordem": raw.get("ordem", idx),
+                    "tipo": raw["tipo"],
+                    "titulo": raw["titulo"].strip(),
+                    "conteudo": raw.get("conteudo", ""),
+                }
+                if bloco_id:
+                    bloco = OrcamentoOfertaBloco.objects.filter(
+                        pk=bloco_id,
+                        orcamento=orcamento,
+                    ).first()
+                    if bloco is None:
+                        raise serializers.ValidationError(
+                            {
+                                "oferta_blocos": (
+                                    f"Bloco com id {bloco_id} não existe neste orçamento."
+                                )
+                            }
+                        )
+                    if not bloco.editavel:
+                        kept_ids.append(bloco.pk)
+                        continue
+                    for campo, valor in dados.items():
+                        setattr(bloco, campo, valor)
+                    bloco.save(update_fields=("ordem", "tipo", "titulo", "conteudo"))
+                    kept_ids.append(bloco.pk)
+                else:
+                    novo = OrcamentoOfertaBloco.objects.create(orcamento=orcamento, **dados)
+                    kept_ids.append(novo.pk)
+            OrcamentoOfertaBloco.objects.filter(orcamento=orcamento, editavel=True).exclude(
+                pk__in=kept_ids
+            ).delete()
+
     def create(self, validated_data):
         itens_data = validated_data.pop("itens", [])
+        oferta_blocos_data = validated_data.pop("oferta_blocos", [])
         validated_data.setdefault(
             "valido_ate",
             timezone.localdate() + timedelta(days=15),
@@ -673,6 +917,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
                     servico=raw.get("servico"),
                     aliquota_ipi=raw.get("aliquota_ipi"),
                 )
+            self._sync_oferta_blocos(orcamento, oferta_blocos_data)
         return orcamento
 
 

@@ -1,0 +1,45 @@
+.oferta-publica-page {
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+.oferta-publica-page__topbar {
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.oferta-publica-page__conteudo {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.oferta-publica-resposta {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.oferta-publica-resposta--ok {
+  border-color: rgba(74, 143, 110, 0.5);
+  background: rgba(74, 143, 110, 0.06);
+}
+
+.oferta-publica-resposta--recusada {
+  border-color: rgba(220, 53, 69, 0.35);
+  background: rgba(220, 53, 69, 0.04);
+}
+
+.assinatura-canvas__area {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  height: 120px;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  background: #fff;
+  touch-action: none;
+}

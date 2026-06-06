@@ -201,6 +201,11 @@ REST_FRAMEWORK = {
 }
 
 # Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
+# Token Bearer para agente fiscal local (ponte A3). Não commitar valor real.
+FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
+# CNPJ da ZFW (14 dígitos) — pré-preenche NSU no portal e deve coincidir com FISCAL_PONTE_CNPJ na máquina local.
+FISCAL_EMPRESA_CNPJ = os.getenv("FISCAL_EMPRESA_CNPJ", "")
+
 CNPJ_CONSULTA = {
     "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),
     "MAX_SOCIOS": int(os.getenv("CNPJ_CONSULTA_MAX_SOCIOS", "50")),
@@ -239,7 +244,35 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# E-mail (envio de proposta ao cliente)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "vendas@zfw.com.br")
+ZFW_EMAIL_LOGO_PATH = os.getenv(
+    "ZFW_EMAIL_LOGO_PATH",
+    str(BASE_DIR / "apps" / "orcamentos" / "assets" / "branding" / "zfw-logo-engenharia.png"),
+)
+ZFW_WHATSAPP_E164 = os.getenv("ZFW_WHATSAPP_E164", "5547984027016")
+ZFW_WHATSAPP_DISPLAY = os.getenv("ZFW_WHATSAPP_DISPLAY", "+55 47 98402-7016")
+
+# URL do portal para links públicos da oferta (ex.: https://portal.zfw.com.br)
+OFERTA_PUBLICA_FRONTEND_URL = os.getenv(
+    "OFERTA_PUBLICA_FRONTEND_URL",
+    "http://localhost:5173",
+)

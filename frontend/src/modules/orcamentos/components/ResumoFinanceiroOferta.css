@@ -1,0 +1,94 @@
+.resumo-financeiro-oferta {
+  margin-top: 0.65rem;
+  margin-left: auto;
+  width: min(17.5rem, 100%);
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--doc-borda, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.resumo-financeiro-oferta__linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+}
+
+.resumo-financeiro-oferta__linha span {
+  color: var(--doc-texto, #334155);
+  font-weight: 500;
+}
+
+.resumo-financeiro-oferta__linha strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--doc-texto, #334155);
+}
+
+.resumo-financeiro-oferta__linha--detalhe span,
+.resumo-financeiro-oferta__linha--detalhe strong {
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--doc-texto-suave, #64748b);
+}
+
+.resumo-financeiro-oferta__linha--total {
+  margin-top: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--doc-borda, #e2e8f0);
+}
+
+.resumo-financeiro-oferta__linha--total span {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--doc-texto-suave, #64748b);
+}
+
+.resumo-financeiro-oferta__linha--total strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--doc-azul-escuro, #0f4c5c);
+}
+
+.orcamento-doc__resumo-comercial {
+  margin: 0.85rem 0 0 auto;
+  max-width: 28rem;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid var(--cp-border-subtle, #e2e8f0);
+  border-radius: var(--cp-radius-md, 8px);
+}
+
+.orcamento-doc__resumo-comercial-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.orcamento-doc__resumo-comercial-campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: end;
+  margin-bottom: 0.65rem;
+}
+
+.orcamento-doc__resumo-comercial-campos label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  display: block;
+  margin-bottom: 0.2rem;
+}

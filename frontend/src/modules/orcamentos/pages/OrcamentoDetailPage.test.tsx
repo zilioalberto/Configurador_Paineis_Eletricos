@@ -12,8 +12,14 @@ const showToastMock = vi.hoisted(() => vi.fn())
 const obterOrcamentoMock = vi.hoisted(() => vi.fn())
 const atualizarOrcamentoMock = vi.hoisted(() => vi.fn())
 const atualizarOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
+const gerarBlocosPadraoOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
+const obterPreviewOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
+const baixarArquivoOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
+const baixarDocxOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
+const marcarOfertaEnviadaOrcamentoMock = vi.hoisted(() => vi.fn())
 const reabrirOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
 const revisarPrecoCatalogoItemOrcamentoMock = vi.hoisted(() => vi.fn())
+const uploadArquivoOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast: showToastMock }),
@@ -28,13 +34,21 @@ vi.mock('@/modules/auth/AuthContext', () => ({
 vi.mock('../services/orcamentosApi', () => ({
   atualizarOfertaOrcamento: (...args: unknown[]) => atualizarOfertaOrcamentoMock(...args),
   atualizarOrcamento: (...args: unknown[]) => atualizarOrcamentoMock(...args),
+  baixarArquivoOfertaOrcamento: (...args: unknown[]) => baixarArquivoOfertaOrcamentoMock(...args),
+  baixarDocxOfertaOrcamento: (...args: unknown[]) => baixarDocxOfertaOrcamentoMock(...args),
+  gerarBlocosPadraoOfertaOrcamento: (...args: unknown[]) =>
+    gerarBlocosPadraoOfertaOrcamentoMock(...args),
+  marcarOfertaEnviadaOrcamento: (...args: unknown[]) => marcarOfertaEnviadaOrcamentoMock(...args),
+  obterPreviewOfertaOrcamento: (...args: unknown[]) => obterPreviewOfertaOrcamentoMock(...args),
   obterOrcamento: (...args: unknown[]) => obterOrcamentoMock(...args),
   reabrirOfertaOrcamento: (...args: unknown[]) => reabrirOfertaOrcamentoMock(...args),
   revisarPrecoCatalogoItemOrcamento: (...args: unknown[]) =>
     revisarPrecoCatalogoItemOrcamentoMock(...args),
+  uploadArquivoOfertaOrcamento: (...args: unknown[]) => uploadArquivoOfertaOrcamentoMock(...args),
 }))
 
 import OrcamentoDetailPage from './OrcamentoDetailPage'
+import OrcamentoOfertaPrintPage from './OrcamentoOfertaPrintPage'
 
 function ToolbarProbe() {
   const toolbar = useAppPageToolbarState()
@@ -56,9 +70,11 @@ const orcamentoBase = {
   contato_cliente: 'cont-1',
   contato_cliente_nome: 'Joana Compras',
   contato_cliente_email: 'joana@empresa.com',
+  contato_cliente_telefone: '(47) 99999-0000',
   cliente_referencia: '',
   margem_produtos_percentual: '20.00',
   margem_servicos_percentual: '35.00',
+  perfil_oferta: 'MATERIAIS',
   status: 'RASCUNHO',
   valido_ate: '2026-06-30',
   criado_em: '2026-05-01T10:00:00Z',
@@ -77,6 +93,9 @@ const orcamentoBase = {
       editavel: true,
     },
   ],
+  oferta_blocos: [],
+  oferta_arquivos: [],
+  oferta_envios: [],
   configuradores_painel: [],
 }
 
@@ -84,17 +103,67 @@ function setupOrcamentoDetailPage() {
   showToastMock.mockClear()
   atualizarOrcamentoMock.mockClear()
   atualizarOfertaOrcamentoMock.mockClear()
+  gerarBlocosPadraoOfertaOrcamentoMock.mockClear()
+  obterPreviewOfertaOrcamentoMock.mockClear()
+  baixarArquivoOfertaOrcamentoMock.mockClear()
+  baixarDocxOfertaOrcamentoMock.mockClear()
+  marcarOfertaEnviadaOrcamentoMock.mockClear()
   reabrirOfertaOrcamentoMock.mockClear()
   revisarPrecoCatalogoItemOrcamentoMock.mockClear()
+  uploadArquivoOfertaOrcamentoMock.mockClear()
   obterOrcamentoMock.mockResolvedValue(orcamentoBase)
+  baixarArquivoOfertaOrcamentoMock.mockResolvedValue(new Blob(['arquivo']))
+  baixarDocxOfertaOrcamentoMock.mockResolvedValue(new Blob(['docx']))
+  marcarOfertaEnviadaOrcamentoMock.mockResolvedValue({
+    ...orcamentoBase,
+    status: 'ENVIADO',
+  })
+  uploadArquivoOfertaOrcamentoMock.mockResolvedValue(orcamentoBase)
   atualizarOrcamentoMock.mockImplementation(async (_id: string, payload: Record<string, unknown>) => ({
     ...orcamentoBase,
     ...payload,
       itens: payload.itens ?? orcamentoBase.itens,
+      oferta_blocos: payload.oferta_blocos ?? orcamentoBase.oferta_blocos,
   }))
   atualizarOfertaOrcamentoMock.mockResolvedValue({
     itens_atualizados: 1,
     orcamento: orcamentoBase,
+  })
+  gerarBlocosPadraoOfertaOrcamentoMock.mockResolvedValue({
+    ...orcamentoBase,
+    perfil_oferta: 'SOLUCAO_COMPLETA',
+    oferta_blocos: [
+      {
+        id: 'bloco-1',
+        ordem: 0,
+        tipo: 'ESCOPO',
+        titulo: 'Escopo de fornecimento',
+        conteudo: 'Fornecimento gerado pelo ERP.',
+        editavel: true,
+      },
+    ],
+  })
+  obterPreviewOfertaOrcamentoMock.mockResolvedValue({
+    codigo: orcamentoBase.codigo,
+    titulo: orcamentoBase.titulo,
+    perfil_oferta: 'MATERIAIS',
+    cliente: { id: 'cli-1', nome: 'Cliente Industrial', contato: 'Joana Compras', email: 'joana@empresa.com' },
+    validade: '2026-06-30',
+    secoes: [{ tipo: 'ESCOPO', titulo: 'Escopo', conteudo: 'Texto da oferta.' }],
+    investimento: {
+      modo: 'ITENS_UNITARIOS',
+      titulo: 'Investimento',
+      itens: [
+        {
+          id: 'item-1',
+          descricao: 'Disjuntor caixa moldada',
+          quantidade: '2',
+          preco_unitario: '150',
+          subtotal: '300',
+        },
+      ],
+    },
+    totais: { produtos: '300', servicos: '0', total: '300' },
   })
   reabrirOfertaOrcamentoMock.mockResolvedValue({
     ...orcamentoBase,
@@ -112,6 +181,7 @@ function renderOrcamentoDetailPage() {
         <ToolbarProbe />
         <Routes>
           <Route path="/orcamentos/:id" element={<OrcamentoDetailPage />} />
+          <Route path="/orcamentos/:id/oferta" element={<OrcamentoOfertaPrintPage />} />
         </Routes>
       </AppPageToolbarProvider>
     </MemoryRouter>
@@ -119,14 +189,17 @@ function renderOrcamentoDetailPage() {
 }
 
 describe('OrcamentoDetailPage', () => {
-  beforeEach(setupOrcamentoDetailPage)
+  beforeEach(() => {
+    setupOrcamentoDetailPage()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+  })
 
   it('carrega dados e salva proposta (cabeçalho e itens)', async () => {
     renderOrcamentoDetailPage()
 
     await screen.findByRole('heading', { name: 'ORC-2026-001 Rev A' })
-    expect(screen.getByText('Cliente Industrial')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Painel QGBT')).toBeInTheDocument()
+    expect(screen.getAllByText('Cliente Industrial').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByLabelText('Título / referência')).toHaveValue('Painel QGBT')
     expect(screen.getByDisplayValue('Disjuntor caixa moldada')).toBeInTheDocument()
     expect(screen.getByText(/Produtos 20.00% · Serviços 35.00%/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Configurar margens do cliente' })).toHaveAttribute(
@@ -162,6 +235,8 @@ describe('OrcamentoDetailPage', () => {
         expect.objectContaining({
           titulo: 'Painel CCM',
           status: 'ENVIADO',
+          perfil_oferta: 'MATERIAIS',
+          oferta_blocos: [],
           itens: [
             expect.objectContaining({
               descricao: 'Disjuntor 250A',
@@ -176,6 +251,116 @@ describe('OrcamentoDetailPage', () => {
       itens: Array<{ preco_unitario?: string }>
     }
     expect(payload.itens[0].preco_unitario).toBeUndefined()
+  })
+
+  it('edita perfil e blocos textuais da oferta ao cliente', async () => {
+    renderOrcamentoDetailPage()
+
+    await screen.findByRole('heading', { name: 'ORC-2026-001 Rev A' })
+    fireEvent.change(screen.getByLabelText('Perfil da oferta'), {
+      target: { value: 'SOLUCAO_COMPLETA' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar textos padrão' }))
+    await waitFor(() =>
+      expect(gerarBlocosPadraoOfertaOrcamentoMock).toHaveBeenCalledWith(
+        'orc-1',
+        'SOLUCAO_COMPLETA'
+      )
+    )
+    const escopo = await screen.findByLabelText(/Escopo de fornecimento/i)
+    fireEvent.change(escopo, {
+      target: { value: 'Fornecimento de painel elétrico, software e comissionamento.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar proposta' }))
+
+    await waitFor(() =>
+      expect(atualizarOrcamentoMock).toHaveBeenCalledWith(
+        'orc-1',
+        expect.objectContaining({
+          perfil_oferta: 'SOLUCAO_COMPLETA',
+          oferta_blocos: expect.arrayContaining([
+            expect.objectContaining({
+              tipo: 'ESCOPO',
+              conteudo: 'Fornecimento de painel elétrico, software e comissionamento.',
+            }),
+          ]),
+        })
+      )
+    )
+  })
+
+  it('navega para proposta ao cliente', async () => {
+    renderOrcamentoDetailPage()
+
+    await screen.findByRole('heading', { name: 'ORC-2026-001 Rev A' })
+    fireEvent.click(screen.getByRole('button', { name: 'Proposta para o cliente' }))
+
+    expect(await screen.findByText(/oferta comercial/i)).toBeInTheDocument()
+    expect(obterPreviewOfertaOrcamentoMock).toHaveBeenCalledWith('orc-1')
+    expect(screen.getAllByText(/R\$ 300,00/).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('anexa PDF final e marca oferta como enviada', async () => {
+    const pdfFinal = {
+      id: 'arq-pdf-1',
+      tipo: 'PDF_FINAL',
+      nome_original: 'oferta-final.pdf',
+      content_type: 'application/pdf',
+      tamanho_bytes: 1200,
+      versao: 1,
+      criado_por: 'user-1',
+      criado_por_label: 'Usuário',
+      criado_em: '2026-06-04T12:00:00Z',
+      download_url: '/orcamentos/orc-1/arquivos-oferta/arq-pdf-1/download/',
+    }
+    uploadArquivoOfertaOrcamentoMock.mockResolvedValueOnce({
+      ...orcamentoBase,
+      oferta_arquivos: [pdfFinal],
+    })
+    marcarOfertaEnviadaOrcamentoMock.mockResolvedValueOnce({
+      ...orcamentoBase,
+      status: 'ENVIADO',
+      oferta_arquivos: [pdfFinal],
+      oferta_envios: [
+        {
+          id: 'envio-1',
+          pdf_final: pdfFinal,
+          destinatario_nome: 'Joana Compras',
+          destinatario_email: 'joana@empresa.com',
+          assunto: 'Proposta ORC-2026-001 Rev A',
+          mensagem: '',
+          enviado_por: 'user-1',
+          enviado_por_label: 'Usuário',
+          enviado_em: '2026-06-04T12:05:00Z',
+        },
+      ],
+    })
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+
+    renderOrcamentoDetailPage()
+
+    await screen.findByRole('heading', { name: 'ORC-2026-001 Rev A' })
+    expect(screen.getByText('Versão final da oferta')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Anexar PDF final'), {
+      target: { files: [new File(['pdf'], 'oferta-final.pdf', { type: 'application/pdf' })] },
+    })
+
+    await waitFor(() =>
+      expect(uploadArquivoOfertaOrcamentoMock).toHaveBeenCalledWith(
+        'orc-1',
+        'PDF_FINAL',
+        expect.any(File)
+      )
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviada' }))
+
+    await waitFor(() =>
+      expect(marcarOfertaEnviadaOrcamentoMock).toHaveBeenCalledWith(
+        'orc-1',
+        expect.objectContaining({ pdf_final_id: 'arq-pdf-1' })
+      )
+    )
+    expect(await screen.findByRole('button', { name: 'Oferta enviada' })).toBeDisabled()
   })
 
   it('bloqueia produto com custo zerado', async () => {
@@ -467,7 +652,7 @@ describe('OrcamentoDetailPage', () => {
 
     renderOrcamentoDetailPage()
 
-    expect(await screen.findByText('Linha herdada')).toBeInTheDocument()
+    expect((await screen.findAllByText('Linha herdada')).length).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText(/Produto com custo zerado/i)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Salvar proposta' }))
 
@@ -548,11 +733,33 @@ describe('OrcamentoDetailPage', () => {
       await screen.findByText(/Apenas propostas em rascunho podem ser alteradas/i)
     ).toBeInTheDocument()
     expect(await screen.findByText('Revisões da oferta')).toBeInTheDocument()
-    expect(screen.getByText('ORC-2026-001 Rev B')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Abrir' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Ver revisão B/i })).toHaveAttribute(
       'href',
       '/orcamentos/orc-2'
     )
+  })
+
+  it('exibe Nova revisão quando oferta está finalizada (última da linha)', async () => {
+    obterOrcamentoMock.mockResolvedValueOnce({
+      ...orcamentoBase,
+      status: 'FINALIZADO',
+      editavel: false,
+      revisoes_derivadas: [],
+      snapshot_envio: {
+        id: 'snap-1',
+        codigo: 'ORC-2026-001 Rev A',
+        status_orcamento: 'FINALIZADO',
+        total: '300.0000',
+        gerado_em: '2026-05-20T10:00:00Z',
+        gerado_por: 1,
+        dados: {},
+        itens: [],
+      },
+    })
+
+    renderOrcamentoDetailPage()
+
+    expect(await screen.findByRole('button', { name: 'Nova revisão' })).toBeInTheDocument()
   })
 
   it('reabre oferta finalizada para edição em rascunho', async () => {
@@ -575,12 +782,12 @@ describe('OrcamentoDetailPage', () => {
 
     renderOrcamentoDetailPage()
 
-    expect(await screen.findByRole('button', { name: 'Reabrir oferta' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reabrir oferta' }))
+    expect(await screen.findByRole('button', { name: 'Reabrir' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
 
     await waitFor(() => expect(reabrirOfertaOrcamentoMock).toHaveBeenCalledWith('orc-1'))
     expect(await screen.findByRole('button', { name: 'Finalizar oferta' })).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Painel QGBT')).not.toBeDisabled()
+    expect(screen.getByLabelText('Título / referência')).not.toBeDisabled()
     expect(showToastMock).toHaveBeenCalledWith(
       expect.objectContaining({
         variant: 'success',

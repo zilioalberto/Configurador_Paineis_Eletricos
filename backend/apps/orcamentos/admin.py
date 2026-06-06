@@ -5,6 +5,7 @@ from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
     Orcamento,
     OrcamentoConfiguradorPainel,
+    OrcamentoOfertaBloco,
     OrcamentoItem,
     OrcamentoSnapshot,
 )
@@ -18,6 +19,11 @@ class OrcamentoConfiguradorPainelInline(admin.TabularInline):
 
 class OrcamentoItemInline(admin.TabularInline):
     model = OrcamentoItem
+    extra = 0
+
+
+class OrcamentoOfertaBlocoInline(admin.TabularInline):
+    model = OrcamentoOfertaBloco
     extra = 0
 
 
@@ -44,6 +50,7 @@ class OrcamentoAdmin(admin.ModelAdmin):
         "revisao",
         "tipo_revisao",
         "titulo",
+        "perfil_oferta",
         "status",
         "cliente",
         "contato_cliente",
@@ -51,9 +58,14 @@ class OrcamentoAdmin(admin.ModelAdmin):
         "atualizado_por",
         "criado_em",
     )
-    list_filter = ("status",)
+    list_filter = ("status", "perfil_oferta")
     search_fields = ("codigo", "titulo", "cliente_referencia", "cliente__razao_social")
-    inlines = (OrcamentoConfiguradorPainelInline, OrcamentoItemInline, OrcamentoSnapshotInline)
+    inlines = (
+        OrcamentoConfiguradorPainelInline,
+        OrcamentoItemInline,
+        OrcamentoOfertaBlocoInline,
+        OrcamentoSnapshotInline,
+    )
 
 
 @admin.register(ConfiguracaoMargemCliente)

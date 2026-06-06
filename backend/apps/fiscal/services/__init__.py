@@ -1,5 +1,5 @@
 """
-Serviços fiscais: referência de IPI por produto e criação de itens a partir de NF-e.
+Serviços fiscais: referência de IPI por produto, importação de NF-e recebida, etc.
 """
 from __future__ import annotations
 

@@ -46,6 +46,19 @@ def _item_snapshot(item: OrcamentoItem) -> dict:
     }
 
 
+def _oferta_blocos_snapshot(orcamento: Orcamento) -> list[dict]:
+    return [
+        {
+            "id": str(bloco.id),
+            "ordem": bloco.ordem,
+            "tipo": bloco.tipo,
+            "titulo": bloco.titulo,
+            "conteudo": bloco.conteudo,
+        }
+        for bloco in orcamento.oferta_blocos.order_by("ordem", "id")
+    ]
+
+
 def _dados_snapshot(orcamento: Orcamento) -> dict:
     return {
         "id": str(orcamento.id),
@@ -62,6 +75,12 @@ def _dados_snapshot(orcamento: Orcamento) -> dict:
         "contato_cliente_email": orcamento.contato_cliente.email if orcamento.contato_cliente_id else "",
         "margem_produtos_percentual": _decimal_str(orcamento.margem_produtos_percentual),
         "margem_servicos_percentual": _decimal_str(orcamento.margem_servicos_percentual),
+        "desconto_comercial_ativo": orcamento.desconto_comercial_ativo,
+        "desconto_percentual": _decimal_str(orcamento.desconto_percentual),
+        "ncm_investimento": (orcamento.ncm_investimento or "").strip(),
+        "investimento_descricao": (orcamento.investimento_descricao or "").strip(),
+        "perfil_oferta": orcamento.perfil_oferta,
+        "oferta_blocos": _oferta_blocos_snapshot(orcamento),
         "status": orcamento.status,
         "valido_ate": orcamento.valido_ate.isoformat() if orcamento.valido_ate else None,
     }

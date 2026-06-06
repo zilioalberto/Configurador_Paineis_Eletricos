@@ -9,6 +9,7 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { authDisplayName } from '@/modules/auth/types'
 import AppPageToolbar from './AppPageToolbar'
 import { useAppPageToolbarState } from './AppPageToolbarContext'
+import NotificacoesHeaderPanel, { useNotificacoesInternas } from './NotificacoesHeaderPanel'
 import { BellIcon, UserAvatarPlaceholder } from './headerIcons'
 
 function MenuIcon() {
@@ -69,6 +70,8 @@ export default function Header({
 
   const [userOpen, setUserOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const { naoLidas: notifNaoLidas, atualizarContagem: atualizarNotifContagem } =
+    useNotificacoesInternas()
 
   const userRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -201,28 +204,30 @@ export default function Header({
             <div className="position-relative" ref={notifRef}>
               <button
                 type="button"
-                className="btn btn-link text-white p-2 rounded-2 app-header-icon-btn"
-                aria-label="Alertas do sistema"
+                className="btn btn-link text-white p-2 rounded-2 app-header-icon-btn position-relative"
+                aria-label={
+                  notifNaoLidas > 0
+                    ? `Alertas do sistema, ${notifNaoLidas} não lida(s)`
+                    : 'Alertas do sistema'
+                }
                 aria-expanded={notifOpen}
                 aria-haspopup="true"
                 aria-controls={notifId}
                 onClick={openNotif}
               >
                 <BellIcon />
+                {notifNaoLidas > 0 ? (
+                  <span className="app-header-notif-badge" aria-hidden>
+                    {notifNaoLidas > 9 ? '9+' : notifNaoLidas}
+                  </span>
+                ) : null}
               </button>
-              {notifOpen ? (
-                <dialog
-                  open
-                  className="app-header-dropdown app-header-notif-panel shadow-sm"
-                  id={notifId}
-                  aria-label="Notificações"
-                >
-                  <p className="small text-muted mb-0 px-1">
-                    Sem alertas no momento. Avisos de pendências e exportações poderão aparecer
-                    aqui no futuro.
-                  </p>
-                </dialog>
-              ) : null}
+              <NotificacoesHeaderPanel
+                aberto={notifOpen}
+                panelId={notifId}
+                onContagemChange={() => void atualizarNotifContagem()}
+                onNavigate={closeOnNavigate}
+              />
             </div>
           </div>
         </div>

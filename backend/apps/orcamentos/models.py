@@ -46,6 +46,44 @@ class OrigemItemOrcamentoChoices(models.TextChoices):
     HERANCA_REVISAO = "HERANCA_REVISAO", "Heranca de revisao anterior"
 
 
+class PerfilOfertaChoices(models.TextChoices):
+    MATERIAIS = "MATERIAIS", "Materiais"
+    SOLUCAO_COMPLETA = "SOLUCAO_COMPLETA", "Solucao completa"
+
+
+class TipoBlocoOfertaChoices(models.TextChoices):
+    INTRODUCAO = "INTRODUCAO", "Introducao"
+    ESCOPO = "ESCOPO", "Escopo de fornecimento"
+    ITENS_FORNECIMENTO = "ITENS_FORNECIMENTO", "Itens considerados"
+    SERVICOS = "SERVICOS", "Servicos considerados"
+    EXCLUSOES = "EXCLUSOES", "Exclusoes"
+    INVESTIMENTO = "INVESTIMENTO", "Investimento"
+    PRAZO_ENTREGA = "PRAZO_ENTREGA", "Prazo de entrega"
+    CONDICOES_PAGAMENTO = "CONDICOES_PAGAMENTO", "Condicoes de pagamento"
+    CONDICOES_GERAIS = "CONDICOES_GERAIS", "Condicoes gerais"
+    GARANTIA = "GARANTIA", "Garantia"
+    APROVACAO = "APROVACAO", "Aprovacao"
+    OBSERVACOES = "OBSERVACOES", "Observacoes"
+
+
+class TipoArquivoOfertaChoices(models.TextChoices):
+    DOCX_REVISADO = "DOCX_REVISADO", "DOCX revisado"
+    PDF_FINAL = "PDF_FINAL", "PDF final"
+    PDF_ASSINADO_CLIENTE = "PDF_ASSINADO_CLIENTE", "PDF assinado pelo cliente"
+
+
+class CanalEnvioOfertaChoices(models.TextChoices):
+    EMAIL = "EMAIL", "E-mail"
+    LINK = "LINK", "Link copiado"
+    MANUAL = "MANUAL", "Registro manual"
+
+
+class DecisaoOfertaClienteChoices(models.TextChoices):
+    PENDENTE = "PENDENTE", "Pendente"
+    APROVADO = "APROVADO", "Aprovado"
+    REJEITADO = "REJEITADO", "Rejeitado"
+
+
 class ModoConfiguradorPainelChoices(models.TextChoices):
     ATIVO = "ATIVO", "Ativo"
     HERANCA_HISTORICA = "HERANCA_HISTORICA", "Heranca historica"
@@ -160,6 +198,33 @@ class Orcamento(models.Model):
     )
     margem_produtos_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     margem_servicos_percentual = models.DecimalField(max_digits=7, decimal_places=2, default=0)
+    desconto_comercial_ativo = models.BooleanField(
+        default=False,
+        help_text="Exibe desconto e resumo financeiro detalhado na oferta ao cliente.",
+    )
+    desconto_percentual = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    ncm_investimento = models.CharField(
+        max_length=8,
+        default="85371090",
+        blank=True,
+        help_text="NCM na tabela de investimento (perfil solução completa). Padrão: painel elétrico.",
+    )
+    investimento_descricao = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Descrição na tabela de investimento (perfil solução completa).",
+    )
+    perfil_oferta = models.CharField(
+        max_length=30,
+        choices=PerfilOfertaChoices.choices,
+        default=PerfilOfertaChoices.MATERIAIS,
+    )
     status = models.CharField(
         max_length=20,
         choices=StatusOrcamentoChoices.choices,
@@ -226,6 +291,199 @@ class Orcamento(models.Model):
     @property
     def editavel(self) -> bool:
         return self.status == StatusOrcamentoChoices.RASCUNHO
+
+
+class OrcamentoOfertaBloco(models.Model):
+    """Bloco textual editável que compõe a oferta enviada ao cliente."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    orcamento = models.ForeignKey(
+        Orcamento,
+        on_delete=models.CASCADE,
+        related_name="oferta_blocos",
+    )
+    ordem = models.PositiveIntegerField(default=0)
+    tipo = models.CharField(
+        max_length=40,
+        choices=TipoBlocoOfertaChoices.choices,
+        default=TipoBlocoOfertaChoices.OBSERVACOES,
+    )
+    titulo = models.CharField(max_length=120)
+    conteudo = models.TextField(blank=True)
+    editavel = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "orcamento_oferta_bloco"
+        ordering = ("orcamento_id", "ordem", "id")
+
+    def __str__(self) -> str:
+        return f"{self.titulo} ({self.orcamento.codigo})"
+
+
+def oferta_arquivo_upload_to(instance, filename: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"orcamentos/ofertas/{instance.orcamento_id}/{uuid.uuid4()}.{ext}"
+
+
+class OrcamentoOfertaArquivo(models.Model):
+    """Arquivo revisado/final da oferta ao cliente."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    orcamento = models.ForeignKey(
+        Orcamento,
+        on_delete=models.CASCADE,
+        related_name="oferta_arquivos",
+    )
+    tipo = models.CharField(max_length=20, choices=TipoArquivoOfertaChoices.choices)
+    arquivo = models.FileField(upload_to=oferta_arquivo_upload_to)
+    nome_original = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=120, blank=True)
+    tamanho_bytes = models.PositiveIntegerField(default=0)
+    versao = models.PositiveIntegerField(default=1)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_oferta_arquivos",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "orcamento_oferta_arquivo"
+        ordering = ("-criado_em",)
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()} v{self.versao} - {self.nome_original}"
+
+
+class OrcamentoOfertaConvite(models.Model):
+    """Link público para o cliente visualizar e responder à oferta congelada."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    orcamento = models.ForeignKey(
+        Orcamento,
+        on_delete=models.PROTECT,
+        related_name="oferta_convites",
+    )
+    snapshot = models.ForeignKey(
+        "OrcamentoSnapshot",
+        on_delete=models.PROTECT,
+        related_name="convites",
+    )
+    valido_ate = models.DateField()
+    revogado_em = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_oferta_convites",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "orcamento_oferta_convite"
+        ordering = ("-criado_em",)
+
+    def __str__(self) -> str:
+        return f"Convite {self.orcamento.codigo} ({self.token[:8]}…)"
+
+
+class OrcamentoOfertaRespostaCliente(models.Model):
+    """Aceite, recusa ou assinatura registrada pelo cliente via link público."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    convite = models.OneToOneField(
+        OrcamentoOfertaConvite,
+        on_delete=models.CASCADE,
+        related_name="resposta",
+    )
+    decisao = models.CharField(
+        max_length=20,
+        choices=DecisaoOfertaClienteChoices.choices,
+        default=DecisaoOfertaClienteChoices.PENDENTE,
+    )
+    nome_responsavel = models.CharField(max_length=180, blank=True)
+    cargo = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True)
+    observacao = models.TextField(blank=True)
+    aceite_em = models.DateTimeField(null=True, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    hash_snapshot = models.CharField(max_length=64, blank=True)
+    assinatura_imagem = models.FileField(
+        upload_to=oferta_arquivo_upload_to,
+        null=True,
+        blank=True,
+    )
+    pdf_assinado = models.ForeignKey(
+        OrcamentoOfertaArquivo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="respostas_cliente",
+        limit_choices_to={"tipo": TipoArquivoOfertaChoices.PDF_ASSINADO_CLIENTE},
+    )
+
+    class Meta:
+        db_table = "orcamento_oferta_resposta_cliente"
+
+    def __str__(self) -> str:
+        return f"Resposta {self.convite.orcamento.codigo} — {self.decisao}"
+
+
+class OrcamentoOfertaEnvio(models.Model):
+    """Registro da oferta final marcada como enviada ao cliente."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    orcamento = models.ForeignKey(
+        Orcamento,
+        on_delete=models.PROTECT,
+        related_name="oferta_envios",
+    )
+    pdf_final = models.ForeignKey(
+        OrcamentoOfertaArquivo,
+        on_delete=models.PROTECT,
+        related_name="envios",
+        limit_choices_to={"tipo": TipoArquivoOfertaChoices.PDF_FINAL},
+    )
+    convite = models.ForeignKey(
+        OrcamentoOfertaConvite,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="envios",
+    )
+    canal = models.CharField(
+        max_length=20,
+        choices=CanalEnvioOfertaChoices.choices,
+        default=CanalEnvioOfertaChoices.MANUAL,
+    )
+    link_publico = models.URLField(max_length=500, blank=True)
+    email_enviado = models.BooleanField(default=False)
+    email_erro = models.TextField(blank=True)
+    destinatario_nome = models.CharField(max_length=180, blank=True)
+    destinatario_email = models.EmailField(blank=True)
+    destinatario_emails = models.TextField(blank=True)
+    assunto = models.CharField(max_length=255, blank=True)
+    mensagem = models.TextField(blank=True)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orcamentos_oferta_envios",
+    )
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "orcamento_oferta_envio"
+        ordering = ("-enviado_em",)
+
+    def __str__(self) -> str:
+        return f"Envio {self.orcamento.codigo} em {self.enviado_em:%Y-%m-%d %H:%M}"
 
 
 class OrcamentoConfiguradorPainel(models.Model):

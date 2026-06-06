@@ -54,8 +54,13 @@ describe('FiscalHomePage', () => {
 
   it('renderiza titulo e texto inicial sem busca', () => {
     renderPage()
-    expect(screen.getByRole('heading', { name: /Fiscal/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Fiscal' })).toBeInTheDocument()
     expect(screen.getByText(/Comece a escrever para ver sugestões/i)).toBeInTheDocument()
+  })
+
+  it('atalho para NF-es recebidas', () => {
+    renderPage()
+    expect(screen.getByRole('link', { name: /Ver documentos/i })).toHaveAttribute('href', '/fiscal/nfes')
   })
 
   it('apos debounce lista resultados e link de edicao com permissao', async () => {

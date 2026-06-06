@@ -12,8 +12,16 @@ import type {
   ErpModuleMetaDto,
   OrcamentoConfiguradorPainelDto,
   OrcamentoDto,
+  OrcamentoDtoComLinkEnvio,
+  EnviarOfertaClientePayload,
+  OrcamentoOfertaBlocoDto,
+  OrcamentoOfertaArquivoDto,
+  OrcamentoPreviewOfertaDto,
   ParametroConfiguracaoDto,
   ParceiroClienteDto,
+  PerfilOferta,
+  TipoBlocoOferta,
+  TipoArquivoOferta,
 } from '../types/orcamentos'
 
 /** Metadados do roadmap para páginas `/erp/m/:moduleId`. */
@@ -35,6 +43,13 @@ export type CriarOrcamentoPayload = {
   cliente: string
   contato_cliente?: string | null
   valido_ate?: string | null
+  perfil_oferta?: PerfilOferta
+  oferta_blocos?: Array<{
+    ordem: number
+    tipo: TipoBlocoOferta
+    titulo: string
+    conteudo?: string
+  }>
   itens?: Array<{
     tipo?: 'PRODUTO' | 'SERVICO'
     descricao: string
@@ -73,6 +88,13 @@ export type OrcamentoItemLinhaPayload = {
   preco_unitario?: string | number
 }
 
+export type OrcamentoOfertaBlocoPayload = Pick<
+  OrcamentoOfertaBlocoDto,
+  'ordem' | 'tipo' | 'titulo' | 'conteudo'
+> & {
+  id?: string
+}
+
 export type AtualizarOrcamentoPayload = Partial<{
   titulo: string
   descricao: string
@@ -80,10 +102,13 @@ export type AtualizarOrcamentoPayload = Partial<{
   contato_cliente: string | null
   status: string
   valido_ate: string | null
+  perfil_oferta: PerfilOferta
   margem_produtos_percentual: string | number
   margem_servicos_percentual: string | number
   /** Substitui todas as linhas do orçamento quando enviado (sync no servidor). */
   itens: OrcamentoItemLinhaPayload[]
+  /** Substitui todos os blocos textuais editáveis da oferta quando enviado. */
+  oferta_blocos: OrcamentoOfertaBlocoPayload[]
 }>
 
 /** Atualiza cabeçalho e/ou substitui todas as linhas (`itens`). */
@@ -106,6 +131,104 @@ export async function atualizarOfertaOrcamento(
 
 export async function reabrirOfertaOrcamento(id: string): Promise<OrcamentoDto> {
   const { data } = await apiClient.post<OrcamentoDto>(`/orcamentos/${id}/reabrir/`)
+  return data
+}
+
+export async function obterPreviewOfertaOrcamento(
+  id: string
+): Promise<OrcamentoPreviewOfertaDto> {
+  const { data } = await apiClient.get<OrcamentoPreviewOfertaDto>(
+    `/orcamentos/${id}/preview-oferta/`
+  )
+  return data
+}
+
+export async function baixarDocxOfertaOrcamento(id: string): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(`/orcamentos/${id}/gerar-docx-oferta/`, {
+    responseType: 'blob',
+    headers: {
+      Accept: '*/*',
+    },
+  })
+  return data
+}
+
+export async function uploadArquivoOfertaOrcamento(
+  id: string,
+  tipo: TipoArquivoOferta,
+  arquivo: File
+): Promise<OrcamentoDto> {
+  const formData = new FormData()
+  formData.append('tipo', tipo)
+  formData.append('arquivo', arquivo)
+  const { data } = await apiClient.post<OrcamentoDto>(
+    `/orcamentos/${id}/arquivos-oferta/`,
+    formData
+  )
+  return data
+}
+
+export async function listarArquivosOfertaOrcamento(
+  id: string
+): Promise<OrcamentoOfertaArquivoDto[]> {
+  const { data } = await apiClient.get<OrcamentoOfertaArquivoDto[]>(
+    `/orcamentos/${id}/arquivos-oferta/`
+  )
+  return data
+}
+
+export async function baixarArquivoOfertaOrcamento(
+  orcamentoId: string,
+  arquivoId: string
+): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(
+    `/orcamentos/${orcamentoId}/arquivos-oferta/${arquivoId}/download/`,
+    {
+      responseType: 'blob',
+      headers: { Accept: '*/*' },
+    }
+  )
+  return data
+}
+
+export type MarcarOfertaEnviadaPayload = Partial<{
+  pdf_final_id: string
+  destinatario_nome: string
+  destinatario_email: string
+  assunto: string
+  mensagem: string
+}>
+
+export async function enviarOfertaClienteOrcamento(
+  id: string,
+  payload: EnviarOfertaClientePayload
+): Promise<OrcamentoDtoComLinkEnvio> {
+  const { data } = await apiClient.post<OrcamentoDtoComLinkEnvio>(
+    `/orcamentos/${id}/enviar-oferta-cliente/`,
+    payload
+  )
+  return data
+}
+
+export async function marcarOfertaEnviadaOrcamento(
+  id: string,
+  payload: MarcarOfertaEnviadaPayload
+): Promise<OrcamentoDto> {
+  const { data } = await apiClient.post<OrcamentoDto>(
+    `/orcamentos/${id}/marcar-oferta-enviada/`,
+    payload
+  )
+  return data
+}
+
+export async function gerarBlocosPadraoOfertaOrcamento(
+  id: string,
+  perfilOferta: PerfilOferta
+): Promise<OrcamentoDto> {
+  const { data } = await apiClient.post<OrcamentoDto>(
+    `/orcamentos/${id}/gerar-blocos-padrao-oferta/`,
+    { perfil_oferta: perfilOferta }
+  )
   return data
 }
 

@@ -20,7 +20,6 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
     isPending,
     isError,
     error,
-    recalc,
     patchMut,
     tabela,
     circuitos,

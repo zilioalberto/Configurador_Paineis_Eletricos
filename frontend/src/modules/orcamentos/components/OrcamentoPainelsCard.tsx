@@ -19,6 +19,7 @@ import {
   orcamentoDetalhePath,
   proximaDescricaoPainel,
 } from '../utils/orcamentoUi'
+import { podeCriarNovaRevisaoOrcamento } from '../utils/revisaoOrcamentoUi'
 
 type Props = {
   orcamento: OrcamentoDto
@@ -26,8 +27,6 @@ type Props = {
   onAtualizado: (orcamento: OrcamentoDto) => void
   embedded?: boolean
 }
-
-const STATUS_REVISAO = new Set(['ENVIADO', 'APROVADO', 'REJEITADO'])
 
 export default function OrcamentoPainelsCard({
   orcamento,
@@ -44,7 +43,7 @@ export default function OrcamentoPainelsCard({
 
   const paineis = orcamento.configuradores_painel ?? []
   const editavel = podeEditar && orcamento.editavel !== false
-  const podeNovaRevisao = STATUS_REVISAO.has(orcamento.status)
+  const podeNovaRevisao = podeCriarNovaRevisaoOrcamento(orcamento)
 
   useEffect(() => {
     setDescricaoPainel(proximaDescricaoPainel(orcamento))
@@ -227,7 +226,7 @@ export default function OrcamentoPainelsCard({
         </div>
       ) : null}
 
-      {podeNovaRevisao ? (
+      {!embedded && podeNovaRevisao ? (
         <div className="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top">
           <span className="small text-muted me-1">Nova revisão:</span>
           <button
@@ -254,7 +253,7 @@ export default function OrcamentoPainelsCard({
         </div>
       ) : null}
 
-      {modalRevisao ? (
+      {!embedded && modalRevisao ? (
         <div
           className="modal show d-block"
           tabIndex={-1}

@@ -19,6 +19,10 @@ class PermissaoUsuarioChoices(models.TextChoices):
     ORCAMENTO_CRIAR = PermissionKeys.ORCAMENTO_CRIAR, "Criar orçamentos"
     ORCAMENTO_EDITAR = PermissionKeys.ORCAMENTO_EDITAR, "Editar orçamentos"
     ORCAMENTO_APROVAR = PermissionKeys.ORCAMENTO_APROVAR, "Aprovar orçamentos"
+    ORCAMENTO_APLICAR_DESCONTO = (
+        PermissionKeys.ORCAMENTO_APLICAR_DESCONTO,
+        "Aplicar desconto comercial em orçamentos",
+    )
     PROJETO_VISUALIZAR = PermissionKeys.PROJETO_VISUALIZAR, "Ver projetos"
     PROJETO_CRIAR = PermissionKeys.PROJETO_CRIAR, "Criar projetos"
     PROJETO_EDITAR = PermissionKeys.PROJETO_EDITAR, "Editar projetos"

@@ -63,6 +63,13 @@ urlpatterns = [
 
     path(f"{API_V1_PREFIX}orcamentos/", include("apps.orcamentos.api.urls")),
 
+    path(
+        f"{API_V1_PREFIX}oferta-publica/",
+        include("apps.orcamentos.api.public_urls"),
+    ),
+
+    path(f"{API_V1_PREFIX}notificacoes/", include("apps.notificacoes.api.urls")),
+
     path(f"{API_V1_PREFIX}erp/", include("config.erp_api_urls")),
 
 ]

@@ -181,7 +181,6 @@ export function ComposicaoSnapshotContent({
   canSepararMaterial,
   aprovarPending,
   aprovandoTodas,
-  autoGerando = false,
   reabrirPending,
   reavaliarPending,
   onReabrir,

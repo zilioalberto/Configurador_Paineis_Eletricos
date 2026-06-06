@@ -7,6 +7,7 @@ export const PERMISSION_KEYS = {
   ORCAMENTO_CRIAR: 'orcamento.criar',
   ORCAMENTO_EDITAR: 'orcamento.editar',
   ORCAMENTO_APROVAR: 'orcamento.aprovar',
+  ORCAMENTO_APLICAR_DESCONTO: 'orcamento.aplicar_desconto',
 
   PROJETO_VISUALIZAR: 'projeto.visualizar',
   PROJETO_CRIAR: 'projeto.criar',

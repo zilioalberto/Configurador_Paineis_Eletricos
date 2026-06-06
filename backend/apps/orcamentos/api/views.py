@@ -11,16 +11,30 @@ from core.permissions import PermissionKeys
 from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.orcamentos.api.action_serializers import (
     AdicionarPainelConfiguradorSerializer,
+    EnviarOfertaClienteSerializer,
+    GerarBlocosPadraoOfertaSerializer,
+    MarcarOfertaEnviadaSerializer,
     NovaRevisaoOrcamentoSerializer,
     RevisarPrecoCatalogoItemSerializer,
+    UploadArquivoOfertaSerializer,
     VincularProjetoConfiguradorSerializer,
 )
 from apps.orcamentos.api.serializers import (
     ConfiguracaoMargemClienteSerializer,
     OrcamentoConfiguradorPainelSerializer,
+    OrcamentoOfertaArquivoSerializer,
     OrcamentoSerializer,
 )
-from apps.orcamentos.models import Orcamento, OrcamentoConfiguradorPainel, ConfiguracaoMargemCliente
+from apps.orcamentos.models import (
+    ConfiguracaoMargemCliente,
+    Orcamento,
+    OrcamentoConfiguradorPainel,
+    OrcamentoOfertaArquivo,
+    OrcamentoOfertaEnvio,
+    StatusOrcamentoChoices,
+    TipoArquivoOfertaChoices,
+)
+from apps.orcamentos.services.blocos_padrao_oferta import gerar_blocos_padrao_oferta
 from apps.orcamentos.services.configurador_painel import (
     OrcamentoOperacaoError,
     adicionar_painel_configurador,
@@ -28,10 +42,20 @@ from apps.orcamentos.services.configurador_painel import (
     sincronizar_composicao_painel,
     vincular_projeto_configurador,
 )
+from apps.orcamentos.services.docx_oferta import (
+    gerar_docx_oferta_bytes,
+    nome_arquivo_docx_oferta,
+)
 from apps.orcamentos.services.atualizar_oferta import atualizar_oferta_rascunho
+from apps.orcamentos.services.enviar_oferta_cliente import EnviarOfertaError, enviar_oferta_ao_cliente
+from apps.orcamentos.services.pdf_oferta import gerar_pdf_oferta_bytes, nome_arquivo_pdf_oferta
+from apps.orcamentos.services.preview_oferta import montar_preview_oferta
+from django.db.models import Max
+from django.http import FileResponse, HttpResponse
 from apps.orcamentos.services.reabrir_oferta import reabrir_oferta_finalizada
 from apps.orcamentos.services.revisar_preco_catalogo import revisar_preco_catalogo_item_orcamento
 from apps.orcamentos.services.revisao_orcamento import criar_revisao_orcamento
+from rest_framework.parsers import FormParser, MultiPartParser
 
 
 def _orcamento_queryset():
@@ -45,9 +69,15 @@ def _orcamento_queryset():
             "snapshot_envio",
         )
         .prefetch_related(
+            "cliente__enderecos",
             "itens__produto",
             "itens__servico",
             "itens__configurador_painel",
+            "oferta_blocos",
+            "oferta_arquivos__criado_por",
+            "oferta_envios__pdf_final",
+            "oferta_envios__convite",
+            "oferta_envios__enviado_por",
             "configuradores_painel__projeto_configurador",
             "revisoes_derivadas__snapshot_envio",
         )
@@ -145,6 +175,226 @@ class OrcamentoReabrirOfertaView(APIView):
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         data = OrcamentoSerializer(reaberto, context={"request": request}).data
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class OrcamentoPreviewOfertaView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_VISUALIZAR
+
+    def get(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        return Response(montar_preview_oferta(orcamento), status=status.HTTP_200_OK)
+
+
+class OrcamentoGerarPdfOfertaView(APIView):
+    """Gera um PDF simples da oferta a partir do preview (ReportLab)."""
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_VISUALIZAR
+
+    def get(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        preview = montar_preview_oferta(orcamento)
+        pdf = gerar_pdf_oferta_bytes(preview)
+        nome = nome_arquivo_pdf_oferta(preview)
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{nome}"'
+        response.write(pdf)
+        return response
+
+
+class OrcamentoGerarDocxOfertaView(APIView):
+    """Gera um DOCX editável da oferta para revisão comercial."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_VISUALIZAR
+
+    def get(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        body = gerar_docx_oferta_bytes(orcamento)
+        filename = nome_arquivo_docx_oferta(orcamento)
+        response = HttpResponse(
+            body,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "wordprocessingml.document"
+            ),
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+class OrcamentoOfertaArquivoListCreateView(APIView):
+    permission_classes = [HasEffectivePermission]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def required_permission(self, request, view):
+        if request.method == "POST":
+            return PermissionKeys.ORCAMENTO_EDITAR
+        return PermissionKeys.ORCAMENTO_VISUALIZAR
+
+    def get(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        arquivos = orcamento.oferta_arquivos.select_related("criado_por")
+        return Response(OrcamentoOfertaArquivoSerializer(arquivos, many=True).data)
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        ser = UploadArquivoOfertaSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        arquivo = ser.validated_data["arquivo"]
+        tipo = ser.validated_data["tipo"]
+        ultima_versao = (
+            OrcamentoOfertaArquivo.objects.filter(orcamento=orcamento, tipo=tipo)
+            .aggregate(valor=Max("versao"))
+            .get("valor")
+            or 0
+        )
+        OrcamentoOfertaArquivo.objects.create(
+            orcamento=orcamento,
+            tipo=tipo,
+            arquivo=arquivo,
+            nome_original=arquivo.name or "",
+            content_type=getattr(arquivo, "content_type", "") or "",
+            tamanho_bytes=getattr(arquivo, "size", 0) or 0,
+            versao=ultima_versao + 1,
+            criado_por=request.user if request.user.is_authenticated else None,
+        )
+        orcamento.refresh_from_db()
+        return Response(
+            OrcamentoSerializer(orcamento, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OrcamentoOfertaArquivoDownloadView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_VISUALIZAR
+
+    def get(self, request, pk, arquivo_id):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        arquivo = get_object_or_404(
+            OrcamentoOfertaArquivo,
+            pk=arquivo_id,
+            orcamento=orcamento,
+        )
+        response = FileResponse(
+            arquivo.arquivo.open("rb"),
+            as_attachment=True,
+            filename=arquivo.nome_original,
+            content_type=arquivo.content_type or "application/octet-stream",
+        )
+        return response
+
+
+class OrcamentoEnviarOfertaClienteView(APIView):
+    """Finaliza envio: PDF automático, convite público, registro e e-mail opcional."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_EDITAR
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        ser = EnviarOfertaClienteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            orcamento, envio, link = enviar_oferta_ao_cliente(
+                orcamento,
+                destinatario_nome=ser.validated_data.get("destinatario_nome", ""),
+                destinatario_email=ser.validated_data.get("destinatario_email", ""),
+                destinatario_emails=ser.validated_data.get("destinatario_emails", []),
+                assunto=ser.validated_data.get("assunto", ""),
+                mensagem=ser.validated_data.get("mensagem", ""),
+                enviar_email=ser.validated_data.get("enviar_email", False),
+                usuario=request.user,
+            )
+        except EnviarOfertaError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=orcamento.pk)
+        data = OrcamentoSerializer(orcamento, context={"request": request}).data
+        data["link_publico"] = link
+        data["email_enviado"] = envio.email_enviado
+        data["email_erro"] = envio.email_erro
+        data["destinatario_emails"] = envio.destinatario_emails
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class OrcamentoMarcarOfertaEnviadaView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_EDITAR
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        ser = MarcarOfertaEnviadaSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        pdf_id = ser.validated_data.get("pdf_final_id")
+        pdf_qs = OrcamentoOfertaArquivo.objects.filter(
+            orcamento=orcamento,
+            tipo=TipoArquivoOfertaChoices.PDF_FINAL,
+        )
+        if pdf_id:
+            pdf_final = get_object_or_404(pdf_qs, pk=pdf_id)
+        else:
+            pdf_final = pdf_qs.order_by("-criado_em").first()
+        if not pdf_final:
+            return Response(
+                {"detail": "Anexe o PDF final antes de marcar a oferta como enviada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        OrcamentoOfertaEnvio.objects.create(
+            orcamento=orcamento,
+            pdf_final=pdf_final,
+            destinatario_nome=ser.validated_data.get("destinatario_nome", ""),
+            destinatario_email=ser.validated_data.get("destinatario_email", ""),
+            assunto=ser.validated_data.get("assunto", ""),
+            mensagem=ser.validated_data.get("mensagem", ""),
+            enviado_por=request.user if request.user.is_authenticated else None,
+        )
+        orcamento.status = StatusOrcamentoChoices.ENVIADO
+        orcamento.save(update_fields=("status", "codigo", "codigo_base", "revisao", "atualizado_em"))
+        orcamento.refresh_from_db()
+        return Response(
+            OrcamentoSerializer(orcamento, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrcamentoGerarBlocosPadraoOfertaView(APIView):
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.ORCAMENTO_EDITAR
+
+    def post(self, request, pk):
+        orcamento = get_object_or_404(_orcamento_queryset(), pk=pk)
+        ser = GerarBlocosPadraoOfertaSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            gerar_blocos_padrao_oferta(
+                orcamento,
+                perfil=ser.validated_data.get("perfil_oferta"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        orcamento.refresh_from_db()
+        data = OrcamentoSerializer(orcamento, context={"request": request}).data
         return Response(data, status=status.HTTP_200_OK)
 
 

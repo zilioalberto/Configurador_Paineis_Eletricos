@@ -1,24 +1,59 @@
 import secrets
+import tempfile
+import zipfile
 
 import pytest
+from io import BytesIO
 from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.cadastros.models import ContatoParceiro, ParceiroComercial
 from apps.catalogo.models import Produto, Servico
+from apps.configurador_paineis.cargas.models import (
+    Carga,
+    CargaMotor,
+    CargaResistencia,
+    CargaSensor,
+    CargaTransdutor,
+    CargaValvula,
+)
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.fiscal.models import ItemFiscalProduto
 from apps.orcamentos.models import (
     ConfiguracaoMargemCliente,
+    ModoConfiguradorPainelChoices,
     Orcamento,
+    OrcamentoConfiguradorPainel,
+    OrcamentoOfertaBloco,
     OrcamentoItem,
     OrcamentoSnapshot,
     OrigemItemOrcamentoChoices,
+    PerfilOfertaChoices,
     StatusOrcamentoChoices,
+    TipoBlocoOfertaChoices,
     TipoItemOrcamentoChoices,
+)
+from core.choices import (
+    NumeroFasesChoices,
+    TipoAcionamentoResistenciaChoices,
+    TipoAcionamentoValvulaChoices,
+    TipoCargaChoices,
+    TipoPartidaMotorChoices,
+    TipoProtecaoMotorChoices,
+    TipoProtecaoResistenciaChoices,
+    TipoProtecaoValvulaChoices,
+    TipoSensorChoices,
+    TipoSinalChoices,
+    TipoSinaisAnalogicosChoices,
+    TipoTransdutorChoices,
+    TipoValvulaChoices,
+    TensaoChoices,
 )
 from core.permissions import PermissionKeys
 
@@ -150,6 +185,63 @@ def test_patch_orcamento_exige_permissao_editar():
 
 
 @pytest.mark.django_db
+def test_patch_orcamento_desconto_exige_permissao_dedicada(cliente_com_contato):
+    raw = secrets.token_urlsafe(32)
+    user = User.objects.create_user(
+        email="orcamentos-sem-desconto@test.com",
+        password=raw,
+        is_active=True,
+        permissoes_extras=[
+            PermissionKeys.ORCAMENTO_VISUALIZAR,
+            PermissionKeys.ORCAMENTO_EDITAR,
+        ],
+    )
+    client = _auth_client(user, raw)
+    cliente, _contato = cliente_com_contato
+    orc = Orcamento.objects.create(
+        codigo_base="O-DESC-PERM",
+        titulo="Desconto",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(
+        url,
+        {"desconto_comercial_ativo": True, "desconto_percentual": "5.00"},
+        format="json",
+    )
+
+    assert resp.status_code == 400, resp.content
+    assert "desconto" in str(resp.data).lower()
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_desconto_com_permissao(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    cliente, _contato = cliente_com_contato
+    orc = Orcamento.objects.create(
+        codigo_base="O-DESC-OK",
+        titulo="Desconto OK",
+        cliente=cliente,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(
+        url,
+        {"desconto_comercial_ativo": True, "desconto_percentual": "5.00"},
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    orc.refresh_from_db()
+    assert orc.desconto_comercial_ativo is True
+    assert orc.desconto_percentual == Decimal("5.00")
+
+
+@pytest.mark.django_db
 def test_patch_orcamento_enviado_cria_snapshot_imutavel(user_admin):
     user, raw = user_admin
     client = _auth_client(user, raw)
@@ -187,6 +279,536 @@ def test_patch_orcamento_enviado_cria_snapshot_imutavel(user_admin):
     snapshot.refresh_from_db()
     assert OrcamentoSnapshot.objects.filter(orcamento=orc).count() == 1
     assert snapshot.itens[0]["preco_unitario"] == "120.0000"
+
+
+@pytest.mark.django_db
+def test_patch_orcamento_salva_blocos_textuais_e_perfil_oferta(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-BLOCOS",
+        titulo="Oferta completa",
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(
+        url,
+        {
+            "perfil_oferta": PerfilOfertaChoices.SOLUCAO_COMPLETA,
+            "oferta_blocos": [
+                {
+                    "ordem": 0,
+                    "tipo": TipoBlocoOfertaChoices.ESCOPO,
+                    "titulo": "Escopo de fornecimento",
+                    "conteudo": "Sistema de controle para climatização.",
+                },
+                {
+                    "ordem": 1,
+                    "tipo": TipoBlocoOfertaChoices.EXCLUSOES,
+                    "titulo": "Exclusões",
+                    "conteudo": "Instalação em campo.",
+                },
+            ],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["perfil_oferta"] == PerfilOfertaChoices.SOLUCAO_COMPLETA
+    assert [b["titulo"] for b in body["oferta_blocos"]] == [
+        "Escopo de fornecimento",
+        "Exclusões",
+    ]
+    orc.refresh_from_db()
+    assert orc.perfil_oferta == PerfilOfertaChoices.SOLUCAO_COMPLETA
+    assert OrcamentoOfertaBloco.objects.filter(orcamento=orc).count() == 2
+
+
+@pytest.mark.django_db
+def test_snapshot_congela_textos_da_oferta_completa(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-SNAP-TEXTO",
+        titulo="Snapshot textos",
+        perfil_oferta=PerfilOfertaChoices.SOLUCAO_COMPLETA,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoOfertaBloco.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoBlocoOfertaChoices.ESCOPO,
+        titulo="Escopo de fornecimento",
+        conteudo="Fornecimento de painel elétrico e software de controle.",
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Painel elétrico",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("30"),
+        preco_unitario=Decimal("130"),
+    )
+    url = reverse("erp-orcamento-detail", kwargs={"pk": orc.pk})
+
+    resp = client.patch(url, {"status": StatusOrcamentoChoices.FINALIZADO}, format="json")
+
+    assert resp.status_code == 200, resp.content
+    snapshot = OrcamentoSnapshot.objects.get(orcamento=orc)
+    assert snapshot.dados["perfil_oferta"] == PerfilOfertaChoices.SOLUCAO_COMPLETA
+    assert snapshot.dados["oferta_blocos"][0]["tipo"] == TipoBlocoOfertaChoices.ESCOPO
+    assert (
+        snapshot.dados["oferta_blocos"][0]["conteudo"]
+        == "Fornecimento de painel elétrico e software de controle."
+    )
+
+
+@pytest.mark.django_db
+def test_preview_oferta_materiais_mostra_itens_unitarios(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, contato = cliente_com_contato
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-PREV-MAT",
+        titulo="Materiais Siemens",
+        cliente=cliente,
+        contato_cliente=contato,
+        perfil_oferta=PerfilOfertaChoices.MATERIAIS,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Disjuntor Siemens",
+        quantidade=Decimal("2"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+
+    resp = client.get(reverse("erp-orcamento-preview-oferta", kwargs={"pk": orc.pk}))
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["codigo_base"] == "O-PREV-MAT"
+    assert " Rev " not in body["codigo_base"]
+    assert body["perfil_oferta"] == PerfilOfertaChoices.MATERIAIS
+    assert body["cliente"]["nome"] == cliente.razao_social
+    assert body["investimento"]["modo"] == "ITENS_UNITARIOS"
+    assert body["investimento"]["itens"][0]["descricao"] == "Disjuntor Siemens"
+    assert body["investimento"]["itens"][0]["preco_unitario"] == "120"
+    assert body["totais"]["total"] == "240"
+    assert body["emissao"]
+    assert body["apendice_legal"]["versao"]
+    assert len(body["apendice_legal"]["secoes"]) >= 1
+
+
+@pytest.mark.django_db
+def test_preview_oferta_solucao_completa_consolida_investimento(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-PREV-SOL",
+        titulo="Automação sala de impressão",
+        perfil_oferta=PerfilOfertaChoices.SOLUCAO_COMPLETA,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoOfertaBloco.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoBlocoOfertaChoices.ESCOPO,
+        titulo="Escopo de fornecimento",
+        conteudo="Fornecimento de painel elétrico e software.",
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Painel elétrico",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("25"),
+        preco_unitario=Decimal("125"),
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=1,
+        tipo=TipoItemOrcamentoChoices.SERVICO,
+        descricao="Programação PLC",
+        quantidade=Decimal("10"),
+        custo_unitario=Decimal("50"),
+        margem_percentual=Decimal("30"),
+        preco_unitario=Decimal("65"),
+    )
+
+    resp = client.get(reverse("erp-orcamento-preview-oferta", kwargs={"pk": orc.pk}))
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["perfil_oferta"] == PerfilOfertaChoices.SOLUCAO_COMPLETA
+    assert body["secoes"][0]["titulo"] == "Escopo de fornecimento"
+    assert body["investimento"]["modo"] == "CONSOLIDADO"
+    assert len(body["investimento"]["itens"]) == 1
+    assert body["investimento"]["itens"][0]["subtotal"] == "775"
+    assert body["totais"]["produtos"] == "125"
+    assert body["totais"]["servicos"] == "650"
+    assert body["totais"]["total"] == "775"
+    assert body["totais"]["desconto_ativo"] is False
+
+
+@pytest.mark.django_db
+def test_gerar_docx_oferta_retorna_documento_editavel(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, contato = cliente_com_contato
+    cliente.razao_social = "CLIENTE PROPOSTA LTDA"
+    cliente.save(update_fields=("razao_social",))
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-DOCX",
+        titulo="Painel de automacao",
+        cliente=cliente,
+        contato_cliente=contato,
+        perfil_oferta=PerfilOfertaChoices.SOLUCAO_COMPLETA,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoOfertaBloco.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoBlocoOfertaChoices.ESCOPO,
+        titulo="Escopo de fornecimento",
+        conteudo="Fornecimento de painel eletrico e software.",
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="Painel eletrico",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("25"),
+        preco_unitario=Decimal("125"),
+    )
+
+    resp = client.get(reverse("erp-orcamento-gerar-docx-oferta", kwargs={"pk": orc.pk}))
+
+    assert resp.status_code == 200, resp.content
+    assert resp["Content-Type"] == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert resp.content.startswith(b"PK")
+    with zipfile.ZipFile(BytesIO(resp.content)) as docx:
+        media_files = [name for name in docx.namelist() if name.startswith("word/media/")]
+        document_xml = docx.read("word/document.xml").decode("utf-8")
+    meses = (
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
+    )
+    hoje = timezone.localdate()
+    data_extenso = f"{hoje.day:02d} de {meses[hoje.month - 1]} de {hoje.year}"
+    assert media_files
+    assert "PROPOSTA TÉCNICA E COMERCIAL" in document_xml
+    assert "Cliente Proposta LTDA" in document_xml
+    assert "CLIENTE PROPOSTA LTDA" not in document_xml
+    assert document_xml.count(data_extenso) == 1
+    assert "Fornecimento de painel eletrico e software." in document_xml
+    assert "Valor Unit." in document_xml
+    assert "Valor Total" in document_xml
+    assert "Total da oferta" in document_xml
+    assert "R$ 125,00" in document_xml
+    assert "{{" not in document_xml
+
+
+@pytest.mark.django_db
+def test_upload_arquivos_oferta_e_marca_envio(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, contato = cliente_com_contato
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-ENVIO",
+        titulo="Painel final",
+        cliente=cliente,
+        contato_cliente=contato,
+        status=StatusOrcamentoChoices.FINALIZADO,
+    )
+
+    with tempfile.TemporaryDirectory(dir="C:/tmp") as media_root, override_settings(
+        MEDIA_ROOT=media_root
+    ):
+        docx_resp = client.post(
+            reverse("erp-orcamento-arquivo-oferta-list", kwargs={"pk": orc.pk}),
+            {
+                "tipo": "DOCX_REVISADO",
+                "arquivo": SimpleUploadedFile(
+                    "oferta-revisada.docx",
+                    b"docx",
+                    content_type=(
+                        "application/vnd.openxmlformats-officedocument."
+                        "wordprocessingml.document"
+                    ),
+                ),
+            },
+            format="multipart",
+        )
+        pdf_resp = client.post(
+            reverse("erp-orcamento-arquivo-oferta-list", kwargs={"pk": orc.pk}),
+            {
+                "tipo": "PDF_FINAL",
+                "arquivo": SimpleUploadedFile(
+                    "oferta-final.pdf",
+                    b"%PDF-1.4",
+                    content_type="application/pdf",
+                ),
+            },
+            format="multipart",
+        )
+
+    assert docx_resp.status_code == 201, docx_resp.content
+    assert pdf_resp.status_code == 201, pdf_resp.content
+    assert len(pdf_resp.json()["oferta_arquivos"]) == 2
+
+    enviar_resp = client.post(
+        reverse("erp-orcamento-marcar-oferta-enviada", kwargs={"pk": orc.pk}),
+        {
+            "destinatario_nome": "Compras Cliente",
+            "destinatario_email": "compras@cliente.com",
+            "assunto": "Proposta técnica e comercial",
+        },
+        format="json",
+    )
+
+    assert enviar_resp.status_code == 200, enviar_resp.content
+    body = enviar_resp.json()
+    assert body["status"] == StatusOrcamentoChoices.ENVIADO
+    assert len(body["oferta_envios"]) == 1
+    assert body["oferta_envios"][0]["pdf_final"]["nome_original"] == "oferta-final.pdf"
+
+
+@pytest.mark.django_db
+def test_gerar_blocos_padrao_oferta_solucao_completa(user_admin, cliente_com_contato):
+    user, raw = user_admin
+    cliente, _contato = cliente_com_contato
+    cliente.razao_social = "CLIENTE PROPOSTA LTDA"
+    cliente.save(update_fields=("razao_social",))
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-BLOCOS-PADRAO",
+        titulo="Automação climatização",
+        descricao="sistema de controle para climatização",
+        cliente=cliente,
+        perfil_oferta=PerfilOfertaChoices.MATERIAIS,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=0,
+        tipo=TipoItemOrcamentoChoices.PRODUTO,
+        descricao="PLC Siemens S7-1200",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("100"),
+        margem_percentual=Decimal("20"),
+        preco_unitario=Decimal("120"),
+    )
+    OrcamentoItem.objects.create(
+        orcamento=orc,
+        ordem=1,
+        tipo=TipoItemOrcamentoChoices.SERVICO,
+        descricao="Programação de software PLC",
+        quantidade=Decimal("1"),
+        custo_unitario=Decimal("300"),
+        margem_percentual=Decimal("30"),
+        preco_unitario=Decimal("390"),
+    )
+
+    resp = client.post(
+        reverse("erp-orcamento-gerar-blocos-padrao-oferta", kwargs={"pk": orc.pk}),
+        {"perfil_oferta": PerfilOfertaChoices.SOLUCAO_COMPLETA},
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    body = resp.json()
+    assert body["perfil_oferta"] == PerfilOfertaChoices.SOLUCAO_COMPLETA
+    blocos = body["oferta_blocos"]
+    assert blocos[1]["tipo"] == TipoBlocoOfertaChoices.ESCOPO
+    assert "sistema de controle para climatização" in blocos[1]["conteudo"]
+    assert "para Cliente Proposta LTDA" in blocos[1]["conteudo"]
+    assert "CLIENTE PROPOSTA LTDA" not in blocos[1]["conteudo"]
+    assert "PLC Siemens S7-1200" in blocos[2]["conteudo"]
+    assert "Programação de software PLC" in blocos[3]["conteudo"]
+    assert OrcamentoOfertaBloco.objects.filter(orcamento=orc).count() == len(blocos)
+
+
+@pytest.mark.django_db
+def test_gerar_blocos_padrao_oferta_usa_cargas_do_configurador(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-BLOCOS-CARGAS",
+        titulo="Painel CCM",
+        descricao="painel de acionamentos",
+        perfil_oferta=PerfilOfertaChoices.MATERIAIS,
+        status=StatusOrcamentoChoices.RASCUNHO,
+    )
+    projeto = ProjetoConfigurador.objects.create(
+        codigo="CFG-ESCOPO-01",
+        nome="Painel CCM",
+        cliente="Cliente teste",
+        tensao_nominal=TensaoChoices.V380,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        possui_neutro=False,
+        possui_terra=False,
+    )
+    OrcamentoConfiguradorPainel.objects.create(
+        orcamento=orc,
+        projeto_configurador=projeto,
+        ordem=0,
+        descricao_painel="Painel CCM",
+        modo=ModoConfiguradorPainelChoices.ATIVO,
+    )
+    motor = Carga.objects.create(
+        projeto=projeto,
+        tag="M01",
+        descricao="Motor exaustor",
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    CargaMotor.objects.create(
+        carga=motor,
+        potencia_corrente_valor=Decimal("5.00"),
+        potencia_corrente_unidade="CV",
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_motor=TensaoChoices.V380,
+        tipo_partida=TipoPartidaMotorChoices.DIRETA,
+        tipo_protecao=TipoProtecaoMotorChoices.DISJUNTOR_MOTOR,
+    )
+    resistencia = Carga.objects.create(
+        projeto=projeto,
+        tag="R01",
+        descricao="Banco de resistência",
+        tipo=TipoCargaChoices.RESISTENCIA,
+    )
+    CargaResistencia.objects.create(
+        carga=resistencia,
+        potencia_kw=Decimal("12.50"),
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_resistencia=TensaoChoices.V380,
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.RELE_ESTADO_SOLIDO,
+        tipo_protecao=TipoProtecaoResistenciaChoices.FUSIVEL_ULTRARRAPIDO,
+    )
+    valvula = Carga.objects.create(
+        projeto=projeto,
+        tag="YV01",
+        descricao="Válvula de entrada",
+        tipo=TipoCargaChoices.VALVULA,
+    )
+    CargaValvula.objects.create(
+        carga=valvula,
+        tipo_valvula=TipoValvulaChoices.SOLENOIDE,
+        quantidade_vias=5,
+        quantidade_posicoes=2,
+        quantidade_solenoides=2,
+        retorno_mola=True,
+        possui_feedback=True,
+        tensao_alimentacao=TensaoChoices.V24,
+        tipo_acionamento=TipoAcionamentoValvulaChoices.RELE_INTERFACE,
+        tipo_rele_interface="ELETROMECANICA",
+        tipo_protecao=TipoProtecaoValvulaChoices.BORNE_FUSIVEL,
+    )
+    sensor = Carga.objects.create(
+        projeto=projeto,
+        tag="S01",
+        descricao="Sensor de presença",
+        tipo=TipoCargaChoices.SENSOR,
+    )
+    CargaSensor.objects.create(
+        carga=sensor,
+        tipo_sensor=TipoSensorChoices.INDUTIVO,
+        tipo_sinal=TipoSinalChoices.DIGITAL,
+        tensao_alimentacao=TensaoChoices.V24,
+        pnp=True,
+        normalmente_aberto=True,
+        quantidade_fios=3,
+    )
+    transdutor = Carga.objects.create(
+        projeto=projeto,
+        tag="PT01",
+        descricao="Transdutor de pressão",
+        tipo=TipoCargaChoices.TRANSDUTOR,
+    )
+    CargaTransdutor.objects.create(
+        carga=transdutor,
+        tipo_transdutor=TipoTransdutorChoices.PRESSAO,
+        faixa_medicao="0-10 bar",
+        tipo_sinal_analogico=TipoSinaisAnalogicosChoices.CORRENTE_4_20MA,
+        precisao="0,5%",
+        tensao_alimentacao=TensaoChoices.V24,
+        quantidade_fios=2,
+    )
+
+    resp = client.post(
+        reverse("erp-orcamento-gerar-blocos-padrao-oferta", kwargs={"pk": orc.pk}),
+        {"perfil_oferta": PerfilOfertaChoices.SOLUCAO_COMPLETA},
+        format="json",
+    )
+
+    assert resp.status_code == 200, resp.content
+    blocos = resp.json()["oferta_blocos"]
+    escopo = next(b for b in blocos if b["tipo"] == TipoBlocoOfertaChoices.ESCOPO)
+    assert (
+        "M01 - Acionamento de motor elétrico trifásico com potência de 5 CV via contatora "
+        "e proteção via disjuntor motor."
+    ) in escopo["conteudo"]
+    assert (
+        "R01 - Acionamento de banco de resistência trifásico com potência de 12.5 kW "
+        "via relé de estado sólido e proteção via fusíveis ultrarrápidos."
+    ) in escopo["conteudo"]
+    assert (
+        "YV01 - Acionamento de válvula solenóide 5/2 vias/posições com 2 solenoide(s) "
+        "e retorno por mola com feedback de posição em 24 V CC via relé de interface "
+        "e proteção via borne fusível."
+    ) in escopo["conteudo"]
+    assert (
+        "S01 - Monitoramento por sensor indutivo com sinal digital (PNP, NA), "
+        "alimentação 24 V CC, 3 fios."
+    ) in escopo["conteudo"]
+    assert (
+        "PT01 - Medição por transdutor de pressão com sinal corrente 4-20 mA, "
+        "faixa 0-10 bar, precisão 0,5%, alimentação 24 V CC, 2 fios."
+    ) in escopo["conteudo"]
+
+
+@pytest.mark.django_db
+def test_gerar_blocos_padrao_rejeita_orcamento_finalizado(user_admin):
+    user, raw = user_admin
+    client = _auth_client(user, raw)
+    orc = Orcamento.objects.create(
+        codigo_base="O-BLOCOS-FINAL",
+        titulo="Finalizado",
+        status=StatusOrcamentoChoices.FINALIZADO,
+    )
+
+    resp = client.post(
+        reverse("erp-orcamento-gerar-blocos-padrao-oferta", kwargs={"pk": orc.pk}),
+        {"perfil_oferta": PerfilOfertaChoices.MATERIAIS},
+        format="json",
+    )
+
+    assert resp.status_code == 400, resp.content
+    assert "rascunho" in resp.json()["detail"].lower()
 
 
 @pytest.mark.django_db

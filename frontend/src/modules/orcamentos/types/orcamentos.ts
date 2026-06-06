@@ -66,6 +66,93 @@ export type OrcamentoSnapshotEnvioDto = {
   itens: Array<Record<string, unknown>>
 }
 
+export type PerfilOferta = 'MATERIAIS' | 'SOLUCAO_COMPLETA'
+
+export type TipoBlocoOferta =
+  | 'INTRODUCAO'
+  | 'ESCOPO'
+  | 'ITENS_FORNECIMENTO'
+  | 'SERVICOS'
+  | 'EXCLUSOES'
+  | 'INVESTIMENTO'
+  | 'PRAZO_ENTREGA'
+  | 'CONDICOES_PAGAMENTO'
+  | 'CONDICOES_GERAIS'
+  | 'GARANTIA'
+  | 'APROVACAO'
+  | 'OBSERVACOES'
+
+export type OrcamentoOfertaBlocoDto = {
+  id: string
+  ordem: number
+  tipo: TipoBlocoOferta
+  titulo: string
+  conteudo: string
+  editavel?: boolean
+}
+
+export type OrcamentoPreviewOfertaItemDto = {
+  id?: string
+  ordem?: number
+  tipo?: 'PRODUTO' | 'SERVICO'
+  codigo?: string
+  descricao: string
+  quantidade: string
+  preco_unitario: string
+  subtotal: string
+  unidade?: string
+  ncm?: string
+}
+
+export type OfertaApendiceLegalSecaoDto = {
+  id: string
+  titulo: string
+  conteudo: string
+}
+
+export type OrcamentoPreviewOfertaDto = {
+  codigo: string
+  /** Número da proposta sem sufixo de revisão (ex.: Prop-06001-26). */
+  codigo_base?: string
+  revisao?: string
+  titulo: string
+  perfil_oferta: PerfilOferta
+  emissao?: string | null
+  cliente: {
+    id: string | null
+    nome: string
+    contato: string
+    email: string
+    telefone: string
+    endereco?: string
+    cnpj?: string
+  }
+  validade: string | null
+  secoes: Array<Pick<OrcamentoOfertaBlocoDto, 'tipo' | 'titulo' | 'conteudo'>>
+  investimento: {
+    modo: 'ITENS_UNITARIOS' | 'CONSOLIDADO' | 'POR_PAINEL'
+    titulo: string
+    itens: OrcamentoPreviewOfertaItemDto[]
+  }
+  totais: OrcamentoPreviewTotaisDto
+  apendice_legal?: {
+    versao: string
+    secoes: OfertaApendiceLegalSecaoDto[]
+  }
+}
+
+export type OrcamentoPreviewTotaisDto = {
+  produtos: string
+  servicos: string
+  subtotal: string
+  desconto_ativo: boolean
+  desconto_percentual: string
+  desconto_valor: string
+  impostos_percentual: string
+  impostos_valor: string
+  total: string
+}
+
 export type OrcamentoRevisaoResumoDto = {
   id: string
   codigo: string
@@ -77,6 +164,57 @@ export type OrcamentoRevisaoResumoDto = {
   criado_em: string
   atualizado_em: string
   snapshot_envio?: OrcamentoSnapshotEnvioDto | null
+}
+
+export type TipoArquivoOferta = 'DOCX_REVISADO' | 'PDF_FINAL' | 'PDF_ASSINADO_CLIENTE'
+
+export type CanalEnvioOferta = 'EMAIL' | 'LINK' | 'MANUAL'
+
+export type OrcamentoOfertaArquivoDto = {
+  id: string
+  tipo: TipoArquivoOferta
+  nome_original: string
+  content_type: string
+  tamanho_bytes: number
+  versao: number
+  criado_por: string | null
+  criado_por_label: string
+  criado_em: string
+  download_url: string
+}
+
+export type OrcamentoOfertaEnvioDto = {
+  id: string
+  pdf_final: OrcamentoOfertaArquivoDto
+  convite?: string | null
+  canal?: CanalEnvioOferta
+  link_publico?: string
+  email_enviado?: boolean
+  email_erro?: string
+  destinatario_emails?: string
+  destinatario_nome: string
+  destinatario_email: string
+  assunto: string
+  mensagem: string
+  enviado_por: string | null
+  enviado_por_label: string
+  enviado_em: string
+}
+
+export type EnviarOfertaClientePayload = {
+  destinatario_nome?: string
+  destinatario_email?: string
+  destinatario_emails?: string[]
+  assunto?: string
+  mensagem?: string
+  enviar_email?: boolean
+}
+
+export type OrcamentoDtoComLinkEnvio = OrcamentoDto & {
+  link_publico?: string
+  email_enviado?: boolean
+  email_erro?: string
+  destinatario_emails?: string
 }
 
 /** Orçamento/proposta com cabeçalho, cliente e itens. */
@@ -95,14 +233,27 @@ export type OrcamentoDto = {
   contato_cliente: string | null
   contato_cliente_nome: string
   contato_cliente_email: string
+  contato_cliente_telefone: string
+  cliente_endereco?: string
+  cliente_cnpj?: string
   cliente_referencia: string
   margem_produtos_percentual: string
   margem_servicos_percentual: string
+  desconto_comercial_ativo?: boolean
+  desconto_percentual?: string
+  /** NCM manual na tabela de investimento (perfil solução completa). */
+  ncm_investimento?: string
+  /** Descrição na tabela de investimento (solução completa). */
+  investimento_descricao?: string
+  perfil_oferta: PerfilOferta
   status: string
   valido_ate: string | null
   criado_em: string
   atualizado_em: string
   itens: OrcamentoItemDto[]
+  oferta_blocos?: OrcamentoOfertaBlocoDto[]
+  oferta_arquivos?: OrcamentoOfertaArquivoDto[]
+  oferta_envios?: OrcamentoOfertaEnvioDto[]
   configuradores_painel?: OrcamentoConfiguradorPainelDto[]
   snapshot_envio?: OrcamentoSnapshotEnvioDto | null
   revisoes_derivadas?: OrcamentoRevisaoResumoDto[]
