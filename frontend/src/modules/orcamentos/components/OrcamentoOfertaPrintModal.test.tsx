@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const obterPreviewOfertaOrcamentoMock = vi.hoisted(() => vi.fn())
@@ -40,7 +40,7 @@ describe('OrcamentoOfertaPrintModal', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     expect(await screen.findByTestId('preview-doc')).toHaveTextContent('Proposta teste')
-    fireEvent.click(screen.getByRole('button', { name: /fechar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /fechar pré-visualização/i }))
     expect(onClose).toHaveBeenCalled()
     expect(obterPreviewOfertaOrcamentoMock).toHaveBeenCalledWith('orc-1')
   })

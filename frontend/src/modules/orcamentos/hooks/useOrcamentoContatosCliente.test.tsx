@@ -11,15 +11,28 @@ import {
   contatoIdValidoParaLista,
   useOrcamentoContatosCliente,
 } from './useOrcamentoContatosCliente'
+import type { ContatoClienteDto } from '../types/orcamentos'
+
+function contatoCliente(partial: Pick<ContatoClienteDto, 'id' | 'nome'>): ContatoClienteDto {
+  return {
+    parceiro: 'par-1',
+    cargo: '',
+    email: '',
+    telefone: '',
+    principal: false,
+    observacoes: '',
+    ...partial,
+  }
+}
 
 describe('contatoIdValidoParaLista', () => {
   it('mantém id quando existe na lista', () => {
-    expect(contatoIdValidoParaLista('c1', [{ id: 'c1', nome: 'Ana' }])).toBe('c1')
+    expect(contatoIdValidoParaLista('c1', [contatoCliente({ id: 'c1', nome: 'Ana' })])).toBe('c1')
   })
 
   it('limpa id inválido ou vazio', () => {
-    expect(contatoIdValidoParaLista('c2', [{ id: 'c1', nome: 'Ana' }])).toBe('')
-    expect(contatoIdValidoParaLista('', [{ id: 'c1', nome: 'Ana' }])).toBe('')
+    expect(contatoIdValidoParaLista('c2', [contatoCliente({ id: 'c1', nome: 'Ana' })])).toBe('')
+    expect(contatoIdValidoParaLista('', [contatoCliente({ id: 'c1', nome: 'Ana' })])).toBe('')
   })
 })
 
@@ -42,7 +55,7 @@ describe('useOrcamentoContatosCliente', () => {
   })
 
   it('carrega contatos do cliente', async () => {
-    const contatos = [{ id: 'c1', nome: 'Ana' }]
+    const contatos = [contatoCliente({ id: 'c1', nome: 'Ana' })]
     listarContatosClienteMock.mockResolvedValueOnce(contatos)
     const onContatosCarregados = vi.fn()
 
@@ -87,7 +100,7 @@ describe('useOrcamentoContatosCliente', () => {
     unmount()
 
     await act(async () => {
-      resolve([{ id: 'c1', nome: 'Ana' }])
+      resolve([contatoCliente({ id: 'c1', nome: 'Ana' })])
     })
 
     expect(showToast).not.toHaveBeenCalled()

@@ -2,8 +2,10 @@ import pytest
 
 from apps.orcamentos.services.formatacao_oferta import (
     capitalizar_texto_tecnico,
+    extrair_texto_item_lista,
     formatar_conteudo_lista_oferta,
     formatar_descricao_item_oferta,
+    numero_proposta_exibicao,
 )
 
 
@@ -42,3 +44,20 @@ def test_formatar_conteudo_lista_oferta():
 def test_capitalizar_texto_tecnico_multilinha():
     texto = "FORNECIMENTO DE CLP SIEMENS\nPARA AUTOMAÇÃO"
     assert capitalizar_texto_tecnico(texto) == "Fornecimento de CLP SIEMENS\nPara automação"
+
+
+def test_numero_proposta_exibicao_remove_sufixo_rev():
+    assert numero_proposta_exibicao("Prop-06001-26 Rev C", revisao="C") == "Prop-06001-26"
+    assert (
+        numero_proposta_exibicao("Prop-06001-26 Rev C", revisao="C", codigo_base="Prop-06001-26")
+        == "Prop-06001-26"
+    )
+    assert numero_proposta_exibicao("Prop-06001-26", revisao="C") == "Prop-06001-26"
+    assert numero_proposta_exibicao("", revisao="A") == "-"
+
+
+def test_extrair_texto_item_lista():
+    assert extrair_texto_item_lista("- Item A") == "Item A"
+    assert extrair_texto_item_lista("  • Item B") == "Item B"
+    assert extrair_texto_item_lista("Parágrafo") is None
+    assert extrair_texto_item_lista("-sem espaco") is None

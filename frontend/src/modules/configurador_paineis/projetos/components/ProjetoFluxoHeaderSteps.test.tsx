@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ProjetoFluxoHeaderSteps } from './ProjetoFluxoHeaderSteps'
 
 const useProjetoFluxoGatesMock = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((_projetoId?: string | null) => ({
     loading: false,
     temCargas: true,
     condutoresRevisaoOk: false,
@@ -15,7 +15,7 @@ const useProjetoFluxoGatesMock = vi.hoisted(() =>
 )
 
 vi.mock('../hooks/useProjetoFluxoGates', () => ({
-  useProjetoFluxoGates: (...args: unknown[]) => useProjetoFluxoGatesMock(...args),
+  useProjetoFluxoGates: (projetoId: string | null | undefined) => useProjetoFluxoGatesMock(projetoId),
 }))
 
 describe('ProjetoFluxoHeaderSteps', () => {

@@ -13,7 +13,41 @@ export type SecaoDocumentoOferta = {
   conteudo: string
 }
 
-const HEADING_LINE_RE = /^(?:#{1,3}\s+|\d+\.\s+)(.+)$/
+/** Extrai título de linha `## Título` ou `1. Título` sem regex (evita ReDoS). */
+function extrairTituloHeadingLinha(linha: string): string | null {
+  if (!linha) return null
+
+  if (linha.charAt(0) === '#') {
+    let hashes = 0
+    while (hashes < linha.length && hashes < 3 && linha.charAt(hashes) === '#') {
+      hashes += 1
+    }
+    if (hashes < 1 || hashes > 3) return null
+
+    let espacos = hashes
+    while (espacos < linha.length && (linha.charAt(espacos) === ' ' || linha.charAt(espacos) === '\t')) {
+      espacos += 1
+    }
+    if (espacos === hashes) return null
+
+    const titulo = linha.slice(espacos).trim()
+    return titulo || null
+  }
+
+  let digitos = 0
+  while (digitos < linha.length) {
+    const caractere = linha.charAt(digitos)
+    if (caractere < '0' || caractere > '9') break
+    digitos += 1
+  }
+  if (digitos < 1) return null
+  if (digitos + 1 >= linha.length || linha.charAt(digitos) !== '.' || linha.charAt(digitos + 1) !== ' ') {
+    return null
+  }
+
+  const titulo = linha.slice(digitos + 2).trim()
+  return titulo || null
+}
 
 function normalizarChaveTitulo(valor: string): string {
   return valor
@@ -88,10 +122,10 @@ export function extrairSecoesDocumento(texto: string): SecaoDocumentoOferta[] {
   }
 
   for (const linha of normalizado.split('\n')) {
-    const match = HEADING_LINE_RE.exec(linha)
-    if (match) {
+    const tituloHeading = extrairTituloHeadingLinha(linha)
+    if (tituloHeading) {
       flush()
-      tituloAtual = match[1].trim()
+      tituloAtual = tituloHeading
       continue
     }
     if (tituloAtual === null) {
@@ -122,9 +156,9 @@ export function indiceSecoesDocumento(
   const indice: { titulo: string; posicao: number }[] = []
   let offset = 0
   for (const linha of normalizado.split('\n')) {
-    const match = linha.match(HEADING_LINE_RE)
-    if (match) {
-      indice.push({ titulo: match[1].trim(), posicao: offset })
+    const tituloHeading = extrairTituloHeadingLinha(linha)
+    if (tituloHeading) {
+      indice.push({ titulo: tituloHeading, posicao: offset })
     }
     offset += linha.length + 1
   }

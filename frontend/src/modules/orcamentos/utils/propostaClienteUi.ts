@@ -131,6 +131,82 @@ export function nomeArquivoImpressaoPropostaCliente(
   return sanitizado || 'proposta'
 }
 
+function isEspacoHorizontal(c: string): boolean {
+  return c === ' ' || c === '\t'
+}
+
+/** Extrai código antes de sufixo ` Rev <token>` no final, sem regex. */
+function extrairBaseAntesSufixoRev(codigo: string): string | null {
+  const texto = codigo.trim()
+  let fim = texto.length
+  while (fim > 0 && isEspacoHorizontal(texto.charAt(fim - 1))) {
+    fim -= 1
+  }
+
+  let inicioToken = fim
+  while (inicioToken > 0 && !isEspacoHorizontal(texto.charAt(inicioToken - 1))) {
+    inicioToken -= 1
+  }
+  if (inicioToken === fim) return null
+
+  let pos = inicioToken
+  while (pos > 0 && isEspacoHorizontal(texto.charAt(pos - 1))) {
+    pos -= 1
+  }
+  if (pos < 3 || texto.slice(pos - 3, pos).toLowerCase() !== 'rev') return null
+  pos -= 3
+
+  if (pos === 0 || !isEspacoHorizontal(texto.charAt(pos - 1))) return null
+  while (pos > 0 && isEspacoHorizontal(texto.charAt(pos - 1))) {
+    pos -= 1
+  }
+
+  const base = texto.slice(0, pos).trim()
+  return base || null
+}
+
+function removerPrefixoRev(valor: string): string {
+  let resto = valor.trim()
+  if (!resto.toLowerCase().startsWith('rev')) return resto
+
+  resto = resto.slice(3)
+  if (resto.startsWith('.')) resto = resto.slice(1)
+
+  let inicio = 0
+  while (inicio < resto.length && isEspacoHorizontal(resto.charAt(inicio))) {
+    inicio += 1
+  }
+  return resto.slice(inicio).trim()
+}
+
+function removerSufixoRevComToken(codigo: string, token: string): string | null {
+  const texto = codigo.trim()
+  const alvo = token.trim()
+  if (!alvo) return null
+
+  let fim = texto.length
+  while (fim > 0 && isEspacoHorizontal(texto.charAt(fim - 1))) {
+    fim -= 1
+  }
+  if (fim < alvo.length) return null
+  if (texto.slice(fim - alvo.length, fim).toLowerCase() !== alvo.toLowerCase()) return null
+
+  let pos = fim - alvo.length
+  while (pos > 0 && isEspacoHorizontal(texto.charAt(pos - 1))) {
+    pos -= 1
+  }
+  if (pos < 3 || texto.slice(pos - 3, pos).toLowerCase() !== 'rev') return null
+  pos -= 3
+
+  if (pos === 0 || !isEspacoHorizontal(texto.charAt(pos - 1))) return null
+  while (pos > 0 && isEspacoHorizontal(texto.charAt(pos - 1))) {
+    pos -= 1
+  }
+
+  const base = texto.slice(0, pos).trim()
+  return base || null
+}
+
 export function numeroPropostaExibicao(
   codigo: string,
   revisao?: string,
@@ -140,14 +216,14 @@ export function numeroPropostaExibicao(
   if (base) return base
   const c = (codigo || '').trim()
   if (!c) return '—'
-  const match = c.match(/^(.+?)\s+Rev\s+\S+$/i)
-  if (match) return match[1].trim()
+  const semRevisao = extrairBaseAntesSufixoRev(c)
+  if (semRevisao) return semRevisao
   const raw = (revisao ?? '').trim()
   if (raw) {
-    const letra = raw.replace(/^rev\.?\s*/i, '').trim()
+    const letra = removerPrefixoRev(raw)
     if (letra) {
-      const sufixo = new RegExp(`\\s+Rev\\s+${letra}\\s*$`, 'i')
-      if (sufixo.test(c)) return c.replace(sufixo, '').trim()
+      const baseComRevisao = removerSufixoRevComToken(c, letra)
+      if (baseComRevisao) return baseComRevisao
     }
   }
   return c

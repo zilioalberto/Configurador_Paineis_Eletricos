@@ -133,8 +133,8 @@ describe('composicaoService downloads', () => {
       click: vi.fn(),
       remove: vi.fn(),
     }
-    vi.spyOn(document, 'createElement').mockReturnValue(anchor as HTMLAnchorElement)
-    vi.spyOn(document.body, 'appendChild').mockImplementation(() => anchor)
+    vi.spyOn(document, 'createElement').mockReturnValue(anchor as unknown as HTMLAnchorElement)
+    vi.spyOn(document.body, 'appendChild').mockImplementation(() => anchor as unknown as Node)
   })
 
   afterEach(() => {

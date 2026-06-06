@@ -33,8 +33,20 @@ function separarEmails(valor: string) {
     .filter(Boolean)
 }
 
-function emailValido(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+/** Validação linear (sem regex) para evitar ReDoS em entrada do usuário. */
+function emailValido(email: string): boolean {
+  const valor = email.trim()
+  if (valor.length === 0 || valor.length > 254) return false
+
+  const arroba = valor.indexOf('@')
+  if (arroba <= 0 || arroba !== valor.lastIndexOf('@')) return false
+
+  const local = valor.slice(0, arroba)
+  const dominio = valor.slice(arroba + 1)
+  if (local.includes(' ') || dominio.includes(' ') || dominio.includes('@')) return false
+
+  const ponto = dominio.indexOf('.')
+  return ponto > 0 && ponto < dominio.length - 1
 }
 
 type Props = Readonly<{

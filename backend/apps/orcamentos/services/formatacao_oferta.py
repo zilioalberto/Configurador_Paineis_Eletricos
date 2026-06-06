@@ -239,3 +239,122 @@ def nome_proprio_empresa(valor: str | None) -> str:
         else:
             palavras.append(palavra[:1].upper() + palavra[1:])
     return " ".join(palavras)
+
+
+def _is_espaco_horizontal(caractere: str) -> bool:
+    return caractere in (" ", "\t")
+
+
+def extrair_texto_item_lista(linha: str) -> str | None:
+    """Detecta linha `- item` ou `• item` sem regex (evita ReDoS)."""
+    pos = 0
+    tamanho = len(linha)
+    while pos < tamanho and _is_espaco_horizontal(linha[pos]):
+        pos += 1
+    if pos >= tamanho or linha[pos] not in ("-", "•"):
+        return None
+    pos += 1
+    if pos >= tamanho or not _is_espaco_horizontal(linha[pos]):
+        return None
+    while pos < tamanho and _is_espaco_horizontal(linha[pos]):
+        pos += 1
+    return linha[pos:]
+
+
+def extrair_base_antes_sufixo_rev(codigo: str) -> str | None:
+    """Extrai código antes de sufixo ` Rev <token>` no final, sem regex (evita ReDoS)."""
+    texto = codigo.strip()
+    fim = len(texto)
+    while fim > 0 and _is_espaco_horizontal(texto[fim - 1]):
+        fim -= 1
+
+    inicio_token = fim
+    while inicio_token > 0 and not _is_espaco_horizontal(texto[inicio_token - 1]):
+        inicio_token -= 1
+    if inicio_token == fim:
+        return None
+
+    pos = inicio_token
+    while pos > 0 and _is_espaco_horizontal(texto[pos - 1]):
+        pos -= 1
+    if pos < 3 or texto[pos - 3 : pos].lower() != "rev":
+        return None
+    pos -= 3
+
+    if pos == 0 or not _is_espaco_horizontal(texto[pos - 1]):
+        return None
+    while pos > 0 and _is_espaco_horizontal(texto[pos - 1]):
+        pos -= 1
+
+    base = texto[:pos].strip()
+    return base or None
+
+
+def remover_prefixo_rev(valor: str) -> str:
+    resto = valor.strip()
+    if not resto.lower().startswith("rev"):
+        return resto
+    resto = resto[3:]
+    if resto.startswith("."):
+        resto = resto[1:]
+    inicio = 0
+    while inicio < len(resto) and _is_espaco_horizontal(resto[inicio]):
+        inicio += 1
+    return resto[inicio:].strip()
+
+
+def remover_sufixo_rev_com_token(codigo: str, token: str) -> str | None:
+    texto = codigo.strip()
+    alvo = token.strip()
+    if not alvo:
+        return None
+
+    fim = len(texto)
+    while fim > 0 and _is_espaco_horizontal(texto[fim - 1]):
+        fim -= 1
+    if fim < len(alvo):
+        return None
+    if texto[fim - len(alvo) : fim].lower() != alvo.lower():
+        return None
+
+    pos = fim - len(alvo)
+    while pos > 0 and _is_espaco_horizontal(texto[pos - 1]):
+        pos -= 1
+    if pos < 3 or texto[pos - 3 : pos].lower() != "rev":
+        return None
+    pos -= 3
+
+    if pos == 0 or not _is_espaco_horizontal(texto[pos - 1]):
+        return None
+    while pos > 0 and _is_espaco_horizontal(texto[pos - 1]):
+        pos -= 1
+
+    base = texto[:pos].strip()
+    return base or None
+
+
+def numero_proposta_exibicao(
+    codigo: str,
+    *,
+    revisao: str | None = None,
+    codigo_base: str | None = None,
+    vazio: str = "-",
+) -> str:
+    """Número da proposta para exibição (sem sufixo ` Rev X`)."""
+    base = (codigo_base or "").strip()
+    if base:
+        return base
+    codigo_limpo = (codigo or "").strip()
+    if not codigo_limpo:
+        return vazio
+    sem_revisao = extrair_base_antes_sufixo_rev(codigo_limpo)
+    if sem_revisao:
+        return sem_revisao
+    raw = (revisao or "").strip()
+    if raw:
+        letra = remover_prefixo_rev(raw)
+        if letra:
+            base_com_revisao = remover_sufixo_rev_com_token(codigo_limpo, letra)
+            if base_com_revisao:
+                return base_com_revisao
+    return codigo_limpo

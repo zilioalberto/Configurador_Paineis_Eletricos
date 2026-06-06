@@ -152,13 +152,25 @@ function totalizarLinhas(linhas: LinhaEditavelOrcamento[]): number {
   return soma
 }
 
+/** Remove zeros e ponto final sem regex (evita ReDoS em strings formatadas). */
+function removerZerosDecimaisFinais(valor: string): string {
+  const ponto = valor.indexOf('.')
+  if (ponto === -1) return valor
+
+  let fim = valor.length
+  while (fim > ponto + 1 && valor.charAt(fim - 1) === '0') {
+    fim -= 1
+  }
+  if (fim > ponto && valor.charAt(fim - 1) === '.') {
+    fim -= 1
+  }
+  return valor.slice(0, fim)
+}
+
 function decimalPayload(valor: string, fallback: string, casasDecimais = 4): string {
   const n = parseDecimalPt(valor.trim() || fallback)
   if (!Number.isFinite(n)) return fallback
-  return n
-    .toFixed(casasDecimais)
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '')
+  return removerZerosDecimaisFinais(n.toFixed(casasDecimais))
 }
 
 function blocosOfertaPayload(blocos: OrcamentoOfertaBlocoDto[], perfil: PerfilOferta) {

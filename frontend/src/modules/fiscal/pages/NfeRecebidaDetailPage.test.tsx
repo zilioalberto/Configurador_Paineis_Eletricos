@@ -106,7 +106,9 @@ describe('NfeImportarManualPage', () => {
   })
 
   function renderImportPage() {
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, mutations: { retry: false } } } })
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
     render(
       <QueryClientProvider client={qc}>
         <MemoryRouter>

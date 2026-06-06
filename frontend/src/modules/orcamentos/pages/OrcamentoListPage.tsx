@@ -10,6 +10,10 @@ import { CriarPropostaModal } from '../components/CriarPropostaModal'
 import { listarOrcamentos } from '../services/orcamentosApi'
 import type { OrcamentoDto } from '../types/orcamentos'
 
+function compararTextoPtBr(a: string, b: string): number {
+  return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+}
+
 /** Listagem de propostas comerciais e criação via modal. */
 export default function OrcamentoListPage() {
   const navigate = useNavigate()
@@ -45,7 +49,8 @@ export default function OrcamentoListPage() {
   }, [recarregar])
 
   const statusOptions = useMemo(
-    () => Array.from(new Set(lista.map((orc) => orc.status).filter(Boolean))).sort(),
+    () =>
+      Array.from(new Set(lista.map((orc) => orc.status).filter(Boolean))).sort(compararTextoPtBr),
     [lista]
   )
 
@@ -65,7 +70,7 @@ export default function OrcamentoListPage() {
     () =>
       Array.from(
         new Set(lista.map((orc) => orc.cliente_nome || orc.cliente_referencia).filter(Boolean))
-      ).sort(),
+      ).sort(compararTextoPtBr),
     [lista]
   )
 

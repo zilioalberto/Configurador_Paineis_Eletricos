@@ -8,6 +8,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from apps.orcamentos.services.formatacao_oferta import extrair_texto_item_lista, numero_proposta_exibicao
+
 
 EMPRESA = {
     "razao": "ZFW ENGENHARIA EM CONTROLE E SISTEMAS LTDA",
@@ -99,14 +101,10 @@ def _rotulo_revisao(revisao: str | None) -> str:
 
 
 def _numero_proposta(preview: dict) -> str:
-    codigo_base = (preview.get("codigo_base") or "").strip()
-    if codigo_base:
-        return codigo_base
-    codigo = (preview.get("codigo") or "").strip()
-    if not codigo:
-        return "-"
-    match = re.match(r"^(.+?)\s+Rev\s+\S+$", codigo, flags=re.I)
-    return match.group(1).strip() if match else codigo
+    return numero_proposta_exibicao(
+        preview.get("codigo") or "",
+        codigo_base=preview.get("codigo_base"),
+    )
 
 
 def _texto_saudacao_padrao(perfil: str | None) -> str:
@@ -157,11 +155,11 @@ def _conteudo_formatado(conteudo: str) -> str:
 
     paragrafo: list[str] = []
     for linha in linhas:
-        item = re.match(r"^\s*[-•]\s+(.*)$", linha)
-        if item:
+        texto_item = extrair_texto_item_lista(linha)
+        if texto_item is not None:
             _flush_paragrafo_html(html, paragrafo)
             paragrafo = []
-            lista.append(item.group(1))
+            lista.append(texto_item)
             continue
         if not linha.strip():
             flush_lista()

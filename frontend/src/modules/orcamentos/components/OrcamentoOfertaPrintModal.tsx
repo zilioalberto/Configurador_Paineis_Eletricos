@@ -53,7 +53,12 @@ export default function OrcamentoOfertaPrintModal({
 
   return createPortal(
     <div className="proposta-cliente-modal" role="dialog" aria-modal="true" aria-labelledby="oferta-modal-titulo">
-      <div className="proposta-cliente-modal__backdrop" onClick={onClose} />
+      <button
+        type="button"
+        className="proposta-cliente-modal__backdrop"
+        aria-label="Fechar pré-visualização"
+        onClick={onClose}
+      />
       <div className="proposta-cliente-modal__content">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
           <h3 id="oferta-modal-titulo" className="mb-0">

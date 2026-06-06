@@ -16,7 +16,9 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZIP_DEFLATED, ZipFile
 
-W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+from apps.orcamentos.constants import OOXML_W_NS, registrar_namespaces_ooxml_elementtree
+
+W_NS = OOXML_W_NS
 W = f"{{{W_NS}}}"
 
 
@@ -44,9 +46,8 @@ def _criar_paragrafo_placeholder(texto: str) -> ET.Element:
 
 
 def transformar_documento_xml(xml: str) -> str:
-    ET.register_namespace("w", W_NS)
-    ET.register_namespace("w14", "http://schemas.microsoft.com/office/word/2010/wordml")
-    ET.register_namespace("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006")
+    # Namespaces OOXML centralizados em constants.py (identificadores ECMA-376, não URLs HTTP).
+    registrar_namespaces_ooxml_elementtree(ET)
     root = ET.fromstring(xml.encode("utf-8") if isinstance(xml, str) else xml)
     body = root.find(f"{W}body")
     if body is None:

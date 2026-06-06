@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useNfesRecebidasListQuery } from './useNfesRecebidasListQuery'
+import type { NfesRecebidasFiltros } from '../types/documentoFiscalRecebido'
 
 const listarNfesRecebidas = vi.hoisted(() =>
   vi.fn(() =>
@@ -33,7 +34,15 @@ describe('useNfesRecebidasListQuery', () => {
 
   it('chama listarNfesRecebidas com filtros e paginação', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const filtros = { chave_acesso: '123', cnpj_emitente: '', cnpj_destinatario: '', numero: '', serie: '', status_importacao: '', origem_importacao: '' }
+    const filtros: NfesRecebidasFiltros = {
+      chave_acesso: '123',
+      cnpj_emitente: '',
+      cnpj_destinatario: '',
+      numero: '',
+      serie: '',
+      status_importacao: '',
+      origem_importacao: '',
+    }
     const { result } = renderHook(() => useNfesRecebidasListQuery(filtros, 2, 25), {
       wrapper: (p) => wrapper(qc, p),
     })

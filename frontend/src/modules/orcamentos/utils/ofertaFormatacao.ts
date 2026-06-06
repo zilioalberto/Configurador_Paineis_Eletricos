@@ -72,6 +72,23 @@ export function formatarDescricaoItemOferta(valor: string): string {
   return capitalizarTextoTecnico(texto)
 }
 
+/** Remove `;` e espaços finais sem regex (evita ReDoS). */
+function removerPontosVirgulaFinais(valor: string): string {
+  let fim = valor.length
+  while (fim > 0) {
+    const caractere = valor.charAt(fim - 1)
+    if (caractere === ' ' || caractere === '\t') {
+      fim -= 1
+      continue
+    }
+    break
+  }
+  while (fim > 0 && valor.charAt(fim - 1) === ';') {
+    fim -= 1
+  }
+  return valor.slice(0, fim)
+}
+
 export function formatarConteudoListaOferta(conteudo: string): string {
   if (!(conteudo ?? '').trim()) return conteudo ?? ''
 
@@ -81,7 +98,7 @@ export function formatarConteudoListaOferta(conteudo: string): string {
       const limpa = linha.trim()
       if (!limpa) return linha
       if (limpa.startsWith('- ')) {
-        const corpo = limpa.slice(2).replace(/;+\s*$/, '').trim()
+        const corpo = removerPontosVirgulaFinais(limpa.slice(2)).trim()
         const formatado = formatarDescricaoItemOferta(corpo)
         return formatado ? `- ${formatado};` : '- ;'
       }

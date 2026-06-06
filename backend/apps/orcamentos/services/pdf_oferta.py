@@ -28,6 +28,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from apps.orcamentos.services.formatacao_oferta import extrair_texto_item_lista, numero_proposta_exibicao
 from apps.orcamentos.services.html_oferta import gerar_pdf_html_bytes, logo_oferta_path
 
 
@@ -109,21 +110,11 @@ def _rotulo_revisao(revisao: str | None) -> str:
 
 
 def _numero_proposta(preview: dict) -> str:
-    codigo_base = (preview.get("codigo_base") or "").strip()
-    if codigo_base:
-        return codigo_base
-    codigo = (preview.get("codigo") or "").strip()
-    if not codigo:
-        return "-"
-    revisao = (preview.get("revisao") or "").strip()
-    match = re.match(r"^(.+?)\s+Rev\s+\S+$", codigo, flags=re.I)
-    if match:
-        return match.group(1).strip()
-    if revisao:
-        letra = re.sub(r"^rev\.?\s*", "", revisao, flags=re.I).strip()
-        if letra:
-            return re.sub(rf"\s+Rev\s+{re.escape(letra)}\s*$", "", codigo, flags=re.I).strip()
-    return codigo
+    return numero_proposta_exibicao(
+        preview.get("codigo") or "",
+        revisao=preview.get("revisao"),
+        codigo_base=preview.get("codigo_base"),
+    )
 
 
 def _texto_saudacao_padrao(perfil: str | None) -> str:
@@ -167,9 +158,9 @@ def _paragraphs_from_text(texto: str, style: ParagraphStyle) -> list[Paragraph]:
             flush_lista()
             flowables.append(Spacer(1, 2 * mm))
             continue
-        item = re.match(r"^\s*[-•]\s+(.*)$", linha)
-        if item:
-            lista_atual.append(item.group(1))
+        texto_item = extrair_texto_item_lista(linha)
+        if texto_item is not None:
+            lista_atual.append(texto_item)
             continue
         flush_lista()
         flowables.append(Paragraph(_safe(linha), style))
