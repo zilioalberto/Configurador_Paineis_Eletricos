@@ -1,3 +1,5 @@
+"""Especificação técnica de chaves seletoras vinculada ao Produto do catálogo."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -107,11 +109,10 @@ class EspecificacaoChaveSeletora(BaseModel):
                 "A chave seletora deve possuir no mínimo 2 posições."
             )
 
-        if self.iluminado:
-            if self.tensao_iluminacao_v is None:
-                raise ValidationError(
-                    "Informe a tensão de iluminação para chave seletora iluminada."
-                )
+        if self.iluminado and self.tensao_iluminacao_v is None:
+            raise ValidationError(
+                "Informe a tensão de iluminação para chave seletora iluminada."
+            )
 
     def __str__(self):
         return (

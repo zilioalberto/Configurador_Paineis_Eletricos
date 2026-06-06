@@ -1,0 +1,20 @@
+groups:
+  - name: configurador_painel
+    rules:
+      - alert: BackendHealthProbeFailed
+        expr: probe_success{job="blackbox_backend_health"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend health check failed"
+          description: "Blackbox probe to {{ $labels.instance }} is failing."
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres exporter is down"
+          description: "Prometheus cannot scrape postgres_exporter."

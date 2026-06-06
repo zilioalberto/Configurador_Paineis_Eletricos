@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 import unicodedata
 import xml.etree.ElementTree as ET
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from core.choices.produtos import UnidadeMedidaChoices
@@ -78,42 +78,56 @@ def _parse_icms_de_bloco(icms_parent: ET.Element | None) -> dict[str, str]:
     return {}
 
 
-def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
-    imposto = None
-    for sub in det:
-        if _local(sub.tag) == "imposto":
-            imposto = sub
-            break
-    if imposto is None:
-        return {}
+def _filho_por_tag_local(parent: ET.Element, tag_local: str) -> ET.Element | None:
+    return next((child for child in parent if _local(child.tag) == tag_local), None)
 
-    icms_flat: dict[str, str] = {}
-    pis_flat: dict[str, str] = {}
-    cofins_flat: dict[str, str] = {}
-    ipi_flat: dict[str, str] = {}
 
-    for ch in imposto:
-        loc = _local(ch.tag)
+def _flatten_primeiro_grupo_por_prefixo(
+    parent: ET.Element,
+    prefixos: tuple[str, ...],
+) -> dict[str, str]:
+    for group in parent:
+        if _local(group.tag).startswith(prefixos):
+            return _flatten_xml_group(group)
+
+    return {}
+
+
+def _parse_blocos_imposto(imposto: ET.Element) -> dict[str, dict[str, str]]:
+    blocos = {
+        "icms": {},
+        "pis": {},
+        "cofins": {},
+        "ipi": {},
+    }
+
+    for child in imposto:
+        loc = _local(child.tag)
         if loc == "ICMS":
-            icms_flat = _parse_icms_de_bloco(ch)
+            blocos["icms"] = _parse_icms_de_bloco(child)
         elif loc == "PIS":
-            for pis_grp in ch:
-                if _local(pis_grp.tag).startswith("PIS"):
-                    pis_flat = _flatten_xml_group(pis_grp)
-                    break
+            blocos["pis"] = _flatten_primeiro_grupo_por_prefixo(child, ("PIS",))
         elif loc == "COFINS":
-            for cof_grp in ch:
-                if _local(cof_grp.tag).startswith("COFINS"):
-                    cofins_flat = _flatten_xml_group(cof_grp)
-                    break
+            blocos["cofins"] = _flatten_primeiro_grupo_por_prefixo(child, ("COFINS",))
         elif loc == "IPI":
-            for ipi_grp in ch:
-                l2 = _local(ipi_grp.tag)
-                if l2.startswith("IPINT") or l2.startswith("IPITrib"):
-                    ipi_flat = _flatten_xml_group(ipi_grp)
-                    break
+            blocos["ipi"] = _flatten_primeiro_grupo_por_prefixo(
+                child,
+                ("IPINT", "IPITrib"),
+            )
 
+    return blocos
+
+
+
+def _montar_snapshot_imposto(
+    *,
+    icms_flat: dict[str, str],
+    ipi_flat: dict[str, str],
+    pis_flat: dict[str, str],
+    cofins_flat: dict[str, str],
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
+
     if icms_flat:
         out["icms_grupo_xml"] = icms_flat.get("icms_grupo_xml", "")
         out["orig"] = icms_flat.get("orig", "")
@@ -145,146 +159,175 @@ def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
     return out
 
 
+def _parse_imposto_de_det(det: ET.Element) -> dict[str, Any]:
+    imposto = _filho_por_tag_local(det, "imposto")
+    if imposto is None:
+        return {}
+
+    blocos = _parse_blocos_imposto(imposto)
+    return _montar_snapshot_imposto(
+        icms_flat=blocos["icms"],
+        ipi_flat=blocos["ipi"],
+        pis_flat=blocos["pis"],
+        cofins_flat=blocos["cofins"],
+    )
+
+
 def _normalizar_token_unidade_comercial(raw: str) -> str:
     """Normaliza texto de uCom/uTrib para comparação com códigos do catálogo."""
     t = unicodedata.normalize("NFKC", (raw or "").strip()).upper()
     t = t.replace("Ç", "C")
     t = re.sub(r"[\s.\-_/]+", "", t)
+
     return t
+
+
+_SINONIMOS_UNIDADE_COMERCIAL = {
+    "UNIDADE": UnidadeMedidaChoices.UN,
+    "UND": UnidadeMedidaChoices.UN,
+    "UNID": UnidadeMedidaChoices.UN,
+    "PECA": UnidadeMedidaChoices.PC,
+    "PECAS": UnidadeMedidaChoices.PC,
+    "PC": UnidadeMedidaChoices.PC,
+    "PCA": UnidadeMedidaChoices.PC,
+    "PÇ": UnidadeMedidaChoices.PC,
+    "PÇS": UnidadeMedidaChoices.PC,
+    "METRO": UnidadeMedidaChoices.MT,
+    "METROS": UnidadeMedidaChoices.MT,
+    "M": UnidadeMedidaChoices.MT,
+    "MT": UnidadeMedidaChoices.MT,
+    "METROQUADRADO": UnidadeMedidaChoices.M2,
+    "METROSQUADRADOS": UnidadeMedidaChoices.M2,
+    "M2": UnidadeMedidaChoices.M2,
+    "MT2": UnidadeMedidaChoices.M2,
+    "METROCUBICO": UnidadeMedidaChoices.M3,
+    "METROSCUBICOS": UnidadeMedidaChoices.M3,
+    "M3": UnidadeMedidaChoices.M3,
+    "MT3": UnidadeMedidaChoices.M3,
+    "KILOGRAMA": UnidadeMedidaChoices.KG,
+    "KILOGRAMAS": UnidadeMedidaChoices.KG,
+    "QUILOGRAMA": UnidadeMedidaChoices.KG,
+    "QUILOGRAMAS": UnidadeMedidaChoices.KG,
+    "KILO": UnidadeMedidaChoices.KG,
+    "KG": UnidadeMedidaChoices.KG,
+    "GRAMA": UnidadeMedidaChoices.G,
+    "GRAMAS": UnidadeMedidaChoices.G,
+    "G": UnidadeMedidaChoices.G,
+    "LITRO": UnidadeMedidaChoices.L,
+    "LITROS": UnidadeMedidaChoices.L,
+    "LT": UnidadeMedidaChoices.L,
+    "L": UnidadeMedidaChoices.L,
+    "CONJUNTO": UnidadeMedidaChoices.CJ,
+    "CONJ": UnidadeMedidaChoices.CJ,
+    "CJ": UnidadeMedidaChoices.CJ,
+    "KILOMETRO": UnidadeMedidaChoices.KM,
+    "KILOMETROS": UnidadeMedidaChoices.KM,
+    "QUILOMETRO": UnidadeMedidaChoices.KM,
+    "QUILOMETROS": UnidadeMedidaChoices.KM,
+    "KM": UnidadeMedidaChoices.KM,
+}
 
 
 def _map_unidade_comercial(ucom: str) -> str:
     """
-    Converte ``uCom`` (ou uTrib) da NF-e para ``UnidadeMedidaChoices`` do catálogo.
+    Converte ``uCom`` ou ``uTrib`` da NF-e para ``UnidadeMedidaChoices`` do catálogo.
 
-    Primeiro aceita códigos já válidos no ERP (ex.: KG, L, M2). Depois aplica sinónimos
-    comuns em XML brasileiro; caso contrário usa UN.
+    Primeiro aceita códigos já válidos no ERP. Depois aplica sinônimos comuns em XML
+    brasileiro; caso contrário usa UN.
     """
     codigos_catalogo = {c for c, _ in UnidadeMedidaChoices.choices}
     token = _normalizar_token_unidade_comercial(ucom)
+
     if not token:
         return UnidadeMedidaChoices.UN
+
     if token in codigos_catalogo:
         return token
 
-    mapping: dict[str, str] = {
-        # Unidade
-        "UNID": UnidadeMedidaChoices.UN,
-        "UNIDS": UnidadeMedidaChoices.UN,
-        "UND": UnidadeMedidaChoices.UN,
-        "UNIT": UnidadeMedidaChoices.UN,
-        "UNIDADE": UnidadeMedidaChoices.UN,
-        "UNIDADES": UnidadeMedidaChoices.UN,
-        # Peça
-        "PEC": UnidadeMedidaChoices.PC,
-        "PECA": UnidadeMedidaChoices.PC,
-        "PECAS": UnidadeMedidaChoices.PC,
-        "PCT": UnidadeMedidaChoices.PC,
-        "PACOTE": UnidadeMedidaChoices.PC,
-        "PACOTES": UnidadeMedidaChoices.PC,
-        # Conjunto
-        "CJ": UnidadeMedidaChoices.CJ,
-        "CONJ": UnidadeMedidaChoices.CJ,
-        "CONJUNTO": UnidadeMedidaChoices.CJ,
-        "CONJUNTOS": UnidadeMedidaChoices.CJ,
-        # Metro linear
-        "M": UnidadeMedidaChoices.MT,
-        "MTR": UnidadeMedidaChoices.MT,
-        "METRO": UnidadeMedidaChoices.MT,
-        "METROS": UnidadeMedidaChoices.MT,
-        "MTS": UnidadeMedidaChoices.MT,
-        # Quadrado / cubo
-        "MT2": UnidadeMedidaChoices.M2,
-        "MT3": UnidadeMedidaChoices.M3,
-        # Massa
-        "KGS": UnidadeMedidaChoices.KG,
-        "KILO": UnidadeMedidaChoices.KG,
-        "KILOS": UnidadeMedidaChoices.KG,
-        "KILOGRAMA": UnidadeMedidaChoices.KG,
-        "KILOGRAMAS": UnidadeMedidaChoices.KG,
-        "GR": UnidadeMedidaChoices.G,
-        "GRS": UnidadeMedidaChoices.G,
-        "GRAMA": UnidadeMedidaChoices.G,
-        "GRAMAS": UnidadeMedidaChoices.G,
-        # Volume
-        "LT": UnidadeMedidaChoices.L,
-        "LTR": UnidadeMedidaChoices.L,
-        "LTS": UnidadeMedidaChoices.L,
-        "LITRO": UnidadeMedidaChoices.L,
-        "LITROS": UnidadeMedidaChoices.L,
-        # Comprimento rodoviário (raro em material elétrico, mas comum na tabela fiscal)
-        "KMS": UnidadeMedidaChoices.KM,
-        "QUILOMETRO": UnidadeMedidaChoices.KM,
-        "QUILOMETROS": UnidadeMedidaChoices.KM,
-    }
-    return mapping.get(token, UnidadeMedidaChoices.UN)
+    return _SINONIMOS_UNIDADE_COMERCIAL.get(token, UnidadeMedidaChoices.UN)
 
 
-def parse_nfe_xml_bytes(content: bytes) -> dict[str, Any]:
-    """
-    Extrai identificação da nota, emitente e itens (prod).
-    Aceita `nfeProc` ou raiz `NFe`.
-    """
+def _validar_conteudo_xml(content: bytes) -> None:
     if not content or len(content) > 6 * 1024 * 1024:
-        raise ValueError("Arquivo XML inválido ou excede o tamanho máximo permitido (6 MB).")
+        raise ValueError(
+            "Arquivo XML inválido ou excede o tamanho máximo permitido (6 MB)."
+        )
+
+
+def _parse_xml_root(content: bytes) -> ET.Element:
+    _validar_conteudo_xml(content)
 
     try:
-        root = ET.fromstring(content)
+        return ET.fromstring(content)
     except ET.ParseError as exc:
         raise ValueError("XML malformado.") from exc
 
-    inf_nfe = None
+
+def _buscar_inf_nfe(root: ET.Element) -> ET.Element:
     for el in root.iter():
         if _local(el.tag) == "infNFe":
-            inf_nfe = el
-            break
-    if inf_nfe is None:
-        raise ValueError("Não foi encontrado infNFe no XML (nota fiscal eletrónica inválida?).")
+            return el
 
-    chave = ""
+    raise ValueError(
+        "Não foi encontrado infNFe no XML (nota fiscal eletrônica inválida?)."
+    )
+
+
+def _extrair_chave_nfe(inf_nfe: ET.Element) -> str:
     id_attr = inf_nfe.attrib.get("Id", "")
+
     if id_attr.upper().startswith("NFE"):
-        chave = id_attr[3:]
-    else:
-        chave = id_attr
+        return id_attr[3:]
 
-    ide = None
-    emit = None
-    for child in inf_nfe:
-        loc = _local(child.tag)
-        if loc == "ide":
-            ide = child
-        elif loc == "emit":
-            emit = child
+    return id_attr
 
-    numero = _text(ide, "nNF")
-    serie = _text(ide, "serie")
-    dh_emi = _text(ide, "dhEmi") or _text(ide, "dEmi")
 
-    cnpj_emit = ""
-    cpf_emit = ""
-    ender_emit = None
-    if emit is not None:
-        for child in emit:
-            loc = _local(child.tag)
-            if loc == "CNPJ":
-                cnpj_emit = _somente_digitos(child.text or "", 14)
-            elif loc == "CPF":
-                cpf_emit = _somente_digitos(child.text or "", 11)
-            elif loc == "enderEmit":
-                ender_emit = child
+def _buscar_grupos_principais(
+    inf_nfe: ET.Element,
+) -> tuple[ET.Element | None, ET.Element | None]:
+    ide = _filho_por_tag_local(inf_nfe, "ide")
+    emit = _filho_por_tag_local(inf_nfe, "emit")
 
+    return ide, emit
+
+
+def _montar_identificacao(
+    inf_nfe: ET.Element,
+    ide: ET.Element | None,
+) -> dict[str, str]:
+    return {
+        "chave": _extrair_chave_nfe(inf_nfe),
+        "numero": _text(ide, "nNF"),
+        "serie": _text(ide, "serie"),
+        "data_emissao": _text(ide, "dhEmi") or _text(ide, "dEmi"),
+    }
+
+
+def _extrair_documentos_emitente(emit: ET.Element | None) -> tuple[str, str]:
+    if emit is None:
+        return "", ""
+
+    cnpj = _somente_digitos(_text(emit, "CNPJ"), 14)
+    cpf = _somente_digitos(_text(emit, "CPF"), 11)
+
+    return cnpj, cpf
+
+
+def _montar_emitente(emit: ET.Element | None) -> dict[str, Any]:
+    cnpj_emit, cpf_emit = _extrair_documentos_emitente(emit)
     cnpj_norm = cnpj_emit if len(cnpj_emit) == 14 else ""
+    cpf_norm = cpf_emit if len(cpf_emit) == 11 else ""
+    ender_emit = _filho_por_tag_local(emit, "enderEmit")
 
-    emitente = {
+    return {
         "cnpj": cnpj_norm,
-        "cpf": cpf_emit if len(cpf_emit) == 11 else "",
+        "cpf": cpf_norm,
         "documento_original": cnpj_emit or cpf_emit,
         "tipo_documento": _tipo_documento_emitente(cnpj_emit, cpf_emit),
         "cadastro_fornecedor_disponivel": len(cnpj_emit) == 14,
-        "razao_social": _text(emit, "xNome") if emit is not None else "",
-        "nome_fantasia": _text(emit, "xFant") if emit is not None else "",
-        "inscricao_estadual": _text(emit, "IE") if emit is not None else "",
+        "razao_social": _text(emit, "xNome"),
+        "nome_fantasia": _text(emit, "xFant"),
+        "inscricao_estadual": _text(emit, "IE"),
         "logradouro": _text(ender_emit, "xLgr"),
         "numero": _text(ender_emit, "nro"),
         "complemento": _text(ender_emit, "xCpl"),
@@ -294,65 +337,77 @@ def parse_nfe_xml_bytes(content: bytes) -> dict[str, Any]:
         "cep": _somente_digitos(_text(ender_emit, "CEP"), 8),
     }
 
-    itens: list[dict[str, Any]] = []
-    for child in inf_nfe:
-        if _local(child.tag) != "det":
-            continue
-        n_item = _attr_nitem(child)
-        prod = None
-        for sub in child:
-            if _local(sub.tag) == "prod":
-                prod = sub
-                break
-        if prod is None:
-            continue
 
-        cprod = _text(prod, "cProd")
-        xprod = _text(prod, "xProd")
-        ncm = _somente_digitos(_text(prod, "NCM"), 8)
-        cest = _somente_digitos(_text(prod, "CEST"), 7)
-        cean = _normalizar_cean(_text(prod, "cEAN"))
-        ucom = _text(prod, "uCom")
-        u_trib_raw = _text(prod, "uTrib")
-        u_trib_catalogo = _map_unidade_comercial(u_trib_raw) if u_trib_raw else ""
-        try:
-            qcom = str(Decimal(_text(prod, "qCom") or "0"))
-        except Exception:
-            qcom = "0"
-        try:
-            vuncom = str(Decimal(_text(prod, "vUnCom") or "0"))
-        except Exception:
-            vuncom = "0"
-        cfop = _text(prod, "CFOP")
-        imposto = _parse_imposto_de_det(child)
+def _parse_decimal_xml(valor: str) -> str:
+    try:
+        return str(Decimal(valor or "0"))
+    except (InvalidOperation, ValueError):
+        return "0"
 
-        itens.append(
-            {
-                "n_item": n_item,
-                "c_prod": cprod[:60] if cprod else "",
-                "x_prod": xprod[:255] if xprod else "",
-                "ncm": ncm,
-                "cest": cest,
-                "c_ean": cean,
-                "u_com": ucom,
-                "unidade_catalogo": _map_unidade_comercial(ucom),
-                "u_trib_catalogo": u_trib_catalogo,
-                "q_com": qcom,
-                "v_un_com": vuncom,
-                "cfop": cfop,
-                "imposto": imposto,
-            }
-        )
 
-    itens.sort(key=lambda x: x["n_item"])
+def _montar_item_nfe(det: ET.Element, prod: ET.Element) -> dict[str, Any]:
+    cprod = _text(prod, "cProd")
+    xprod = _text(prod, "xProd")
+    ucom = _text(prod, "uCom")
+    u_trib_raw = _text(prod, "uTrib")
 
     return {
-        "identificacao": {
-            "chave": chave,
-            "numero": numero,
-            "serie": serie,
-            "data_emissao": dh_emi,
-        },
-        "emitente": emitente,
-        "itens": itens,
+        "n_item": _attr_nitem(det),
+        "c_prod": cprod[:60] if cprod else "",
+        "x_prod": xprod[:255] if xprod else "",
+        "ncm": _somente_digitos(_text(prod, "NCM"), 8),
+        "cest": _somente_digitos(_text(prod, "CEST"), 7),
+        "c_ean": _normalizar_cean(_text(prod, "cEAN")),
+        "u_com": ucom,
+        "unidade_catalogo": _map_unidade_comercial(ucom),
+        "u_trib_catalogo": _map_unidade_comercial(u_trib_raw) if u_trib_raw else "",
+        "q_com": _parse_decimal_xml(_text(prod, "qCom")),
+        "v_un_com": _parse_decimal_xml(_text(prod, "vUnCom")),
+        "cfop": _text(prod, "CFOP"),
+        "imposto": _parse_imposto_de_det(det),
+    }
+
+
+def _parse_item_det(det: ET.Element) -> dict[str, Any] | None:
+    prod = _filho_por_tag_local(det, "prod")
+
+    if prod is None:
+        return None
+
+    return _montar_item_nfe(det, prod)
+
+
+def _iter_dets(inf_nfe: ET.Element):
+    return (
+        child
+        for child in inf_nfe
+        if _local(child.tag) == "det"
+    )
+
+
+def _montar_itens(inf_nfe: ET.Element) -> list[dict[str, Any]]:
+    itens = [
+        item
+        for det in _iter_dets(inf_nfe)
+        if (item := _parse_item_det(det)) is not None
+    ]
+
+    itens.sort(key=lambda item: item["n_item"])
+
+    return itens
+
+
+def parse_nfe_xml_bytes(content: bytes) -> dict[str, Any]:
+    """
+    Extrai identificação da nota, emitente e itens (prod).
+    Aceita `nfeProc` ou raiz `NFe`.
+    """
+    root = _parse_xml_root(content)
+    inf_nfe = _buscar_inf_nfe(root)
+    ide, emit = _buscar_grupos_principais(inf_nfe)
+
+    return {
+        "identificacao": _montar_identificacao(inf_nfe, ide),
+        "emitente": _montar_emitente(emit),
+        "itens": _montar_itens(inf_nfe),
     }

@@ -4,7 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.projetos.services import codigo_projeto as svc
 
 
@@ -52,3 +52,17 @@ def test_integrity_error_detecta_na_cause():
 
 def test_integrity_error_false_quando_nao_duplicidade():
     assert not svc._integrity_error_duplicidade_codigo_projeto(ValueError("outro"))
+
+
+def test_codigo_configurador_de_proposta_primeiro_painel():
+    assert svc.codigo_configurador_de_proposta("Prop-05008-26") == "CONF-05008-26"
+    assert svc.codigo_configurador_de_proposta("PROP-05008-26", ordem_painel=1) == "CONF-05008-26-P02"
+
+
+@pytest.mark.django_db
+def test_sugerir_codigo_configurador_evita_colisao(criar_projeto):
+    criar_projeto(nome="Existente", codigo="CONF-05008-26")
+    assert (
+        svc.sugerir_codigo_configurador_de_proposta("Prop-05008-26", ordem_painel=0)
+        == "CONF-05008-26-P02"
+    )

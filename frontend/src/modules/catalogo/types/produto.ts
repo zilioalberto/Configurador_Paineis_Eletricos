@@ -1,3 +1,7 @@
+/**
+ * Tipos de produto do catálogo (formulário, listagem, detalhe e dados fiscais).
+ */
+
 import type { CategoriaProdutoNome } from './categoria'
 import type { UnidadeMedidaProduto } from '../constants/catalogoChoiceOptions'
 
@@ -80,6 +84,7 @@ export type ProdutoListItem = {
   unidade_medida: string
   unidade_medida_display?: string
   preco_base: string
+  preco_atualizado_em?: string | null
   aliquota_ipi?: string | null
   fabricante_parceiro?: string | null
   fabricante_parceiro_nome?: string | null

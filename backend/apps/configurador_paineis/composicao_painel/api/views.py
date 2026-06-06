@@ -1,3 +1,5 @@
+"""Endpoints REST da composição do painel (snapshot, sugestões, aprovação, exportação)."""
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Max
 from django.http import HttpResponse
@@ -45,7 +47,7 @@ from core.choices import StatusPendenciaChoices
 from core.permissions import PermissionKeys
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.projetos.services.fluxo_projeto import validar_projeto_editavel
 from apps.configurador_paineis.projetos.services.rastreabilidade import registrar_evento_projeto
 
@@ -76,7 +78,8 @@ def _nome_usuario_auditoria(user) -> str:
     return "utilizador"
 
 
-def _snapshot(projeto: Projeto) -> dict:
+def _snapshot(projeto: ProjetoConfigurador) -> dict:
+    """Monta o payload unificado de sugestões, pendências, itens aprovados e inclusões manuais."""
     sugestoes = (
         SugestaoItem.objects.filter(projeto=projeto)
         .select_related(*_composicao_select_related())
@@ -132,7 +135,7 @@ class ComposicaoProjetoSnapshotView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         # Alinha circuitos de carga às cargas atuais (como o GET de dimensionamento) e
         # limpa pendências de borne obsoletas «sem dimensionamento» para o snapshot
         # refletir o estado real sem exigir um segundo clique em «Gerar sugestões».
@@ -152,7 +155,7 @@ class ComposicaoGerarSugestoesView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         try:
             validar_projeto_editavel(projeto)
         except DjangoValidationError as exc:
@@ -192,7 +195,7 @@ class ComposicaoReavaliarPendenciasView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         try:
             validar_projeto_editavel(projeto)
         except DjangoValidationError as exc:
@@ -319,7 +322,7 @@ class ComposicaoInclusaoManualCreateView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_SEPARAR_MATERIAL
 
     def post(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         try:
             validar_projeto_editavel(projeto)
         except DjangoValidationError as exc:
@@ -456,7 +459,7 @@ class ComposicaoExportXlsxView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         header, linhas = montar_linhas_export(projeto, incluir_memoria_calculo=True)
         registrar_evento_projeto(
             projeto=projeto,
@@ -484,7 +487,7 @@ class ComposicaoExportPdfView(APIView):
     required_permission = PermissionKeys.ALMOXARIFADO_VISUALIZAR_TAREFAS
 
     def get(self, request, projeto_id):
-        projeto = get_object_or_404(Projeto, pk=projeto_id)
+        projeto = get_object_or_404(ProjetoConfigurador, pk=projeto_id)
         header, linhas = montar_linhas_export(projeto, incluir_memoria_calculo=False)
         registrar_evento_projeto(
             projeto=projeto,

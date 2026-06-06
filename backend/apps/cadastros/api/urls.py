@@ -1,5 +1,9 @@
+"""Rotas da API de cadastros (parceiros, endereços, contatos)."""
+
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from apps.cadastros.api.cnpj_views import CnpjAtualizarView, CnpjConsultaView, CnpjSalvarView
 from apps.cadastros.api.views import (
     ContatoParceiroViewSet,
     EnderecoParceiroViewSet,
@@ -23,4 +27,16 @@ router.register(
     basename="cadastros-contatos",
 )
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("cadastros/cnpj/<str:cnpj>/", CnpjConsultaView.as_view(), name="cadastros-cnpj-consulta"),
+    path(
+        "cadastros/cnpj/<str:cnpj>/salvar/",
+        CnpjSalvarView.as_view(),
+        name="cadastros-cnpj-salvar",
+    ),
+    path(
+        "cadastros/cnpj/<str:cnpj>/atualizar/",
+        CnpjAtualizarView.as_view(),
+        name="cadastros-cnpj-atualizar",
+    ),
+] + router.urls

@@ -42,7 +42,7 @@ class TestCadastrosApi:
             reverse("cadastros-parceiros-list"),
             {
                 "tipo_pessoa": "PJ",
-                "documento": "12345678000199",
+                "documento": "11222333000181",
                 "razao_social": "Parceiro Teste LTDA",
                 "nome_fantasia": "Parceiro Teste",
                 "eh_cliente": True,
@@ -53,7 +53,7 @@ class TestCadastrosApi:
         )
 
         assert response.status_code == 201
-        parceiro = ParceiroComercial.objects.get(documento="12345678000199")
+        parceiro = ParceiroComercial.objects.get(documento="11222333000181")
         assert parceiro.eh_cliente is True
         assert parceiro.eh_fornecedor is True
 
@@ -64,7 +64,7 @@ class TestCadastrosApi:
             reverse("cadastros-parceiros-list"),
             {
                 "tipo_pessoa": "PJ",
-                "documento": "12345678000199",
+                "documento": "11222333000181",
                 "razao_social": "Sem classificacao",
             },
             format="json",
@@ -94,7 +94,7 @@ class TestCadastrosApi:
     def test_cadastra_contato_e_endereco(self, admin_client):
         client, _ = admin_client
         parceiro = ParceiroComercial.objects.create(
-            documento="33333333000173",
+            documento="34028316000103",
             razao_social="Parceiro com detalhe",
             eh_parceiro=True,
         )
@@ -126,3 +126,39 @@ class TestCadastrosApi:
         assert contato.status_code == 201
         assert EnderecoParceiro.objects.filter(parceiro=parceiro).count() == 1
         assert ContatoParceiro.objects.filter(parceiro=parceiro).count() == 1
+
+    def test_rejeita_cnpj_invalido_no_cadastro_manual(self, admin_client):
+        client, _ = admin_client
+
+        response = client.post(
+            reverse("cadastros-parceiros-list"),
+            {
+                "tipo_pessoa": "PJ",
+                "documento": "12345678000199",
+                "razao_social": "CNPJ invalido",
+                "eh_cliente": True,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "documento" in response.data
+
+    def test_sanitiza_razao_social_no_cadastro_manual(self, admin_client):
+        client, _ = admin_client
+
+        response = client.post(
+            reverse("cadastros-parceiros-list"),
+            {
+                "tipo_pessoa": "PJ",
+                "documento": "19131243000197",
+                "razao_social": '<script>alert(1)</script>Empresa Limpa LTDA',
+                "eh_cliente": True,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201
+        parceiro = ParceiroComercial.objects.get(documento="19131243000197")
+        assert "<script>" not in parceiro.razao_social
+        assert "Empresa Limpa LTDA" in parceiro.razao_social

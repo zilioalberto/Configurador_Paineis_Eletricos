@@ -1,3 +1,5 @@
+"""Especificação técnica de filtros de ar vinculada ao Produto do catálogo."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError

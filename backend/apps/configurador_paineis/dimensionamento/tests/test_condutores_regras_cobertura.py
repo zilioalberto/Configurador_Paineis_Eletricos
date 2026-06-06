@@ -52,6 +52,18 @@ def _projeto_stub(**overrides):
     return SimpleNamespace(**data)
 
 
+def _patch_margem_global(monkeypatch, degraus: int) -> None:
+    """Margem de bitola vem do parâmetro ERP; nos testes unitários fixamos via mock."""
+    for mod in (
+        "apps.configurador_paineis.dimensionamento.services.circuitos.dimensionar",
+        "apps.configurador_paineis.dimensionamento.services.circuitos.alimentacao_geral",
+    ):
+        monkeypatch.setattr(
+            f"{mod}.obter_degraus_margem_bitola_condutores",
+            lambda d=degraus: d,
+        )
+
+
 def _circuito_stub(**overrides):
     data = {
         "corrente_projeto_a": Decimal("5.00"),
@@ -160,12 +172,13 @@ def test_validar_escolhas_alimentacao_geral_rejeita_iz_neutro_e_pe_invalidos():
     assert "PE" in msg
 
 
-def test_dimensionar_motor_monofasico_usa_corrente_ma_e_defaults_defensivos():
+def test_dimensionar_motor_monofasico_usa_corrente_ma_e_defaults_defensivos(monkeypatch):
+    _patch_margem_global(monkeypatch, 0)
     espec = SimpleNamespace(
         corrente_consumida_ma=Decimal("500"),
         numero_fases=NumeroFasesChoices.MONOFASICO,
     )
-    projeto = _projeto_stub(fator_demanda=None, degraus_margem_bitola_condutores="x")
+    projeto = _projeto_stub(fator_demanda=None)
     carga = SimpleNamespace(quantidade="abc")
 
     dados = dimensionar_motor(espec, projeto, carga)
@@ -177,12 +190,13 @@ def test_dimensionar_motor_monofasico_usa_corrente_ma_e_defaults_defensivos():
     assert dados["secao_condutor_neutro_mm2"] == dados["secao_condutor_fase_mm2"]
 
 
-def test_dimensionar_resistencia_monofasica_registra_margem_de_bitola():
+def test_dimensionar_resistencia_monofasica_registra_margem_de_bitola(monkeypatch):
+    _patch_margem_global(monkeypatch, 1)
     espec = SimpleNamespace(
         corrente_calculada_a=Decimal("8.00"),
         numero_fases=NumeroFasesChoices.MONOFASICO,
     )
-    projeto = _projeto_stub(degraus_margem_bitola_condutores=1)
+    projeto = _projeto_stub()
     carga = SimpleNamespace(quantidade=2)
 
     dados = dimensionar_resistencia(espec, projeto, carga)
@@ -221,7 +235,7 @@ def test_dimensionar_comando_sensores_transdutor_e_transmissor():
         projeto,
         carga,
     )
-    transmissor = dimensionar_transmissor(projeto, carga)
+    transmissor = dimensionar_transmissor()
 
     assert valvula_ca["possui_neutro"] is True
     assert valvula_cc["possui_neutro"] is False
@@ -231,36 +245,36 @@ def test_dimensionar_comando_sensores_transdutor_e_transmissor():
     assert transmissor["tipo_carga"] == TipoCargaChoices.TRANSMISSOR
 
 
-def test_dimensionar_alimentacao_geral_cobre_cc_mono_e_fallback_trifasico():
+def test_dimensionar_alimentacao_geral_cobre_cc_mono_e_fallback_trifasico(monkeypatch):
     resumo = SimpleNamespace(corrente_total_painel_a=Decimal("12.00"))
 
+    _patch_margem_global(monkeypatch, 1)
     cc = dimensionar_circuito_alimentacao_geral(
         SimpleNamespace(
             tipo_corrente=TipoCorrenteChoices.CC,
             numero_fases=None,
             possui_neutro=True,
             possui_terra=True,
-            degraus_margem_bitola_condutores=1,
         ),
         resumo,
     )
+    _patch_margem_global(monkeypatch, 0)
     mono = dimensionar_circuito_alimentacao_geral(
         SimpleNamespace(
             tipo_corrente=TipoCorrenteChoices.CA,
             numero_fases=NumeroFasesChoices.MONOFASICO,
             possui_neutro=True,
             possui_terra=True,
-            degraus_margem_bitola_condutores=0,
         ),
         resumo,
     )
+    _patch_margem_global(monkeypatch, 1)
     fallback = dimensionar_circuito_alimentacao_geral(
         SimpleNamespace(
             tipo_corrente=TipoCorrenteChoices.CA,
             numero_fases=99,
             possui_neutro=False,
             possui_terra=False,
-            degraus_margem_bitola_condutores="x",
         ),
         resumo,
     )
@@ -317,7 +331,8 @@ def test_dimensionar_circuito_para_carga_retorna_none_sem_especificacao():
     assert dimensionar_circuito_para_carga(SimpleNamespace(tipo="OUTRO"), projeto) is None
 
 
-def test_dimensionar_circuito_para_carga_despacha_especificacoes_presentes():
+def test_dimensionar_circuito_para_carga_despacha_especificacoes_presentes(monkeypatch):
+    _patch_margem_global(monkeypatch, 0)
     projeto = _projeto_stub()
 
     resistencia = dimensionar_circuito_para_carga(

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 /**
- * Texto único para código e nome do projeto em todo o fluxo (cargas → dimensionamento → composição).
+ * Texto único para código e nome do projeto no fluxo de cargas, dimensionamento e composição.
  * Usa em-dash entre código e nome; evita duplicar quando um só existe.
  */
 export function formatProjetoCodigoNome(

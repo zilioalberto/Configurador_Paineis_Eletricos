@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { composicaoQueryKeys } from '../composicaoQueryKeys'
 import { aprovarSugestao } from '../services/composicaoService'
 
+/** Mutation para aprovar sugestão (com produto alternativo opcional). */
 export function useAprovarSugestaoMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

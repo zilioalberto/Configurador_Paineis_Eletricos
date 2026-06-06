@@ -52,7 +52,7 @@ describe('ConfirmModal', () => {
         onCancel={onCancel}
       />
     )
-    fireEvent.keyDown(window, { key: 'Escape' })
+    globalThis.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(onCancel).toHaveBeenCalled()
   })
 })

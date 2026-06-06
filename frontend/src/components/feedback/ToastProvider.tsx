@@ -11,6 +11,10 @@ import {
 } from './toastContext'
 
 type ToastItem = ShowToastInput & { id: string }
+type ToastItemViewProps = Readonly<{
+  toast: ToastItem
+  onDismiss: () => void
+}>
 
 const VARIANT_BORDER: Record<ToastVariant, string> = {
   success: 'border-success',
@@ -22,10 +26,7 @@ const VARIANT_BORDER: Record<ToastVariant, string> = {
 function ToastItemView({
   toast,
   onDismiss,
-}: {
-  toast: ToastItem
-  onDismiss: () => void
-}) {
+}: ToastItemViewProps) {
   return (
     <div
       className={`toast show border-start border-4 ${VARIANT_BORDER[toast.variant]}`}
@@ -54,7 +55,7 @@ function ToastItemView({
   )
 }
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const dismissToast = useCallback((id: string) => {
@@ -68,11 +69,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { ...input, id }])
 
     if (durationMs > 0) {
-      window.setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, durationMs)
+      globalThis.setTimeout(() => dismissToast(id), durationMs)
     }
-  }, [])
+  }, [dismissToast])
 
   const value = useMemo(
     () => ({ showToast, dismissToast }),

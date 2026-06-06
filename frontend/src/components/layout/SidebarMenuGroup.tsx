@@ -18,12 +18,12 @@ function pathMatchesMenuLink(
   return pathname === item.to || pathname.startsWith(`${item.to}/`)
 }
 
-type SidebarMenuGroupProps = {
+type SidebarMenuGroupProps = Readonly<{
   id: string
   label: string
   children: AppMenuLinkItem[]
   onNavigate?: () => void
-}
+}>
 
 export function SidebarMenuGroup({
   id,

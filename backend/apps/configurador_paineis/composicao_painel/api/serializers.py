@@ -1,3 +1,5 @@
+"""Serializers da API de composição (snapshot, aprovação e inclusão manual)."""
+
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -13,7 +15,7 @@ from apps.configurador_paineis.composicao_painel.models import (
     SugestaoItem,
 )
 from core.choices.cargas import TipoCargaChoices
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 STATUS_MARKER = "[STATUS_APROVACAO]"
 
@@ -233,7 +235,7 @@ class ProjetoAlimentacaoSerializer(serializers.ModelSerializer):
     numero_fases_display = serializers.SerializerMethodField()
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = (
             "tensao_nominal",
             "tensao_nominal_display",
@@ -250,22 +252,30 @@ class ProjetoAlimentacaoSerializer(serializers.ModelSerializer):
 
 
 class ProdutoMiniSerializer(serializers.ModelSerializer):
+    """Resumo do produto do catálogo para listagens de composição."""
+
     class Meta:
         model = Produto
         fields = ("id", "codigo", "descricao", "fabricante")
 
 
 class ProdutoAlternativaSerializer(serializers.ModelSerializer):
+    """Produto alternativo compatível com a sugestão (inclui preço base)."""
+
     class Meta:
         model = Produto
         fields = ("id", "codigo", "descricao", "fabricante", "preco_base")
 
 
 class AprovarSugestaoInputSerializer(serializers.Serializer):
+    """Body opcional de POST aprovar: substituto do catálogo na mesma categoria."""
+
     produto_id = serializers.UUIDField(required=False, allow_null=True)
 
 
 class InclusaoManualCreateSerializer(serializers.Serializer):
+    """Payload para adicionar produto do catálogo fora do fluxo de sugestões."""
+
     produto_id = serializers.UUIDField()
     quantidade = serializers.DecimalField(
         max_digits=10,
@@ -277,6 +287,8 @@ class InclusaoManualCreateSerializer(serializers.Serializer):
 
 
 class ComposicaoInclusaoManualSerializer(serializers.ModelSerializer):
+    """Inclusão manual persistida com categoria derivada do produto."""
+
     produto = ProdutoMiniSerializer(read_only=True)
     categoria_produto = serializers.CharField(
         source="produto.categoria",
@@ -303,6 +315,8 @@ class ComposicaoInclusaoManualSerializer(serializers.ModelSerializer):
 
 
 class SugestaoItemSerializer(serializers.ModelSerializer):
+    """Sugestão automática com carga, produto e alimentação do projeto."""
+
     parte_painel_display = serializers.CharField(
         source="get_parte_painel_display",
         read_only=True,
@@ -357,6 +371,8 @@ class SugestaoItemSerializer(serializers.ModelSerializer):
 
 
 class ComposicaoItemSerializer(serializers.ModelSerializer):
+    """Item aprovado na BoM com status de aprovação extraído das observações."""
+
     parte_painel_display = serializers.CharField(
         source="get_parte_painel_display",
         read_only=True,
@@ -413,6 +429,8 @@ class ComposicaoItemSerializer(serializers.ModelSerializer):
 
 
 class PendenciaItemSerializer(serializers.ModelSerializer):
+    """Pendência aberta quando não há produto compatível no catálogo."""
+
     parte_painel_display = serializers.CharField(
         source="get_parte_painel_display",
         read_only=True,

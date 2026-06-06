@@ -678,6 +678,7 @@ function EmptyRow({ colSpan, label }: Readonly<{ colSpan: number; label: string 
   )
 }
 
+/** Relatório de horas por colaborador, tarefa, proposta e ordem de produção. */
 export default function HorasGestaoPage() {
   const padrao = useMemo(() => periodoPadrao(), [])
   const [dataInicio, setDataInicio] = useState(padrao.inicio)

@@ -1,12 +1,13 @@
-import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
+import { catalogoPaths } from '../catalogoPaths'
+import { useNfeExistentePorItem } from '../hooks/useNfeExistentePorItem'
 import {
   aplicarImportacaoNfe,
-  buscarProdutoResumoImportacaoNfe,
   listarFornecedoresNfe,
   previewNfeXml,
 } from '../services/nfeImportService'
@@ -386,6 +387,82 @@ function NfeItensTableRows({
   )
 }
 
+function NfeResultadoImportacao({
+  resultado,
+}: Readonly<{ resultado: NfeAplicarResponse | null }>) {
+  if (!resultado) return null
+
+  return (
+    <div className="mt-4 border-top pt-3">
+      <h3 className="h6">Resultado da última importação</h3>
+      <ul className="small mb-2">
+        {resultado.fornecedor_id ? (
+          <li>
+            Fornecedor (ID interno): <code>{resultado.fornecedor_id}</code>
+            {resultado.fornecedor_criado ? ' — registo novo.' : ' — já existia.'}
+          </li>
+        ) : (
+          <li>Nenhum fornecedor associado nesta execução.</li>
+        )}
+        {resultado.fornecedores_associados?.length ? (
+          <li>
+            Fornecedores usados nos produtos:{' '}
+            {resultado.fornecedores_associados
+              .map((fornecedor) => fornecedor.razao_social)
+              .join(', ')}
+          </li>
+        ) : null}
+        {resultado.produtos_criados.length ? (
+          <li>
+            Produtos criados ({resultado.produtos_criados.length}):{' '}
+            <code>{resultado.produtos_criados.join(', ')}</code>
+          </li>
+        ) : null}
+        {resultado.produtos_atualizados?.length ? (
+          <li>
+            Produtos atualizados com dados do XML ({resultado.produtos_atualizados.length}):{' '}
+            <code>{resultado.produtos_atualizados.join(', ')}</code>
+          </li>
+        ) : null}
+      </ul>
+      {resultado.avisos.length ? (
+        <div className="alert alert-warning py-2 small mb-2">
+          <strong>Avisos</strong>
+          <ul className="mb-0 mt-1">
+            {resultado.avisos.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {resultado.produtos_ignorados.length ? (
+        <div className="table-responsive">
+          <table className="table table-sm table-bordered mb-0">
+            <caption className="small text-muted">Linhas não importadas</caption>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Código</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resultado.produtos_ignorados.map((row, idx) => (
+                <tr key={`${row.n_item}-${idx}`}>
+                  <td>{row.n_item}</td>
+                  <td>{row.codigo ?? '—'}</td>
+                  <td>{row.motivo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** Wizard de importação de produtos a partir de XML de NF-e. */
 export default function NfeImportPage() {
   const { showToast } = useToast()
   const { data: categorias = [], isPending: catPending } = useCategoriaListQuery()
@@ -401,13 +478,10 @@ export default function NfeImportPage() {
     useState<FornecedorSelecao>(FORNECEDOR_NENHUM)
   const [selecoes, setSelecoes] = useState<Record<number, ItemSelecaoImportacao>>({})
   const [resultadoImportacao, setResultadoImportacao] = useState<NfeAplicarResponse | null>(null)
-  const [existentePorNItem, setExistentePorNItem] = useState<
-    Record<number, NfeProdutoExistenteResumo | null>
-  >({})
   const [detalheAberto, setDetalheAberto] = useState<Record<number, boolean>>({})
-  const debounceResumoRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null)
 
   const snapshot = preview?.snapshot ?? null
+  const existentePorNItem = useNfeExistentePorItem(snapshot, selecoes)
 
   useEffect(() => {
     let ativo = true
@@ -456,7 +530,6 @@ export default function NfeImportPage() {
       setArquivo(f)
       setPreview(null)
       setSelecoes({})
-      setExistentePorNItem({})
       setDetalheAberto({})
       setCategoriaGlobal('')
       setFornecedorGlobal(FORNECEDOR_NENHUM)
@@ -527,53 +600,6 @@ export default function NfeImportPage() {
   const todosItensMarcados = useMemo(() => {
     if (!snapshot?.itens.length) return false
     return snapshot.itens.every((it) => selecoes[it.n_item]?.importar)
-  }, [snapshot, selecoes])
-
-  useEffect(() => {
-    if (!snapshot?.itens?.length) {
-      setExistentePorNItem({})
-      return
-    }
-    const init: Record<number, NfeProdutoExistenteResumo | null> = {}
-    for (const it of snapshot.itens) {
-      init[it.n_item] = it.produto_existente ?? null
-    }
-    setExistentePorNItem(init)
-  }, [snapshot])
-
-  useEffect(() => {
-    if (!snapshot?.itens?.length) return
-    let cancelled = false
-    if (debounceResumoRef.current) globalThis.clearTimeout(debounceResumoRef.current)
-    debounceResumoRef.current = globalThis.setTimeout(() => {
-      void (async () => {
-        for (const it of snapshot.itens) {
-          if (cancelled) return
-          const sel = selecoes[it.n_item]
-          const cod = (sel?.codigo ?? it.c_prod).trim()
-          if (!cod) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: null }))
-            continue
-          }
-          const same = cod.toUpperCase() === it.c_prod.trim().toUpperCase()
-          if (same) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: it.produto_existente ?? null }))
-            continue
-          }
-          const resumo = await buscarProdutoResumoImportacaoNfe(cod)
-          if (!cancelled) {
-            setExistentePorNItem((p) => ({ ...p, [it.n_item]: resumo }))
-          }
-        }
-      })()
-    }, 450)
-    return () => {
-      cancelled = true
-      if (debounceResumoRef.current) {
-        globalThis.clearTimeout(debounceResumoRef.current)
-        debounceResumoRef.current = null
-      }
-    }
   }, [snapshot, selecoes])
 
   const categoriaLabel = useCallback(
@@ -706,7 +732,7 @@ export default function NfeImportPage() {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-2">
               <li className="breadcrumb-item">
-                <Link to="/catalogo">Catálogo</Link>
+                <Link to={catalogoPaths.produtos}>Catálogo</Link>
               </li>
               <li className="breadcrumb-item active" aria-current="page">
                 Importar NF-e
@@ -723,7 +749,7 @@ export default function NfeImportPage() {
             com os valores da nota (a categoria do produto existente é preenchida automaticamente).
           </p>
         </div>
-        <Link to="/catalogo" className="btn btn-outline-secondary">
+        <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary">
           Voltar à lista
         </Link>
       </div>
@@ -948,75 +974,7 @@ export default function NfeImportPage() {
                 {aplicando ? 'A importar…' : 'Aplicar importação'}
               </button>
 
-              {resultadoImportacao ? (
-                <div className="mt-4 border-top pt-3">
-                  <h3 className="h6">Resultado da última importação</h3>
-                  <ul className="small mb-2">
-                    {resultadoImportacao.fornecedor_id ? (
-                      <li>
-                        Fornecedor (ID interno): <code>{resultadoImportacao.fornecedor_id}</code>
-                        {resultadoImportacao.fornecedor_criado ? ' — registo novo.' : ' — já existia.'}
-                      </li>
-                    ) : (
-                      <li>Nenhum fornecedor associado nesta execução.</li>
-                    )}
-                    {resultadoImportacao.fornecedores_associados?.length ? (
-                      <li>
-                        Fornecedores usados nos produtos:{' '}
-                        {resultadoImportacao.fornecedores_associados
-                          .map((fornecedor) => fornecedor.razao_social)
-                          .join(', ')}
-                      </li>
-                    ) : null}
-                    {resultadoImportacao.produtos_criados.length ? (
-                      <li>
-                        Produtos criados ({resultadoImportacao.produtos_criados.length}):{' '}
-                        <code>{resultadoImportacao.produtos_criados.join(', ')}</code>
-                      </li>
-                    ) : null}
-                    {resultadoImportacao.produtos_atualizados?.length ? (
-                      <li>
-                        Produtos atualizados com dados do XML (
-                        {resultadoImportacao.produtos_atualizados.length}):{' '}
-                        <code>{resultadoImportacao.produtos_atualizados.join(', ')}</code>
-                      </li>
-                    ) : null}
-                  </ul>
-                  {resultadoImportacao.avisos.length ? (
-                    <div className="alert alert-warning py-2 small mb-2">
-                      <strong>Avisos</strong>
-                      <ul className="mb-0 mt-1">
-                        {resultadoImportacao.avisos.map((a) => (
-                          <li key={a}>{a}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {resultadoImportacao.produtos_ignorados.length ? (
-                    <div className="table-responsive">
-                      <table className="table table-sm table-bordered mb-0">
-                        <caption className="small text-muted">Linhas não importadas</caption>
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Código</th>
-                            <th>Motivo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {resultadoImportacao.produtos_ignorados.map((row, idx) => (
-                            <tr key={`${row.n_item}-${idx}`}>
-                              <td>{row.n_item}</td>
-                              <td>{row.codigo ?? '—'}</td>
-                              <td>{row.motivo}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              <NfeResultadoImportacao resultado={resultadoImportacao} />
             </div>
           </div>
         </>

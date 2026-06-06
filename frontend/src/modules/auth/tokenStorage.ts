@@ -1,3 +1,4 @@
+/** Persistência de tokens JWT no `localStorage` (chaves prefixadas `zfw_auth_`). */
 const ACCESS_KEY = 'zfw_auth_access'
 const REFRESH_KEY = 'zfw_auth_refresh'
 
@@ -26,6 +27,7 @@ function remove(key: string) {
   }
 }
 
+/** API de leitura/gravação/limpeza dos tokens de sessão. */
 export const tokenStorage = {
   getAccess(): string | null {
     return read(ACCESS_KEY)

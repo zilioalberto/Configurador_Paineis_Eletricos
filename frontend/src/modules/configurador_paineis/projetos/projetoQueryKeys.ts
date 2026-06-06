@@ -1,3 +1,4 @@
+/** Chaves do React Query para cache e invalidação de dados de projetos. */
 export const projetoQueryKeys = {
   all: ['projetos'] as const,
   list: () => [...projetoQueryKeys.all, 'list'] as const,

@@ -1,3 +1,5 @@
+"""Endpoints REST de tarefas (Kanban, timer, apontamentos e relatórios de horas)."""
+
 from datetime import date
 from decimal import Decimal
 
@@ -179,6 +181,8 @@ def _coluna_finalizada_do_quadro(quadro_id):
 
 
 class KanbanTarefasView(APIView):
+    """GET: snapshot do quadro Kanban com colunas, tarefas e totais de horas."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_VISUALIZAR_PROPRIAS
 
@@ -202,6 +206,8 @@ class KanbanTarefasView(APIView):
 
 
 class QuadroPadraoTarefasView(APIView):
+    """POST: garante quadro «Tarefas» com colunas Pendentes / Trabalhando / Entregue."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_CRIAR
 
@@ -222,12 +228,14 @@ class QuadroPadraoTarefasView(APIView):
 
 
 class TarefaResponsavelOptionsView(APIView):
+    """GET: usuários ativos elegíveis como responsável de tarefa."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_VISUALIZAR_PROPRIAS
 
     def get(self, request):
-        User = get_user_model()
-        usuarios = User.objects.filter(is_active=True).order_by("first_name", "last_name", "email")
+        user_model = get_user_model()
+        usuarios = user_model.objects.filter(is_active=True).order_by("first_name", "last_name", "email")
         data = [
             {
                 "id": usuario.id,
@@ -244,6 +252,8 @@ class TarefaResponsavelOptionsView(APIView):
 
 
 class TarefaTimerAtivoView(APIView):
+    """GET: sessão de cronómetro em andamento do usuário (encerra por jornada se necessário)."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_APONTAR_HORAS
 
@@ -312,6 +322,8 @@ class TarefaTimerAtivoView(APIView):
 
 
 class TarefaDashboardHorasDiaView(APIView):
+    """GET: resumo de horas apontadas pelo colaborador em um dia."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_APONTAR_HORAS
 
@@ -441,6 +453,8 @@ class TarefaRelatorioHorasGestaoColaboradoresView(APIView):
 
 
 class TarefaTimerIniciarView(APIView):
+    """POST: inicia cronómetro na tarefa (valida jornada e encerra sessão anterior)."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_INICIAR
 
@@ -545,6 +559,8 @@ class TarefaTimerIniciarView(APIView):
 
 
 class TarefaTimerPararView(APIView):
+    """POST: encerra cronómetro ativo e gera apontamento de horas."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.TAREFA_APONTAR_HORAS
 
@@ -626,6 +642,8 @@ class ColunaTarefaViewSet(ModelViewSet):
 
 
 class TarefaViewSet(ModelViewSet):
+    """CRUD de tarefas com ações mover, classificar, concluir e histórico."""
+
     queryset = (
         Tarefa.objects.select_related(
             "coluna",
@@ -932,6 +950,8 @@ class ChecklistTarefaViewSet(ModelViewSet):
 
 
 class ApontamentoHoraViewSet(ModelViewSet):
+    """Apontamentos de horas com aprovação, rejeição e ajuste por gestores."""
+
     queryset = ApontamentoHora.objects.select_related(
         "tarefa",
         "colaborador",

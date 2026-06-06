@@ -1,3 +1,5 @@
+"""Admin Django do catálogo (produto e todas as especificações técnicas)."""
+
 from django.contrib import admin
 
 from .models import (
@@ -32,6 +34,7 @@ from .models import (
     EspecificacaoTemporizador,
     EspecificacaoTrilhoDIN,
     Produto,
+    Servico,
 )
 
 
@@ -362,10 +365,10 @@ class ProdutoAdmin(admin.ModelAdmin):
     def get_inline_instances(self, request, obj=None):
         if not obj or not obj.categoria:
             return []
-        Inline = INLINE_POR_CATEGORIA.get(obj.categoria)
-        if not Inline:
+        inline = INLINE_POR_CATEGORIA.get(obj.categoria)
+        if not inline:
             return []
-        return [Inline(self.model, self.admin_site)]
+        return [inline(self.model, self.admin_site)]
 
 
 @admin.register(EspecificacaoContatora)
@@ -799,3 +802,17 @@ class EspecificacaoGatewayAdmin(admin.ModelAdmin):
         "modo_montagem",
     )
     search_fields = ("produto__codigo", "produto__descricao")
+
+
+@admin.register(Servico)
+class ServicoAdmin(admin.ModelAdmin):
+    list_display = (
+        "codigo",
+        "descricao",
+        "categoria",
+        "unidade_medida",
+        "preco_base",
+        "ativo",
+    )
+    list_filter = ("ativo", "unidade_medida")
+    search_fields = ("codigo", "descricao", "categoria")

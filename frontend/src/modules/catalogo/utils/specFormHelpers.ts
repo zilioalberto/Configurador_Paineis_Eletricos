@@ -1,3 +1,8 @@
+/**
+ * Metadados e conversão de campos de especificação (form ↔ API).
+ * `specFieldList.json` espelha os modelos Django por categoria.
+ */
+
 import type { CategoriaProdutoNome } from '../types/categoria'
 import specFieldsJson from '../data/specFieldList.json'
 
@@ -73,6 +78,37 @@ function parseDecimalInput(v: unknown): string | null {
   return s
 }
 
+function valorCampoParaPayload(
+  django: string,
+  raw: string | number | boolean
+): unknown | undefined {
+  if (
+    django !== 'BooleanField' &&
+    (raw === '' || raw === undefined || raw === null)
+  ) {
+    return undefined
+  }
+
+  switch (django) {
+    case 'BooleanField':
+      return raw === true || raw === 'true' || raw === 1 || raw === '1'
+    case 'DecimalField':
+      return parseDecimalInput(raw)
+    case 'IntegerField':
+    case 'PositiveIntegerField':
+    case 'PositiveSmallIntegerField': {
+      if (raw === '' || raw === undefined || raw === null) return undefined
+      const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10)
+      return Number.isFinite(n) ? n : null
+    }
+    case 'TextField':
+    case 'CharField':
+      return String(raw ?? '')
+    default:
+      return raw
+  }
+}
+
 /** Monta payload esparso: só envia chaves presentes no formulário (deixa o backend aplicar defaults). */
 export function especFormParaPayload(
   estado: Record<string, string | number | boolean>,
@@ -85,40 +121,9 @@ export function especFormParaPayload(
   for (const { name, django } of fields) {
     if (!(name in estado)) continue
 
-    const raw = estado[name]
-
-    if (
-      django !== 'BooleanField' &&
-      (raw === '' || raw === undefined || raw === null)
-    ) {
-      continue
-    }
-
-    switch (django) {
-      case 'BooleanField':
-        out[name] =
-          raw === true ||
-          raw === 'true' ||
-          raw === 1 ||
-          raw === '1'
-        break
-      case 'DecimalField':
-        out[name] = parseDecimalInput(raw)
-        break
-      case 'IntegerField':
-      case 'PositiveIntegerField':
-      case 'PositiveSmallIntegerField': {
-        if (raw === '' || raw === undefined || raw === null) continue
-        const n = typeof raw === 'number' ? raw : Number.parseInt(String(raw), 10)
-        out[name] = Number.isFinite(n) ? n : null
-        break
-      }
-      case 'TextField':
-      case 'CharField':
-        out[name] = String(raw ?? '')
-        break
-      default:
-        out[name] = raw
+    const valor = valorCampoParaPayload(django, estado[name])
+    if (valor !== undefined) {
+      out[name] = valor
     }
   }
 

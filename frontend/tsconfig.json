@@ -1,4 +1,10 @@
 {
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "skipLibCheck": true
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },

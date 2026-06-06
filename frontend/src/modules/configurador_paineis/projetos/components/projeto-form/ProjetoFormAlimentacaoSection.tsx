@@ -3,6 +3,7 @@ import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
+/** Seção: neutro, terra e tipos de conexão da alimentação. */
 export function ProjetoFormAlimentacaoSection({
   formData,
   onFieldChange,
@@ -17,33 +18,29 @@ export function ProjetoFormAlimentacaoSection({
   return (
     <>
       <div className="col-12">
-        <hr />
-        <h2 className="h5">Alimentação</h2>
+        <div className="row g-3">
+          <ProjetoFormCheckboxField
+            name="possui_neutro"
+            label="Possui neutro"
+            checked={formData.possui_neutro}
+            onChange={onFieldChange}
+            columnClassName="col-sm-6 col-md-4 col-lg-3"
+            disabled={ro}
+          />
+          <ProjetoFormCheckboxField
+            name="possui_terra"
+            label="Possui terra"
+            checked={formData.possui_terra}
+            onChange={onFieldChange}
+            columnClassName="col-sm-6 col-md-4 col-lg-3"
+            disabled={ro}
+          />
+        </div>
       </div>
-
-      <ProjetoFormCheckboxField
-        name="possui_neutro"
-        label="Possui neutro"
-        checked={formData.possui_neutro}
-        onChange={onFieldChange}
-        columnClassName="col-md-2"
-        alignTop
-        disabled={ro}
-      />
-
-      <ProjetoFormCheckboxField
-        name="possui_terra"
-        label="Possui terra"
-        checked={formData.possui_terra}
-        onChange={onFieldChange}
-        columnClassName="col-md-2"
-        alignTop
-        disabled={ro}
-      />
 
       <div className="col-md-4">
         <label className="form-label" htmlFor="projeto-form-conexao-potencia">
-          Conexão alimentação potência
+          Conexão — potência
         </label>
         <select
           id="projeto-form-conexao-potencia"
@@ -66,7 +63,7 @@ export function ProjetoFormAlimentacaoSection({
 
       <div className="col-md-4">
         <label className="form-label" htmlFor="projeto-form-conexao-neutro">
-          Conexão alimentação neutro
+          Conexão — neutro
         </label>
         <select
           id="projeto-form-conexao-neutro"
@@ -90,7 +87,7 @@ export function ProjetoFormAlimentacaoSection({
 
       <div className="col-md-4">
         <label className="form-label" htmlFor="projeto-form-conexao-terra">
-          Conexão alimentação terra
+          Conexão — terra
         </label>
         <select
           id="projeto-form-conexao-terra"

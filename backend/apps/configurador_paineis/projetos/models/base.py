@@ -1,3 +1,5 @@
+"""Modelo principal do projeto de painel elétrico e regras de validação de negócio."""
+
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
@@ -20,7 +22,12 @@ from core.choices import (
 )
 
 
-class Projeto(BaseModel, AtivacaoMixin):
+class ProjetoConfigurador(BaseModel, AtivacaoMixin):
+    """
+    Entidade central do configurador: agrupa dados elétricos, recursos do painel
+    e parâmetros que alimentam dimensionamento e composição.
+    """
+
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -126,7 +133,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoConexaoAlimetacaoChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de conexão do neutro da alimentação.",
     )
 
@@ -134,7 +141,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoConexaoAlimetacaoChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de conexão do terra da alimentação.",
     )
 
@@ -159,7 +166,7 @@ class Projeto(BaseModel, AtivacaoMixin):
     familia_plc = models.CharField(
         max_length=100,
         blank=True,
-        null=True,
+        default="",
         help_text="Família do PLC (catálogo EspecificacaoPLC.familia), quando o projeto possui PLC.",
     )
     
@@ -202,7 +209,7 @@ class Projeto(BaseModel, AtivacaoMixin):
         max_length=20,
         choices=TipoClimatizacaoPainelChoices.choices,
         blank=True,
-        null=True,
+        default="",
         help_text="Tipo de climatização do painel, caso possua.",
     )
     
@@ -233,13 +240,13 @@ class Projeto(BaseModel, AtivacaoMixin):
         choices=TipoSeccionamentoChoices.choices,
         default=TipoSeccionamentoChoices.SECCIONADORA,
         blank=True,
-        null=True,
         help_text="Tipo de seccionamento geral.",
     )
 
     class Meta:
-        verbose_name = "Projeto"
-        verbose_name_plural = "Projetos"
+        db_table = "configurador_projeto"
+        verbose_name = "Projeto configurador"
+        verbose_name_plural = "Projetos configurador"
         ordering = ["codigo", "nome"]
         indexes = [
             models.Index(fields=["codigo"]),
@@ -251,101 +258,115 @@ class Projeto(BaseModel, AtivacaoMixin):
         return f"{self.codigo} - {self.nome}"
 
     def eh_ca(self) -> bool:
+        """Indica alimentação principal em corrente alternada."""
         return self.tipo_corrente == TipoCorrenteChoices.CA
 
     def eh_cc(self) -> bool:
+        """Indica alimentação principal em corrente contínua."""
         return self.tipo_corrente == TipoCorrenteChoices.CC
 
-    def clean(self):
-        errors = {}
-
-        # Alimentação principal
+    def _validar_alimentacao_principal(self, errors: dict) -> None:
+        """CA exige fases e frequência; CC zera esses campos e restringe tensões."""
         if self.eh_ca():
             if not self.numero_fases:
                 errors["numero_fases"] = "Para alimentação CA, informe o número de fases."
-
             if not self.frequencia:
                 errors["frequencia"] = "Para alimentação CA, informe a frequência."
-
-            if self.tensao_nominal in [
+            if self.tensao_nominal in (
                 TensaoChoices.V12,
                 TensaoChoices.V24,
                 TensaoChoices.V48,
-            ]:
-                errors["tensao_nominal"] = "Para alimentação CA, selecione uma tensão compatível com CA."
-
-        if self.eh_cc():
-            self.numero_fases = None
-            self.frequencia = None
-
-            if self.tensao_nominal in [
-                TensaoChoices.V110,
-                TensaoChoices.V127,
-                TensaoChoices.V220,
-                TensaoChoices.V380,
-                TensaoChoices.V440,
-            ]:
-                errors["tensao_nominal"] = "Para alimentação CC, selecione uma tensão compatível com CC."
-
-         # Seccionamento
-        if not self.possui_seccionamento:
-            self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
-        else:
-            if not self.tipo_seccionamento or self.tipo_seccionamento == TipoSeccionamentoChoices.NENHUM:
-                errors["tipo_seccionamento"] = (
-                    "Informe o tipo de seccionamento quando o projeto possuir seccionamento geral."
+            ):
+                errors["tensao_nominal"] = (
+                    "Para alimentação CA, selecione uma tensão compatível com CA."
                 )
 
-        # Conexões da alimentação
+        if not self.eh_cc():
+            return
+
+        self.numero_fases = None
+        self.frequencia = None
+        if self.tensao_nominal in (
+            TensaoChoices.V110,
+            TensaoChoices.V127,
+            TensaoChoices.V220,
+            TensaoChoices.V380,
+            TensaoChoices.V440,
+        ):
+            errors["tensao_nominal"] = (
+                "Para alimentação CC, selecione uma tensão compatível com CC."
+            )
+
+    def _validar_seccionamento(self, errors: dict) -> None:
+        """Sem seccionamento, o tipo é forçado para NENHUM; com seccionamento, exige tipo válido."""
+        if not self.possui_seccionamento:
+            self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
+            return
+        if (
+            not self.tipo_seccionamento
+            or self.tipo_seccionamento == TipoSeccionamentoChoices.NENHUM
+        ):
+            errors["tipo_seccionamento"] = (
+                "Informe o tipo de seccionamento quando o projeto possuir seccionamento geral."
+            )
+
+    def _validar_conexoes_alimentacao(self, errors: dict) -> None:
+        """Conexões de neutro/terra só são obrigatórias quando o painel possui esses condutores."""
         if not self.tipo_conexao_alimentacao_potencia:
             errors["tipo_conexao_alimentacao_potencia"] = (
                 "Informe o tipo de conexão da alimentação de potência."
             )
 
         if not self.possui_neutro:
-            self.tipo_conexao_alimentacao_neutro = None
-        else:
-            if not self.tipo_conexao_alimentacao_neutro:
-                errors["tipo_conexao_alimentacao_neutro"] = (
-                    "Informe o tipo de conexão do neutro, pois o painel possui neutro."
-                )
+            self.tipo_conexao_alimentacao_neutro = ""
+        elif not self.tipo_conexao_alimentacao_neutro:
+            errors["tipo_conexao_alimentacao_neutro"] = (
+                "Informe o tipo de conexão do neutro, pois o painel possui neutro."
+            )
 
         if not self.possui_terra:
-            self.tipo_conexao_alimentacao_terra = None
-        else:
-            if not self.tipo_conexao_alimentacao_terra:
-                errors["tipo_conexao_alimentacao_terra"] = (
-                    "Informe o tipo de conexão do terra, pois o painel possui terra."
-                )
-                
-        # Climatização
-        if not self.possui_climatizacao:    
-            self.tipo_climatizacao = None       
-        else:
-            if not self.tipo_climatizacao:
-                errors["tipo_climatizacao"] = (
-                    "Informe o tipo de climatização, pois o painel possui climatização."
-                )
+            self.tipo_conexao_alimentacao_terra = ""
+        elif not self.tipo_conexao_alimentacao_terra:
+            errors["tipo_conexao_alimentacao_terra"] = (
+                "Informe o tipo de conexão do terra, pois o painel possui terra."
+            )
 
-        # PLC
+    def _validar_climatizacao_e_plc(self, errors: dict) -> None:
+        """Campos dependentes de checkboxes (climatização, família PLC) são limpos ou exigidos."""
+        if not self.possui_climatizacao:
+            self.tipo_climatizacao = ""
+        elif not self.tipo_climatizacao:
+            errors["tipo_climatizacao"] = (
+                "Informe o tipo de climatização, pois o painel possui climatização."
+            )
+
         if not self.possui_plc:
-            self.familia_plc = None
-        else:
-            if not (self.familia_plc and str(self.familia_plc).strip()):
-                errors["familia_plc"] = (
-                    "Informe a família do PLC, pois o painel possui PLC."
-                )
+            self.familia_plc = ""
+        elif not (self.familia_plc and str(self.familia_plc).strip()):
+            errors["familia_plc"] = (
+                "Informe a família do PLC, pois o painel possui PLC."
+            )
+
+    def clean(self):
+        """Validação de negócio antes de persistir (admin, serializers, save)."""
+        errors: dict = {}
+        self._validar_alimentacao_principal(errors)
+        self._validar_seccionamento(errors)
+        self._validar_conexoes_alimentacao(errors)
+        self._validar_climatizacao_e_plc(errors)
 
         if errors:
             raise ValidationError(errors)
 
     def _definir_codigo_inicial_se_obrigatorio(self, is_new: bool) -> None:
+        """Na criação sem código informado, gera MMnnn-AA via serviço de sequencial."""
         if is_new and not (self.codigo and str(self.codigo).strip()):
             from apps.configurador_paineis.projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 
             self.codigo = sugerir_proximo_codigo_projeto()
 
     def _normalizar_campos_texto_maiusculas(self) -> None:
+        """Padroniza código, nome e cliente em maiúsculas."""
         if self.codigo:
             self.codigo = self.codigo.upper().strip()
         if self.nome:
@@ -354,25 +375,30 @@ class Projeto(BaseModel, AtivacaoMixin):
             self.cliente = self.cliente.upper().strip()
 
     def _aplicar_padroes_antes_write(self) -> None:
+        """Limpa campos condicionais desabilitados antes de gravar no banco."""
         if self.eh_cc():
             self.numero_fases = None
             self.frequencia = None
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
         if not self.possui_neutro:
-            self.tipo_conexao_alimentacao_neutro = None
+            self.tipo_conexao_alimentacao_neutro = ""
         if not self.possui_terra:
-            self.tipo_conexao_alimentacao_terra = None
+            self.tipo_conexao_alimentacao_terra = ""
         if not self.possui_climatizacao:
-            self.tipo_climatizacao = None
+            self.tipo_climatizacao = ""
         if not self.possui_plc:
-            self.familia_plc = None
+            self.familia_plc = ""
         elif self.familia_plc:
             self.familia_plc = self.familia_plc.strip()
             if not self.familia_plc:
-                self.familia_plc = None
+                self.familia_plc = ""
 
     def _guardar_com_retry_duplicidade_codigo(self, is_new: bool, *args, **kwargs) -> None:
+        """
+        Em criação concorrente, duas requisições podem colidir no mesmo código;
+        tenta até 15 vezes com novo sequencial antes de falhar.
+        """
         from apps.configurador_paineis.projetos.services.codigo_projeto import (
             _integrity_error_duplicidade_codigo_projeto,
             sugerir_proximo_codigo_projeto,
@@ -395,7 +421,9 @@ class Projeto(BaseModel, AtivacaoMixin):
                     self.codigo = self.codigo.upper().strip()
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
+        """Normaliza, valida e persiste; atribui código automático na criação."""
+        # BaseModel pré-atribui UUID antes do INSERT; `pk is None` falha nesse caso.
+        is_new = self._state.adding
         self._definir_codigo_inicial_se_obrigatorio(is_new)
         self._normalizar_campos_texto_maiusculas()
         self._aplicar_padroes_antes_write()

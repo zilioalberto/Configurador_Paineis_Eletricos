@@ -52,6 +52,58 @@ def test_aprovar_rejeita_substituto_outra_categoria(criar_projeto):
 
 
 @pytest.mark.django_db
+def test_aprovar_sugestao_removida_retorna_validacao(criar_projeto):
+    projeto = criar_projeto(nome="Ap removida", codigo="10103-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="AP-R1",
+        descricao="Removida",
+        categoria=CategoriaProdutoNomeChoices.SECCIONADORA,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        produto=produto,
+        parte_painel=PartesPainelChoices.SECCIONAMENTO,
+        categoria_produto=CategoriaProdutoNomeChoices.SECCIONADORA,
+        quantidade=Decimal("1"),
+        ordem=1,
+    )
+    sugestao_id = sugestao.id
+    SugestaoItem.objects.filter(pk=sugestao_id).delete()
+
+    with pytest.raises(ValidationError, match="não está mais disponível"):
+        aprovar_sugestao_item(sugestao)
+
+    assert not ComposicaoItem.objects.filter(projeto=projeto).exists()
+
+
+@pytest.mark.django_db
+def test_aprovar_sugestao_sem_carga_com_lock(criar_projeto):
+    """Bornes e itens globais têm carga nula; o lock não pode usar FOR UPDATE no outer join."""
+    projeto = criar_projeto(nome="Ap borne", codigo="10104-26", tensao_nominal=TensaoChoices.V380)
+    produto = Produto.objects.create(
+        codigo="AP-B1",
+        descricao="Borne",
+        categoria=CategoriaProdutoNomeChoices.BORNE,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    sugestao = SugestaoItem.objects.create(
+        projeto=projeto,
+        carga=None,
+        produto=produto,
+        parte_painel=PartesPainelChoices.BORNES,
+        categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+        quantidade=Decimal("3"),
+        ordem=1,
+    )
+    item = aprovar_sugestao_item(sugestao, usuario_nome="Tester")
+    assert item.produto_id == produto.id
+    assert item.carga_id is None
+    assert not SugestaoItem.objects.filter(pk=sugestao.pk).exists()
+
+
+@pytest.mark.django_db
 def test_reabrir_composicao_cria_sugestao(criar_projeto):
     projeto = criar_projeto(nome="Rb", codigo="10102-26", tensao_nominal=TensaoChoices.V380)
     produto = Produto.objects.create(

@@ -11,11 +11,9 @@ import type {
 const showToastMock = vi.hoisted(() => vi.fn())
 const useDimensionamentoQueryMock = vi.hoisted(() => vi.fn())
 const patchMutateAsyncMock = vi.hoisted(() => vi.fn())
-const recalcMutateAsyncMock = vi.hoisted(() => vi.fn())
 const state = vi.hoisted(() => ({
   canEdit: true,
   patchPending: false,
-  recalcPending: false,
 }))
 
 vi.mock('@/components/feedback', () => ({
@@ -47,14 +45,8 @@ vi.mock('../hooks/usePatchCondutoresDimensionamentoMutation', () => ({
   }),
 }))
 
-vi.mock('../hooks/useRecalcularDimensionamentoMutation', () => ({
-  useRecalcularDimensionamentoMutation: () => ({
-    mutateAsync: recalcMutateAsyncMock,
-    isPending: state.recalcPending,
-  }),
-}))
-
 import WizardCondutoresPanel from './WizardCondutoresPanel'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const tabelaReferencia = [
   { secao_mm2: '1.5', iz_a: '15' },
@@ -155,7 +147,17 @@ function mockDimensionamentoQuery(data: ResumoDimensionamento | null) {
 }
 
 function renderPanel(props: Partial<ComponentProps<typeof WizardCondutoresPanel>> = {}) {
-  return render(<WizardCondutoresPanel projetoId="proj-1" {...props} />)
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const result = render(
+    <QueryClientProvider client={qc}>
+      <WizardCondutoresPanel projetoId="proj-1" {...props} />
+    </QueryClientProvider>
+  )
+  const originalRerender = result.rerender
+  // override rerender so callers don't need to wrap again
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(result as any).rerender = (ui: any) => originalRerender(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+  return result
 }
 
 describe('WizardCondutoresPanel', () => {
@@ -163,9 +165,7 @@ describe('WizardCondutoresPanel', () => {
     vi.clearAllMocks()
     state.canEdit = true
     state.patchPending = false
-    state.recalcPending = false
     patchMutateAsyncMock.mockResolvedValue({})
-    recalcMutateAsyncMock.mockResolvedValue({})
     mockDimensionamentoQuery(dimensionamento())
   })
 
@@ -305,7 +305,7 @@ describe('WizardCondutoresPanel', () => {
     )
   })
 
-  it('aprova todas, recalcula e restaura todas as linhas', async () => {
+  it('aprova todas e restaura todas as linhas', async () => {
     renderPanel()
 
     fireEvent.click(screen.getByRole('button', { name: 'Aprovar todas' }))
@@ -334,10 +334,6 @@ describe('WizardCondutoresPanel', () => {
         confirmar_revisao: true,
       })
     )
-
-    fireEvent.click(screen.getByRole('button', { name: /Recalcular dimensionamento/i }))
-    expect(recalcMutateAsyncMock).toHaveBeenCalledTimes(1)
-
     fireEvent.click(
       screen.getByRole('button', {
         name: /Usar apenas sugestões do sistema/i,
@@ -388,7 +384,7 @@ describe('WizardCondutoresPanel', () => {
     )
     renderPanel({ embedded: true })
 
-    expect(screen.getByText('Revisão confirmada')).toBeInTheDocument()
+    expect(screen.getByText(/Revisão confirmada/i)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /Condutores \(revisão\)/i })).not.toBeInTheDocument()
 
     const circuitoRow = screen.getByRole('row', { name: /M01/i })
@@ -418,7 +414,6 @@ describe('WizardCondutoresPanel', () => {
     renderPanel()
 
     expect(screen.queryByRole('button', { name: 'Aprovar todas' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Recalcular dimensionamento/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('combobox')[0]).toBeDisabled()
   })

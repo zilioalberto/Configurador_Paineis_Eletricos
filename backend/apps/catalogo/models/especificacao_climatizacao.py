@@ -1,3 +1,5 @@
+"""Especificação técnica de climatização vinculada ao Produto do catálogo."""
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -88,26 +90,26 @@ class EspecificacaoClimatizacao(BaseModel):
         if self.tipo_climatizacao in (
             TipoClimatizacaoChoices.AR_CONDICIONADO,
             TipoClimatizacaoChoices.TROCADOR_CALOR,
-        ):
-            if self.capacidade_refrigeracao_w is None:
-                raise ValidationError(
-                    "Informe a capacidade de refrigeração para ar-condicionado ou trocador de calor."
-                )
+        ) and self.capacidade_refrigeracao_w is None:
+            raise ValidationError(
+                "Informe a capacidade de refrigeração para ar-condicionado ou trocador de calor."
+            )
 
-        if self.tipo_climatizacao == TipoClimatizacaoChoices.RESISTENCIA_AQUECIMENTO:
-            if self.capacidade_aquecimento_w is None:
-                raise ValidationError(
-                    "Informe a capacidade de aquecimento para resistência de aquecimento."
-                )
+        if (
+            self.tipo_climatizacao == TipoClimatizacaoChoices.RESISTENCIA_AQUECIMENTO
+            and self.capacidade_aquecimento_w is None
+        ):
+            raise ValidationError(
+                "Informe a capacidade de aquecimento para resistência de aquecimento."
+            )
 
         if self.tipo_climatizacao in (
             TipoClimatizacaoChoices.VENTILACAO,
             TipoClimatizacaoChoices.EXAUSTOR,
-        ):
-            if self.vazao_m3_h is None:
-                raise ValidationError(
-                    "Informe a vazão de ar para ventilação ou exaustor."
-                )
+        ) and self.vazao_m3_h is None:
+            raise ValidationError(
+                "Informe a vazão de ar para ventilação ou exaustor."
+            )
 
     def __str__(self):
         return f"{self.produto} - {self.tipo_climatizacao}"

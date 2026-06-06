@@ -1,3 +1,4 @@
+"""Permissões DRF reutilizáveis: admin da app e checagem por permissão efetiva."""
 from rest_framework import permissions
 
 from core.choices import TipoUsuarioChoices
@@ -42,4 +43,6 @@ class HasEffectivePermission(permissions.BasePermission):
             return True
 
         effective = set(getattr(user, "permissoes_efetivas", []) or [])
+        if isinstance(required, (list, tuple, set)):
+            return any(perm in effective for perm in required)
         return required in effective

@@ -1,10 +1,15 @@
-import { Link } from 'react-router-dom'
+/** Tabela de cargas do projeto com potência, corrente e ações CRUD. */
+
+import { Link, useSearchParams } from 'react-router-dom'
+import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
+import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { CargaListItem } from '../types/carga'
 
 type CargaTableProps = {
   cargas: CargaListItem[]
   projetoId: string
   onDeleteRequest: (id: string) => void
+  onEditRequest: (id: string) => void
   canManage: boolean
 }
 
@@ -41,15 +46,16 @@ export default function CargaTable({
   cargas,
   projetoId,
   onDeleteRequest,
+  onEditRequest,
   canManage,
 }: CargaTableProps) {
+  const [searchParams] = useSearchParams()
+  const cargasPath = projetoId
+    ? withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)
+    : configuradorPaths.cargas()
+
   if (cargas.length === 0) {
-    return (
-      <p className="text-muted mb-0">
-        Nenhuma carga cadastrada para este projeto.{' '}
-        {canManage ? <Link to={`/cargas/novo?projeto=${projetoId}`}>Cadastrar carga</Link> : null}
-      </p>
-    )
+    return null
   }
 
   return (
@@ -74,11 +80,9 @@ export default function CargaTable({
             <tr key={c.id}>
               <td>
                 <Link
-                  to={`/cargas/${c.id}`}
+                  to={configuradorPaths.cargaDetalhe(c.id)}
                   state={{
-                    from: projetoId
-                      ? `/cargas?projeto=${encodeURIComponent(projetoId)}`
-                      : '/cargas',
+                    from: cargasPath,
                   }}
                 >
                   {c.tag}
@@ -106,12 +110,13 @@ export default function CargaTable({
               {canManage ? (
                 <td className="text-end">
                   <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
-                    <Link
-                      to={`/cargas/${c.id}/editar`}
+                    <button
+                      type="button"
                       className="btn btn-sm btn-outline-primary"
+                      onClick={() => onEditRequest(c.id)}
                     >
                       Editar
-                    </Link>
+                    </button>
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-danger"

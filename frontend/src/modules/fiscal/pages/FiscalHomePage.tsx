@@ -1,10 +1,14 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
+import FiscalNsuStatusCard from '../components/FiscalNsuStatusCard'
+import { fiscalPaths } from '../fiscalPaths'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useFiscalProdutoBuscaQuery } from '../hooks/useFiscalProdutoBuscaQuery'
 
+/** Página inicial: busca de produtos e atalhos para NF-e e catálogo. */
 export default function FiscalHomePage() {
   const { user } = useAuth()
   const [buscaInput, setBuscaInput] = useState('')
@@ -39,11 +43,14 @@ export default function FiscalHomePage() {
         <div className="col-lg-8">
           <h1 className="h3 mb-2">Fiscal</h1>
           <p className="text-muted mb-0">
-            Importe NF-e no catálogo e consulte ou ajuste a tributação de referência dos produtos.
-            Use a busca abaixo para ir direto ao produto (código, parte da descrição ou fabricante).
+            Armazene NF-es recebidas (SEFAZ / XML manual), consulte o histórico no servidor e
+            gerencie a tributação de referência dos produtos. Use a busca abaixo para ir direto ao
+            produto (código, parte da descrição ou fabricante).
           </p>
         </div>
       </div>
+
+      <FiscalNsuStatusCard />
 
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-4">
@@ -109,13 +116,13 @@ export default function FiscalHomePage() {
                   </div>
                   <div className="d-flex flex-wrap gap-2 flex-shrink-0">
                     <Link
-                      to={`/catalogo/${p.id}`}
+                      to={catalogoPaths.produtoDetalhe(p.id)}
                       className="btn btn-sm btn-outline-primary"
                     >
                       Ver dados fiscais
                     </Link>
                     {podeEditar ? (
-                      <Link to={`/catalogo/${p.id}/editar`} className="btn btn-sm btn-primary">
+                      <Link to={catalogoPaths.produtoEditar(p.id)} className="btn btn-sm btn-primary">
                         Editar produto
                       </Link>
                     ) : null}
@@ -139,12 +146,56 @@ export default function FiscalHomePage() {
         <div className="col-md-6 col-lg-4">
           <div className="card h-100 shadow-sm">
             <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Importar NF-e</h3>
+              <h3 className="h5 card-title">NF-es recebidas</h3>
               <p className="card-text text-muted small flex-grow-1">
-                Envio de XML no catálogo: cria ou atualiza produtos e grava os itens fiscais da nota.
+                Lista de notas importadas da SEFAZ (ponte A3) ou manualmente, com XML e itens no
+                servidor.
               </p>
-              <Link to="/catalogo/importar-nfe" className="btn btn-primary">
-                Ir para importação
+              <Link to={fiscalPaths.nfes} className="btn btn-primary">
+                Ver documentos
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Importar XML (fiscal)</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Grava a NF-e no armazenamento fiscal sem alterar o catálogo de produtos.
+              </p>
+              {podeEditar ? (
+                <Link to={fiscalPaths.nfeImportarManual} className="btn btn-outline-primary">
+                  Enviar XML
+                </Link>
+              ) : (
+                <span className="small text-muted">Requer permissão de edição de materiais.</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Importar NF-e (catálogo)</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Cria ou atualiza produtos a partir do XML, com pré-visualização e seleção de itens.
+              </p>
+              <Link to={catalogoPaths.produtoImportarNfe} className="btn btn-outline-primary">
+                Ir para catálogo
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Controle NSU</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Estado de sincronização com a SEFAZ (consulta pela ponte A3 no futuro).
+              </p>
+              <Link to={fiscalPaths.nsu} className="btn btn-outline-secondary">
+                Consultar NSU
               </Link>
             </div>
           </div>
@@ -156,7 +207,7 @@ export default function FiscalHomePage() {
               <p className="card-text text-muted small flex-grow-1">
                 Lista paginada de todos os registos fiscais; filtro opcional por produto.
               </p>
-              <Link to="/fiscal/itens-fiscais" className="btn btn-outline-primary">
+              <Link to={fiscalPaths.itensFiscais} className="btn btn-outline-primary">
                 Abrir lista
               </Link>
             </div>
@@ -169,7 +220,7 @@ export default function FiscalHomePage() {
               <p className="card-text text-muted small flex-grow-1">
                 Listagem completa de produtos por categoria.
               </p>
-              <Link to="/catalogo" className="btn btn-outline-secondary">
+              <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary">
                 Abrir catálogo
               </Link>
             </div>

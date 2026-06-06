@@ -16,13 +16,19 @@ const PLACEHOLDER_LABELS: Record<string, string> = {
 const PROJETO_BASE = { label: 'Projetos', to: '/projetos' } as const
 const CARGA_BASE = { label: 'Cargas do Projeto', to: '/cargas' } as const
 
+const PROJETO_EDITAR_RE = /^\/projetos\/[^/]+\/editar$/
+const PROJETO_DETALHE_RE = /^\/projetos\/[^/]+$/
+const CARGA_EDITAR_RE = /^\/cargas\/[^/]+\/editar$/
+const CARGA_DETALHE_RE = /^\/cargas\/[^/]+$/
+const ERP_SHELL_RE = /^\/erp\/m\/([^/]+)/
+
 function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
   if (path === '/projetos') return [PROJETO_BASE]
   if (path === '/projetos/novo') return [PROJETO_BASE, { label: 'Novo projeto' }]
-  if (/^\/projetos\/[^/]+\/editar$/.test(path)) {
+  if (PROJETO_EDITAR_RE.exec(path)) {
     return [PROJETO_BASE, { label: 'Editar projeto' }]
   }
-  if (/^\/projetos\/[^/]+$/.test(path)) {
+  if (PROJETO_DETALHE_RE.exec(path)) {
     return [PROJETO_BASE, { label: 'Projeto' }]
   }
   return null
@@ -31,18 +37,16 @@ function projetosBreadcrumb(path: string): BreadcrumbItem[] | null {
 function cargasBreadcrumb(path: string): BreadcrumbItem[] | null {
   if (path === '/cargas') return [CARGA_BASE]
   if (path === '/cargas/novo') return [CARGA_BASE, { label: 'Nova carga' }]
-  if (/^\/cargas\/[^/]+\/editar$/.test(path)) {
+  if (CARGA_EDITAR_RE.exec(path)) {
     return [CARGA_BASE, { label: 'Editar carga' }]
   }
-  if (/^\/cargas\/[^/]+$/.test(path)) {
+  if (CARGA_DETALHE_RE.exec(path)) {
     return [CARGA_BASE, { label: 'Detalhes da carga' }]
   }
   return null
 }
 
-export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
-  const path = pathname || '/'
-
+export function getBreadcrumbItems(path = '/'): BreadcrumbItem[] {
   if (path === '/') return [{ label: 'Portal ZFW', to: '/' }]
 
   if (path === '/tarefas/horas-gestao') {
@@ -55,7 +59,7 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     return [{ label: 'Utilizadores', to: '/administracao/utilizadores' }]
   }
 
-  if (path === '/erp/orcamentos') {
+  if (path === '/erp/orcamentos' || path === '/orcamentos') {
     return [{ label: 'Orçamentos' }]
   }
   if (path === '/erp/cadastros') {
@@ -64,9 +68,9 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
   if (path === '/erp/rh') {
     return [{ label: 'RH' }]
   }
-  if (/^\/erp\/orcamentos\/[^/]+$/.test(path)) {
+  if (/^\/(?:erp\/)?orcamentos\/[^/]+$/.exec(path)) {
     return [
-      { label: 'Orçamentos', to: '/erp/orcamentos' },
+      { label: 'Orçamentos', to: '/orcamentos' },
       { label: 'Detalhe do orçamento' },
     ]
   }
@@ -82,7 +86,7 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
       { label: 'Itens fiscais' },
     ]
   }
-  const erpShell = path.match(/^\/erp\/m\/([^/]+)/)
+  const erpShell = ERP_SHELL_RE.exec(path)
   if (erpShell) {
     const mod = findErpModuleByShellSlug(erpShell[1])
     return [{ label: mod?.title ?? 'Módulo ERP' }]

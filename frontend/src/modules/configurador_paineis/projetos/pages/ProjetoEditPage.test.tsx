@@ -3,6 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import {
+  AppPageToolbarProvider,
+  useAppPageToolbarState,
+} from '@/components/layout/AppPageToolbarContext'
 
 const navigate = vi.hoisted(() => vi.fn())
 const showToastFn = vi.hoisted(() => vi.fn())
@@ -57,7 +61,11 @@ import ProjetoEditPage from '@/modules/configurador_paineis/projetos/pages/Proje
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={qc}>
+      <AppPageToolbarProvider>{children}</AppPageToolbarProvider>
+    </QueryClientProvider>
+  )
 }
 
 const projetoMinimo = {
@@ -96,9 +104,26 @@ const projetoMinimo = {
   responsavel: null,
 }
 
+function PageToolbarInspector() {
+  const toolbar = useAppPageToolbarState()
+  if (!toolbar) return null
+  return (
+    <div data-testid="page-toolbar-inspector">
+      {toolbar.back ? <span data-testid="toolbar-back">{toolbar.back.label}</span> : null}
+      {toolbar.subtitle ? <span data-testid="toolbar-subtitle">{toolbar.subtitle}</span> : null}
+      {toolbar.badges?.map((b) => (
+        <span key={b.key} data-testid={`toolbar-badge-${b.key}`}>
+          {b.text}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/projetos/p99/editar']}>
+      <PageToolbarInspector />
       <Routes>
         <Route path="/projetos/:id/editar" element={<ProjetoEditPage />} />
       </Routes>
@@ -152,10 +177,20 @@ describe('ProjetoEditPage', () => {
     mockProjetoDetailQuery({ isError: true, error: new Error('falhou'), refetch })
     renderPage()
     expect(
-      await screen.findByText(/Não foi possível carregar os dados deste projeto/i)
+      await screen.findByText(/Não foi possível carregar os dados desta configuração/i)
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Tentar novamente/i }))
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('não exibe botão voltar para cargas nem códigos na toolbar', async () => {
+    mockProjetoDetailQuery({ data: projetoMinimo })
+    renderPage()
+    await screen.findByTestId('page-toolbar-inspector')
+    expect(screen.queryByTestId('toolbar-back')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-subtitle')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-badge-codigo')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('toolbar-badge-status')).not.toBeInTheDocument()
   })
 
   it('carrega formulário e submete atualização', async () => {
@@ -164,12 +199,14 @@ describe('ProjetoEditPage', () => {
     mockProjetoDetailQuery({ data: projetoMinimo })
     renderPage()
 
-    await screen.findByRole('heading', { name: /Editar Projeto/i })
+    await screen.findByDisplayValue('Nome')
 
     fireEvent.change(document.querySelector('input[name="nome"]')!, {
       target: { value: 'Novo nome' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Salvar projeto/i }))
+    const form = document.getElementById('projeto-config-form')
+    expect(form).toBeTruthy()
+    fireEvent.submit(form!)
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
     await waitFor(() => expect(navigate).toHaveBeenCalled())

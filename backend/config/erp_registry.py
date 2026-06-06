@@ -17,6 +17,9 @@ class ErpModuleMeta(TypedDict):
     notes: str
 
 
+AREA_POS_VENDA = "Pós-venda"
+
+
 ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     "configurador-paineis": {
         "id": "configurador-paineis",
@@ -140,7 +143,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     },
     "expedicao": {
         "id": "expedicao",
-        "area": "Pós-venda",
+        "area": AREA_POS_VENDA,
         "title": "Expedição",
         "summary": "Remessas, volumes, transportadoras e comprovantes de entrega.",
         "backend_package": "apps.expedicao",
@@ -148,7 +151,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
     },
     "pos-venda": {
         "id": "pos-venda",
-        "area": "Pós-venda",
+        "area": AREA_POS_VENDA,
         "title": "Pós-venda",
         "summary": "Chamados, garantia, assistência técnica e histórico de atendimento.",
         "backend_package": "apps.pos_venda",
@@ -206,6 +209,7 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
 
 
 def normalize_module_slug(raw: str) -> str:
+    """Normaliza slug da URL (`_` → `-`, alias `configurador` → `configurador-paineis`)."""
     s = (raw or "").strip().lower().replace("_", "-")
     if s == "configurador":
         s = "configurador-paineis"
@@ -218,5 +222,6 @@ def normalize_module_slug(raw: str) -> str:
 
 
 def get_module_meta(slug: str) -> ErpModuleMeta | None:
+    """Retorna metadados do módulo ou `None` se o slug não existir no registo."""
     key = normalize_module_slug(slug)
     return ERP_MODULES_REGISTRY.get(key)

@@ -1,3 +1,5 @@
+"""Modelos do módulo tarefas (Kanban, apontamentos, checklist e histórico)."""
+
 from .choices import (
     MotivoEncerramentoSessaoChoices,
     OrigemApontamentoHoraChoices,

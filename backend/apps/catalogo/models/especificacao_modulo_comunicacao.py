@@ -1,3 +1,5 @@
+"""Especificação técnica de módulos de comunicação vinculada ao Produto do catálogo."""
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -8,7 +10,10 @@ from core.choices.produtos import (
     ProtocoloIndustrialChoices,
     TipoModuloComunicacaoChoices,
 )
-from apps.catalogo.utils.plc_familia import normalizar_chave_familia_plc
+from apps.catalogo.utils.plc_familia import (
+    buscar_registro_familia_plc_duplicada,
+    normalizar_chave_familia_plc,
+)
 from .base import Produto
 
 
@@ -23,7 +28,10 @@ class EspecificacaoModuloComunicacao(BaseModel):
         max_length=100,
         blank=True,
         null=True,
-        help_text="Família ou linha do PLC compatível (texto livre; evite duplicar grafias parecidas).",
+        help_text=(
+            "Família ou linha do PLC compatível "
+            "(texto livre; evite duplicar grafias parecidas)."
+        ),
     )
 
     tipo_modulo = models.CharField(
@@ -65,33 +73,40 @@ class EspecificacaoModuloComunicacao(BaseModel):
 
     def clean(self):
         super().clean()
+        self._normalizar_familia_plc()
+        self._validar_familia_plc_duplicada()
 
-        if self.familia_plc is not None:
-            self.familia_plc = self.familia_plc.strip()
-            if self.familia_plc:
-                self.familia_plc = " ".join(self.familia_plc.split())
-            else:
-                self.familia_plc = None
+    def _normalizar_familia_plc(self):
+        if self.familia_plc is None:
+            return
 
-        if self.familia_plc:
-            chave = normalizar_chave_familia_plc(self.familia_plc)
-            if chave:
-                qs = EspecificacaoModuloComunicacao.objects.exclude(
-                    familia_plc__isnull=True
-                ).exclude(familia_plc="")
-                if self.pk:
-                    qs = qs.exclude(pk=self.pk)
+        familia_plc = self.familia_plc.strip()
+        self.familia_plc = " ".join(familia_plc.split()) if familia_plc else None
 
-                for other in qs.iterator():
-                    if normalizar_chave_familia_plc(other.familia_plc) == chave:
-                        raise ValidationError(
-                            {
-                                "familia_plc": (
-                                    f'Já existe a família «{other.familia_plc}». '
-                                    "Use o mesmo texto para evitar duplicatas."
-                                )
-                            }
-                        )
+    def _validar_familia_plc_duplicada(self):
+        if not self.familia_plc:
+            return
+
+        chave = normalizar_chave_familia_plc(self.familia_plc)
+
+        if not chave:
+            return
+
+        familia_duplicada = buscar_registro_familia_plc_duplicada(
+            EspecificacaoModuloComunicacao.objects.all(),
+            chave,
+            pk_excluir=self.pk,
+        )
+
+        if familia_duplicada:
+            raise ValidationError(
+                {
+                    "familia_plc": (
+                        f'Já existe a família «{familia_duplicada.familia_plc}». '
+                        "Use o mesmo texto para evitar duplicatas."
+                    )
+                }
+            )
 
     def __str__(self):
         return f"Módulo comunicação - {self.produto}"

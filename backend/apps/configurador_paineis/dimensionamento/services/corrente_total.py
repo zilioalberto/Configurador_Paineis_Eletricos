@@ -1,3 +1,5 @@
+"""Cálculo da corrente total do painel a partir das cargas ativas."""
+
 from decimal import Decimal
 
 from apps.configurador_paineis.cargas.models import (
@@ -41,13 +43,31 @@ def _numero_fases_especificacao(espec) -> int | None:
         return None
 
 
-def calcular_corrente_total_painel(projeto) -> Decimal:
-    """
-    Soma a corrente calculada (por unidade) das cargas ativas, multiplicada
-    pela quantidade de cada carga, aplicando o fator de demanda do projeto.
-    """
-    fases_projeto = int(getattr(projeto, "numero_fases", 1) or 1)
-    fase_correntes = [Decimal("0.00") for _ in range(max(1, fases_projeto))]
+def _quantidade_carga(espec) -> int:
+    quantidade_raw = getattr(espec.carga, "quantidade", 1) or 1
+    try:
+        return max(1, int(quantidade_raw))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _distribuir_corrente_carga(
+    fase_correntes: list[Decimal],
+    corrente: Decimal,
+    quantidade: int,
+    fases_carga: int,
+) -> None:
+    fases_projeto = len(fase_correntes)
+    for _ in range(quantidade):
+        fases_ordenadas = sorted(
+            range(fases_projeto), key=lambda idx: fase_correntes[idx]
+        )
+        for fase_idx in fases_ordenadas[:fases_carga]:
+            fase_correntes[fase_idx] += corrente
+
+
+def _acumular_correntes_por_fase(projeto, fase_correntes: list[Decimal]) -> None:
+    fases_projeto = len(fase_correntes)
 
     for model in MODELOS_COM_CORRENTE:
         especs = model.objects.filter(
@@ -60,25 +80,28 @@ def calcular_corrente_total_painel(projeto) -> Decimal:
             if corrente is None:
                 continue
 
-            quantidade_raw = getattr(espec.carga, "quantidade", 1) or 1
-            try:
-                quantidade = max(1, int(quantidade_raw))
-            except (TypeError, ValueError):
-                quantidade = 1
             fases_carga = _numero_fases_especificacao(espec)
             fases_carga = min(
                 fases_projeto,
                 max(1, int(fases_carga) if fases_carga is not None else 1),
             )
+            _distribuir_corrente_carga(
+                fase_correntes,
+                corrente,
+                _quantidade_carga(espec),
+                fases_carga,
+            )
 
-            # Distribui cada unidade da carga nas fases menos carregadas.
-            # Assim o resumo considera a fase potencialmente mais sobrecarregada.
-            for _ in range(quantidade):
-                fases_ordenadas = sorted(
-                    range(fases_projeto), key=lambda idx: fase_correntes[idx]
-                )
-                for fase_idx in fases_ordenadas[:fases_carga]:
-                    fase_correntes[fase_idx] += corrente
+
+def calcular_corrente_total_painel(projeto) -> Decimal:
+    """
+    Soma a corrente calculada (por unidade) das cargas ativas, multiplicada
+    pela quantidade de cada carga, aplicando o fator de demanda do projeto.
+    """
+    fases_projeto = int(getattr(projeto, "numero_fases", 1) or 1)
+    fase_correntes = [Decimal("0.00") for _ in range(max(1, fases_projeto))]
+
+    _acumular_correntes_por_fase(projeto, fase_correntes)
 
     corrente_total = max(fase_correntes) if fase_correntes else Decimal("0.00")
 

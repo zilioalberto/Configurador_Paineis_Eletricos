@@ -25,6 +25,7 @@ from config.health_views import healthcheck
 API_V1_PREFIX = "api/v1/"
 
 urlpatterns = [
+    path("", include("django_prometheus.urls")),
 
     path("admin/", admin.site.urls),
 
@@ -59,6 +60,15 @@ urlpatterns = [
     path(API_V1_PREFIX, include("apps.configurador_paineis.composicao_painel.api.urls")),
 
     path(API_V1_PREFIX, include("apps.tarefas.api.urls")),
+
+    path(f"{API_V1_PREFIX}orcamentos/", include("apps.orcamentos.api.urls")),
+
+    path(
+        f"{API_V1_PREFIX}oferta-publica/",
+        include("apps.orcamentos.api.public_urls"),
+    ),
+
+    path(f"{API_V1_PREFIX}notificacoes/", include("apps.notificacoes.api.urls")),
 
     path(f"{API_V1_PREFIX}erp/", include("config.erp_api_urls")),
 

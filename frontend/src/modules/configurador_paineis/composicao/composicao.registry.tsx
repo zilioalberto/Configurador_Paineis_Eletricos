@@ -5,16 +5,19 @@ import RequirePermission from '@/modules/auth/RequirePermission'
 
 const ComposicaoPage = lazy(() => import('./pages/ComposicaoPage'))
 
-export const composicaoMenuItems: AppMenuLinkItem[] = [
-  {
-    to: '/composicao',
-    label: 'Composição do Painel',
-    order: 50,
-    requiresPermission: PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS,
-  },
-]
+/** Registo de rotas e menu do módulo composição no app. */
+/** Sem itens no menu lateral — acesso via fluxo do wizard. */
+export const composicaoMenuItems: AppMenuLinkItem[] = []
 
 export const composicaoRoutes: ModuleRouteConfig[] = [
+  {
+    path: '/configurador/composicao',
+    element: (
+      <RequirePermission permission={PERMISSION_KEYS.ALMOXARIFADO_VISUALIZAR_TAREFAS}>
+        <ComposicaoPage />
+      </RequirePermission>
+    ),
+  },
   {
     path: '/composicao',
     element: (

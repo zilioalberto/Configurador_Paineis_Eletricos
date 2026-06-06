@@ -41,27 +41,72 @@ def _ef_mm2(escolhida, sugerida):
     return None
 
 
+def _checar_secao_comercial(erros: list[str], secao, nome: str) -> None:
+    if secao is None:
+        return
+    if not secao_comercial_valida(Decimal(secao)):
+        erros.append(f"{nome}: seção {secao} mm² não é valor comercial da tabela.")
+
+
+def _validar_iz_potencia(
+    erros: list[str],
+    nome: str,
+    ef,
+    ib: Decimal,
+    classif: str,
+) -> None:
+    if ef is None:
+        return
+    iz = capacidade_nominal_iz_a(ef)
+    if iz is None:
+        erros.append(f"{nome}: seção inválida.")
+    elif classif == ClassificacaoCircuitoChoices.POTENCIA and ib > 0 and iz < ib:
+        erros.append(
+            f"{nome}: Iz ({iz} A) da seção escolhida é inferior à corrente de referência ({ib} A)."
+        )
+
+
+def _validar_minimo_projeto(
+    erros: list[str],
+    nome: str,
+    ef,
+    tipo_carga: str | None,
+) -> None:
+    if ef is None or not tipo_carga:
+        return
+    min_projeto = _minimo_bitola_painel_fase_mm2(tipo_carga)
+    if ef < min_projeto:
+        erros.append(
+            f"{nome}: seção mínima de projeto no painel para este tipo de carga é "
+            f"{min_projeto} mm²."
+        )
+
+
+def _validar_condutor_carga(
+    erros: list[str],
+    obj,
+    nome: str,
+    campo_escolhido: str,
+    campo_sugerido: str,
+    ib: Decimal,
+    classif: str,
+) -> Decimal | None:
+    ef = _ef_mm2(
+        getattr(obj, campo_escolhido),
+        getattr(obj, campo_sugerido),
+    )
+    _validar_minimo_projeto(erros, nome, ef, getattr(obj, "tipo_carga", None))
+    _validar_iz_potencia(erros, nome, ef, ib, classif)
+    return ef
+
+
 def validar_escolhas_circuito_carga(obj) -> None:
     """Levanta ValidationError se as escolhas não cumprirem critérios."""
-    erros = []
+    erros: list[str] = []
 
-    def checar_secao(campo: str, secao, nome: str):
-        if secao is None:
-            return
-        if not secao_comercial_valida(Decimal(secao)):
-            erros.append(f"{nome}: seção {secao} mm² não é valor comercial da tabela.")
-
-    checar_secao(
-        "fase",
-        obj.secao_condutor_fase_escolhida_mm2,
-        "Fase",
-    )
-    checar_secao(
-        "neutro",
-        obj.secao_condutor_neutro_escolhida_mm2,
-        "Neutro",
-    )
-    checar_secao("pe", obj.secao_condutor_pe_escolhida_mm2, "PE")
+    _checar_secao_comercial(erros, obj.secao_condutor_fase_escolhida_mm2, "Fase")
+    _checar_secao_comercial(erros, obj.secao_condutor_neutro_escolhida_mm2, "Neutro")
+    _checar_secao_comercial(erros, obj.secao_condutor_pe_escolhida_mm2, "PE")
 
     if erros:
         raise ValidationError(erros)
@@ -69,47 +114,32 @@ def validar_escolhas_circuito_carga(obj) -> None:
     ib = _ib_fase_circuito_carga(obj)
     classif = obj.classificacao_circuito
 
-    ef_fase = _ef_mm2(obj.secao_condutor_fase_escolhida_mm2, obj.secao_condutor_fase_mm2)
-    if ef_fase is not None and getattr(obj, "tipo_carga", None):
-        min_projeto = _minimo_bitola_painel_fase_mm2(obj.tipo_carga)
-        if ef_fase < min_projeto:
-            erros.append(
-                f"Fase: seção mínima de projeto no painel para este tipo de carga é "
-                f"{min_projeto} mm²."
-            )
-
-    if ef_fase is not None:
-        iz = capacidade_nominal_iz_a(ef_fase)
-        if iz is None:
-            erros.append("Fase: seção inválida.")
-        elif classif == ClassificacaoCircuitoChoices.POTENCIA and ib > 0 and iz < ib:
-            erros.append(
-                f"Fase: Iz ({iz} A) da seção escolhida é inferior à corrente de referência ({ib} A)."
-            )
+    ef_fase = _validar_condutor_carga(
+        erros,
+        obj,
+        "Fase",
+        "secao_condutor_fase_escolhida_mm2",
+        "secao_condutor_fase_mm2",
+        ib,
+        classif,
+    )
 
     if obj.possui_neutro:
-        ef_n = _ef_mm2(
-            obj.secao_condutor_neutro_escolhida_mm2,
-            obj.secao_condutor_neutro_mm2,
+        _validar_condutor_carga(
+            erros,
+            obj,
+            "Neutro",
+            "secao_condutor_neutro_escolhida_mm2",
+            "secao_condutor_neutro_mm2",
+            ib,
+            classif,
         )
-        if ef_n is not None and getattr(obj, "tipo_carga", None):
-            min_projeto = _minimo_bitola_painel_fase_mm2(obj.tipo_carga)
-            if ef_n < min_projeto:
-                erros.append(
-                    f"Neutro: seção mínima de projeto no painel para este tipo de carga é "
-                    f"{min_projeto} mm²."
-                )
-        if ef_n is not None:
-            izn = capacidade_nominal_iz_a(ef_n)
-            if izn is None:
-                erros.append("Neutro: seção inválida.")
-            elif classif == ClassificacaoCircuitoChoices.POTENCIA and ib > 0 and izn < ib:
-                erros.append(
-                    f"Neutro: Iz ({izn} A) inferior à corrente de referência ({ib} A)."
-                )
 
     if obj.possui_pe:
-        ef_pe = _ef_mm2(obj.secao_condutor_pe_escolhida_mm2, obj.secao_condutor_pe_mm2)
+        ef_pe = _ef_mm2(
+            obj.secao_condutor_pe_escolhida_mm2,
+            obj.secao_condutor_pe_mm2,
+        )
         if ef_pe is not None and ef_fase is not None:
             pe_min = secao_pe_mm2_a_partir_da_fase(ef_fase)
             if ef_pe < pe_min:
@@ -121,20 +151,36 @@ def validar_escolhas_circuito_carga(obj) -> None:
         raise ValidationError(erros)
 
 
-def validar_escolhas_alimentacao_geral(obj) -> None:
-    erros = []
-    ib = Decimal(obj.corrente_total_painel_a or "0")
+def _validar_iz_alimentacao(erros: list[str], nome: str, ef, ib: Decimal) -> None:
+    if ef is None or ib <= 0:
+        return
+    iz = capacidade_nominal_iz_a(ef)
+    if iz is None:
+        erros.append(f"{nome}: seção inválida.")
+    elif iz < ib:
+        erros.append(
+            f"{nome}: Iz ({iz} A) inferior à corrente total do painel ({ib} A)."
+        )
+
+
+def _validar_minimo_alimentacao(erros: list[str], nome: str, ef) -> None:
+    if ef is None:
+        return
     min_ag = MINIMO_SECAO_CONDUTOR_ALIMENTACAO_GERAL_MM2
+    if ef < min_ag:
+        erros.append(
+            f"{nome} (alimentação geral): a bitola mínima é {min_ag} mm². "
+            f"Não é permitido guardar {ef} mm². Escolha {min_ag} mm² ou superior."
+        )
 
-    def checar(campo, secao, nome):
-        if secao is None:
-            return
-        if not secao_comercial_valida(Decimal(secao)):
-            erros.append(f"{nome}: seção não comercial.")
 
-    checar("f", obj.secao_condutor_fase_escolhida_mm2, "Fase alimentação geral")
-    checar("n", obj.secao_condutor_neutro_escolhida_mm2, "Neutro")
-    checar("p", obj.secao_condutor_pe_escolhida_mm2, "PE")
+def validar_escolhas_alimentacao_geral(obj) -> None:
+    erros: list[str] = []
+    ib = Decimal(obj.corrente_total_painel_a or "0")
+
+    _checar_secao_comercial(erros, obj.secao_condutor_fase_escolhida_mm2, "Fase alimentação geral")
+    _checar_secao_comercial(erros, obj.secao_condutor_neutro_escolhida_mm2, "Neutro")
+    _checar_secao_comercial(erros, obj.secao_condutor_pe_escolhida_mm2, "PE")
 
     if erros:
         raise ValidationError(erros)
@@ -143,50 +189,23 @@ def validar_escolhas_alimentacao_geral(obj) -> None:
         obj.secao_condutor_fase_escolhida_mm2,
         obj.secao_condutor_fase_mm2,
     )
-    if ef_fase is not None and ef_fase < min_ag:
-        erros.append(
-            f"Fase (alimentação geral): a bitola mínima é {min_ag} mm². "
-            f"Não é permitido guardar {ef_fase} mm². Escolha {min_ag} mm² ou superior."
-        )
-
-    if ef_fase is not None and ib > 0:
-        iz = capacidade_nominal_iz_a(ef_fase)
-        if iz is None:
-            erros.append("Fase: seção inválida.")
-        elif iz < ib:
-            erros.append(
-                f"Fase: Iz ({iz} A) inferior à corrente total do painel ({ib} A)."
-            )
+    _validar_minimo_alimentacao(erros, "Fase", ef_fase)
+    _validar_iz_alimentacao(erros, "Fase", ef_fase, ib)
 
     if obj.possui_neutro:
         ef_n = _ef_mm2(
             obj.secao_condutor_neutro_escolhida_mm2,
             obj.secao_condutor_neutro_mm2,
         )
-        if ef_n is not None and ef_n < min_ag:
-            erros.append(
-                f"Neutro (alimentação geral): a bitola mínima é {min_ag} mm². "
-                f"Não é permitido guardar {ef_n} mm². Escolha {min_ag} mm² ou superior."
-            )
-        if ef_n is not None and ib > 0:
-            izn = capacidade_nominal_iz_a(ef_n)
-            if izn is None:
-                erros.append("Neutro: seção inválida.")
-            elif izn < ib:
-                erros.append(
-                    f"Neutro: Iz ({izn} A) inferior à corrente total ({ib} A)."
-                )
+        _validar_minimo_alimentacao(erros, "Neutro", ef_n)
+        _validar_iz_alimentacao(erros, "Neutro", ef_n, ib)
 
     if obj.possui_terra:
         ef_pe = _ef_mm2(
             obj.secao_condutor_pe_escolhida_mm2,
             obj.secao_condutor_pe_mm2,
         )
-        if ef_pe is not None and ef_pe < min_ag:
-            erros.append(
-                f"PE (alimentação geral): a bitola mínima é {min_ag} mm². "
-                f"Não é permitido guardar {ef_pe} mm². Escolha {min_ag} mm² ou superior."
-            )
+        _validar_minimo_alimentacao(erros, "PE", ef_pe)
         if ef_pe is not None and ef_fase is not None:
             pe_min = secao_pe_mm2_a_partir_da_fase(ef_fase)
             if ef_pe < pe_min:

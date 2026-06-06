@@ -13,9 +13,11 @@ import os
 
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR.parent / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -73,6 +75,7 @@ CORS_ALLOWED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'django_prometheus',
     # auth + accounts antes de admin (AUTH_USER_MODEL): evita ordem confusa em projetos novos
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -117,6 +120,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -125,6 +129,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -154,7 +159,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_prometheus.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
@@ -190,6 +195,26 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "cnpj_consulta": os.getenv("CNPJ_CONSULTA_THROTTLE_RATE", "30/min"),
+    },
+}
+
+# Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
+# Token Bearer para agente fiscal local (ponte A3). Não commitar valor real.
+FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
+# CNPJ da ZFW (14 dígitos) — pré-preenche NSU no portal e deve coincidir com FISCAL_PONTE_CNPJ na máquina local.
+FISCAL_EMPRESA_CNPJ = os.getenv("FISCAL_EMPRESA_CNPJ", "")
+
+CNPJ_CONSULTA = {
+    "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),
+    "MAX_SOCIOS": int(os.getenv("CNPJ_CONSULTA_MAX_SOCIOS", "50")),
+    "MAX_CNAES": int(os.getenv("CNPJ_CONSULTA_MAX_CNAES", "50")),
+    "MAX_RESPONSE_BYTES": int(os.getenv("CNPJ_CONSULTA_MAX_RESPONSE_BYTES", "524288")),
+    "BRASILAPI_URL": os.getenv(
+        "CNPJ_BRASILAPI_URL",
+        "https://brasilapi.com.br/api/cnpj/v1/{cnpj}",
+    ),
 }
 
 
@@ -219,7 +244,35 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# E-mail (envio de proposta ao cliente)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "vendas@zfw.com.br")
+ZFW_EMAIL_LOGO_PATH = os.getenv(
+    "ZFW_EMAIL_LOGO_PATH",
+    str(BASE_DIR / "apps" / "orcamentos" / "assets" / "branding" / "zfw-logo-engenharia.png"),
+)
+ZFW_WHATSAPP_E164 = os.getenv("ZFW_WHATSAPP_E164", "5547984027016")
+ZFW_WHATSAPP_DISPLAY = os.getenv("ZFW_WHATSAPP_DISPLAY", "+55 47 98402-7016")
+
+# URL do portal para links públicos da oferta (ex.: https://portal.zfw.com.br)
+OFERTA_PUBLICA_FRONTEND_URL = os.getenv(
+    "OFERTA_PUBLICA_FRONTEND_URL",
+    "http://localhost:5173",
+)

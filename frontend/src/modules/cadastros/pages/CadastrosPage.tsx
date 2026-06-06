@@ -1,6 +1,6 @@
 import {
+  type ComponentProps,
   type Dispatch,
-  type FormEventHandler,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -14,6 +14,10 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import CnaesTable, { montarListaCnaes } from '../components/CnaesTable'
+import CnpjConsultaSection, {
+  type CnpjAplicarFormularioInput,
+} from '../components/CnpjConsultaSection'
 import {
   atualizarContatoParceiro,
   atualizarEnderecoParceiro,
@@ -37,8 +41,11 @@ import type {
   ParceiroComercialDto,
   ParceiroComercialPayload,
   ParceiroTipoFiltro,
+  CnaeParceiroDto,
+  SocioParceiroDto,
   TipoPessoaParceiro,
 } from '../types/cadastros'
+import { formatarCapitalSocialParceiro } from '../utils/formatarCapitalSocialParceiro'
 
 type ParceiroFormState = {
   tipo_pessoa: TipoPessoaParceiro
@@ -81,6 +88,8 @@ type DeleteTarget = {
   id: string
   label: string
 }
+
+type FormSubmitHandler = NonNullable<ComponentProps<'form'>['onSubmit']>
 
 const parceiroFormVazio: ParceiroFormState = {
   tipo_pessoa: 'PJ',
@@ -128,6 +137,7 @@ const origemLabels: Record<OrigemCadastroParceiro, string> = {
   MANUAL: 'Manual',
   NFE: 'NF-e',
   IMPORTACAO: 'Importação',
+  BRASILAPI: 'Receita (CNPJ)',
 }
 
 function parceiroParaForm(p: ParceiroComercialDto): ParceiroFormState {
@@ -224,6 +234,7 @@ function rolesParceiro(p: ParceiroComercialDto | ParceiroFormState): string[] {
   ]
 }
 
+/** Página de gestão de parceiros comerciais (dados, contatos e endereços). */
 export default function CadastrosPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -331,7 +342,53 @@ export default function CadastrosPage() {
     setEnderecoForm(enderecoFormVazio)
   }
 
-  const handleFiltroSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+  const aplicarCnpjNoFormulario = useCallback((dados: CnpjAplicarFormularioInput) => {
+    setSelecionado(null)
+    setModoNovo(true)
+    setForm({
+      ...parceiroFormVazio,
+      tipo_pessoa: 'PJ',
+      documento: dados.documento,
+      razao_social: dados.razao_social,
+      nome_fantasia: dados.nome_fantasia,
+      inscricao_estadual: dados.inscricao_estadual,
+      email: dados.email,
+      telefone: dados.telefone,
+    })
+    if (dados.endereco) {
+      setEnderecoForm({
+        nome: dados.endereco.nome,
+        logradouro: dados.endereco.logradouro,
+        numero: dados.endereco.numero,
+        complemento: dados.endereco.complemento,
+        bairro: dados.endereco.bairro,
+        municipio: dados.endereco.municipio,
+        uf: dados.endereco.uf,
+        cep: dados.endereco.cep,
+        principal: dados.endereco.principal,
+      })
+    } else {
+      setEnderecoForm(enderecoFormVazio)
+    }
+    setContatoEditId(null)
+    setContatoForm(contatoFormVazio)
+  }, [])
+
+  const onParceiroSalvoPorCnpj = useCallback(
+    (parceiro: ParceiroComercialDto) => {
+      setSelecionado(parceiro)
+      setForm(parceiroParaForm(parceiro))
+      setModoNovo(false)
+      setContatoEditId(null)
+      setContatoForm(contatoFormVazio)
+      setEnderecoEditId(null)
+      setEnderecoForm(enderecoFormVazio)
+      void recarregarSelecionado(parceiro.id)
+    },
+    [recarregarSelecionado]
+  )
+
+  const handleFiltroSubmit: FormSubmitHandler = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
   }
@@ -349,7 +406,7 @@ export default function CadastrosPage() {
     [form]
   )
 
-  const salvarParceiro: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarParceiro: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarParceiroAsync()
   }
@@ -379,7 +436,7 @@ export default function CadastrosPage() {
     }
   }
 
-  const salvarContato: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarContato: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarContatoAsync()
   }
@@ -409,7 +466,7 @@ export default function CadastrosPage() {
     }
   }
 
-  const salvarEndereco: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarEndereco: FormSubmitHandler = (event) => {
     event.preventDefault()
     void salvarEnderecoAsync()
   }
@@ -542,6 +599,18 @@ export default function CadastrosPage() {
         </div>
       </div>
 
+      <CnpjConsultaSection
+        canEdit={canEdit}
+        cnpjInicial={
+          selecionado?.tipo_pessoa === 'PJ' && selecionado.documento.replace(/\D/g, '').length === 14
+            ? selecionado.documento
+            : null
+        }
+        parceiroSelecionadoId={selecionado?.id ?? null}
+        onAplicarFormulario={aplicarCnpjNoFormulario}
+        onSalvo={onParceiroSalvoPorCnpj}
+      />
+
       <div className="row g-4 align-items-start">
         <div className="col-xl-5">
           <div className="card shadow-sm">
@@ -628,7 +697,7 @@ function CadastrosListaPanel({
   selecionadoId: string | null
   tipoFiltro: ParceiroTipoFiltro
   limparBusca: () => void
-  onFiltroSubmit: FormEventHandler<HTMLFormElement>
+  onFiltroSubmit: FormSubmitHandler
   onSelecionar: (id: string) => void | Promise<void>
   setAtivoFiltro: Dispatch<SetStateAction<ParceiroAtivoFiltro>>
   setBusca: Dispatch<SetStateAction<string>>
@@ -821,9 +890,9 @@ type CadastroDetalhePanelProps = {
   editarContato: (contato: ContatoParceiroDto) => void
   editarEndereco: (endereco: EnderecoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmitContato: FormEventHandler<HTMLFormElement>
-  onSubmitEndereco: FormEventHandler<HTMLFormElement>
-  onSubmitParceiro: FormEventHandler<HTMLFormElement>
+  onSubmitContato: FormSubmitHandler
+  onSubmitEndereco: FormSubmitHandler
+  onSubmitParceiro: FormSubmitHandler
   setContatoEditId: Dispatch<SetStateAction<string | null>>
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
   setEnderecoEditId: Dispatch<SetStateAction<string | null>>
@@ -883,8 +952,14 @@ function CadastroDetalheConteudo({
         setForm={setForm}
       />
 
+      {selecionado && !modoNovo ? (
+        <ReceitaParceiroResumo parceiro={selecionado} />
+      ) : null}
+
       {mostrarRelacionados && selecionado ? (
         <>
+          <CnaesSection cnaes={selecionado.cnaes ?? []} parceiro={selecionado} />
+          <SociosSection socios={selecionado.socios ?? []} />
           <ContatosSection
             canEdit={canEdit}
             contatoEditId={contatoEditId}
@@ -971,7 +1046,7 @@ function ParceiroForm({
   parceiroFormValido: boolean
   salvandoParceiro: boolean
   cancelarEdicaoParceiro: () => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setForm: Dispatch<SetStateAction<ParceiroFormState>>
 }>) {
   const salvarLabel = salvandoParceiro ? 'Salvando…' : 'Salvar cadastro'
@@ -1160,6 +1235,89 @@ function ParceiroRoles({
   )
 }
 
+function ReceitaParceiroResumo({ parceiro }: Readonly<{ parceiro: ParceiroComercialDto }>) {
+  const temDados =
+    parceiro.situacao_cadastral ||
+    parceiro.capital_social ||
+    parceiro.natureza_juridica
+
+  if (!temDados) return null
+
+  return (
+    <section className="border rounded p-3 mb-4 bg-light">
+      <h3 className="h6 mb-2">Dados da Receita Federal</h3>
+      <div className="row g-2 small">
+        <div className="col-md-3">
+          <span className="text-muted">Situação:</span> {parceiro.situacao_cadastral || '—'}
+        </div>
+        <div className="col-md-3">
+          <span className="text-muted">Capital social:</span>{' '}
+          {formatarCapitalSocialParceiro(parceiro.capital_social)}
+        </div>
+        <div className="col-md-3">
+          <span className="text-muted">Início atividade:</span>{' '}
+          {parceiro.data_inicio_atividade
+            ? new Date(`${parceiro.data_inicio_atividade}T12:00:00`).toLocaleDateString('pt-BR')
+            : '—'}
+        </div>
+        <div className="col-md-3">
+          <span className="text-muted">Natureza jurídica:</span> {parceiro.natureza_juridica || '—'}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CnaesSection({
+  cnaes,
+  parceiro,
+}: Readonly<{ cnaes: CnaeParceiroDto[]; parceiro: ParceiroComercialDto }>) {
+  const lista = montarListaCnaes({ cnaes, ...parceiro })
+  if (lista.length === 0) return null
+
+  return (
+    <section className="border-top pt-4 mt-4">
+      <CnaesTable cnaes={lista} titulo="CNAEs cadastrados" vazio="" />
+    </section>
+  )
+}
+
+function SociosSection({ socios }: Readonly<{ socios: SocioParceiroDto[] }>) {
+  if (socios.length === 0) return null
+
+  return (
+    <section className="border-top pt-4 mt-4">
+      <h3 className="h6 mb-3">Quadro societário</h3>
+      <div className="table-responsive">
+        <table className="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Qualificação</th>
+              <th>Entrada</th>
+              <th>Faixa etária</th>
+            </tr>
+          </thead>
+          <tbody>
+            {socios.map((s) => (
+              <tr key={s.id}>
+                <td>{s.nome}</td>
+                <td>{s.qualificacao || '—'}</td>
+                <td>
+                  {s.data_entrada
+                    ? new Date(`${s.data_entrada}T12:00:00`).toLocaleDateString('pt-BR')
+                    : '—'}
+                </td>
+                <td>{s.faixa_etaria || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
 function ContatosSection({
   canEdit,
   contatoEditId,
@@ -1179,7 +1337,7 @@ function ContatosSection({
   salvandoContato: boolean
   editarContato: (contato: ContatoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setContatoEditId: Dispatch<SetStateAction<string | null>>
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
 }>) {
@@ -1229,7 +1387,7 @@ function ContatoForm({
   contatoEditId: string | null
   contatoForm: ContatoFormState
   salvandoContato: boolean
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setContatoForm: Dispatch<SetStateAction<ContatoFormState>>
 }>) {
   const submitLabel = contatoSubmitLabel(salvandoContato, contatoEditId)
@@ -1423,7 +1581,7 @@ function EnderecosSection({
   salvandoEndereco: boolean
   editarEndereco: (endereco: EnderecoParceiroDto) => void
   onDelete: (target: DeleteTarget) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setEnderecoEditId: Dispatch<SetStateAction<string | null>>
   setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
 }>) {
@@ -1473,7 +1631,7 @@ function EnderecoForm({
   enderecoEditId: string | null
   enderecoForm: EnderecoFormState
   salvandoEndereco: boolean
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: FormSubmitHandler
   setEnderecoForm: Dispatch<SetStateAction<EnderecoFormState>>
 }>) {
   const submitLabel = enderecoSubmitLabel(salvandoEndereco, enderecoEditId)

@@ -1,3 +1,5 @@
+"""Endpoints de importação de NF-e para o catálogo (preview, aplicar, fornecedores)."""
+
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from rest_framework import status

@@ -1,3 +1,5 @@
+"""Endpoints REST de cargas, modelos reutilizáveis e reprocessamento de composição."""
+
 from rest_framework.viewsets import ModelViewSet
 
 from apps.accounts.api.permissions import HasEffectivePermission
@@ -22,6 +24,8 @@ from apps.configurador_paineis.projetos.services.rastreabilidade import registra
 
 
 class CargaViewSet(ModelViewSet):
+    """CRUD de cargas por projeto; dispara reprocessamento de composição após mudanças."""
+
     queryset = Carga.objects.select_related("projeto").order_by("projeto", "tag")
     permission_classes = [HasEffectivePermission]
 
@@ -41,12 +45,16 @@ class CargaViewSet(ModelViewSet):
 
     def required_permission(self, request, view):
         if self.action in ("list", "retrieve"):
-            return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+            return (
+                PermissionKeys.MATERIAL_VISUALIZAR_LISTA,
+                PermissionKeys.PROJETO_VISUALIZAR,
+            )
         if self.action in ("create", "update", "partial_update", "destroy"):
             return PermissionKeys.MATERIAL_EDITAR_LISTA
         return None
 
     def perform_create(self, serializer):
+        """Salva carga, reprocessa composição do painel e registra evento de audit trail."""
         with transaction.atomic():
             carga = serializer.save()
             reprocessar_composicao_painel_para_carga(carga.projeto, carga)
@@ -87,6 +95,7 @@ class CargaViewSet(ModelViewSet):
         )
 
     def create(self, request, *args, **kwargs):
+        """Retorna detalhe completo (com bloco aninhado) após criação."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -106,6 +115,8 @@ class CargaViewSet(ModelViewSet):
 
 
 class CargaModeloListCreateView(APIView):
+    """Lista e cria modelos reutilizáveis de carga (templates JSON)."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.MATERIAL_EDITAR_LISTA
 
@@ -132,6 +143,8 @@ class CargaModeloListCreateView(APIView):
 
 
 class CargaModeloDetailView(APIView):
+    """Atualiza ou exclui um modelo de carga existente."""
+
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.MATERIAL_EDITAR_LISTA
 

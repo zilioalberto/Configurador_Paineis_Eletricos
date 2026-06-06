@@ -1,11 +1,18 @@
+"""Modelos persistidos do dimensionamento elétrico e de condutores do painel."""
+
 from django.db import models
 from core.models import BaseModel
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 class ResumoDimensionamento(BaseModel):
+    """
+    Agregados do projeto: corrente total, I/O PLC, fonte 24 Vcc e flag de revisão
+    de condutores confirmada no wizard.
+    """
+
     projeto = models.OneToOneField(
-        Projeto,
+        ProjetoConfigurador,
         on_delete=models.CASCADE,
         related_name="resumo_dimensionamento",
     )

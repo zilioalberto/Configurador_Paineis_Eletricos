@@ -9,7 +9,9 @@ import { useUpdateProdutoMutation } from '../hooks/useProdutoMutations'
 import type { ProdutoFormData } from '../types/produto'
 import { produtoDetailToForm } from '../utils/produtoDetailToForm'
 import { produtoFormToApiPayload } from '../utils/produtoPayload'
+import { catalogoPaths } from '../catalogoPaths'
 
+/** Edição de produto existente. */
 export default function ProdutoEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -57,7 +59,7 @@ export default function ProdutoEditPage() {
         body: produtoFormToApiPayload(data, categorias),
       })
       showToast({ variant: 'success', message: 'Produto atualizado com sucesso.' })
-      navigate(`/catalogo/${id}`)
+      navigate(catalogoPaths.produtoDetalhe(id))
     } catch (err) {
       console.error(err)
       showToast({
@@ -115,7 +117,7 @@ export default function ProdutoEditPage() {
           )}
 
           <p className="small text-muted mt-3 mb-0">
-            <Link to={id ? `/catalogo/${id}` : '/catalogo'}>Voltar</Link>
+            <Link to={id ? catalogoPaths.produtoDetalhe(id) : catalogoPaths.produtos}>Voltar</Link>
           </p>
         </div>
       </div>

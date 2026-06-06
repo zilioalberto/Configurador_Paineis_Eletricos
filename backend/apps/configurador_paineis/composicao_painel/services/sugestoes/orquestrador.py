@@ -1,3 +1,5 @@
+"""Orquestra a geração completa de sugestões de composição por etapas de regra."""
+
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
@@ -346,6 +348,10 @@ def remover_sugestoes_ja_aprovadas(projeto) -> int:
 
 @transaction.atomic
 def gerar_sugestoes_painel(projeto, limpar_antes=False):
+    """
+    Executa todas as etapas de geração (seccionamento, motores, bornes, etc.)
+    e sincroniza pendências de cargas sem regra de catálogo.
+    """
     print("\n" + "=" * 100)
     print("[ORQUESTRADOR] Iniciando gerar_sugestoes_painel")
 

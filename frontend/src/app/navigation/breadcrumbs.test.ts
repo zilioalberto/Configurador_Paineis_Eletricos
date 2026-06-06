@@ -39,8 +39,13 @@ describe('getBreadcrumbItems', () => {
     expect(getBreadcrumbItems('/erp/cadastros')).toEqual([{ label: 'Cadastros' }])
     expect(getBreadcrumbItems('/erp/rh')).toEqual([{ label: 'RH' }])
     expect(getBreadcrumbItems('/erp/orcamentos')).toEqual([{ label: 'Orçamentos' }])
+    expect(getBreadcrumbItems('/orcamentos')).toEqual([{ label: 'Orçamentos' }])
     expect(getBreadcrumbItems('/erp/orcamentos/abc-uuid')).toEqual([
-      { label: 'Orçamentos', to: '/erp/orcamentos' },
+      { label: 'Orçamentos', to: '/orcamentos' },
+      { label: 'Detalhe do orçamento' },
+    ])
+    expect(getBreadcrumbItems('/orcamentos/abc-uuid')).toEqual([
+      { label: 'Orçamentos', to: '/orcamentos' },
       { label: 'Detalhe do orçamento' },
     ])
     expect(getBreadcrumbItems('/erp/configuracoes')).toEqual([{ label: 'Configurações do ERP' }])

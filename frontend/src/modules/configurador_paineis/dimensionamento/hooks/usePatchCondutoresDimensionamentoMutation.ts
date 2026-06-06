@@ -3,6 +3,7 @@ import { dimensionamentoQueryKeys } from '../dimensionamentoQueryKeys'
 import { patchCondutoresDimensionamento } from '../services/dimensionamentoService'
 import type { PatchCondutoresPayload } from '../types/dimensionamento'
 
+/** PATCH bitolas escolhidas, aprovação por circuito e confirmação da revisão. */
 export function usePatchCondutoresDimensionamentoMutation(projetoId: string | null) {
   const queryClient = useQueryClient()
   return useMutation({

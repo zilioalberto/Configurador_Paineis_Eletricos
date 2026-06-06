@@ -94,4 +94,21 @@ describe('cargaFormToApiPayload', () => {
       expect.objectContaining({ tipo_transdutor: 'PRESSAO' })
     )
   })
+
+  it('normaliza valores decimais do motor (vírgula -> ponto)', () => {
+    const form = applyTipoChange(cargaFormInitial('p'), 'MOTOR') as CargaFormData
+    if (!form.motor) throw new Error('Motor deveria existir')
+
+    form.motor = {
+      ...defaultMotor(),
+      potencia_corrente_valor: '1,25',
+      rendimento_percentual: '85,50',
+      fator_potencia: '0,75',
+    }
+
+    const body = cargaFormToApiPayload(form) as { motor: Record<string, unknown> }
+    expect(body.motor.potencia_corrente_valor).toBe('1.25')
+    expect(body.motor.rendimento_percentual).toBe('85.50')
+    expect(body.motor.fator_potencia).toBe('0.75')
+  })
 })

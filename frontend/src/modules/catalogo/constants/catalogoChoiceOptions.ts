@@ -26,6 +26,7 @@ export const unidadeMedidaProdutoOptions = [
   { value: 'KG', label: 'Quilograma', sigla: 'kg' },
   { value: 'G', label: 'Gramas', sigla: 'g' },
   { value: 'L', label: 'Litro', sigla: 'L' },
+  { value: 'HORAS', label: 'Horas', sigla: 'h' },
 ] as const
 
 export type UnidadeMedidaProduto = (typeof unidadeMedidaProdutoOptions)[number]['value']

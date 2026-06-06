@@ -93,6 +93,44 @@ def _dec_ipi_bruto(s: Any) -> Decimal | None:
         return None
 
 
+def _unidade_xml(snap: dict[str, Any], campo: str, padrao: str) -> str:
+    unidade = (snap.get(campo) or padrao).strip()
+    unidades = {c for c, _ in UnidadeMedidaChoices.choices}
+    return unidade if unidade in unidades else padrao
+
+
+def _campos_produto_xml_comparaveis(
+    resumo: dict[str, Any],
+    snap: dict[str, Any],
+    categoria_escolhida: str,
+) -> tuple[tuple[Any, Any], ...]:
+    cod_ref = _norm_str(resumo.get("codigo"))
+    return (
+        (_norm_str(resumo.get("descricao")), _norm_str(snap.get("x_prod") or cod_ref)),
+        (
+            (resumo.get("categoria") or "").strip(),
+            (categoria_escolhida or "").strip(),
+        ),
+        (
+            (resumo.get("unidade_medida") or "").strip(),
+            _unidade_xml(snap, "unidade_catalogo", UnidadeMedidaChoices.UN),
+        ),
+        (
+            (resumo.get("unidade_tributavel") or "").strip(),
+            _unidade_xml(snap, "u_trib_catalogo", ""),
+        ),
+        ((resumo.get("preco_base") or ""), _preco_xml(snap)),
+        (_norm_digits(resumo.get("ncm")), _norm_digits(snap.get("ncm"))),
+        (_norm_digits(resumo.get("cest")), _norm_digits(snap.get("cest"))),
+        (_norm_str(resumo.get("gtin")), _norm_str(snap.get("c_ean"))),
+        ((resumo.get("origem_mercadoria") or "").strip(), _origem_xml(snap)),
+        (
+            _dec_ipi_bruto(resumo.get("aliquota_ipi")),
+            _dec_ipi_bruto(_aliquota_ipi_xml(snap)),
+        ),
+    )
+
+
 def produto_diverge_do_xml(
     resumo: dict[str, Any],
     snap: dict[str, Any],
@@ -100,39 +138,8 @@ def produto_diverge_do_xml(
     categoria_escolhida: str,
 ) -> bool:
     """True se algum campo principal difere do que seria aplicado a partir do XML + categoria escolhida."""
-    unidades = {c for c, _ in UnidadeMedidaChoices.choices}
-    u_xml = (snap.get("unidade_catalogo") or UnidadeMedidaChoices.UN).strip()
-    if u_xml not in unidades:
-        u_xml = UnidadeMedidaChoices.UN
-    ut_xml = (snap.get("u_trib_catalogo") or "").strip()
-    if ut_xml and ut_xml not in unidades:
-        ut_xml = ""
-
-    cod_ref = _norm_str(resumo.get("codigo"))
-    desc_xml = _norm_str(snap.get("x_prod") or cod_ref)
-    if _norm_str(resumo.get("descricao")) != desc_xml:
-        return True
-    if (resumo.get("categoria") or "").strip() != (categoria_escolhida or "").strip():
-        return True
-    if (resumo.get("unidade_medida") or "").strip() != u_xml:
-        return True
-    if (resumo.get("unidade_tributavel") or "").strip() != ut_xml:
-        return True
-    if (resumo.get("preco_base") or "") != _preco_xml(snap):
-        return True
-    if _norm_digits(resumo.get("ncm")) != _norm_digits(snap.get("ncm")):
-        return True
-    if _norm_digits(resumo.get("cest")) != _norm_digits(snap.get("cest")):
-        return True
-    if _norm_str(resumo.get("gtin")) != _norm_str(snap.get("c_ean")):
-        return True
-    if (resumo.get("origem_mercadoria") or "").strip() != _origem_xml(snap):
-        return True
-    a_db = _dec_ipi_bruto(resumo.get("aliquota_ipi"))
-    a_xml = _dec_ipi_bruto(_aliquota_ipi_xml(snap))
-    if a_db != a_xml:
-        return True
-    return False
+    campos = _campos_produto_xml_comparaveis(resumo, snap, categoria_escolhida)
+    return any(valor_produto != valor_xml for valor_produto, valor_xml in campos)
 
 
 _ITENS_PREFETCH = Prefetch(

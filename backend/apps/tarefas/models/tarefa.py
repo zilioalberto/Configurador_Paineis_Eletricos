@@ -1,3 +1,5 @@
+"""Modelo central de tarefa no Kanban (coluna, responsável, classificação e horas)."""
+
 from decimal import Decimal
 
 from django.conf import settings
@@ -36,6 +38,8 @@ def _status_from_coluna(coluna):
 
 
 class Tarefa(BaseModel):
+    """Cartão do Kanban com vínculo opcional a proposta/OP e apontamento de horas."""
+
     titulo = models.CharField(max_length=180)
     descricao = models.TextField(blank=True)
     coluna = models.ForeignKey(
@@ -150,31 +154,53 @@ class Tarefa(BaseModel):
             StatusTarefaChoices.EM_ANDAMENTO,
         )
 
+    def _erros_classificacao_por_etapa(self, proposta: str, ordem_producao: str) -> dict:
+        validadores = {
+            TipoTarefaChoices.NAO_CLASSIFICADA: self._erros_etapa_sem_vinculo,
+            TipoTarefaChoices.PROPOSTA: self._erros_etapa_proposta,
+            TipoTarefaChoices.PRODUCAO: self._erros_etapa_producao,
+            TipoTarefaChoices.INTERNA: self._erros_etapa_interna,
+        }
+        validador = validadores.get(self.tipo_etapa)
+        return validador(proposta, ordem_producao) if validador else {}
+
+    def _erros_etapa_sem_vinculo(self, proposta: str, ordem_producao: str) -> dict:
+        if not proposta and not ordem_producao:
+            return {}
+        return {
+            "tipo_etapa": (
+                "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
+            )
+        }
+
+    def _erros_etapa_proposta(self, proposta: str, ordem_producao: str) -> dict:
+        erros = {}
+        if not proposta:
+            erros["proposta_referencia"] = "Informe a PROP vinculada a tarefa."
+        if ordem_producao:
+            erros["ordem_producao_referencia"] = (
+                "Tarefa de proposta nao deve possuir vinculo com OP."
+            )
+        return erros
+
+    def _erros_etapa_producao(self, proposta: str, ordem_producao: str) -> dict:
+        if ordem_producao:
+            return {}
+        return {"ordem_producao_referencia": "Informe a OP vinculada a tarefa."}
+
+    def _erros_etapa_interna(self, proposta: str, ordem_producao: str) -> dict:
+        if not proposta and not ordem_producao:
+            return {}
+        return {
+            "tipo_etapa": (
+                "Tarefa interna nao deve possuir vinculo com PROP ou OP."
+            )
+        }
+
     def validar_classificacao(self):
         proposta = (self.proposta_referencia or "").strip()
         ordem_producao = (self.ordem_producao_referencia or "").strip()
-        erros = {}
-
-        if self.tipo_etapa == TipoTarefaChoices.NAO_CLASSIFICADA:
-            if proposta or ordem_producao:
-                erros["tipo_etapa"] = (
-                    "Tarefa nao classificada nao deve possuir vinculo com PROP ou OP."
-                )
-        elif self.tipo_etapa == TipoTarefaChoices.PROPOSTA:
-            if not proposta:
-                erros["proposta_referencia"] = "Informe a PROP vinculada a tarefa."
-            if ordem_producao:
-                erros["ordem_producao_referencia"] = (
-                    "Tarefa de proposta nao deve possuir vinculo com OP."
-                )
-        elif self.tipo_etapa == TipoTarefaChoices.PRODUCAO:
-            if not ordem_producao:
-                erros["ordem_producao_referencia"] = "Informe a OP vinculada a tarefa."
-        elif self.tipo_etapa == TipoTarefaChoices.INTERNA:
-            if proposta or ordem_producao:
-                erros["tipo_etapa"] = (
-                    "Tarefa interna nao deve possuir vinculo com PROP ou OP."
-                )
+        erros = self._erros_classificacao_por_etapa(proposta, ordem_producao)
 
         if self.status in (
             StatusTarefaChoices.INICIADA,

@@ -1,3 +1,4 @@
+"""Rotas da API de contas: metadados e CRUD de utilizadores (admin)."""
 from django.urls import path
 
 from apps.accounts.api import views

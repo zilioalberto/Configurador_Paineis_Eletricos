@@ -1,3 +1,5 @@
+"""Facade pública dos geradores de sugestão de composição."""
+
 from .sugestoes import (
     gerar_sugestao_seccionamento,
     gerar_sugestoes_painel,

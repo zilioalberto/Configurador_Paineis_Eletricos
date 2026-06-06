@@ -16,6 +16,9 @@ describe('getPortalModuleContext', () => {
   it.each([
     ['/', 'Central de módulos'],
     ['', 'Central de módulos'],
+    ['/configurador', 'Configurador de painéis'],
+    ['/configurador/configuracoes', 'Configurador de painéis'],
+    ['/configurador/configuracoes/p1/fluxo/cargas', 'Configurador de painéis'],
     ['/dashboard', 'Configurador de painéis'],
     ['/dashboard/resumo', 'Configurador de painéis'],
     ['/projetos', 'Configurador de painéis'],
@@ -33,6 +36,8 @@ describe('getPortalModuleContext', () => {
     ['/erp/rh/colaboradores', 'RH'],
     ['/erp/orcamentos', 'Orçamentos'],
     ['/erp/orcamentos/1', 'Orçamentos'],
+    ['/orcamentos', 'Orçamentos'],
+    ['/orcamentos/1', 'Orçamentos'],
     ['/erp/configuracoes', 'Configurações do ERP'],
     ['/erp/configuracoes/geral', 'Configurações do ERP'],
     ['/administracao', 'Administração do Portal'],

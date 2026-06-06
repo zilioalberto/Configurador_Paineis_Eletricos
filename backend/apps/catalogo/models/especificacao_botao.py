@@ -1,3 +1,5 @@
+"""Especificação técnica de botões vinculada ao Produto do catálogo."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -90,17 +92,18 @@ class EspecificacaoBotao(BaseModel):
     def clean(self):
         super().clean()
 
-        if self.iluminado:
-            if self.tensao_iluminacao_v is None:
-                raise ValidationError(
-                    "Informe a tensão de iluminação para botão iluminado."
-                )
+        if self.iluminado and self.tensao_iluminacao_v is None:
+            raise ValidationError(
+                "Informe a tensão de iluminação para botão iluminado."
+            )
 
-        if self.tipo_botao == TipoBotaoChoices.EMERGENCIA:
-            if self.tipo_acionamento != TipoAcionamentoBotaoModoChoices.RETENCAO:
-                raise ValidationError(
-                    "Botão de emergência deve ser com retenção."
-                )
+        if (
+            self.tipo_botao == TipoBotaoChoices.EMERGENCIA
+            and self.tipo_acionamento != TipoAcionamentoBotaoModoChoices.RETENCAO
+        ):
+            raise ValidationError(
+                "Botão de emergência deve ser com retenção."
+            )
 
     def __str__(self):
         return (

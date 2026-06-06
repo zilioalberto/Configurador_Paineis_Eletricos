@@ -1,0 +1,1009 @@
+/* Oferta comercial ZFW — referência Figma Make (oferta comercial) */
+
+.proposta-cliente {
+  --doc-azul: #3d6d8c;
+  --doc-azul-escuro: #2a4a62;
+  --doc-verde: #4a8f6e;
+  --doc-verde-suave: #edf5f0;
+  --doc-azul-suave: #f3f7fa;
+  --doc-fundo: #f8fafb;
+  --doc-cartao: #ffffff;
+  --doc-borda: #c5d0db;
+  --doc-borda-suave: #dce4eb;
+  --doc-texto: #2d3a4a;
+  --doc-texto-suave: #5c6d7e;
+  --doc-sombra: 0 2px 12px rgba(42, 74, 98, 0.08);
+  --doc-raio: 8px;
+  --doc-raio-sm: 6px;
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--doc-texto);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.proposta-cliente__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.proposta-cliente__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.proposta-cliente__doc {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Folha — fluxo contínuo; quebra só em aceite/apêndice na impressão */
+.proposta-cliente__folha {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1rem 1.35rem 0.85rem;
+  background: var(--doc-cartao);
+  border: 1px solid var(--doc-borda-suave);
+  border-radius: var(--doc-raio);
+  box-shadow: var(--doc-sombra);
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.proposta-cliente__folha + .proposta-cliente__folha {
+  margin-top: 0.75rem;
+}
+
+.proposta-cliente__folha-conteudo {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Página dedicada à impressão — mesma largura visual da prévia */
+.proposta-cliente--pagina-impressao .proposta-cliente__doc {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.proposta-cliente-pagina-impressao {
+  background: var(--doc-fundo);
+}
+
+/* Cabeçalho inicial — igual ao Figma (logo + contacto | caixa meta) */
+.proposta-cliente__cabecalho-principal {
+  margin-bottom: 0.5rem;
+}
+
+.proposta-cliente__cabecalho-inicio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 17.5rem);
+  align-items: start;
+  gap: 1.5rem 2rem;
+}
+
+.proposta-cliente__cabecalho-inicio-esq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.proposta-cliente__cabecalho-logo {
+  display: block;
+  width: min(15rem, 100%);
+  height: auto;
+  max-height: 4rem;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.proposta-cliente__empresa-contato {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.proposta-cliente__empresa-contato {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  font-style: normal;
+}
+
+.proposta-cliente__empresa-contato span {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--doc-texto-suave);
+}
+
+/* Caixa OFERTA COMERCIAL (canto superior direito) */
+.proposta-cliente__caixa-meta {
+  padding: 0.75rem 0.9rem 0.85rem;
+  border: 1px solid var(--doc-borda);
+  border-radius: var(--doc-raio);
+  background: #fff;
+}
+
+.proposta-cliente__caixa-meta-titulo {
+  margin: 0 0 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--doc-azul-escuro);
+}
+
+.proposta-cliente__caixa-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+  margin: 0;
+}
+
+.proposta-cliente__caixa-meta-grid dt {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__caixa-meta-grid dd {
+  margin: 0.12rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--doc-azul-escuro);
+  letter-spacing: 0.01em;
+}
+
+.proposta-cliente__separador-inicio {
+  height: 1px;
+  margin: 1rem 0 0.95rem;
+  background: var(--doc-borda);
+}
+
+/* Destinatário */
+.proposta-cliente__destinatario {
+  margin-bottom: 1.15rem;
+}
+
+.proposta-cliente__destinatario-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--doc-borda-suave);
+  border-radius: var(--doc-raio);
+  background: var(--doc-cartao);
+}
+
+.proposta-cliente__destinatario-ident {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10.5rem, 13.5rem);
+  gap: 0.85rem 1.25rem;
+  align-items: start;
+}
+
+.proposta-cliente__destinatario-contato {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+}
+
+.proposta-cliente__campo--empresa .proposta-cliente__campo-valor {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--doc-azul-escuro);
+  line-height: 1.45;
+}
+
+/* Títulos de seção (estilo Figma — verde) */
+.proposta-cliente__secao-titulo,
+.proposta-cliente__destinatario-titulo {
+  margin: 0 0 0.85rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--doc-verde);
+}
+
+/* Cabeçalho páginas internas */
+.proposta-cliente__cabecalho-resumido {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--doc-borda-suave);
+}
+
+.proposta-cliente__cabecalho-resumido-logo {
+  display: block;
+  width: auto;
+  height: 2rem;
+  max-width: 8rem;
+  object-fit: contain;
+  object-position: left center;
+  flex-shrink: 0;
+}
+
+.proposta-cliente__cabecalho-resumido-texto {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__cabecalho-resumido-texto strong {
+  color: var(--doc-azul-escuro);
+  font-weight: 600;
+}
+
+.proposta-cliente__bloco {
+  margin-bottom: 1.2rem;
+}
+
+.proposta-cliente__bloco:last-child {
+  margin-bottom: 0.5rem;
+}
+
+.proposta-cliente__texto-leitura {
+  margin: 0;
+  color: #445566;
+  line-height: 1.65;
+}
+
+.proposta-cliente__texto-leitura .oferta-conteudo-formatado__paragrafo {
+  margin-bottom: 0.65rem;
+  text-align: left;
+  color: #445566;
+}
+
+.proposta-cliente__texto-leitura .oferta-conteudo-formatado__lista {
+  margin: 0.25rem 0 0.35rem;
+  padding-left: 1.2rem;
+}
+
+.proposta-cliente__texto-leitura .oferta-conteudo-formatado__lista li + li {
+  margin-top: 0.4rem;
+}
+
+/* Painéis e quadros com borda */
+.proposta-cliente__caixa-meta,
+.proposta-cliente__destinatario-card,
+.proposta-cliente__objeto-card,
+.proposta-cliente__bloco--painel .proposta-cliente__painel-corpo,
+.proposta-cliente__tabela-wrap,
+.proposta-cliente__condicao-card,
+.proposta-cliente__legal-item,
+.proposta-cliente__bloco--aceite .proposta-cliente__painel-corpo {
+  border-radius: var(--doc-raio);
+}
+
+.proposta-cliente__bloco--painel .proposta-cliente__painel-corpo,
+.proposta-cliente__objeto-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--doc-borda-suave);
+  background: var(--doc-fundo);
+}
+
+.proposta-cliente__bloco--objeto .proposta-cliente__objeto-card {
+  background: var(--doc-azul-suave);
+  border-color: #d8e6ef;
+}
+
+.proposta-cliente__campo-editavel {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+  border: 1px dashed transparent;
+  border-radius: var(--doc-raio-sm);
+  background: transparent;
+  padding: 0.2rem 0.35rem;
+  margin: 0;
+  resize: vertical;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.proposta-cliente__campo-editavel:hover,
+.proposta-cliente__campo-editavel:focus {
+  outline: none;
+  border-color: var(--doc-verde);
+  background: rgba(74, 143, 110, 0.07);
+  box-shadow: 0 0 0 2px rgba(74, 143, 110, 0.12);
+}
+
+.proposta-cliente__campo-editavel--secao {
+  min-height: 4.5rem;
+  white-space: pre-wrap;
+}
+
+.proposta-cliente__objeto-assunto.proposta-cliente__campo-editavel {
+  font-weight: 600;
+  font-size: 1rem;
+  resize: none;
+}
+
+.proposta-cliente__objeto-assunto {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--doc-azul-escuro);
+  line-height: 1.4;
+}
+
+.proposta-cliente__campos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.proposta-cliente__campo--wide {
+  grid-column: 1 / -1;
+}
+
+.proposta-cliente__campo-rotulo {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--doc-texto-suave);
+  margin-bottom: 0.2rem;
+}
+
+.proposta-cliente__campo-valor {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--doc-texto);
+}
+
+/* Tabela — grade completa estilo Figma */
+.proposta-cliente__tabela-wrap {
+  overflow: hidden;
+  border: 1px solid var(--doc-borda);
+  background: var(--doc-cartao);
+}
+
+@media (max-width: 720px) {
+  .proposta-cliente__tabela-wrap {
+    overflow-x: auto;
+  }
+}
+
+.proposta-cliente__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.proposta-cliente__tabela th,
+.proposta-cliente__tabela td {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--doc-borda);
+  vertical-align: top;
+}
+
+.proposta-cliente__tabela thead th {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--doc-texto);
+  background: #f4f6f8;
+  text-align: left;
+}
+
+.proposta-cliente__tabela thead th.proposta-cliente__tabela-num,
+.proposta-cliente__tabela thead th.proposta-cliente__tabela-un {
+  text-align: right;
+}
+
+.proposta-cliente__tabela thead th.proposta-cliente__tabela-un {
+  text-align: center;
+}
+
+.proposta-cliente__tabela-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.proposta-cliente__tabela-ncm {
+  width: 4.5rem;
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--doc-texto-suave);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.proposta-cliente__tabela thead th.proposta-cliente__tabela-ncm {
+  text-align: center;
+}
+
+.proposta-cliente__tabela-un {
+  text-align: center;
+  color: var(--doc-texto-suave);
+  font-size: 0.76rem;
+  width: 2.6rem;
+}
+
+.proposta-cliente__tabela-total {
+  font-weight: 600;
+  color: var(--doc-azul-escuro);
+}
+
+.proposta-cliente__item-titulo {
+  display: block;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--doc-texto);
+  line-height: 1.35;
+}
+
+.proposta-cliente__item-detalhe {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--doc-texto-suave);
+  line-height: 1.45;
+}
+
+.proposta-cliente__item-codigo {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  color: var(--doc-texto-suave);
+}
+
+/* Resumo valores */
+.proposta-cliente__resumo-valores {
+  margin-top: 0.65rem;
+  margin-left: auto;
+  width: min(17.5rem, 100%);
+  display: grid;
+  gap: 0.15rem;
+}
+
+.proposta-cliente__resumo-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+}
+
+.proposta-cliente__resumo-linha span {
+  color: var(--doc-texto);
+  font-weight: 500;
+}
+
+.proposta-cliente__resumo-linha strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--doc-texto);
+}
+
+.proposta-cliente__resumo-linha--detalhe span,
+.proposta-cliente__resumo-linha--detalhe strong {
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__resumo-linha--total {
+  margin-top: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--doc-borda);
+}
+
+.proposta-cliente__resumo-linha--total span {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.proposta-cliente__resumo-linha--total strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--doc-azul-escuro);
+}
+
+/* Condições — blocos empilhados (Figma) */
+.proposta-cliente__condicoes-lista {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.proposta-cliente__condicao-card {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--doc-borda-suave);
+  background: var(--doc-cartao);
+}
+
+.proposta-cliente__condicao-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__condicao-card .oferta-conteudo-formatado__paragrafo {
+  font-size: 0.82rem;
+  margin-bottom: 0.25rem;
+  color: var(--doc-texto);
+  line-height: 1.55;
+}
+
+/* Aceite */
+.proposta-cliente__folha--aceite .proposta-cliente__bloco--aceite .proposta-cliente__painel-corpo {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--doc-borda-suave);
+  background: var(--doc-cartao);
+}
+
+.proposta-cliente__texto-aceite {
+  margin-bottom: 1.25rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.proposta-cliente__assinaturas-duplas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.5rem;
+  margin-top: 1.75rem;
+}
+
+.proposta-cliente__assinatura-linha {
+  height: 3.25rem;
+  border-bottom: 1px solid #b8c5d0;
+  margin-bottom: 0.5rem;
+}
+
+.proposta-cliente__assinatura-nome {
+  display: block;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--doc-texto);
+}
+
+.proposta-cliente__assinatura-empresa {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--doc-texto-suave);
+  margin-top: 0.15rem;
+}
+
+.proposta-cliente__data-assinatura {
+  margin: 1.75rem 0 0;
+  font-size: 0.82rem;
+  color: var(--doc-texto-suave);
+}
+
+/* Legal */
+.proposta-cliente__legal-versao {
+  margin: 0 0 0.9rem;
+  font-size: 0.75rem;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__legal-item {
+  padding: 0.75rem 0.9rem;
+  background: var(--doc-cartao);
+  border: 1px solid var(--doc-borda-suave);
+}
+
+.proposta-cliente__legal-item + .proposta-cliente__legal-item {
+  margin-top: 0.55rem;
+}
+
+.proposta-cliente__legal-item h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--doc-azul-escuro);
+}
+
+.proposta-cliente__legal-num {
+  color: var(--doc-verde);
+  margin-right: 0.25rem;
+  font-weight: 700;
+}
+
+.proposta-cliente__legal-item p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--doc-texto-suave);
+  line-height: 1.5;
+}
+
+/* Rodapé — tela (fim do documento) */
+.proposta-cliente__folha-rodape,
+.proposta-cliente__rodape-impressao {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  font-size: 0.62rem;
+  color: var(--doc-texto-suave);
+}
+
+.proposta-cliente__folha-rodape--tela {
+  margin-top: 1rem;
+  padding: 0.5rem 0 0;
+  border-top: 1px solid var(--doc-borda);
+}
+
+/* Oculto na tela; visível só na impressão (position fixed = cada página) */
+.proposta-cliente__rodape-impressao {
+  display: none;
+}
+
+.proposta-cliente__folha-rodape-empresa {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.proposta-cliente__folha-rodape-pagina {
+  flex-shrink: 0;
+  font-weight: 500;
+  font-size: 0.62rem;
+  color: var(--doc-texto-suave);
+  white-space: nowrap;
+}
+
+.proposta-cliente__folha-rodape-pagina--css::after {
+  content: counter(page) ' / ' counter(pages);
+}
+
+/* Modal de pré-visualização */
+.proposta-cliente-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proposta-cliente-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.proposta-cliente-modal__content {
+  position: relative;
+  z-index: 1;
+  width: min(1280px, 96%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1rem 1.15rem;
+  box-shadow: var(--cp-shadow-lg, 0 10px 30px rgba(2, 6, 23, 0.3));
+}
+
+.proposta-cliente-modal__corpo {
+  padding-top: 0.5rem;
+}
+
+.proposta-cliente-modal__preview {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 0.25rem;
+  background: #eef2f6;
+  border-radius: 0.35rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 11mm 13mm 18mm;
+  }
+
+  html:not(.proposta-cliente-impressao-ativa),
+  body:not(.proposta-cliente-impressao-ativa) {
+    background: #fff !important;
+  }
+
+  html.proposta-cliente-impressao-ativa,
+  body.proposta-cliente-impressao-ativa {
+    height: auto !important;
+    overflow: visible !important;
+    background: #f8fafb !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Chrome do portal — não imprimir navegação */
+  .app-sidebar,
+  .app-sidebar-backdrop,
+  .app-header,
+  .app-footer,
+  .app-hash-highlight-pill,
+  .app-page-toolbar,
+  .orcamento-oferta-editor__barra,
+  .orcamento-oferta-editor__secoes,
+  .orcamento-oferta-editor__preview-label,
+  .proposta-cliente__toolbar,
+  .proposta-cliente-modal__backdrop,
+  .proposta-cliente-modal__content > .d-flex,
+  .proposta-cliente-modal .col-lg-5 {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-layout-main,
+  .app-main,
+  .app-page,
+  .container-fluid {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  body:not(.proposta-cliente-impressao-ativa) .proposta-cliente-pagina-impressao {
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Impressão a partir do modal de pré-visualização */
+  .proposta-cliente-modal {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    display: block !important;
+    background: transparent !important;
+  }
+
+  .proposta-cliente-modal__content {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .proposta-cliente-modal__corpo,
+  .proposta-cliente-modal__preview {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .proposta-cliente-modal .col-lg-7 {
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+  }
+
+  .proposta-cliente {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--doc-texto);
+  }
+
+  .proposta-cliente__doc {
+    gap: 0;
+  }
+
+  /* Modal / prévia no editor — folha plana para caber na página */
+  .proposta-cliente__folha {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 1rem 1.35rem 0.85rem !important;
+    margin-top: 0 !important;
+    background: #fff;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .proposta-cliente__folha + .proposta-cliente__folha {
+    margin-top: 0 !important;
+  }
+
+  /*
+   * Página /orcamentos/:id/oferta — PDF igual à tela “Como o cliente verá”.
+   * body.proposta-cliente-impressao-ativa é definido na rota e ao imprimir.
+   */
+  body.proposta-cliente-impressao-ativa .proposta-cliente-pagina-impressao {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0.75rem 0 !important;
+    background: #f8fafb !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.proposta-cliente-impressao-ativa .proposta-cliente--pagina-impressao .proposta-cliente__doc {
+    max-width: 52rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100%;
+  }
+
+  body.proposta-cliente-impressao-ativa .proposta-cliente--pagina-impressao .proposta-cliente__folha {
+    border: 1px solid var(--doc-borda-suave) !important;
+    border-radius: var(--doc-raio) !important;
+    box-shadow: var(--doc-sombra) !important;
+    background: var(--doc-cartao) !important;
+    padding: 1rem 1.35rem 0.85rem !important;
+    margin-top: 0 !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  body.proposta-cliente-impressao-ativa .proposta-cliente--pagina-impressao .proposta-cliente__folha + .proposta-cliente__folha {
+    margin-top: 0.75rem !important;
+  }
+
+  body.proposta-cliente-impressao-ativa .proposta-cliente--pagina-impressao .proposta-cliente__folha--aceite,
+  body.proposta-cliente-impressao-ativa .proposta-cliente--pagina-impressao .proposta-cliente__folha--legal {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  /* Rodapé no fim do documento (fixed costuma gerar PDF em branco no Chrome) */
+  .proposta-cliente__rodape-impressao {
+    display: none !important;
+  }
+
+  .proposta-cliente__folha-rodape--tela {
+    display: flex !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .proposta-cliente__cabecalho-logo,
+  .proposta-cliente__cabecalho-resumido-logo {
+    display: block !important;
+    max-height: 4rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Mantém logo ZFW e caixa “Oferta comercial” lado a lado (evita regra mobile na impressão) */
+  .proposta-cliente__cabecalho-inicio {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 17.5rem) !important;
+    align-items: start !important;
+    gap: 1.5rem 2rem !important;
+  }
+
+  .proposta-cliente__caixa-meta {
+    max-width: 17.5rem !important;
+    width: 100% !important;
+    justify-self: end;
+  }
+
+  .proposta-cliente__caixa-meta-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .proposta-cliente__folha--aceite,
+  .proposta-cliente__folha--legal {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .proposta-cliente__folha--principal {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .proposta-cliente__caixa-meta,
+  .proposta-cliente__destinatario-card,
+  .proposta-cliente__objeto-card,
+  .proposta-cliente__tabela-wrap,
+  .proposta-cliente__condicao-card,
+  .proposta-cliente__legal-item,
+  .proposta-cliente__bloco--aceite .proposta-cliente__painel-corpo {
+    border-radius: var(--doc-raio) !important;
+    overflow: hidden;
+  }
+
+  .proposta-cliente__tabela-wrap {
+    overflow: hidden;
+  }
+
+  .proposta-cliente__caixa-meta,
+  .proposta-cliente__tabela thead th,
+  .proposta-cliente__secao-titulo {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .proposta-cliente__bloco--aceite,
+  .proposta-cliente__assinaturas-duplas {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .proposta-cliente__tabela thead {
+    display: table-header-group;
+  }
+
+  .proposta-cliente__tabela tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .proposta-cliente__folha {
+    min-height: auto;
+    padding: 1rem;
+  }
+
+  .proposta-cliente__cabecalho-inicio {
+    grid-template-columns: 1fr;
+  }
+
+  .proposta-cliente__caixa-meta {
+    max-width: 100%;
+  }
+
+  .proposta-cliente__destinatario-ident,
+  .proposta-cliente__destinatario-contato {
+    grid-template-columns: 1fr;
+  }
+
+  .proposta-cliente__campos-grid,
+  .proposta-cliente__assinaturas-duplas {
+    grid-template-columns: 1fr;
+  }
+
+  .proposta-cliente__folha-rodape {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

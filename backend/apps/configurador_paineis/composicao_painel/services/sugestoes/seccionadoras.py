@@ -1,3 +1,5 @@
+"""Sugestões de seccionamento geral do painel (seccionadora ou disjuntor caixa moldada)."""
+
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem, PendenciaItem
 
@@ -31,9 +33,9 @@ def _nucleo_gerar_seccionamento(projeto):
         descricao = "Resumo de dimensionamento não encontrado para o projeto."
 
         memoria_calculo = (
-            f"[SECCIONAMENTO]\n"
-            f"Motivo: resumo de dimensionamento não encontrado.\n"
-            f"O item de seccionamento depende da corrente total do painel."
+            "[SECCIONAMENTO]\n"
+            "Motivo: resumo de dimensionamento não encontrado.\n"
+            "O item de seccionamento depende da corrente total do painel."
         )
 
         pendencia, created = PendenciaItem.objects.update_or_create(
@@ -63,8 +65,8 @@ def _nucleo_gerar_seccionamento(projeto):
         descricao = "A corrente total do painel não foi calculada."
 
         memoria_calculo = (
-            f"[SECCIONAMENTO]\n"
-            f"Motivo: corrente_total_painel_a está nula no resumo de dimensionamento."
+            "[SECCIONAMENTO]\n"
+            "Motivo: corrente_total_painel_a está nula no resumo de dimensionamento."
         )
 
         pendencia, created = PendenciaItem.objects.update_or_create(

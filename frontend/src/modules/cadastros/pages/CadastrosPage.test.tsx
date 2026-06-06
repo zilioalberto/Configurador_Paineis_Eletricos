@@ -27,10 +27,14 @@ vi.mock('@/modules/auth/AuthContext', () => ({
   }),
 }))
 
+const consultarCnpjMock = vi.hoisted(() => vi.fn())
+
 vi.mock('../services/cadastrosApi', () => ({
   atualizarContatoParceiro: (...args: unknown[]) => atualizarContatoParceiroMock(...args),
   atualizarEnderecoParceiro: (...args: unknown[]) => atualizarEnderecoParceiroMock(...args),
   atualizarParceiro: (...args: unknown[]) => atualizarParceiroMock(...args),
+  atualizarParceiroPorCnpj: vi.fn(),
+  consultarCnpj: (...args: unknown[]) => consultarCnpjMock(...args),
   criarContatoParceiro: (...args: unknown[]) => criarContatoParceiroMock(...args),
   criarEnderecoParceiro: (...args: unknown[]) => criarEnderecoParceiroMock(...args),
   criarParceiro: (...args: unknown[]) => criarParceiroMock(...args),
@@ -39,6 +43,7 @@ vi.mock('../services/cadastrosApi', () => ({
   excluirParceiro: (...args: unknown[]) => excluirParceiroMock(...args),
   listarParceiros: (...args: unknown[]) => listarParceirosMock(...args),
   obterParceiro: (...args: unknown[]) => obterParceiroMock(...args),
+  salvarParceiroPorCnpj: vi.fn(),
 }))
 
 import CadastrosPage from './CadastrosPage'
@@ -136,6 +141,11 @@ describe('CadastrosPage', () => {
         eh_fornecedor: true,
       })
     )
+  })
+
+  it('exibe seção de consulta CNPJ na página', async () => {
+    renderCadastrosPage()
+    expect(await screen.findByText('Consulta CNPJ (Receita Federal)')).toBeInTheDocument()
   })
 
   it('edita contato e endereco do parceiro selecionado', async () => {

@@ -1,3 +1,8 @@
+/**
+ * Cliente HTTP do módulo RH (CRUD de cadastros organizacionais).
+ * Rota exposta em `/erp/rh` via `orcamentos.registry`.
+ */
+
 import apiClient from '@/services/apiClient'
 import type {
   CargoDto,
@@ -66,6 +71,7 @@ async function remove(url: string, id: string): Promise<void> {
   await apiClient.delete(`${url}${id}/`)
 }
 
+/** Facade com operações CRUD de todas as entidades de RH. */
 export const rhApi = {
   listarDepartamentos: (filters?: RhListFilters) =>
     list<DepartamentoDto>(BASE.departamentos, filters),

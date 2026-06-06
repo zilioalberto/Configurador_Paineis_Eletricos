@@ -1,3 +1,8 @@
+/**
+ * Tipos TypeScript espelhando o modelo Projeto e payloads do formulário.
+ * Valores de enum seguem as choices do backend (core.choices).
+ */
+
 export type StatusProjeto =
   | 'EM_ANDAMENTO'
   | 'FINALIZADO'
@@ -27,6 +32,7 @@ export type TipoClimatizacaoPainel =
   | 'OUTRO'
 
 export interface Projeto {
+  /** UUID retornado pela API. */
   id: string
   codigo: string
   nome: string
@@ -93,6 +99,7 @@ export interface Projeto {
 }
 
 export interface ProjetoEvento {
+  /** Registro de audit trail (criação, edição, ações nos módulos). */
   id: string
   projeto: string
   usuario: string | null
@@ -105,6 +112,7 @@ export interface ProjetoEvento {
 }
 
 export interface ProjetoFormData {
+  /** Payload enviado em POST/PUT; campos numéricos podem estar vazios durante edição. */
   codigo: string
   nome: string
   descricao: string
@@ -154,4 +162,9 @@ export interface ProjetoResponsavelOption {
   label: string
   email: string
   tipo_usuario: string
+}
+
+export type ProjetoClienteOption = {
+  value: string
+  label: string
 }

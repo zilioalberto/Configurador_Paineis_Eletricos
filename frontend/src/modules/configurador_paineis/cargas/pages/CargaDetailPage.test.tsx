@@ -367,7 +367,7 @@ describe('CargaDetailPage', () => {
     })
     renderPage()
     const fechar = screen.getByRole('link', { name: 'Fechar' })
-    expect(fechar).toHaveAttribute('href', '/cargas?projeto=p1')
+    expect(fechar).toHaveAttribute('href', '/configurador/cargas?projeto=p1')
   })
 
   it('link Fechar prioriza state.from vindo da listagem', () => {
@@ -461,6 +461,6 @@ describe('CargaDetailPage', () => {
     })
     renderPage()
     const edit = screen.getByRole('link', { name: 'Editar' })
-    expect(edit).toHaveAttribute('href', '/cargas/c1/editar')
+    expect(edit).toHaveAttribute('href', '/configurador/cargas?projeto=p1&editar=c1')
   })
 })

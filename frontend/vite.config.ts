@@ -6,14 +6,20 @@ import react from '@vitejs/plugin-react'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      jsxRuntime: 'automatic',
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+    // Alias já definido acima; evita cache de tsconfig do Oxc (Vite 8) em Docker.
+    tsconfigPaths: false,
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['portal.zfw.com.br', '89.117.32.110']
+    allowedHosts: ['portal.zfw.com.br', '89.117.32.110'],
   },
 })

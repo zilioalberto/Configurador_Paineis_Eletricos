@@ -1,3 +1,9 @@
+"""
+Serializers da gestão de utilizadores: listagem, criação e edição com permissões efetivas.
+
+O campo write-only `permissoes` representa o conjunto desejado; extras/negadas são derivados
+dos defaults do `tipo_usuario`.
+"""
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
@@ -8,6 +14,8 @@ User = get_user_model()
 
 
 class AdminUserListSerializer(serializers.ModelSerializer):
+    """Leitura de utilizador para grids e formulários de administração."""
+
     permissoes_efetivas = serializers.SerializerMethodField()
     colaborador_id = serializers.SerializerMethodField()
     colaborador_matricula = serializers.SerializerMethodField()
@@ -56,6 +64,8 @@ class AdminUserListSerializer(serializers.ModelSerializer):
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
+    """Cria utilizador; traduz lista `permissoes` em extras e negadas relativas ao tipo."""
+
     password = serializers.CharField(write_only=True, min_length=8)
     permissoes = serializers.ListField(
         child=serializers.CharField(), required=False, allow_empty=True, write_only=True
@@ -109,6 +119,8 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
 
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Atualiza perfil, senha opcional e conjunto efetivo de permissões."""
+
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     permissoes = serializers.ListField(
         child=serializers.CharField(), required=False, allow_empty=True, write_only=True

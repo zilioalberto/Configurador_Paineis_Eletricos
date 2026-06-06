@@ -1,3 +1,5 @@
+"""Sessão de cronómetro ativo (play/stop) vinculada a tarefa e colaborador."""
+
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings

@@ -1,3 +1,7 @@
+/**
+ * Tipos de categorias de produto (espelham `CategoriaProdutoNomeChoices` no backend).
+ */
+
 /** Valores de `CategoriaProdutoNomeChoices` (API: id === nome). */
 export type CategoriaProdutoNome =
   | 'CONTATORA'

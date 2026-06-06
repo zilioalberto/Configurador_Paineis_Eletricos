@@ -1,3 +1,5 @@
+/** Opções de select e valores padrão do formulário de projeto. */
+
 import type {
   ProjetoFormData,
   StatusProjeto,
@@ -39,12 +41,6 @@ export const frequenciaOptions: FormOption<number>[] = [
   { value: 60, label: '60 Hz' },
 ]
 
-/** Margem sobre o mínimo Iz (interface limitada a 0 ou 1; valores superiores são legado). */
-export const margemBitolaCondutoresOptions: FormOption<number>[] = [
-  { value: 0, label: '0 — mínimo da tabela Iz' },
-  { value: 1, label: '1 — uma bitola comercial acima' },
-]
-
 export const tipoConexaoOptions: FormOption<TipoConexaoAlimentacao>[] = [
   { value: 'BARRAMENTO', label: 'Barramento' },
   { value: 'BORNE', label: 'Borne' },
@@ -66,6 +62,7 @@ export const tipoSeccionamentoOptions: FormOption<TipoSeccionamento>[] = [
   { value: 'DISJUNTOR_CAIXA_MOLDADA', label: 'Disjuntor caixa moldada' },
 ]
 
+/** Estado inicial ao criar um novo projeto (espelha defaults do model Django). */
 export const projetoFormInitialState: ProjetoFormData = {
   codigo: '',
   nome: '',

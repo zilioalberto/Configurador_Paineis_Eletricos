@@ -1,3 +1,5 @@
+"""Especificação técnica de resistências de aquecimento vinculada ao Produto do catálogo."""
+
 from django.db import models
 
 from core.models import BaseModel

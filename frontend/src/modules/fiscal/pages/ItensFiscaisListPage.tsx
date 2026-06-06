@@ -1,7 +1,9 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 import { useItensFiscaisListQuery } from '../hooks/useItensFiscaisListQuery'
 
+/** Tabela paginada de todos os itens fiscais registrados. */
 export default function ItensFiscaisListPage() {
   const [inputSearch, setInputSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -113,7 +115,7 @@ export default function ItensFiscaisListPage() {
                   {items.map((row) => (
                     <tr key={row.id}>
                       <td>
-                        <Link to={`/catalogo/${row.produto_id}`} className="fw-semibold text-break">
+                        <Link to={catalogoPaths.produtoDetalhe(row.produto_id)} className="fw-semibold text-break">
                           {row.produto_codigo}
                         </Link>
                         <div className="small text-muted text-break">{row.produto_descricao}</div>

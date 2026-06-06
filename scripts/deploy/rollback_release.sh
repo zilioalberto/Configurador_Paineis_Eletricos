@@ -17,7 +17,8 @@ SHARED_DIR="$APP_ROOT/shared"
 CURRENT_LINK="${APP_DIR}/current"
 PREVIOUS_LINK="${APP_DIR}/previous"
 COMPOSE_ENV="$SHARED_DIR/.env"
-COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_BASE_FILE="docker-compose.prod.yml"
+COMPOSE_MONITORING_FILE="docker-compose.monitoring.yml"
 
 log() {
   echo
@@ -45,6 +46,16 @@ check_health() {
   done
   echo "Healthcheck falhou após múltiplas tentativas."
   return 1
+}
+
+compose_here() {
+  local args=(--env-file "$COMPOSE_ENV" -f "$COMPOSE_BASE_FILE")
+
+  if [[ -f "$COMPOSE_MONITORING_FILE" ]]; then
+    args+=(-f "$COMPOSE_MONITORING_FILE")
+  fi
+
+  docker compose "${args[@]}" "$@"
 }
 
 require_link "$CURRENT_LINK" "current"
@@ -76,7 +87,7 @@ echo "Reativando: $ROLLBACK_DIR"
 
 log "PARANDO STACK ATUAL"
 cd "$ACTIVE_DIR/infra/docker"
-docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" down
+compose_here down
 
 log "ATUALIZANDO SYMLINKS (troca current <-> previous)"
 ln -sfn "$ROLLBACK_DIR" "$CURRENT_LINK"
@@ -84,12 +95,12 @@ ln -sfn "$ACTIVE_DIR" "$PREVIOUS_LINK"
 
 log "SUBINDO RELEASE ANTERIOR"
 cd "$ROLLBACK_DIR/infra/docker"
-docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" up -d --build
+compose_here up -d --build
 
 log "AGUARDANDO SERVIÇOS"
 sleep 15
 
-docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" ps
+compose_here ps
 
 check_health || {
   echo "Healthcheck falhou após rollback manual. Verifique logs e symlinks."

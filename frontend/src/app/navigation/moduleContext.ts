@@ -5,21 +5,21 @@ export type PortalModuleContext = {
 }
 
 const CONFIGURADOR_PAINEIS_PATH_PREFIXES = [
+  '/configurador',
   '/dashboard',
   '/projetos',
   '/cargas',
   '/dimensionamento',
   '/composicao',
 ]
+const ERP_SHELL_RE = /^\/erp\/m\/([^/]+)/
 
 function startsWithAny(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 
-export function getPortalModuleContext(pathname: string): PortalModuleContext {
-  const path = pathname || '/'
-
-  if (path === '/') return { title: 'Central de módulos' }
+export function getPortalModuleContext(path = '/'): PortalModuleContext {
+  if (path === '/' || path === '') return { title: 'Central de módulos' }
   if (startsWithAny(path, CONFIGURADOR_PAINEIS_PATH_PREFIXES)) {
     return { title: 'Configurador de painéis' }
   }
@@ -35,13 +35,18 @@ export function getPortalModuleContext(pathname: string): PortalModuleContext {
   if (path === '/erp/rh' || path.startsWith('/erp/rh/')) {
     return { title: 'RH' }
   }
-  if (path === '/erp/orcamentos' || path.startsWith('/erp/orcamentos/')) {
+  if (
+    path === '/erp/orcamentos' ||
+    path.startsWith('/erp/orcamentos/') ||
+    path === '/orcamentos' ||
+    path.startsWith('/orcamentos/')
+  ) {
     return { title: 'Orçamentos' }
   }
   if (path === '/erp/configuracoes' || path.startsWith('/erp/configuracoes/')) {
     return { title: 'Configurações do ERP' }
   }
-  const erpShell = path.match(/^\/erp\/m\/([^/]+)/)
+  const erpShell = ERP_SHELL_RE.exec(path)
   if (erpShell) {
     const mod = findErpModuleByShellSlug(erpShell[1])
     return { title: mod?.title ?? 'Módulo ERP' }

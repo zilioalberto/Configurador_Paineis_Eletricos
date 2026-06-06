@@ -1,3 +1,5 @@
+/** CRUD de modelos reutilizáveis de carga (templates para cadastro rápido). */
+
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/components/feedback'
@@ -201,19 +203,36 @@ export default function CargaModelosPage() {
 
   return (
     <div className="container-fluid">
-      <div className="d-flex justify-content-between align-items-start mb-4 gap-3">
-        <div>
-          <h1 className="h3 mb-1">Modelos de carga</h1>
-          <p className="text-muted mb-0">
-            Cadastre templates reutilizáveis para acelerar o preenchimento de novas
-            cargas.
-          </p>
-        </div>
-      </div>
-
       <div className="card mb-3">
         <div className="card-body">
-          <h2 className="h5 mb-3">{editingId ? 'Editar modelo' : 'Novo modelo'}</h2>
+          <div className="carga-form carga-form--panel">
+            <section className="carga-form-panel__card">
+              <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <h3 className="carga-form-panel__title mb-0">
+                  {editingId ? 'Editar modelo' : 'Novo modelo'}
+                </h3>
+                <div className="d-flex gap-2">
+                  {editingId ? (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={resetForm}
+                      disabled={saving}
+                    >
+                      Cancelar edição
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btn-success btn-sm"
+                    onClick={() => void handleSalvarModelo()}
+                    disabled={saving}
+                  >
+                    {saving ? 'Salvando…' : editingId ? 'Salvar alterações' : 'Salvar modelo'}
+                  </button>
+                </div>
+              </div>
+
           <div className="row g-3">
             <div className="col-md-6">
               <label className="form-label">Nome do modelo</label>
@@ -259,7 +278,7 @@ export default function CargaModelosPage() {
             {base.tipo === 'MOTOR' && base.motor && (
               <>
                 <div className="col-12">
-                  <h3 className="h6 mt-2">Parâmetros do motor</h3>
+                  <h3 className="carga-form-panel__title mt-2">Parâmetros do motor</h3>
                 </div>
                 <div className="col-md-4">
                   <label className="form-label">Potência / corrente (valor)</label>
@@ -901,33 +920,15 @@ export default function CargaModelosPage() {
                 ficam fora do template.
               </div>
             </div>
-            <div className="col-12 d-flex justify-content-end">
-              {editingId ? (
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary me-2"
-                  onClick={resetForm}
-                  disabled={saving}
-                >
-                  Cancelar edição
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => void handleSalvarModelo()}
-                disabled={saving}
-              >
-                {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Salvar modelo'}
-              </button>
-            </div>
+          </div>
+            </section>
           </div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-body">
-          <h2 className="h5 mb-3">Modelos cadastrados</h2>
+          <h3 className="carga-form-panel__title mb-3">Modelos cadastrados</h3>
           {isPending && <p className="text-muted mb-0">Carregando modelos...</p>}
           {!isPending && modelos.length === 0 && (
             <p className="text-muted mb-0">Nenhum modelo cadastrado até o momento.</p>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { catalogoPaths } from '../catalogoPaths'
 import type { ProdutoListItem } from '../types/produto'
 
 type ProdutoTableProps = {
@@ -7,6 +8,7 @@ type ProdutoTableProps = {
   canManage: boolean
 }
 
+/** Tabela de listagem de produtos. */
 export default function ProdutoTable({
   produtos,
   onDeleteRequest,
@@ -15,7 +17,7 @@ export default function ProdutoTable({
   if (produtos.length === 0) {
     return (
       <p className="text-muted mb-0">
-        Nenhum produto encontrado. {canManage ? <Link to="/catalogo/novo">Cadastrar produto</Link> : null}
+        Nenhum produto encontrado. {canManage ? <Link to={catalogoPaths.produtoNovo}>Cadastrar produto</Link> : null}
       </p>
     )
   }
@@ -38,7 +40,7 @@ export default function ProdutoTable({
           {produtos.map((p) => (
             <tr key={p.id}>
               <td>
-                <Link to={`/catalogo/${p.id}`}>{p.codigo}</Link>
+                <Link to={catalogoPaths.produtoDetalhe(p.id)}>{p.codigo}</Link>
               </td>
               <td>{p.descricao}</td>
               <td>
@@ -53,7 +55,7 @@ export default function ProdutoTable({
                 <td className="text-end">
                   <div className="d-flex justify-content-end gap-2 flex-wrap table-actions">
                     <Link
-                      to={`/catalogo/${p.id}/editar`}
+                      to={catalogoPaths.produtoEditar(p.id)}
                       className="btn btn-sm btn-outline-primary"
                     >
                       Editar

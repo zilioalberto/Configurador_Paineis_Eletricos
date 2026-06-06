@@ -1,7 +1,9 @@
+"""Admin Django para sugestões, composição aprovada, pendências e inclusões manuais."""
+
 from django.contrib import admin, messages
 from django.db import transaction
 
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.composicao_painel.models import (
     ComposicaoInclusaoManual,
     SugestaoItem,
@@ -23,6 +25,8 @@ from core.choices import (
     StatusPendenciaChoices,
     StatusSugestaoChoices,
 )
+
+IDENTIFICACAO_FIELDSET_TITLE = "Identificação"
 
 
 @admin.action(description="Gerar sugestões de composição do painel (teste)")
@@ -320,7 +324,7 @@ class SugestaoItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",
@@ -441,7 +445,7 @@ class ComposicaoItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",
@@ -551,7 +555,7 @@ class PendenciaItemAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "Identificação",
+            IDENTIFICACAO_FIELDSET_TITLE,
             {
                 "fields": (
                     "projeto",
@@ -598,7 +602,7 @@ class PendenciaItemAdmin(admin.ModelAdmin):
 
 
 try:
-    projeto_admin = admin.site._registry.get(Projeto)
+    projeto_admin = admin.site._registry.get(ProjetoConfigurador)
     if projeto_admin:
         actions = list(getattr(projeto_admin, "actions", []) or [])
 

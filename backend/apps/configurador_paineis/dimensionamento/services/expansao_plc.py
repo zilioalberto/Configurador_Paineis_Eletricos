@@ -1,3 +1,5 @@
+"""Verifica se os totais de I/O excedem capacidade típica de CPU compacta."""
+
 from __future__ import annotations
 
 # Capacidade típica de CPU compacta (ajustável conforme padrão interno)
@@ -8,6 +10,7 @@ LIMITE_SA_CPU = 4
 
 
 def calcular_necessita_expansao_plc(projeto, totais_io: dict[str, int]) -> bool:
+    """True quando algum tipo de I/O ultrapassa o limite da CPU compacta."""
     if not projeto.possui_plc:
         return False
     return (

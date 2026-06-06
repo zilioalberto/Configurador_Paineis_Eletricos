@@ -11,6 +11,7 @@ type ProjetoFormCheckboxFieldProps = {
   disabled?: boolean
 }
 
+/** Checkbox padronizado para flags booleanas do formulário de projeto. */
 export function ProjetoFormCheckboxField({
   name,
   label,

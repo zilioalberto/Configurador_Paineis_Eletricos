@@ -33,6 +33,7 @@ import type {
 } from '../types/tarefa'
 import { moverTarefaNoKanbanLocal } from '../utils/kanbanLocalState'
 
+/** Mutations de tarefas, timer, checklist, comentários e apontamentos. */
 export function useCriarTarefaMutation() {
   const queryClient = useQueryClient()
 

@@ -1,0 +1,287 @@
+/* Editor de oferta — edição visual + prévia fiel ao cliente */
+
+.orcamento-oferta-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.orcamento-oferta-editor__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.orcamento-oferta-editor__barra-texto {
+  flex: 1;
+  min-width: 14rem;
+}
+
+.orcamento-oferta-editor__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 42%);
+  gap: 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.orcamento-oferta-editor__secoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.orcamento-oferta-editor__nota-assunto {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  background: #eef4f8;
+  border: 1px solid #e4eaef;
+}
+
+.orcamento-oferta-secao-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid #e4eaef;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(45, 58, 74, 0.04);
+}
+
+.orcamento-oferta-secao-card--investimento {
+  background: #fafbfc;
+  border-left: 3px solid #6f9f8a;
+}
+
+.orcamento-oferta-secao-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.orcamento-oferta-secao-card--arrastavel {
+  cursor: grab;
+}
+
+.orcamento-oferta-secao-card--arrastando {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.orcamento-oferta-secao-card--arraste-alvo {
+  outline: 2px dashed #4a8f6e;
+  outline-offset: 2px;
+}
+
+.orcamento-oferta-secao-card__arraste {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: grab;
+  user-select: none;
+  padding-right: 0.15rem;
+}
+
+.orcamento-oferta-secao-card__titulo {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #4a8f6e;
+}
+
+.orcamento-oferta-secao-card__badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7d92;
+}
+
+.orcamento-oferta-secao-card--oculta {
+  border-style: dashed;
+  background: #f6f8fa;
+  opacity: 0.92;
+}
+
+.orcamento-oferta-editor__titulo {
+  margin-bottom: 1rem;
+  max-width: 42rem;
+}
+
+.orcamento-oferta-editor__titulo-hint {
+  margin-top: 0.25rem;
+}
+
+.orcamento-oferta-editor__incluir-secoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed #c5d0db;
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.orcamento-oferta-editor__incluir-secoes-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.orcamento-oferta-secao-card__investimento-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px dashed #c5d0db;
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.orcamento-oferta-editor__preview-hint {
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: #64748b;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.orcamento-oferta-secao-card__dica {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  color: #6b7d92;
+  line-height: 1.4;
+}
+
+.orcamento-oferta-secao-card__textarea {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e4eaef;
+  border-radius: 6px;
+  background: #fafbfc;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #2d3a4a;
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.orcamento-oferta-secao-card__textarea:focus {
+  outline: none;
+  border-color: #8eb5c9;
+  box-shadow: 0 0 0 2px rgba(61, 109, 140, 0.12);
+  background: #fff;
+}
+
+.orcamento-oferta-secao-card__textarea:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.orcamento-oferta-secao-card__tabela th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7d92;
+  background: #eef4f8;
+}
+
+.orcamento-oferta-secao-card__total {
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #2f5873;
+}
+
+/* Prévia ao cliente */
+.orcamento-oferta-editor__preview {
+  position: sticky;
+  top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: calc(100vh - 10rem);
+}
+
+.orcamento-oferta-editor__preview-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7d92;
+}
+
+.orcamento-oferta-editor__preview-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid #e4eaef;
+  border-radius: 10px;
+  background: #e8ecef;
+}
+
+.orcamento-oferta-editor__preview-scroll .proposta-cliente {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.orcamento-oferta-editor__preview-scroll .proposta-cliente__folha {
+  min-height: auto;
+  margin-bottom: 0.75rem;
+  padding: 1rem 1.35rem 0.85rem;
+  box-shadow: var(--doc-sombra, 0 2px 12px rgba(42, 74, 98, 0.08));
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.orcamento-oferta-editor__preview-scroll .proposta-cliente__toolbar {
+  display: none;
+}
+
+.orcamento-oferta-editor__markdown {
+  min-width: 0;
+}
+
+.orcamento-oferta-editor__markdown-area {
+  display: block;
+  width: 100%;
+  min-height: 20rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e4eaef;
+  border-radius: 8px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .orcamento-oferta-editor__split {
+    grid-template-columns: 1fr;
+  }
+
+  .orcamento-oferta-editor__preview {
+    position: static;
+    max-height: 28rem;
+  }
+
+  .orcamento-oferta-editor__secoes {
+    max-height: none;
+  }
+}

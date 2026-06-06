@@ -4,7 +4,10 @@ import {
   configuradorPaineisMenuItems,
   configuradorPaineisRoutes,
 } from '@/modules/configurador_paineis/configurador_paineis.registry'
-import { erpMenuItems, erpRoutes } from '@/modules/erp/erp.registry'
+import {
+  orcamentosMenuItems,
+  orcamentosRoutes,
+} from '@/modules/orcamentos/orcamentos.registry'
 import { modulosMenuItems, modulosRoutes } from '@/modules/modulos/modulos.registry'
 import {
   placeholdersMenuItems,
@@ -23,7 +26,7 @@ const routeModules: ModuleRouteConfig[][] = [
   catalogoRoutes,
   fiscalRoutes,
   tarefasRoutes,
-  erpRoutes,
+  orcamentosRoutes,
   placeholdersRoutes,
   usuariosAdminRoutes,
 ]
@@ -34,7 +37,7 @@ const menuModules: AppMenuItem[][] = [
   catalogoMenuItems,
   fiscalMenuItems,
   tarefasMenuItems,
-  erpMenuItems,
+  orcamentosMenuItems,
   placeholdersMenuItems,
   usuariosAdminMenuItems,
 ]

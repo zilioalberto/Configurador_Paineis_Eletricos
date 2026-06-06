@@ -24,7 +24,8 @@ NEW_RELEASE_DIR="$CURRENT_WORKDIR"
 CURRENT_LINK="${APP_DIR}/current"
 PREVIOUS_LINK="${APP_DIR}/previous"
 
-COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_BASE_FILE="docker-compose.prod.yml"
+COMPOSE_MONITORING_FILE="docker-compose.monitoring.yml"
 COMPOSE_ENV_FILE="$SHARED_DIR/.env"
 COMPOSE_DIR="$NEW_RELEASE_DIR/infra/docker"
 
@@ -42,7 +43,21 @@ require_file() {
 }
 
 compose_new() {
-  docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" "$@"
+  docker compose \
+    --env-file "$COMPOSE_ENV_FILE" \
+    -f "$COMPOSE_BASE_FILE" \
+    -f "$COMPOSE_MONITORING_FILE" \
+    "$@"
+}
+
+compose_here() {
+  local args=(--env-file "$SHARED_DIR/.env" -f "$COMPOSE_BASE_FILE")
+
+  if [[ -f "$COMPOSE_MONITORING_FILE" ]]; then
+    args+=(-f "$COMPOSE_MONITORING_FILE")
+  fi
+
+  docker compose "${args[@]}" "$@"
 }
 
 check_health() {
@@ -98,7 +113,7 @@ rollback_on_error() {
   if [[ -d "$NEW_RELEASE_DIR/infra/docker" ]]; then
     echo "Derrubando release com falha..."
     cd "$NEW_RELEASE_DIR/infra/docker" || true
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down || true
+    compose_here down || true
   fi
 
   if [[ "$RESET_DB" == "true" ]]; then
@@ -112,7 +127,7 @@ rollback_on_error() {
     ln -sfn "$CURRENT_TARGET" "$CURRENT_LINK" || true
 
     cd "$CURRENT_TARGET/infra/docker" || true
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml up -d --build || true
+    compose_here up -d --build || true
 
     echo "Aguardando rollback estabilizar..."
     sleep 15
@@ -133,10 +148,10 @@ rollback_on_error() {
     done
 
     echo "Status após rollback:"
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml ps || true
+    compose_here ps || true
 
     echo "Logs do backend após rollback:"
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml logs backend --tail=120 || true
+    compose_here logs backend --tail=120 || true
   else
     echo "Nenhuma release anterior encontrada para rollback."
     echo "Motivo típico: primeiro deploy ou symlink current ainda não criado."
@@ -174,8 +189,13 @@ fi
 
 log "VALIDANDO ARQUIVOS"
 require_file "infra/docker/docker-compose.prod.yml"
+require_file "infra/docker/docker-compose.monitoring.yml"
 require_file "infra/docker/Dockerfile.backend"
 require_file "infra/docker/Dockerfile.frontend"
+require_file "infra/monitoring/alertmanager/alertmanager.yml"
+require_file "infra/monitoring/blackbox/blackbox.yml"
+require_file "infra/monitoring/prometheus/prometheus.yml"
+require_file "infra/monitoring/prometheus/rules/alerts.yml"
 require_file "backend/manage.py"
 require_file "$SHARED_DIR/.env"
 
@@ -187,9 +207,9 @@ if [[ -n "${CURRENT_TARGET:-}" && -d "$CURRENT_TARGET" ]]; then
 
   if [[ "$RESET_DB" == "true" ]]; then
     echo "RESET_DB=true: derrubando stack anterior e removendo volumes..."
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down -v
+    compose_here down -v
   else
-    docker compose --env-file "$SHARED_DIR/.env" -f docker-compose.prod.yml down
+    compose_here down
   fi
 else
   echo "Nenhuma stack anterior encontrada."

@@ -9,6 +9,7 @@ import { ApiError } from '@/services/http/ApiError'
 
 type LocationState = { from?: { pathname: string } }
 
+/** Página pública de login; após sucesso redireciona para rota de origem ou `/`. */
 export default function LoginPage() {
   const { user, status, login } = useAuth()
   const navigate = useNavigate()

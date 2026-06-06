@@ -1,3 +1,5 @@
+"""Especificação de válvula pneumática/hidráulica com solenoides e feedback."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -19,6 +21,8 @@ from .io_sync import reset_io_flags, save_io_flags
 
 
 class CargaValvula(models.Model):
+    """Válvula; ocupa saídas digitais por solenoide e entrada se houver feedback."""
+
     carga = models.OneToOneField(
         Carga,
         on_delete=models.CASCADE,
@@ -89,8 +93,8 @@ class CargaValvula(models.Model):
     tipo_rele_interface = models.CharField(
         max_length=30,
         choices=TipoReleInterfaceValvulaChoices.choices,
-        null=True,
         blank=True,
+        default="",
         help_text=(
             "Quando o acionamento é relé de interface: eletromecânico ou estado sólido."
         ),
@@ -156,7 +160,7 @@ class CargaValvula(models.Model):
 
     def save(self, *args, **kwargs):
         if self.tipo_acionamento != TipoAcionamentoValvulaChoices.RELE_INTERFACE:
-            self.tipo_rele_interface = None
+            self.tipo_rele_interface = ""
         self.full_clean()
         super().save(*args, **kwargs)
         self.sincronizar_quantidades_carga()

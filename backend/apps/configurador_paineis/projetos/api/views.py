@@ -1,3 +1,5 @@
+"""Endpoints REST do módulo projetos (CRUD, dashboard, código e responsáveis)."""
+
 from apps.configurador_paineis.cargas.models import Carga
 from apps.catalogo.models import Produto
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
@@ -17,10 +19,10 @@ from core.choices import (
 from core.permissions import PermissionKeys
 from apps.configurador_paineis.projetos.api.serializers import (
     ProjetoDashboardMiniSerializer,
-    ProjetoEventoSerializer,
+    ProjetoConfiguradorEventoSerializer,
     ProjetoSerializer,
 )
-from apps.configurador_paineis.projetos.models import Projeto, ProjetoEvento
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador, ProjetoConfiguradorEvento
 from apps.configurador_paineis.projetos.services.codigo_projeto import sugerir_proximo_codigo_projeto
 from apps.configurador_paineis.projetos.services.rastreabilidade import registrar_evento_projeto
 from apps.configurador_paineis.projetos.services.tensao_nominal_dependentes import (
@@ -34,7 +36,7 @@ class DashboardResumoView(APIView):
     required_permission = PermissionKeys.PROJETO_VISUALIZAR
 
     def get(self, request):
-        projetos_qs = _visible_projetos_queryset(request.user, Projeto.objects.filter(ativo=True))
+        projetos_qs = _visible_projetos_queryset(request.user, ProjetoConfigurador.objects.filter(ativo=True))
         recentes = projetos_qs.order_by("-atualizado_em", "-criado_em")[:10]
 
         data = {
@@ -73,15 +75,39 @@ class DashboardResumoView(APIView):
 
 class ProjetoAlocarCodigoView(APIView):
     """
-    POST: devolve sugestão do próximo código (MMnnn-AA) para a tela de novo projeto.
-    Não grava nada: o sequencial só avança quando um projeto é salvo com esse código.
+    POST: devolve sugestão de código para novo projeto.
+    Sem corpo: MMnnn-AA sequencial. Com orcamento_id: CONF-MMnnn-AA alinhado à proposta.
+    Não grava no banco até o utilizador salvar a configuração.
     """
 
     permission_classes = [HasEffectivePermission]
     required_permission = PermissionKeys.PROJETO_CRIAR
 
     def post(self, request):
-        codigo = sugerir_proximo_codigo_projeto()
+        from apps.configurador_paineis.projetos.services.codigo_projeto import (
+            sugerir_codigo_configurador_de_proposta,
+            sugerir_proximo_codigo_projeto,
+        )
+        from apps.orcamentos.models import Orcamento
+
+        orcamento_id = request.data.get("orcamento_id")
+        if orcamento_id:
+            orcamento = Orcamento.objects.filter(pk=orcamento_id).first()
+            if not orcamento or not (orcamento.codigo_base or "").strip():
+                return Response(
+                    {"detail": "Proposta não encontrada ou sem código base."},
+                    status=400,
+                )
+            try:
+                ordem = int(request.data.get("ordem_painel", 0))
+            except (TypeError, ValueError):
+                ordem = 0
+            codigo = sugerir_codigo_configurador_de_proposta(
+                orcamento.codigo_base,
+                ordem_painel=max(0, ordem),
+            )
+        else:
+            codigo = sugerir_proximo_codigo_projeto()
         return Response({"codigo": codigo})
 
 
@@ -96,14 +122,14 @@ class ProjetoResponsavelOptionsView(APIView):
     def get(self, request):
         from django.contrib.auth import get_user_model
 
-        User = get_user_model()
+        user_model = get_user_model()
         if request.user.is_superuser or request.user.tipo_usuario in (
             TipoUsuarioChoices.ADMIN,
             TipoUsuarioChoices.ALMOXARIFADO,
         ):
-            users = User.objects.filter(is_active=True).order_by("first_name", "email")
+            users = user_model.objects.filter(is_active=True).order_by("first_name", "email")
         else:
-            users = User.objects.filter(pk=request.user.pk)
+            users = user_model.objects.filter(pk=request.user.pk)
 
         data = [
             {
@@ -118,7 +144,9 @@ class ProjetoResponsavelOptionsView(APIView):
 
 
 class ProjetoViewSet(ModelViewSet):
-    queryset = Projeto.objects.all().order_by("-criado_em")
+    """CRUD de projetos com filtro por perfil e efeitos colaterais na edição."""
+
+    queryset = ProjetoConfigurador.objects.all().order_by("-criado_em")
     serializer_class = ProjetoSerializer
     permission_classes = [HasEffectivePermission]
 
@@ -137,6 +165,7 @@ class ProjetoViewSet(ModelViewSet):
         return None
 
     def perform_create(self, serializer):
+        """Define criador/atualizador, responsável padrão e registra evento de criação."""
         projeto = serializer.save(
             criado_por=self.request.user,
             atualizado_por=self.request.user,
@@ -152,6 +181,10 @@ class ProjetoViewSet(ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        """
+        Atualiza projeto; se a tensão nominal mudar, reinicia composição
+        e recalcula dimensionamento via serviço de dependentes.
+        """
         tensao_antes = serializer.instance.tensao_nominal
         projeto = serializer.save(atualizado_por=self.request.user)
         tensao_alterada = tensao_antes != projeto.tensao_nominal
@@ -202,13 +235,20 @@ class ProjetoViewSet(ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="historico")
     def historico(self, request, pk=None):
+        """Lista os últimos 200 eventos de rastreabilidade do projeto."""
         projeto = self.get_object()
-        eventos = ProjetoEvento.objects.filter(projeto=projeto).select_related("usuario")
-        data = ProjetoEventoSerializer(eventos[:200], many=True).data
+        eventos = ProjetoConfiguradorEvento.objects.filter(
+            projeto_configurador=projeto
+        ).select_related("usuario")
+        data = ProjetoConfiguradorEventoSerializer(eventos[:200], many=True).data
         return Response(data)
 
 
 def _visible_projetos_queryset(user, qs):
+    """
+    Restringe projetos visíveis: admin/almoxarifado veem todos;
+    orçamentista e demais perfis veem apenas os que criaram ou são responsáveis.
+    """
     if not getattr(user, "is_authenticated", False):
         return qs.none()
 

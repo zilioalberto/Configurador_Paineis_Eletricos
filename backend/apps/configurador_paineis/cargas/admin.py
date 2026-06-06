@@ -1,3 +1,5 @@
+"""Configuração do Django Admin para cargas e inlines por tipo."""
+
 from django.contrib import admin
 
 from core.choices import TipoCargaChoices
@@ -152,6 +154,8 @@ class CargaTransdutorInline(admin.StackedInline):
 
 @admin.register(Carga)
 class CargaAdmin(admin.ModelAdmin):
+    """Admin com inline dinâmico conforme tipo; IO é somente leitura (calculado)."""
+
     list_display = (
         "tag",
         "descricao",
@@ -224,6 +228,7 @@ class CargaAdmin(admin.ModelAdmin):
     )
 
     def get_inlines(self, request, obj=None):
+        """Exibe inline de motor/válvula/resistência/sensor/transdutor conforme o tipo."""
         if obj is None:
             return []
 

@@ -1,3 +1,4 @@
+"""API somente leitura de itens fiscais vinculados ao catálogo."""
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -9,6 +10,8 @@ from core.permissions import PermissionKeys
 
 
 class ItemFiscalPagination(PageNumberPagination):
+    """Paginação padrão da listagem de itens fiscais."""
+
     page_size = 50
     page_size_query_param = "page_size"
     max_page_size = 200

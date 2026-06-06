@@ -1,3 +1,5 @@
+"""Endpoints REST de cadastros (parceiros, endereços e contatos)."""
+
 from django.db.models import Q
 from rest_framework.viewsets import ModelViewSet
 
@@ -12,11 +14,15 @@ from core.permissions import PermissionKeys
 
 
 class ParceiroComercialViewSet(ModelViewSet):
+    """CRUD de parceiros com filtros por tipo (cliente/fornecedor), ativo e busca."""
+
     serializer_class = ParceiroComercialSerializer
     permission_classes = [HasEffectivePermission]
 
     def get_queryset(self):
-        qs = ParceiroComercial.objects.prefetch_related("enderecos", "contatos").order_by(
+        qs = ParceiroComercial.objects.prefetch_related(
+            "enderecos", "contatos", "cnaes", "socios"
+        ).order_by(
             "razao_social",
             "documento",
         )
@@ -51,6 +57,8 @@ class ParceiroComercialViewSet(ModelViewSet):
 
 
 class EnderecoParceiroViewSet(ModelViewSet):
+    """CRUD de endereços; filtro opcional por parceiro."""
+
     serializer_class = EnderecoParceiroSerializer
     permission_classes = [HasEffectivePermission]
 
@@ -68,6 +76,8 @@ class EnderecoParceiroViewSet(ModelViewSet):
 
 
 class ContatoParceiroViewSet(ModelViewSet):
+    """CRUD de contatos; filtro opcional por parceiro."""
+
     serializer_class = ContatoParceiroSerializer
     permission_classes = [HasEffectivePermission]
 

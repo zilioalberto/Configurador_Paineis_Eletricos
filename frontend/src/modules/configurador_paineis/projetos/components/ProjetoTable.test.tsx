@@ -61,8 +61,8 @@ describe('ProjetoTable', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByRole('link', { name: 'Visualizar' })).toBeInTheDocument()
     expect(screen.getByText('Fulano Responsável')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Continuar fluxo/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Excluir' })).not.toBeInTheDocument()
   })

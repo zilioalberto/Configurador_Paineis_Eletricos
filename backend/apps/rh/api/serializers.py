@@ -1,3 +1,5 @@
+"""Serializers da API de RH."""
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -36,6 +38,8 @@ class CargoSerializer(serializers.ModelSerializer):
 
 
 class JornadaTrabalhoSerializer(serializers.ModelSerializer):
+    """Jornada com validação de horários e dias da semana (0=seg … 6=dom)."""
+
     class Meta:
         model = JornadaTrabalho
         fields = (
@@ -115,6 +119,8 @@ class EquipeSerializer(serializers.ModelSerializer):
 
 
 class ColaboradorSerializer(serializers.ModelSerializer):
+    """Colaborador enriquecido com nomes de cargo, departamento, equipe e jornada."""
+
     usuario_email = serializers.SerializerMethodField()
     cargo_nome = serializers.SerializerMethodField()
     departamento_nome = serializers.SerializerMethodField()

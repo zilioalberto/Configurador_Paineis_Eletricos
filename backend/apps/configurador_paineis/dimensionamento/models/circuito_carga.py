@@ -3,7 +3,7 @@ from django.db import models
 from core.models import BaseModel
 from core.choices import TipoCargaChoices
 from apps.configurador_paineis.cargas.models import Carga
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 class ClassificacaoCircuitoChoices(models.TextChoices):
@@ -18,7 +18,7 @@ class DimensionamentoCircuitoCarga(BaseModel):
     """
 
     projeto = models.ForeignKey(
-        Projeto,
+        ProjetoConfigurador,
         on_delete=models.CASCADE,
         related_name="dimensionamentos_circuito_carga",
     )

@@ -1,8 +1,13 @@
+/**
+ * Chaves de permissão espelhando `PermissaoUsuarioChoices` do backend.
+ * Usadas em guards de rota e menus condicionais.
+ */
 export const PERMISSION_KEYS = {
   ORCAMENTO_VISUALIZAR: 'orcamento.visualizar',
   ORCAMENTO_CRIAR: 'orcamento.criar',
   ORCAMENTO_EDITAR: 'orcamento.editar',
   ORCAMENTO_APROVAR: 'orcamento.aprovar',
+  ORCAMENTO_APLICAR_DESCONTO: 'orcamento.aplicar_desconto',
 
   PROJETO_VISUALIZAR: 'projeto.visualizar',
   PROJETO_CRIAR: 'projeto.criar',
@@ -11,6 +16,7 @@ export const PERMISSION_KEYS = {
 
   MATERIAL_VISUALIZAR_LISTA: 'material.visualizar_lista',
   MATERIAL_EDITAR_LISTA: 'material.editar_lista',
+  CATALOGO_REVISAR_PRECO: 'catalogo.revisar_preco',
 
   CADASTRO_VISUALIZAR: 'cadastro.visualizar',
   CADASTRO_EDITAR: 'cadastro.editar',

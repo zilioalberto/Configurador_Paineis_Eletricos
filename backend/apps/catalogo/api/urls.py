@@ -1,3 +1,5 @@
+"""Rotas da API do catálogo (produtos, categorias, importação NF-e)."""
+
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
@@ -11,6 +13,7 @@ from apps.catalogo.api.views import (
     CategoriaProdutoViewSet,
     PlcFamiliasListView,
     ProdutoViewSet,
+    ServicoViewSet,
 )
 
 router = DefaultRouter()
@@ -20,6 +23,7 @@ router.register(
     basename="catalogo-categorias",
 )
 router.register(r"catalogo/produtos", ProdutoViewSet, basename="catalogo-produtos")
+router.register(r"catalogo/servicos", ServicoViewSet, basename="catalogo-servicos")
 
 urlpatterns = [
     path("catalogo/plc-familias/", PlcFamiliasListView.as_view(), name="catalogo-plc-familias"),

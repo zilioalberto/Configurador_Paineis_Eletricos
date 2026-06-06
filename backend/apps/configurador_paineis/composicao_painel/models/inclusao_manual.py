@@ -11,7 +11,7 @@ class ComposicaoInclusaoManual(BaseModel):
     """
 
     projeto = models.ForeignKey(
-        "projetos.Projeto",
+        "projetos.ProjetoConfigurador",
         on_delete=models.CASCADE,
         related_name="composicao_inclusoes_manuais",
     )

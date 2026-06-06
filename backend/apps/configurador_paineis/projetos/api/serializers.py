@@ -1,11 +1,16 @@
+"""Serializers DRF para leitura/escrita de projetos e eventos."""
+
 import re
 
 from rest_framework import serializers
 
-from apps.configurador_paineis.projetos.models import Projeto, ProjetoEvento
+from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador, ProjetoConfiguradorEvento
 
 
 class ProjetoSerializer(serializers.ModelSerializer):
+    """Serializer completo do projeto; código read-only após criação."""
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
@@ -44,29 +49,69 @@ class ProjetoSerializer(serializers.ModelSerializer):
             self.fields["codigo"].read_only = True
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = "__all__"
         read_only_fields = (
             "criado_por",
             "atualizado_por",
+            "degraus_margem_bitola_condutores",
         )
+        extra_kwargs = {
+            "familia_plc": {"allow_null": True, "required": False},
+            "tipo_climatizacao": {"allow_null": True, "required": False},
+            "tipo_seccionamento": {"allow_null": True, "required": False},
+        }
 
     def validate_codigo(self, value):
         if value is None or (isinstance(value, str) and not value.strip()):
             return value
         v = value.strip().upper()
-        if not re.fullmatch(r"\d{2}\d{3}-\d{2}", v):
+        formato_conf = bool(re.fullmatch(r"CONF-\d{5}-\d{2}(-P\d{2})?", v))
+        formato_auto = bool(re.fullmatch(r"\d{2}\d{3}-\d{2}", v))
+        if not formato_conf and not formato_auto:
             raise serializers.ValidationError(
-                "Código deve estar no formato MMnnn-AA (ex.: 04001-26)."
+                "Código deve estar no formato MMnnn-AA, CONF-MMnnn-AA "
+                "(ex.: CONF-05008-26) ou CONF-MMnnn-AA-P02 para painéis adicionais."
             )
         # Em criação, não checamos unicidade aqui: duas requisições podem receber a mesma
         # sugestão; o `Projeto.save()` trata colisão com retry e novo código. Na edição,
         # o código é read-only; esta checagem cobre alterações futuras via admin/API.
         if self.instance is not None:
-            qs = Projeto.objects.filter(codigo=v).exclude(pk=self.instance.pk)
+            qs = ProjetoConfigurador.objects.filter(codigo=v).exclude(pk=self.instance.pk)
             if qs.exists():
                 raise serializers.ValidationError("Este código já está em uso.")
         return v
+
+    def validate(self, attrs):
+        """Normaliza campos dependentes quando checkboxes vêm como False sem valor explícito."""
+        attrs = super().validate(attrs)
+
+        if attrs.get("possui_plc") is False and attrs.get("familia_plc") is None:
+            attrs["familia_plc"] = ""
+
+        if (
+            attrs.get("possui_climatizacao") is False
+            and attrs.get("tipo_climatizacao") is None
+        ):
+            attrs["tipo_climatizacao"] = ""
+
+        if (
+            attrs.get("possui_seccionamento") is False
+            and attrs.get("tipo_seccionamento") is None
+        ):
+            attrs["tipo_seccionamento"] = ""
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("degraus_margem_bitola_condutores", None)
+        validated_data["degraus_margem_bitola_condutores"] = obter_degraus_margem_bitola_condutores()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop("degraus_margem_bitola_condutores", None)
+        validated_data["degraus_margem_bitola_condutores"] = obter_degraus_margem_bitola_condutores()
+        return super().update(instance, validated_data)
 
     def get_criado_por_nome(self, obj):
         user = obj.criado_por
@@ -91,13 +136,15 @@ class ProjetoSerializer(serializers.ModelSerializer):
 
 
 class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
+    """Resumo enxuto para cards do dashboard (KPIs e lista recente)."""
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
     )
 
     class Meta:
-        model = Projeto
+        model = ProjetoConfigurador
         fields = (
             "id",
             "codigo",
@@ -109,14 +156,16 @@ class ProjetoDashboardMiniSerializer(serializers.ModelSerializer):
         )
 
 
-class ProjetoEventoSerializer(serializers.ModelSerializer):
+class ProjetoConfiguradorEventoSerializer(serializers.ModelSerializer):
+    """Evento de rastreabilidade com nome legível do usuário."""
+
     usuario_nome = serializers.SerializerMethodField()
 
     class Meta:
-        model = ProjetoEvento
+        model = ProjetoConfiguradorEvento
         fields = (
             "id",
-            "projeto",
+            "projeto_configurador",
             "usuario",
             "usuario_nome",
             "modulo",

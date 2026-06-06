@@ -6,6 +6,7 @@ import RequireAuth from '@/modules/auth/RequireAuth'
 import { appChildRoutes } from '@/app/navigation'
 
 const LoginPage = lazy(() => import('@/modules/auth/pages/LoginPage'))
+const OfertaPublicaPage = lazy(() => import('@/modules/orcamentos/pages/OfertaPublicaPage'))
 
 function LoginFallback() {
   return (
@@ -30,6 +31,15 @@ export default function AppRouter() {
           element={
             <Suspense fallback={<LoginFallback />}>
               <LoginPage />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="/oferta-publica/:token"
+          element={
+            <Suspense fallback={<LoginFallback />}>
+              <OfertaPublicaPage />
             </Suspense>
           }
         />

@@ -1,7 +1,9 @@
+"""Regras de ciclo de vida do projeto: edição, finalização e reabertura."""
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem, PendenciaItem, ComposicaoItem
 from core.choices import (
     StatusProjetoChoices,
@@ -9,10 +11,13 @@ from core.choices import (
     StatusPendenciaChoices,
 )
 
+MSG_PROJETO_NAO_INFORMADO = "Projeto não informado."
 
-def validar_projeto_editavel(projeto: Projeto) -> None:
+
+def validar_projeto_editavel(projeto: ProjetoConfigurador) -> None:
+    """Impede alterações em projetos com status FINALIZADO."""
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status == StatusProjetoChoices.FINALIZADO:
         raise ValidationError(
@@ -20,9 +25,13 @@ def validar_projeto_editavel(projeto: Projeto) -> None:
         )
 
 
-def validar_projeto_pode_ser_finalizado(projeto: Projeto) -> None:
+def validar_projeto_pode_ser_finalizado(projeto: ProjetoConfigurador) -> None:
+    """
+    Exige composição com itens e ausência de sugestões/pendências abertas
+    antes de encerrar o projeto.
+    """
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status == StatusProjetoChoices.FINALIZADO:
         raise ValidationError("O projeto já está finalizado.")
@@ -55,7 +64,8 @@ def validar_projeto_pode_ser_finalizado(projeto: Projeto) -> None:
 
 
 @transaction.atomic
-def finalizar_projeto(projeto: Projeto) -> Projeto:
+def finalizar_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
+    """Marca o projeto como FINALIZADO após validar pré-requisitos."""
     validar_projeto_pode_ser_finalizado(projeto)
 
     projeto.status = StatusProjetoChoices.FINALIZADO
@@ -64,9 +74,10 @@ def finalizar_projeto(projeto: Projeto) -> Projeto:
     return projeto
 
 
-def validar_projeto_pode_ser_reaberto(projeto: Projeto) -> None:
+def validar_projeto_pode_ser_reaberto(projeto: ProjetoConfigurador) -> None:
+    """Somente projetos finalizados podem voltar para EM_ANDAMENTO."""
     if projeto is None:
-        raise ValidationError("Projeto não informado.")
+        raise ValidationError(MSG_PROJETO_NAO_INFORMADO)
 
     if projeto.status != StatusProjetoChoices.FINALIZADO:
         raise ValidationError(
@@ -75,7 +86,8 @@ def validar_projeto_pode_ser_reaberto(projeto: Projeto) -> None:
 
 
 @transaction.atomic
-def reabrir_projeto(projeto: Projeto) -> Projeto:
+def reabrir_projeto(projeto: ProjetoConfigurador) -> ProjetoConfigurador:
+    """Reabre projeto finalizado para permitir novas alterações."""
     validar_projeto_pode_ser_reaberto(projeto)
 
     projeto.status = StatusProjetoChoices.EM_ANDAMENTO

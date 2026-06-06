@@ -10,7 +10,7 @@ from core.choices import (
     TipoConexaoAlimetacaoChoices,
     UnidadePotenciaCorrenteChoices,
 )
-from apps.configurador_paineis.projetos.models import Projeto
+from apps.configurador_paineis.projetos.models import ProjetoConfigurador
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def projeto_ca_minimo_kwargs():
 @pytest.fixture
 def criar_projeto(projeto_ca_minimo_kwargs):
     def _criar(*, nome: str, codigo: str, **extra):
-        return Projeto.objects.create(
+        return ProjetoConfigurador.objects.create(
             nome=nome,
             codigo=codigo,
             **{**projeto_ca_minimo_kwargs, **extra},

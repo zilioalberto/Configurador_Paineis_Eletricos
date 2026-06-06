@@ -1,3 +1,7 @@
+/**
+ * Contexto global de autenticação: bootstrap com tokens em localStorage,
+ * login/logout e perfil via `auth/me/`.
+ */
 import {
   createContext,
   useCallback,
@@ -29,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 type AuthProviderProps = Readonly<{ children: ReactNode }>
 
+/** Provê estado de sessão e ações de login/logout à árvore React. */
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
@@ -98,6 +103,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+/** Hook de acesso ao contexto; exige `AuthProvider` ancestral. */
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) {

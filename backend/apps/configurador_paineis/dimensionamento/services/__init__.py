@@ -1,3 +1,5 @@
+"""Serviços de cálculo do dimensionamento (corrente, I/O, condutores, automação)."""
+
 from .corrente_total import (
     calcular_corrente_total_painel,
     calcular_e_salvar_corrente_total_painel,

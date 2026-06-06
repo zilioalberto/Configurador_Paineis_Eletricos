@@ -1,7 +1,13 @@
+/**
+ * Catálogo estático de módulos do ERP (roadmap + rotas operacionais).
+ * Espelha `config/erp_registry.py` no backend.
+ */
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 
+/** Status de disponibilidade no launcher de módulos. */
 export type ErpModuleStatus = 'available' | 'planned'
 
+/** Módulo do roadmap com status e permissões necessárias para exibição. */
 export type ErpModule = {
   id: string
   /** Pacote Python importável (ex.: `apps.catalogo`; espelha `erp_registry`). */
@@ -15,6 +21,7 @@ export type ErpModule = {
   permissions?: string[]
 }
 
+/** Lista completa de módulos mapeados no produto. */
 export const ERP_MODULES: ErpModule[] = [
   {
     id: 'configurador_paineis',
@@ -36,9 +43,9 @@ export const ERP_MODULES: ErpModule[] = [
     title: 'Catálogo',
     area: 'Base compartilhada',
     summary:
-      'Produtos, categorias, especificações técnicas e importação de XML de NF-e de fornecedores.',
+      'Produtos, serviços, categorias, especificações técnicas e importação de XML de NF-e de fornecedores.',
     status: 'available',
-    to: '/catalogo',
+    to: '/catalogo/produtos',
     permissions: [PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA],
   },
   {

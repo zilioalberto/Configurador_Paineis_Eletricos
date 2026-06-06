@@ -20,6 +20,7 @@ from core.choices import (
     TipoCorrenteChoices,
     TipoSinalChoices,
 )
+from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
 from apps.configurador_paineis.dimensionamento.models import ClassificacaoCircuitoChoices
 
 def _fd(projeto) -> Decimal:
@@ -29,13 +30,8 @@ def _fd(projeto) -> Decimal:
     return Decimal(fd)
 
 
-def _degraus_margem_bitola(projeto) -> int:
-    raw = getattr(projeto, "degraus_margem_bitola_condutores", 0) or 0
-    try:
-        d = int(raw)
-    except (TypeError, ValueError):
-        d = 0
-    return max(0, min(d, 25))
+def _degraus_margem_bitola(_projeto=None) -> int:
+    return obter_degraus_margem_bitola_condutores()
 
 
 def _secao_fase_por_corrente(corrente: Decimal, projeto) -> Decimal:
@@ -322,7 +318,7 @@ def dimensionar_transdutor(espec, projeto, carga) -> dict:
     }
 
 
-def dimensionar_transmissor(projeto, carga) -> dict:
+def dimensionar_transmissor() -> dict:
     secao = fixo_um_mm2()
     linhas = [
         "Transmissor (sem especificação detalhada): 2 condutores + PE; 1 mm² — evoluir por tipo de sinal.",
@@ -345,33 +341,44 @@ def dimensionar_transmissor(projeto, carga) -> dict:
     }
 
 
+def _dimensionar_com_especificacao(carga, projeto, attr: str, dimensionar_fn):
+    espec = getattr(carga, attr, None)
+    if not espec:
+        return None
+    return dimensionar_fn(espec, projeto, carga)
+
+
+_DIMENSIONADORES_POR_TIPO = {
+    TipoCargaChoices.MOTOR: (
+        "motor",
+        dimensionar_motor,
+    ),
+    TipoCargaChoices.RESISTENCIA: (
+        "resistencia",
+        dimensionar_resistencia,
+    ),
+    TipoCargaChoices.VALVULA: (
+        "valvula",
+        dimensionar_valvula,
+    ),
+    TipoCargaChoices.SENSOR: (
+        "sensor",
+        dimensionar_sensor,
+    ),
+    TipoCargaChoices.TRANSDUTOR: (
+        "transdutor",
+        dimensionar_transdutor,
+    ),
+}
+
+
 def dimensionar_circuito_para_carga(carga, projeto) -> dict | None:
-    tipo = carga.tipo
-    if tipo == TipoCargaChoices.MOTOR:
-        espec = getattr(carga, "motor", None)
-        if not espec:
-            return None
-        return dimensionar_motor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.RESISTENCIA:
-        espec = getattr(carga, "resistencia", None)
-        if not espec:
-            return None
-        return dimensionar_resistencia(espec, projeto, carga)
-    if tipo == TipoCargaChoices.VALVULA:
-        espec = getattr(carga, "valvula", None)
-        if not espec:
-            return None
-        return dimensionar_valvula(espec, projeto, carga)
-    if tipo == TipoCargaChoices.SENSOR:
-        espec = getattr(carga, "sensor", None)
-        if not espec:
-            return None
-        return dimensionar_sensor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.TRANSDUTOR:
-        espec = getattr(carga, "transdutor", None)
-        if not espec:
-            return None
-        return dimensionar_transdutor(espec, projeto, carga)
-    if tipo == TipoCargaChoices.TRANSMISSOR:
-        return dimensionar_transmissor(projeto, carga)
-    return None
+    if carga.tipo == TipoCargaChoices.TRANSMISSOR:
+        return dimensionar_transmissor()
+
+    config = _DIMENSIONADORES_POR_TIPO.get(carga.tipo)
+    if not config:
+        return None
+
+    attr, dimensionar_fn = config
+    return _dimensionar_com_especificacao(carga, projeto, attr, dimensionar_fn)

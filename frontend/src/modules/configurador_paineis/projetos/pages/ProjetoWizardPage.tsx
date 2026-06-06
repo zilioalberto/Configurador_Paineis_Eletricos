@@ -1,212 +1,116 @@
 import { useCallback, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { useToast } from '@/components/feedback'
-import { useCargaListQuery } from '@/modules/configurador_paineis/cargas/hooks/useCargaListQuery'
-import { useComposicaoSnapshotQuery } from '@/modules/configurador_paineis/composicao/hooks/useComposicaoSnapshotQuery'
 import { useGerarSugestoesMutation } from '@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation'
 import { useReavaliarPendenciasMutation } from '@/modules/configurador_paineis/composicao/hooks/useReavaliarPendenciasMutation'
 import { DimensionamentoWizardShell } from '@/modules/configurador_paineis/dimensionamento/components/DimensionamentoWizardShell'
 import WizardCondutoresPanel from '@/modules/configurador_paineis/dimensionamento/components/WizardCondutoresPanel'
-import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
 import { useRecalcularDimensionamentoMutation } from '@/modules/configurador_paineis/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
-import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
-import { projetoQueryKeys } from '../projetoQueryKeys'
-import { listarHistoricoProjeto } from '../services/projetoService'
+import {
+  ProjetoWizardAcoesRapidas,
+  ProjetoWizardChecklistCard,
+  ProjetoWizardHistoricoCard,
+  ProjetoWizardResumoHeader,
+  ProjetoWizardStepsGrid,
+} from '../components/ProjetoWizardOverview'
+import {
+  ETAPAS_VALIDAS,
+  useProjetoWizardFluxo,
+  type WizardStepId,
+} from '../hooks/useProjetoWizardFluxo'
+import { withFluxoOrigem } from '../utils/fluxoOrigem'
+import { configuradorPaths } from '../../configuradorPaths'
 
-type WizardStepId = 'projeto' | 'cargas' | 'dimensionamento' | 'composicao'
-
-type WizardStep = {
-  id: WizardStepId
-  title: string
-  description: string
-  href: string
-  canEnter: boolean
-  done: boolean
-}
-
-type ChecklistStatus = 'done' | 'pending' | 'blocked'
-
-const ETAPAS_VALIDAS: WizardStepId[] = [
-  'projeto',
-  'cargas',
-  'dimensionamento',
-  'composicao',
-]
-
-function badgeClass(done: boolean, active: boolean): string {
-  if (active) return 'badge bg-primary'
-  if (done) return 'badge bg-success'
-  return 'badge bg-secondary'
-}
-
-function checklistBadgeClass(status: ChecklistStatus): string {
-  if (status === 'done') return 'badge bg-success'
-  if (status === 'blocked') return 'badge bg-secondary'
-  return 'badge bg-warning text-dark'
-}
-
+/**
+ * Shell do wizard por etapa (`/projetos/:id/fluxo/:etapa`):
+ * overview, dimensionamento embutido ou redirecionamentos para cargas/composição.
+ */
 export default function ProjetoWizardPage() {
   const { id, etapa } = useParams<{ id: string; etapa: string }>()
   const projetoId = id ?? ''
   const etapaParam = etapa ?? ''
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const etapaInvalidaNaUrl = Boolean(etapaParam) && !ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
   const etapaAtual: WizardStepId = ETAPAS_VALIDAS.includes(etapaParam as WizardStepId)
     ? (etapaParam as WizardStepId)
     : 'cargas'
 
   const { showToast } = useToast()
-  const { data: projeto, isPending: loadingProjeto } = useProjetoDetailQuery(projetoId || undefined)
-  const { data: cargas = [], isPending: loadingCargas } = useCargaListQuery(projetoId || null)
-  const { data: dimensionamento } = useDimensionamentoQuery(projetoId || null)
-  const { data: composicao } = useComposicaoSnapshotQuery(projetoId || null)
+  const fluxo = useProjetoWizardFluxo(projetoId)
+  const {
+    projeto,
+    loadingProjeto,
+    loadingCargas,
+    cargas,
+    dimensionamento,
+    composicao,
+    historico,
+    temCargas,
+    dimensionamentoEtapaConcluida,
+    prontoParaExportar,
+    ultimaAcaoComUsuarioIdentificado,
+    ultimoEvento,
+    checklist,
+    steps,
+  } = fluxo
+
   const recalcMutation = useRecalcularDimensionamentoMutation(projetoId || null)
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
   const reavaliarMutation = useReavaliarPendenciasMutation(projetoId || null)
-  const { data: historico = [] } = useQuery({
-    queryKey: projetoQueryKeys.historico(projetoId),
-    queryFn: () => listarHistoricoProjeto(projetoId),
-    enabled: Boolean(projetoId),
-  })
-
-  const temCargas = cargas.length > 0
-  const dimensionado = Boolean(dimensionamento)
-  const condutoresRevisaoOk = Boolean(dimensionamento?.condutores_revisao_confirmada)
-  const dimensionamentoEtapaConcluida = dimensionado && condutoresRevisaoOk
-  const composicaoGerada = Boolean(
-    composicao &&
-      ((composicao.totais?.sugestoes ?? 0) > 0 ||
-        (composicao.totais?.composicao_itens ?? 0) > 0 ||
-        (composicao.totais?.pendencias ?? 0) > 0)
-  )
-  const maxCargaAtualizacaoMs = useMemo(() => {
-    if (!temCargas) return 0
-    return cargas.reduce((max, carga) => {
-      const ts = carga.atualizado_em ? new Date(carga.atualizado_em).getTime() : 0
-      return Math.max(max, ts)
-    }, 0)
-  }, [cargas, temCargas])
-  const dimensionamentoAtualizacaoMs = dimensionamento?.atualizado_em
-    ? new Date(dimensionamento.atualizado_em).getTime()
-    : 0
-  const dimensionamentoAposUltimaCarga =
-    temCargas && dimensionado && dimensionamentoAtualizacaoMs >= maxCargaAtualizacaoMs
-  const prontoParaExportar = temCargas && dimensionamentoEtapaConcluida && composicaoGerada
-  const ultimoEvento = historico[0]
-  const ultimaAcaoComUsuarioIdentificado = Boolean(
-    ultimoEvento && (ultimoEvento.usuario_nome || ultimoEvento.usuario)
-  )
-
-  const checklist = useMemo(
-    () => [
-      {
-        key: 'dados-projeto',
-        label: 'Dados principais do projeto preenchidos',
-        status: projeto ? ('done' as const) : ('pending' as const),
-      },
-      {
-        key: 'cargas',
-        label: 'Cargas cadastradas',
-        status: temCargas ? ('done' as const) : ('pending' as const),
-      },
-      {
-        key: 'dimensionamento',
-        label: 'Dimensionamento calculado',
-        status: temCargas ? (dimensionado ? ('done' as const) : ('pending' as const)) : ('blocked' as const),
-      },
-      {
-        key: 'condutores-confirmados',
-        label: 'Bitolas de condutores confirmadas no wizard',
-        status: !temCargas
-          ? ('blocked' as const)
-          : condutoresRevisaoOk
-            ? ('done' as const)
-            : ('pending' as const),
-      },
-      {
-        key: 'dimensionamento-recente',
-        label: 'Dimensionamento atualizado após última alteração de cargas',
-        status: !temCargas
-          ? ('blocked' as const)
-          : dimensionamentoAposUltimaCarga
-            ? ('done' as const)
-            : ('pending' as const),
-      },
-      {
-        key: 'composicao',
-        label: 'Composição gerada',
-        status: !dimensionamentoEtapaConcluida
-          ? ('blocked' as const)
-          : composicaoGerada
-            ? ('done' as const)
-            : ('pending' as const),
-      },
-      {
-        key: 'rastreabilidade-usuario',
-        label: 'Última ação executada por usuário identificado',
-        status: historico.length === 0
-          ? ('pending' as const)
-          : ultimaAcaoComUsuarioIdentificado
-            ? ('done' as const)
-            : ('pending' as const),
-      },
-    ],
-    [
-      projeto,
-      temCargas,
-      dimensionado,
-      condutoresRevisaoOk,
-      dimensionamentoEtapaConcluida,
-      dimensionamentoAposUltimaCarga,
-      composicaoGerada,
-      historico.length,
-      ultimaAcaoComUsuarioIdentificado,
-    ]
-  )
-
-  const steps: WizardStep[] = useMemo(
-    () => [
-      {
-        id: 'projeto',
-        title: 'Dados do projeto',
-        description: 'Revise ou ajuste os dados de entrada do projeto.',
-        href: `/projetos/${projetoId}/editar`,
-        canEnter: true,
-        done: Boolean(projeto),
-      },
-      {
-        id: 'cargas',
-        title: 'Cargas do projeto',
-        description: 'Cadastre as cargas do projeto para liberar o dimensionamento de condutores.',
-        href: `/cargas?projeto=${encodeURIComponent(projetoId)}`,
-        canEnter: Boolean(projeto),
-        done: temCargas,
-      },
-      {
-        id: 'dimensionamento',
-        title: 'Dimensionamento de condutores',
-        description:
-          'Revise bitolas sugeridas, ajuste se necessário (Iz mínimo) e confirme a revisão.',
-        href: `/projetos/${projetoId}/fluxo/dimensionamento`,
-        canEnter: temCargas,
-        done: dimensionamentoEtapaConcluida,
-      },
-      {
-        id: 'composicao',
-        title: 'Composição do painel',
-        description: 'Gere e aprove a composição para exportação final.',
-        href: `/composicao?projeto=${encodeURIComponent(projetoId)}`,
-        canEnter: dimensionamentoEtapaConcluida,
-        done: composicaoGerada,
-      },
-    ],
-    [projetoId, projeto, temCargas, dimensionamentoEtapaConcluida, composicaoGerada]
-  )
 
   const etapaIndex = steps.findIndex((s) => s.id === etapaAtual)
   const proxima = etapaIndex >= 0 ? steps.slice(etapaIndex).find((s) => !s.done && s.canEnter) : null
+  const onSalvarIrSugestoes = useCallback(() => {
+    navigate(withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams))
+  }, [navigate, projetoId, searchParams])
+
+  const toolbarConfig = useMemo(() => {
+    if (etapaAtual !== 'dimensionamento') return null
+
+    const retornoDimensionamento = withFluxoOrigem(
+      configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+      searchParams
+    )
+    const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
+
+    return {
+      title: 'Dimensionamento de condutores',
+      subtitle: undefined,
+      actions: (
+        <>
+          <Link
+            to={editarConfiguracaoPath}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar configurações
+          </Link>
+          <Link
+            to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+            className="btn btn-outline-light btn-sm"
+          >
+            Editar cargas
+          </Link>
+        </>
+      ),
+      primaryAction: {
+        label: 'Salvar e ir para sugestões',
+        disabled: !dimensionamentoEtapaConcluida,
+        onClick: onSalvarIrSugestoes,
+      },
+    }
+  }, [
+    dimensionamentoEtapaConcluida,
+    etapaAtual,
+    onSalvarIrSugestoes,
+    projetoId,
+    searchParams,
+  ])
+
+  useAppPageToolbar(toolbarConfig)
 
   const onRecalcular = useCallback(async () => {
     try {
@@ -255,76 +159,37 @@ export default function ProjetoWizardPage() {
   }, [reavaliarMutation, showToast])
 
   if (!id) {
-    return <Navigate to="/projetos" replace />
+    return <Navigate to={configuradorPaths.configuracoes} replace />
   }
 
   if (etapaInvalidaNaUrl) {
-    return <Navigate to={`/projetos/${projetoId}/fluxo/cargas`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'cargas'), searchParams)} replace />
   }
 
   if (etapaAtual === 'composicao') {
-    return <Navigate to={`/composicao?projeto=${encodeURIComponent(projetoId)}`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)} replace />
   }
 
   if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {
-    return <Navigate to={`/cargas?projeto=${encodeURIComponent(projetoId)}`} replace />
+    return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
   }
+
+  const mostrarOverview = etapaAtual !== 'dimensionamento'
 
   return (
     <div className="container-fluid">
-      {etapaAtual !== 'dimensionamento' ? (
+      {mostrarOverview ? (
         <ProjetoFluxoStepper projetoId={projetoId} etapaAtual={etapaAtual} />
       ) : null}
 
-      {etapaAtual !== 'dimensionamento' ? (
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-          <div>
-            <h1 className="h3 mb-1">Resumo do fluxo</h1>
-            <div className="mb-2">
-              <span
-                className={`badge ${
-                  ultimaAcaoComUsuarioIdentificado ? 'bg-success' : 'bg-warning text-dark'
-                }`}
-              >
-                {ultimaAcaoComUsuarioIdentificado ? 'Audit trail ativo' : 'Audit trail pendente'}
-              </span>
-            </div>
-            <p className="text-muted mb-0">
-              Acompanhe o projeto: cargas, dimensionamento de condutores e composição do painel.
-            </p>
-            {projeto ? (
-              <p className="small text-muted mb-0 mt-1">
-                <strong>{projeto.codigo}</strong> - {projeto.nome}
-              </p>
-            ) : null}
-            {projeto?.responsavel_nome ? (
-              <p className="small text-muted mb-0 mt-1">
-                Responsável atual: <strong>{projeto.responsavel_nome}</strong>
-              </p>
-            ) : null}
-            {ultimoEvento ? (
-              <p className="small text-muted mb-0 mt-1">
-                Última ação: <strong>{ultimoEvento.descricao}</strong> por{' '}
-                <strong>{ultimoEvento.usuario_nome || 'Utilizador não identificado'}</strong> em{' '}
-                {new Date(ultimoEvento.criado_em).toLocaleString()}.
-              </p>
-            ) : (
-              <p className="small text-muted mb-0 mt-1">
-                Última ação: ainda não há eventos registrados para este projeto.
-              </p>
-            )}
-          </div>
-          <div className="d-flex gap-2">
-            <Link className="btn btn-outline-secondary" to={`/projetos/${id}`}>
-              Ver detalhes
-            </Link>
-            {proxima ? (
-              <Link className="btn btn-primary" to={proxima.href}>
-                Continuar em {proxima.title}
-              </Link>
-            ) : null}
-          </div>
-        </div>
+      {mostrarOverview ? (
+        <ProjetoWizardResumoHeader
+          projetoId={projetoId}
+          projeto={projeto}
+          ultimoEvento={ultimoEvento}
+          ultimaAcaoComUsuarioIdentificado={ultimaAcaoComUsuarioIdentificado}
+          proxima={proxima}
+        />
       ) : null}
 
       {loadingProjeto ? <p className="text-muted">Carregando projeto...</p> : null}
@@ -332,7 +197,6 @@ export default function ProjetoWizardPage() {
       {etapaAtual === 'dimensionamento' ? (
         <DimensionamentoWizardShell
           projetoId={projetoId}
-          projetoCodigo={projeto?.codigo}
           projetoNome={projeto?.nome}
           temCargas={temCargas}
         >
@@ -345,7 +209,7 @@ export default function ProjetoWizardPage() {
               </p>
               <Link
                 className="btn btn-sm btn-outline-primary"
-                to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}
+                to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
               >
                 Gerenciar cargas
               </Link>
@@ -354,185 +218,30 @@ export default function ProjetoWizardPage() {
         </DimensionamentoWizardShell>
       ) : null}
 
-      {etapaAtual !== 'dimensionamento' ? (
-      <div className="row g-3 mb-4">
-        {steps.map((step) => {
-          const active = step.id === etapaAtual
-          return (
-            <div className="col-12 col-lg-6" key={step.id}>
-              <div className={`card h-100 ${active ? 'border-primary' : ''}`}>
-                <div className="card-body d-flex flex-column gap-2">
-                  <div className="d-flex justify-content-between align-items-center gap-2">
-                    <h2 className="h5 mb-0">{step.title}</h2>
-                    <span className={badgeClass(step.done, active)}>
-                      {step.done ? 'Concluída' : active ? 'Atual' : 'Pendente'}
-                    </span>
-                  </div>
-                  <p className="text-muted small mb-0">{step.description}</p>
-                  <div className="mt-auto">
-                    <Link
-                      className={`btn btn-sm ${step.canEnter ? 'btn-outline-primary' : 'btn-outline-secondary disabled'}`}
-                      to={step.canEnter ? step.href : '#'}
-                      aria-disabled={!step.canEnter}
-                      onClick={(e) => {
-                        if (!step.canEnter) e.preventDefault()
-                      }}
-                    >
-                      Abrir etapa
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      ) : null}
-
-      {etapaAtual !== 'dimensionamento' ? (
-      <div className="card mb-4">
-        <div className="card-body">
-          <h2 className="h5 mb-3">Ações rápidas do fluxo</h2>
-          <div className="row g-3">
-            <div className="col-12 col-lg-4">
-              <div className="border rounded p-3 h-100">
-                <h3 className="h6">Cargas</h3>
-                <p className="small text-muted mb-2">
-                  {temCargas ? `${cargas.length} carga(s) cadastrada(s).` : 'Nenhuma carga cadastrada.'}
-                </p>
-                <Link className="btn btn-sm btn-outline-primary" to={`/cargas?projeto=${encodeURIComponent(projetoId)}`}>
-                  Gerenciar cargas
-                </Link>
-              </div>
-            </div>
-            <div className="col-12 col-lg-4">
-              <div className="border rounded p-3 h-100">
-                <h3 className="h6">Dimensionamento de condutores</h3>
-                <p className="small text-muted mb-2">
-                  {dimensionamento
-                    ? `Corrente total: ${dimensionamento.corrente_total_painel_a} A`
-                    : 'Sem cálculo salvo para este projeto.'}
-                </p>
-                <div className="d-flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary"
-                    disabled={!temCargas || recalcMutation.isPending}
-                    onClick={() => void onRecalcular()}
-                  >
-                    {recalcMutation.isPending ? 'Recalculando...' : 'Recalcular agora'}
-                  </button>
-                  <Link
-                    className="btn btn-sm btn-outline-secondary"
-                    to={`/projetos/${projetoId}/fluxo/dimensionamento`}
-                  >
-                    Abrir revisão de condutores
-                  </Link>
-                </div>
-              </div>
-            </div>
-            <div className="col-12 col-lg-4">
-              <div className="border rounded p-3 h-100">
-                <h3 className="h6">Composição do painel</h3>
-                <p className="small text-muted mb-2">
-                  Sugestões: {composicao?.totais?.sugestoes ?? 0} | Pendências: {composicao?.totais?.pendencias ?? 0}
-                </p>
-                <div className="d-flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-primary"
-                    disabled={!dimensionamentoEtapaConcluida || gerarMutation.isPending}
-                    onClick={() => void onGerarSugestoes()}
-                  >
-                    {gerarMutation.isPending ? 'Gerando...' : 'Gerar sugestões'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    disabled={!dimensionamentoEtapaConcluida || reavaliarMutation.isPending}
-                    onClick={() => void onReavaliarPendencias()}
-                  >
-                    {reavaliarMutation.isPending ? 'Reavaliando...' : 'Reavaliar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      ) : null}
-
-      {etapaAtual !== 'dimensionamento' ? (
-      <div className="card mb-4">
-        <div className="card-body">
-          <h2 className="h5 mb-3">Checklist de conclusão</h2>
-          <ul className="list-group mb-3">
-            {checklist.map((item) => (
-              <li
-                key={item.key}
-                className="list-group-item d-flex justify-content-between align-items-center gap-2"
-              >
-                <span>{item.label}</span>
-                <span className={checklistBadgeClass(item.status)}>
-                  {item.status === 'done'
-                    ? 'Concluído'
-                    : item.status === 'blocked'
-                      ? 'Bloqueado'
-                      : 'Pendente'}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-              <strong>Status final:</strong>{' '}
-              {prontoParaExportar ? (
-                <span className="text-success">Pronto para exportação</span>
-              ) : (
-                <span className="text-muted">Fluxo técnico ainda não concluído</span>
-              )}
-            </div>
-            <Link
-              to={`/composicao?projeto=${encodeURIComponent(projetoId)}`}
-              className={`btn btn-sm ${prontoParaExportar ? 'btn-success' : 'btn-outline-secondary'}`}
-            >
-              {prontoParaExportar ? 'Ir para exportação da composição' : 'Abrir composição'}
-            </Link>
-          </div>
-        </div>
-      </div>
-      ) : null}
-
-      {etapaAtual !== 'dimensionamento' ? (
-      <div className="card">
-        <div className="card-body">
-          <h2 className="h5 mb-3">Rastreabilidade do projeto</h2>
-          <p className="text-muted small">
-            Registro das ações executadas por usuário no projeto.
-          </p>
-          {historico.length === 0 ? (
-            <p className="small text-muted mb-0">Ainda não há eventos registrados.</p>
-          ) : (
-            <ul className="list-group">
-              {historico.slice(0, 15).map((evento) => (
-                <li className="list-group-item" key={evento.id}>
-                  <div className="d-flex justify-content-between gap-3 flex-wrap">
-                    <div>
-                      <strong>{evento.descricao}</strong>
-                      <div className="small text-muted">
-                        {evento.usuario_nome || 'Utilizador não identificado'} - {evento.modulo}
-                      </div>
-                    </div>
-                    <span className="small text-muted">
-                      {new Date(evento.criado_em).toLocaleString()}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      {mostrarOverview ? (
+        <>
+          <ProjetoWizardStepsGrid steps={steps} etapaAtual={etapaAtual} />
+          <ProjetoWizardAcoesRapidas
+            projetoId={projetoId}
+            cargas={cargas}
+            temCargas={temCargas}
+            dimensionamento={dimensionamento}
+            dimensionamentoEtapaConcluida={dimensionamentoEtapaConcluida}
+            composicao={composicao}
+            recalcPending={recalcMutation.isPending}
+            gerarPending={gerarMutation.isPending}
+            reavaliarPending={reavaliarMutation.isPending}
+            onRecalcular={onRecalcular}
+            onGerarSugestoes={onGerarSugestoes}
+            onReavaliarPendencias={onReavaliarPendencias}
+          />
+          <ProjetoWizardChecklistCard
+            checklist={checklist}
+            projetoId={projetoId}
+            prontoParaExportar={prontoParaExportar}
+          />
+          <ProjetoWizardHistoricoCard historico={historico} />
+        </>
       ) : null}
     </div>
   )

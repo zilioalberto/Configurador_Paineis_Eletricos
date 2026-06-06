@@ -1,3 +1,4 @@
+/** Chaves React Query do módulo composição. */
 export const composicaoQueryKeys = {
   all: ['composicao'] as const,
   snapshot: (projetoId: string) =>

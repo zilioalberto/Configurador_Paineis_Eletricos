@@ -29,11 +29,11 @@ import AppRouter from './AppRouter'
 
 describe('AppRouter', () => {
   beforeEach(() => {
-    window.history.pushState({}, '', '/')
+    globalThis.history.pushState({}, '', '/')
   })
 
   it('renderiza rota filha dentro do layout autenticado', () => {
-    window.history.pushState({}, '', '/catalogo')
+    globalThis.history.pushState({}, '', '/catalogo')
 
     render(<AppRouter />)
 
@@ -41,7 +41,7 @@ describe('AppRouter', () => {
   })
 
   it('renderiza página de login preguiçosa', async () => {
-    window.history.pushState({}, '', '/login')
+    globalThis.history.pushState({}, '', '/login')
 
     render(<AppRouter />)
 

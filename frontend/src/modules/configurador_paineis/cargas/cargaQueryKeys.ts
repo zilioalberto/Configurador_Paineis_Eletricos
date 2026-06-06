@@ -1,3 +1,4 @@
+/** Chaves do React Query para cache de cargas por projeto. */
 export const cargaQueryKeys = {
   all: ['cargas'] as const,
   list: (projetoId: string | null) =>

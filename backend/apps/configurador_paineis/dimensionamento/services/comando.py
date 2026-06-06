@@ -1,3 +1,5 @@
+"""Regras de necessidade de fonte 24 Vcc para circuito de comando."""
+
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from core.choices import TipoCorrenteChoices
 
