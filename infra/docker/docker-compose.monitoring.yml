@@ -24,7 +24,7 @@ services:
     container_name: configurador_painel_alertmanager
     restart: unless-stopped
     env_file:
-      - ../../.env
+      - /opt/zfw/shared/.env
     entrypoint:
       - /bin/sh
       - -ec
