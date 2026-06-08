@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from apps.catalogo.models import Produto
+from apps.fiscal.choices import ObjetivoEntradaFiscalChoices
 from apps.fiscal.models import ItemFiscalProduto
 from core.choices.fiscal import OrigemMercadoriaICMSChoices
 
@@ -52,6 +53,8 @@ def _decimal_opt(raw: Any) -> Decimal | None:
 def criar_item_fiscal_importacao_nfe(
     produto: Produto,
     item_snap: dict[str, Any],
+    *,
+    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
 ) -> ItemFiscalProduto | None:
     """
     Persiste um item fiscal a partir do snapshot de linha da NF-e (parser do catálogo).
@@ -74,6 +77,7 @@ def criar_item_fiscal_importacao_nfe(
         ordem=0,
         rotulo="",
         cfop=cfop,
+        objetivo_entrada=objetivo_entrada or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
         origem_mercadoria=origem,
         cst_icms=(imp.get("cst_icms") or "")[:3],
         csosn=(imp.get("csosn") or "")[:4],

@@ -28,8 +28,19 @@ class EspecificacaoCanaleta(BaseModel):
         default=TipoCanaletaChoices.FECHADA,
     )
 
-    largura_mm = models.DecimalField(max_digits=8, decimal_places=2)
-    altura_mm = models.DecimalField(max_digits=8, decimal_places=2)
+    largura_base_mm = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text=(
+            "Dimensão da base do perfil (mm). No dimensionamento mecânico, desconta "
+            "largura da placa (canaletas verticais) e altura da placa (faixas horizontais)."
+        ),
+    )
+    altura_mm = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text="Altura do perfil da canaleta (mm).",
+    )
 
     comprimento_mm = models.DecimalField(
         max_digits=10,
@@ -44,7 +55,7 @@ class EspecificacaoCanaleta(BaseModel):
         decimal_places=2,
         null=True,
         blank=True,
-        help_text="Área útil interna da canaleta. Se vazio, pode ser calculada por largura x altura.",
+        help_text="Área útil interna da canaleta. Se vazio, pode ser calculada por base x altura.",
     )
 
     material = models.CharField(
@@ -75,8 +86,8 @@ class EspecificacaoCanaleta(BaseModel):
     def clean(self):
         super().clean()
 
-        if self.largura_mm <= Decimal("0"):
-            raise ValidationError("A largura da canaleta deve ser maior que zero.")
+        if self.largura_base_mm <= Decimal("0"):
+            raise ValidationError("A largura base da canaleta deve ser maior que zero.")
 
         if self.altura_mm <= Decimal("0"):
             raise ValidationError("A altura da canaleta deve ser maior que zero.")
@@ -88,13 +99,13 @@ class EspecificacaoCanaleta(BaseModel):
             raise ValidationError("A área útil da canaleta deve ser maior que zero.")
 
     def save(self, *args, **kwargs):
-        if self.area_util_mm2 is None and self.largura_mm and self.altura_mm:
-            self.area_util_mm2 = self.largura_mm * self.altura_mm
+        if self.area_util_mm2 is None and self.largura_base_mm and self.altura_mm:
+            self.area_util_mm2 = self.largura_base_mm * self.altura_mm
 
         super().save(*args, **kwargs)
 
     def __str__(self):
         return (
-            f"{self.produto} - {self.largura_mm}x{self.altura_mm} mm - "
+            f"{self.produto} - {self.largura_base_mm}x{self.altura_mm} mm - "
             f"{self.tipo_canaleta}"
         )

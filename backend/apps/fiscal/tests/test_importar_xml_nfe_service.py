@@ -1,6 +1,6 @@
 import pytest
 
-from apps.fiscal.choices import OrigemImportacaoFiscalChoices
+from apps.fiscal.choices import ObjetivoEntradaFiscalChoices, OrigemImportacaoFiscalChoices
 from apps.fiscal.models import DocumentoFiscalRecebido, ItemDocumentoFiscal
 from apps.fiscal.services.importar_xml_nfe_service import importar_xml_nfe
 from apps.fiscal.tests.fixtures_nfe_xml import CHAVE_NFE_TESTE, XML_NFE_PROC
@@ -13,6 +13,7 @@ class TestImportarXmlNfeService:
             xml=XML_NFE_PROC,
             nsu="123",
             origem_importacao=OrigemImportacaoFiscalChoices.MANUAL,
+            objetivo_entrada=ObjetivoEntradaFiscalChoices.INDUSTRIALIZACAO,
         )
         assert resultado["created"] is True
         doc = resultado["documento"]
@@ -20,6 +21,7 @@ class TestImportarXmlNfeService:
         assert doc.xml_original == XML_NFE_PROC
         assert doc.nsu == "000000000000123"
         assert doc.origem_importacao == OrigemImportacaoFiscalChoices.MANUAL
+        assert doc.objetivo_entrada == ObjetivoEntradaFiscalChoices.INDUSTRIALIZACAO
         assert ItemDocumentoFiscal.objects.filter(documento=doc).count() == 1
 
     def test_evita_duplicidade(self):

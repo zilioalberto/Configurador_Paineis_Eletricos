@@ -2,10 +2,19 @@
 from rest_framework import serializers
 
 from apps.fiscal.choices import (
+    ObjetivoEntradaFiscalChoices,
+    ObjetivoSaidaFiscalChoices,
     OrigemImportacaoFiscalChoices,
+    TipoDocumentoFiscalEmitidoChoices,
     TipoManifestacaoDestinatarioChoices,
 )
-from apps.fiscal.models import ControleNSU, DocumentoFiscalRecebido, ItemDocumentoFiscal
+from apps.fiscal.models import (
+    ControleNSU,
+    DocumentoFiscalEmitido,
+    DocumentoFiscalRecebido,
+    ItemDocumentoFiscal,
+    ItemDocumentoFiscalEmitido,
+)
 from apps.fiscal.utils import normalizar_cnpj
 
 
@@ -62,6 +71,7 @@ class DocumentoFiscalRecebidoSerializer(serializers.ModelSerializer):
             "natureza_operacao",
             "status_importacao",
             "origem_importacao",
+            "objetivo_entrada",
             *_MANIFESTACAO_FIELDS,
             "itens",
             "criada_em",
@@ -74,6 +84,80 @@ class DocumentoFiscalRecebidoDetailSerializer(DocumentoFiscalRecebidoSerializer)
     class Meta(DocumentoFiscalRecebidoSerializer.Meta):
         fields = DocumentoFiscalRecebidoSerializer.Meta.fields + ("xml_original",)
         read_only_fields = fields
+
+
+class ItemDocumentoFiscalEmitidoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemDocumentoFiscalEmitido
+        fields = (
+            "id",
+            "numero_item",
+            "codigo",
+            "descricao",
+            "ncm",
+            "cfop",
+            "unidade",
+            "quantidade",
+            "valor_unitario",
+            "valor_total",
+            "criado_em",
+            "atualizado_em",
+        )
+        read_only_fields = fields
+
+
+class DocumentoFiscalEmitidoSerializer(serializers.ModelSerializer):
+    itens = ItemDocumentoFiscalEmitidoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = DocumentoFiscalEmitido
+        fields = (
+            "id",
+            "identificador",
+            "tipo_documento",
+            "chave_acesso",
+            "cnpj_emitente",
+            "nome_emitente",
+            "cnpj_destinatario",
+            "nome_destinatario",
+            "numero",
+            "serie",
+            "data_emissao",
+            "valor_total",
+            "natureza_operacao",
+            "objetivo_saida",
+            "origem_importacao",
+            "itens",
+            "criada_em",
+            "atualizada_em",
+        )
+        read_only_fields = fields
+
+
+class DocumentoFiscalEmitidoDetailSerializer(DocumentoFiscalEmitidoSerializer):
+    class Meta(DocumentoFiscalEmitidoSerializer.Meta):
+        fields = DocumentoFiscalEmitidoSerializer.Meta.fields + ("xml_original",)
+        read_only_fields = fields
+
+
+class RelatorioNFePorObjetivoSerializer(serializers.Serializer):
+    tipo_movimento = serializers.CharField()
+    objetivo = serializers.CharField()
+    total_documentos = serializers.IntegerField()
+    valor_total = serializers.DecimalField(max_digits=18, decimal_places=2)
+
+
+class RelatorioNFeResumoSerializer(serializers.Serializer):
+    tipo_movimento = serializers.CharField()
+    total_documentos = serializers.IntegerField()
+    valor_total = serializers.DecimalField(max_digits=18, decimal_places=2)
+    por_objetivo = RelatorioNFePorObjetivoSerializer(many=True)
+
+
+class RelatorioNFeSerializer(serializers.Serializer):
+    filtros = serializers.DictField()
+    resumo = RelatorioNFeResumoSerializer()
+    documentos = serializers.ListField(child=serializers.DictField())
 
 
 class ControleNSUSerializer(serializers.ModelSerializer):
@@ -116,6 +200,11 @@ class ImportarXMLNFeSerializer(serializers.Serializer):
         required=False,
         default=OrigemImportacaoFiscalChoices.MANUAL,
     )
+    objetivo_entrada = serializers.ChoiceField(
+        choices=ObjetivoEntradaFiscalChoices.choices,
+        required=False,
+        default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+    )
     xml = serializers.CharField(required=True, allow_blank=False)
 
     def validate_xml(self, value: str) -> str:
@@ -132,6 +221,21 @@ class ImportarXMLNFeSerializer(serializers.Serializer):
                 "CNPJ do destinatário deve conter 14 dígitos após limpeza."
             )
         return cnpj
+
+
+class ImportarXMLDocumentoEmitidoSerializer(serializers.Serializer):
+    tipo_documento = serializers.ChoiceField(choices=TipoDocumentoFiscalEmitidoChoices.choices)
+    objetivo_saida = serializers.ChoiceField(
+        choices=ObjetivoSaidaFiscalChoices.choices,
+        required=False,
+        default=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
+    )
+    xml = serializers.CharField(required=True, allow_blank=False)
+
+    def validate_xml(self, value: str) -> str:
+        if not (value or "").strip():
+            raise serializers.ValidationError("XML é obrigatório.")
+        return value
 
 
 class SolicitarManifestacaoSerializer(serializers.Serializer):

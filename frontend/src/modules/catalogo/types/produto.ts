@@ -4,6 +4,7 @@
 
 import type { CategoriaProdutoNome } from './categoria'
 import type { UnidadeMedidaProduto } from '../constants/catalogoChoiceOptions'
+import type { ObjetivoEntradaFiscal } from '@/modules/fiscal/types/documentoFiscalRecebido'
 
 /** Item fiscal persistido (`apps.fiscal.models.ItemFiscalProduto`) — detalhe/listagem, não editável neste formulário. */
 export type ItemFiscalProduto = {
@@ -13,6 +14,7 @@ export type ItemFiscalProduto = {
   ordem: number
   rotulo: string
   cfop: string
+  objetivo_entrada: ObjetivoEntradaFiscal
   origem_mercadoria: string | null
   cst_icms: string
   csosn: string
@@ -49,6 +51,16 @@ export type ProdutoInformacaoComercial = {
   atualizado_em?: string
 }
 
+export type ProdutoAcessorioCompativelForm = {
+  acessorio: string
+  acessorio_codigo?: string
+  acessorio_descricao?: string
+  tipo_acessorio: string
+  quantidade_padrao: string
+  prioridade: number
+  observacoes: string
+}
+
 /** Estado editável da especificação da categoria atual (uma entrada por campo do modelo). */
 export type EspecificacaoFormState = Record<string, string | number | boolean>
 
@@ -60,10 +72,14 @@ export type ProdutoFormData = {
   preco_base: string
   /** Alíquota IPI (%) de referência, ao lado do preço base. */
   aliquota_ipi: string
-  /** UUID do parceiro fornecedor (fabricante) ou vazio. */
+  /** UUID do parceiro fabricante ou vazio. */
   fabricante_parceiro: string
   fabricante_parceiro_nome: string
   fabricante_parceiro_documento: string
+  /** UUID do parceiro fornecedor importado/vinculado ou vazio. */
+  fornecedor_parceiro: string
+  fornecedor_parceiro_nome: string
+  fornecedor_parceiro_documento: string
   fabricante: string
   referencia_fabricante: string
   largura_mm: string
@@ -73,6 +89,8 @@ export type ProdutoFormData = {
   ativo: boolean
   /** Campos da especificação OneToOne correspondentes à categoria selecionada. */
   especificacao: EspecificacaoFormState | null
+  /** Acessórios explicitamente compatíveis, usado hoje para bornes. */
+  acessorios_compativeis: ProdutoAcessorioCompativelForm[]
 }
 
 export type ProdutoListItem = {
@@ -91,6 +109,9 @@ export type ProdutoListItem = {
   fabricante_parceiro?: string | null
   fabricante_parceiro_nome?: string | null
   fabricante_parceiro_documento?: string | null
+  fornecedor_parceiro?: string | null
+  fornecedor_parceiro_nome?: string | null
+  fornecedor_parceiro_documento?: string | null
   informacao_comercial?: ProdutoInformacaoComercial | null
   ativo: boolean
   criado_em?: string
@@ -104,4 +125,5 @@ export type ProdutoDetail = ProdutoListItem & {
   profundidade_mm?: string | null
   observacoes_tecnicas?: string
   itens_fiscais?: ItemFiscalProduto[]
+  acessorios_compativeis?: ProdutoAcessorioCompativelForm[]
 }

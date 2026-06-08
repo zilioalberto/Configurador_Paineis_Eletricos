@@ -16,6 +16,7 @@ from core.choices import (
     FrequenciaChoices,
     TipoPainelChoices,
     TipoSeccionamentoChoices,
+    TipoDisjuntorGeralChoices,
     TipoConexaoAlimetacaoChoices,
     StatusProjetoChoices,
     TipoClimatizacaoPainelChoices,
@@ -243,6 +244,19 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
         help_text="Tipo de seccionamento geral.",
     )
 
+    possui_disjuntor_geral = models.BooleanField(
+        default=False,
+        help_text="Indica se o projeto possui disjuntor geral de proteção.",
+    )
+
+    tipo_disjuntor_geral = models.CharField(
+        max_length=30,
+        choices=TipoDisjuntorGeralChoices.choices,
+        blank=True,
+        default="",
+        help_text="Tipo de disjuntor geral (minidisjuntor ou caixa moldada), quando aplicável.",
+    )
+
     class Meta:
         db_table = "configurador_projeto"
         verbose_name = "Projeto configurador"
@@ -295,6 +309,16 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
         ):
             errors["tensao_nominal"] = (
                 "Para alimentação CC, selecione uma tensão compatível com CC."
+            )
+
+    def _validar_disjuntor_geral(self, errors: dict) -> None:
+        """Sem disjuntor geral, o tipo é limpo; com disjuntor geral, exige tipo válido."""
+        if not self.possui_disjuntor_geral:
+            self.tipo_disjuntor_geral = ""
+            return
+        if not self.tipo_disjuntor_geral:
+            errors["tipo_disjuntor_geral"] = (
+                "Informe o tipo de disjuntor geral quando o projeto possuir proteção geral."
             )
 
     def _validar_seccionamento(self, errors: dict) -> None:
@@ -352,6 +376,7 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
         errors: dict = {}
         self._validar_alimentacao_principal(errors)
         self._validar_seccionamento(errors)
+        self._validar_disjuntor_geral(errors)
         self._validar_conexoes_alimentacao(errors)
         self._validar_climatizacao_e_plc(errors)
 
@@ -381,6 +406,8 @@ class ProjetoConfigurador(BaseModel, AtivacaoMixin):
             self.frequencia = None
         if not self.possui_seccionamento:
             self.tipo_seccionamento = TipoSeccionamentoChoices.NENHUM
+        if not self.possui_disjuntor_geral:
+            self.tipo_disjuntor_geral = ""
         if not self.possui_neutro:
             self.tipo_conexao_alimentacao_neutro = ""
         if not self.possui_terra:

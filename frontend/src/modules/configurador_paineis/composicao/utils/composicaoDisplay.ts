@@ -7,15 +7,30 @@ import type { CargaDetalhe, ProjetoAlimentacaoSnapshot } from '../types/composic
 
 export const STATUS_APROVACAO_MARKER = '[STATUS_APROVACAO]'
 
-/** Linhas sem carga (seccionamento / painel geral): colunas alinhadas ao projeto e ao dimensionamento. */
+/** Linhas sem carga (seccionamento / proteção geral) sem `carga` associada no snapshot. */
 export const LEGENDA_TAG_PAINEL_GERAL = 'GDBT'
-export const LEGENDA_DESCR_PAINEL_GERAL = 'SECCIONAMENTO'
+export const LEGENDA_DESCR_SECCIONAMENTO = 'Seccionamento'
+export const LEGENDA_DESCR_PROTECAO_GERAL = 'Proteção Geral'
+/** Mantido por compatibilidade; preferir `textoDescricaoItemPainelSemCarga`. */
+export const LEGENDA_DESCR_PAINEL_GERAL = LEGENDA_DESCR_SECCIONAMENTO
 export const LEGENDA_TIPO_PAINEL_GERAL = 'GERAL'
 /** Papel/função: vazio visual (tipo e descrição cobrem a entrada geral). */
 export const LEGENDA_PAPEL_PAINEL_GERAL = '—'
 
-/** Itens de painel geral (ex.: seccionamento) sem `carga` associada no snapshot. */
+/** Itens de painel geral (ex.: seccionamento, disjuntor geral) sem `carga` associada. */
 export const CHAVE_AGRUPAMENTO_SEM_TAG = '__sem_tag__'
+
+/** Descrição na coluna «Descrição» para itens GDBT sem carga vinculada. */
+export function textoDescricaoItemPainelSemCarga(
+  partePainel?: string | null,
+  partePainelDisplay?: string | null
+): string {
+  if (partePainel === 'PROTECAO_GERAL') return LEGENDA_DESCR_PROTECAO_GERAL
+  if (partePainel === 'SECCIONAMENTO') return LEGENDA_DESCR_SECCIONAMENTO
+  const display = partePainelDisplay?.trim()
+  if (display) return display
+  return LEGENDA_DESCR_SECCIONAMENTO
+}
 
 const SQRT3 = Math.sqrt(3)
 

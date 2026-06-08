@@ -43,6 +43,7 @@ function documentoStub(
     natureza_operacao: 'Venda',
     status_importacao: 'PROCESSADA',
     origem_importacao: 'MANUAL',
+    objetivo_entrada: 'OUTRAS_ENTRADAS',
     manifestacao_status: 'NAO_SOLICITADA',
     manifestacao_tipo: '',
     manifestacao_justificativa: '',

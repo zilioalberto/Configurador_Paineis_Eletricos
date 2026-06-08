@@ -135,7 +135,10 @@ class ProdutoViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        qs = qs.select_related("fabricante_parceiro").prefetch_related(_ITENS_FISCAIS_PREFETCH)
+        qs = qs.select_related(
+            "fabricante_parceiro",
+            "fornecedor_parceiro",
+        ).prefetch_related(_ITENS_FISCAIS_PREFETCH)
         if self.action == "retrieve":
             qs = qs.select_related(*NESTED_KEYS)
         categoria = (self.request.query_params.get("categoria") or "").strip()

@@ -16,6 +16,9 @@ export type TipoPainel =
 export type TipoSeccionamento =
   | 'NENHUM'
   | 'SECCIONADORA'
+
+export type TipoDisjuntorGeral =
+  | 'MINIDISJUNTOR'
   | 'DISJUNTOR_CAIXA_MOLDADA'
 
 export type TipoConexaoAlimentacao =
@@ -87,6 +90,10 @@ export interface Projeto {
   tipo_seccionamento: TipoSeccionamento | null
   tipo_seccionamento_display?: string | null
 
+  possui_disjuntor_geral: boolean
+  tipo_disjuntor_geral: TipoDisjuntorGeral | null
+  tipo_disjuntor_geral_display?: string | null
+
   ativo?: boolean
   responsavel?: number | null
   responsavel_nome?: string | null
@@ -154,6 +161,9 @@ export interface ProjetoFormData {
 
   possui_seccionamento: boolean
   tipo_seccionamento: TipoSeccionamento | null
+
+  possui_disjuntor_geral: boolean
+  tipo_disjuntor_geral: TipoDisjuntorGeral | null
   responsavel: number | null
 }
 

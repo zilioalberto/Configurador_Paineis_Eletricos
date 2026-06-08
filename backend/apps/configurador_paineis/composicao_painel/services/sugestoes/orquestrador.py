@@ -9,6 +9,9 @@ from apps.configurador_paineis.composicao_painel.models import ComposicaoItem, S
 from apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras import (
     gerar_sugestao_seccionamento,
 )
+from apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntor_geral import (
+    gerar_sugestao_disjuntor_geral,
+)
 from apps.configurador_paineis.composicao_painel.services.sugestoes.contatoras import (
     gerar_sugestoes_contatoras,
 )
@@ -57,6 +60,7 @@ from core.choices.cargas import (
 
 ETAPAS_GERACAO_BASE = [
     ("SECCIONAMENTO", gerar_sugestao_seccionamento),
+    ("DISJUNTOR_GERAL", gerar_sugestao_disjuntor_geral),
     ("CONTATORAS", gerar_sugestoes_contatoras),
 ]
 

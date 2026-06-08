@@ -12,6 +12,7 @@ import {
   opcoesBitolaNeutro,
   opcoesBitolaPe,
   opcoesBitolaPeAlimentacaoGeral,
+  parseNum,
   SUGESTAO_CONDUTOR,
   type OverridesAg,
   type OverridesCircuito,
@@ -27,6 +28,20 @@ type PanelSlice = {
   canEditar: boolean
   patchPending: boolean
   bloquearEdicao: boolean
+}
+
+const LEGENDA_CORRENTE_REFERENCIA_CIRCUITO =
+  'Corrente de projeto do circuito (corrente unitária × quantidade). Não inclui fator de demanda.'
+
+function CabecalhoCorrenteReferenciaCircuito() {
+  return (
+    <th scope="col">
+      <abbr title={LEGENDA_CORRENTE_REFERENCIA_CIRCUITO} className="text-decoration-none">
+        I ref (A)
+      </abbr>
+      <div className="small text-muted fw-normal lh-sm mt-1">sem FD</div>
+    </th>
+  )
 }
 
 export function WizardCondutoresToolbar({
@@ -49,6 +64,10 @@ export function WizardCondutoresToolbar({
         Ajuste as bitolas (Iz mínimo, tabela B1 simplificada). <strong>Aprovar</strong> move o circuito
         para a tabela de aprovados; <strong>Revisar</strong> devolve às sugestões.{' '}
         <strong>Aprovar todas</strong> confirma a revisão completa do projeto.
+      </p>
+      <p className="small text-muted mb-0 mt-1">
+        A coluna <strong>I ref</strong> usa corrente unitária × quantidade por carga —{' '}
+        <strong>sem fator de demanda</strong> (FD só no seccionamento de entrada em painel distribuição).
       </p>
     </>
   )
@@ -89,7 +108,7 @@ export function CircuitosAprovadosTable({
         <thead>
           <tr>
             <th>Tag</th>
-            <th>I ref (A)</th>
+            <CabecalhoCorrenteReferenciaCircuito />
             <th>Fase (efetiva)</th>
             <th>Neutro</th>
             <th>PE</th>
@@ -283,7 +302,7 @@ export function CircuitosPendentesTable({
         <thead>
           <tr>
             <th>Tag</th>
-            <th>I ref (A)</th>
+            <CabecalhoCorrenteReferenciaCircuito />
             <th>Fase</th>
             <th>Neutro</th>
             <th>PE</th>
@@ -365,6 +384,67 @@ export function WizardCondutoresCircuitosBlock({
         revisaoEfetivaOk={revisaoEfetivaOk}
       />
     </>
+  )
+}
+
+function rotuloFasePainel(indice: number, totalFases: number): string {
+  if (totalFases === 1) return 'Fase 1'
+  return `L${indice + 1}`
+}
+
+type CorrentesPorFasePainelSectionProps = Readonly<{
+  correntes: string[] | undefined
+  correnteTotalReferencia: string
+  aplicaFatorDemandaSeccionamento?: boolean
+}>
+
+export function CorrentesPorFasePainelSection({
+  correntes,
+  correnteTotalReferencia,
+  aplicaFatorDemandaSeccionamento = false,
+}: CorrentesPorFasePainelSectionProps) {
+  if (!correntes?.length) return null
+
+  const maxFase = Math.max(...correntes.map((c) => parseNum(c)))
+  const legendaReferencia = aplicaFatorDemandaSeccionamento
+    ? '(fase mais carregada × fator de demanda — painel distribuição)'
+    : '(fase mais carregada — fator de demanda não aplicado)'
+
+  return (
+    <div className="mb-4">
+      <h2 className="h5 mb-2">Corrente por fase do painel</h2>
+      <p className="text-muted small mb-3">
+        Acúmulo das cargas ativas em cada fase. I total de referência para seccionamento de
+        entrada: <strong>{correnteTotalReferencia} A</strong> {legendaReferencia}.
+      </p>
+      <div className="table-responsive app-data-table">
+        <table className="table table-sm align-middle w-auto mb-0">
+          <thead>
+            <tr>
+              <th>Fase</th>
+              <th className="text-end">Corrente (A)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {correntes.map((corrente, indice) => {
+              const valor = parseNum(corrente)
+              const referencia = valor === maxFase && maxFase > 0
+              return (
+                <tr key={rotuloFasePainel(indice, correntes.length)}>
+                  <td>{rotuloFasePainel(indice, correntes.length)}</td>
+                  <td className="text-end">
+                    {corrente}
+                    {referencia ? (
+                      <span className="badge text-bg-secondary ms-2">referência</span>
+                    ) : null}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 

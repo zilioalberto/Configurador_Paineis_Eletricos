@@ -8,6 +8,7 @@ from apps.catalogo.selectors.contatoras import selecionar_contatoras
 from apps.catalogo.selectors.disjuntores_caixa_moldada import selecionar_disjuntores_caixa_moldada
 from apps.catalogo.selectors.disjuntores_motor import selecionar_disjuntores_motor
 from apps.catalogo.selectors.fusiveis import selecionar_fusiveis
+from apps.catalogo.selectors.minidisjuntor import selecionar_minidisjuntores
 from apps.catalogo.selectors.rele_sobrecarga import selecionar_reles_sobrecarga
 from apps.catalogo.selectors.seccionadoras import selecionar_seccionadoras
 
@@ -158,12 +159,34 @@ def _alternativas_disjuntor_caixa_moldada(
         return _produtos_vazios()
 
 
+def _alternativas_minidisjuntor(sugestao: SugestaoItem) -> QuerySet[Produto]:
+    corrente = sugestao.corrente_referencia_a
+    if corrente is None:
+        return _produtos_vazios()
+    return selecionar_minidisjuntores(
+        corrente_nominal=corrente,
+        modo_montagem=_atributo_spec_produto(
+            sugestao,
+            "especificacao_minidisjuntor",
+            "modo_montagem",
+        ),
+        numero_polos=_atributo_spec_produto(
+            sugestao,
+            "especificacao_minidisjuntor",
+            "numero_polos",
+        ),
+        niveis=0,
+        superior_a_corrente=True,
+    )
+
+
 ALTERNATIVAS_POR_CATEGORIA = {
     CategoriaProdutoNomeChoices.CONTATORA: _alternativas_contatora,
     CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR: _alternativas_disjuntor_motor,
     CategoriaProdutoNomeChoices.RELE_SOBRECARGA: _alternativas_rele_sobrecarga,
     CategoriaProdutoNomeChoices.FUSIVEL: _alternativas_fusivel,
     CategoriaProdutoNomeChoices.SECCIONADORA: _alternativas_seccionadora,
+    CategoriaProdutoNomeChoices.MINIDISJUNTOR: _alternativas_minidisjuntor,
     CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA: (
         _alternativas_disjuntor_caixa_moldada
     ),

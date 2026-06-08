@@ -19,6 +19,7 @@ from .models import (
     EspecificacaoFusivel,
     EspecificacaoGateway,
     EspecificacaoIHM,
+    EspecificacaoIdentificacao,
     EspecificacaoInversorFrequencia,
     EspecificacaoMiniDisjuntor,
     EspecificacaoModuloComunicacao,
@@ -32,8 +33,10 @@ from .models import (
     EspecificacaoSoftStarter,
     EspecificacaoSwitchRede,
     EspecificacaoTemporizador,
+    EspecificacaoTerminal,
     EspecificacaoTrilhoDIN,
     Produto,
+    ProdutoAcessorioCompativel,
     Servico,
 )
 
@@ -178,6 +181,13 @@ class EspecificacaoIHMInline(admin.StackedInline):
     can_delete = True
 
 
+class EspecificacaoIdentificacaoInline(admin.StackedInline):
+    model = EspecificacaoIdentificacao
+    extra = 0
+    max_num = 1
+    can_delete = True
+
+
 class EspecificacaoSwitchRedeInline(admin.StackedInline):
     model = EspecificacaoSwitchRede
     extra = 0
@@ -234,6 +244,13 @@ class EspecificacaoTrilhoDINInline(admin.StackedInline):
     can_delete = True
 
 
+class EspecificacaoTerminalInline(admin.StackedInline):
+    model = EspecificacaoTerminal
+    extra = 0
+    max_num = 1
+    can_delete = True
+
+
 class EspecificacaoBarramentoInline(admin.StackedInline):
     model = EspecificacaoBarramento
     extra = 0
@@ -277,6 +294,8 @@ INLINE_POR_CATEGORIA = {
     "TEMPORIZADOR": EspecificacaoTemporizadorInline,
     "CONTROLADOR_TEMPERATURA": EspecificacaoControladorTemperaturaInline,
     "TRILHO_DIN": EspecificacaoTrilhoDINInline,
+    "TERMINAIS": EspecificacaoTerminalInline,
+    "IDENTIFICACAO": EspecificacaoIdentificacaoInline,
     "BARRAMENTO": EspecificacaoBarramentoInline,
     "GATEWAY": EspecificacaoGatewayInline,
 }
@@ -289,11 +308,12 @@ class ProdutoAdmin(admin.ModelAdmin):
         "descricao",
         "categoria",
         "fabricante_parceiro",
+        "fornecedor_parceiro",
         "fabricante",
         "preco_base",
         "ativo",
     )
-    list_filter = ("ativo", "categoria", "fabricante_parceiro", "fabricante")
+    list_filter = ("ativo", "categoria", "fabricante_parceiro", "fornecedor_parceiro", "fabricante")
     search_fields = (
         "codigo",
         "descricao",
@@ -301,6 +321,8 @@ class ProdutoAdmin(admin.ModelAdmin):
         "referencia_fabricante",
         "fabricante_parceiro__razao_social",
         "fabricante_parceiro__documento",
+        "fornecedor_parceiro__razao_social",
+        "fornecedor_parceiro__documento",
     )
 
     fieldsets = (
@@ -325,6 +347,7 @@ class ProdutoAdmin(admin.ModelAdmin):
                 "fields": (
                     ("unidade_medida", "preco_base"),
                     "fabricante_parceiro",
+                    "fornecedor_parceiro",
                 ),
             },
         ),
@@ -369,6 +392,25 @@ class ProdutoAdmin(admin.ModelAdmin):
         if not inline:
             return []
         return [inline(self.model, self.admin_site)]
+
+
+@admin.register(ProdutoAcessorioCompativel)
+class ProdutoAcessorioCompativelAdmin(admin.ModelAdmin):
+    list_display = (
+        "produto_base",
+        "tipo_acessorio",
+        "acessorio",
+        "quantidade_padrao",
+        "prioridade",
+    )
+    list_filter = ("tipo_acessorio",)
+    search_fields = (
+        "produto_base__codigo",
+        "produto_base__descricao",
+        "acessorio__codigo",
+        "acessorio__descricao",
+    )
+    autocomplete_fields = ("produto_base", "acessorio")
 
 
 @admin.register(EspecificacaoContatora)
@@ -554,7 +596,7 @@ class EspecificacaoCanaletaAdmin(admin.ModelAdmin):
     list_display = (
         "produto",
         "tipo_canaleta",
-        "largura_mm",
+        "largura_base_mm",
         "altura_mm",
         "material",
         "modo_montagem",
@@ -653,6 +695,21 @@ class EspecificacaoIHMAdmin(admin.ModelAdmin):
         "tensao_alimentacao_v",
         "modo_montagem",
     )
+    search_fields = ("produto__codigo", "produto__descricao")
+
+
+@admin.register(EspecificacaoIdentificacao)
+class EspecificacaoIdentificacaoAdmin(admin.ModelAdmin):
+    list_display = (
+        "produto",
+        "tipo_identificacao",
+        "secao_min_mm2",
+        "secao_max_mm2",
+        "comprimento_mm",
+        "tamanho_plaqueta",
+        "tensao_v",
+    )
+    list_filter = ("tipo_identificacao", "tamanho_plaqueta", "tensao_v")
     search_fields = ("produto__codigo", "produto__descricao")
 
 
@@ -774,6 +831,19 @@ class EspecificacaoTrilhoDINAdmin(admin.ModelAdmin):
         "produto__descricao",
         "observacoes",
     )
+
+
+@admin.register(EspecificacaoTerminal)
+class EspecificacaoTerminalAdmin(admin.ModelAdmin):
+    list_display = (
+        "produto",
+        "tipo_terminal",
+        "secao_min_mm2",
+        "secao_max_mm2",
+        "furo_olhal",
+    )
+    list_filter = ("tipo_terminal", "furo_olhal")
+    search_fields = ("produto__codigo", "produto__descricao")
 
 
 @admin.register(EspecificacaoBarramento)

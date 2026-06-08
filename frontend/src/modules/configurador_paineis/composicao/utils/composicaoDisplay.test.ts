@@ -3,8 +3,11 @@ import {
   em,
   formatNumeroFasesCarga,
   formatPotenciaCarga,
+  LEGENDA_DESCR_PROTECAO_GERAL,
+  LEGENDA_DESCR_SECCIONAMENTO,
   montarNomeArquivoProjeto,
   textoDescricaoCarga,
+  textoDescricaoItemPainelSemCarga,
 } from './composicaoDisplay'
 
 describe('composicaoDisplay', () => {
@@ -37,5 +40,14 @@ describe('composicaoDisplay', () => {
       'Trifásico'
     )
     expect(formatNumeroFasesCarga({ numero_fases_carga: 3 } as never)).toBe('3')
+  })
+
+  it('textoDescricaoItemPainelSemCarga distingue seccionamento e proteção geral', () => {
+    expect(textoDescricaoItemPainelSemCarga('SECCIONAMENTO')).toBe(
+      LEGENDA_DESCR_SECCIONAMENTO
+    )
+    expect(textoDescricaoItemPainelSemCarga('PROTECAO_GERAL')).toBe(
+      LEGENDA_DESCR_PROTECAO_GERAL
+    )
   })
 })

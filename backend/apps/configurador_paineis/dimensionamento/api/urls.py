@@ -4,6 +4,7 @@ from django.urls import path
 
 from apps.configurador_paineis.dimensionamento.api.views import (
     DimensionamentoCondutoresPatchView,
+    DimensionamentoMecanicoView,
     DimensionamentoPorProjetoView,
     DimensionamentoRecalcularView,
 )
@@ -38,5 +39,15 @@ urlpatterns = [
         "configurador/dimensionamento/projeto/<uuid:projeto_id>/condutores/",
         DimensionamentoCondutoresPatchView.as_view(),
         name="configurador-dimensionamento-condutores",
+    ),
+    path(
+        "dimensionamento/projeto/<uuid:projeto_id>/mecanico/",
+        DimensionamentoMecanicoView.as_view(),
+        name="dimensionamento-mecanico",
+    ),
+    path(
+        "configurador/dimensionamento/projeto/<uuid:projeto_id>/mecanico/",
+        DimensionamentoMecanicoView.as_view(),
+        name="configurador-dimensionamento-mecanico",
     ),
 ]

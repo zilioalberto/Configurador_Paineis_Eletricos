@@ -11,6 +11,7 @@ import { ProjetoFormDadosGeraisSection } from './ProjetoFormDadosGeraisSection'
 import { ProjetoFormIdentificacaoSegurancaSection } from './ProjetoFormIdentificacaoSegurancaSection'
 import { ProjetoFormRecursosSection } from './ProjetoFormRecursosSection'
 import { ProjetoFormSeccionamentoSection } from './ProjetoFormSeccionamentoSection'
+import { ProjetoFormDisjuntorGeralSection } from './ProjetoFormDisjuntorGeralSection'
 import { PROJETO_CONFIG_FORM_ID } from './projetoFormIds'
 import { ROTULOS_CAMPOS_PROJETO } from './projetoFormValidation'
 import { useProjetoForm } from './useProjetoForm'
@@ -153,6 +154,9 @@ export default function ProjetoForm({
       </ProjetoFormSection>
       <ProjetoFormSection title="Seccionamento" accent="#0f766e" spanFull={secaoLarguraTotal}>
         <ProjetoFormSeccionamentoSection {...sectionProps} />
+      </ProjetoFormSection>
+      <ProjetoFormSection title="Disjuntor geral" accent="#0369a1" spanFull={secaoLarguraTotal}>
+        <ProjetoFormDisjuntorGeralSection {...sectionProps} />
       </ProjetoFormSection>
       <ProjetoFormSection title="Descrição" accent="#64748b" spanFull>
         <ProjetoFormDescricaoSection {...sectionProps} />

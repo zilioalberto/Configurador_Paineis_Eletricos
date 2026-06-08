@@ -15,6 +15,9 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   fabricante_parceiro: '',
   fabricante_parceiro_nome: '',
   fabricante_parceiro_documento: '',
+  fornecedor_parceiro: '',
+  fornecedor_parceiro_nome: '',
+  fornecedor_parceiro_documento: '',
   fabricante: '',
   referencia_fabricante: '',
   largura_mm: '',
@@ -23,6 +26,7 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   observacoes_tecnicas: '',
   ativo: true,
   especificacao: null,
+  acessorios_compativeis: [],
 })
 
 export function applyCategoriaChange(
@@ -37,5 +41,6 @@ export function applyCategoriaChange(
     ...prev,
     categoria: categoriaId,
     especificacao: temEspec ? {} : null,
+    acessorios_compativeis: nome === 'BORNE' ? prev.acessorios_compativeis : [],
   }
 }

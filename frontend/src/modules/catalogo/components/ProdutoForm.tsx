@@ -11,12 +11,16 @@ import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
-import { unidadeMedidaOptionsComValorAtual } from '../constants/catalogoChoiceOptions'
+import {
+  tipoBorneCatalogoOptions,
+  unidadeMedidaOptionsComValorAtual,
+} from '../constants/catalogoChoiceOptions'
 import { useFornecedoresAtivosQuery } from '../hooks/useFornecedoresAtivosQuery'
+import { listarProdutos } from '../services/produtoService'
 import EspecificacaoCatalogoFields from './EspecificacaoCatalogoFields'
 import type { CategoriaProduto } from '../types/categoria'
 import type { CategoriaProdutoNome } from '../types/categoria'
-import type { EspecificacaoFormState, ProdutoFormData } from '../types/produto'
+import type { EspecificacaoFormState, ProdutoFormData, ProdutoListItem } from '../types/produto'
 import { applyCategoriaChange } from '../utils/produtoFormDefaults'
 
 type ProdutoFormProps = {
@@ -38,6 +42,7 @@ export default function ProdutoForm({
   const { showToast } = useToast()
   const { user } = useAuth()
   const [formData, setFormData] = useState<ProdutoFormData>(initialData)
+  const [borneOptions, setBorneOptions] = useState<ProdutoListItem[]>([])
 
   const canVerCadastro = hasPermission(user, PERMISSION_KEYS.CADASTRO_VISUALIZAR)
   const { data: fornecedores = [], isFetching: loadingFornecedores } =
@@ -54,31 +59,83 @@ export default function ProdutoForm({
 
   const temBlocoEspecificacao = Boolean(categoriaNome && getEspecApiKey(categoriaNome))
 
+  useEffect(() => {
+    let alive = true
+    if (categoriaNome !== 'BORNE') {
+      setBorneOptions([])
+      return
+    }
+    listarProdutos('BORNE', 1, 200)
+      .then((page) => {
+        if (alive) setBorneOptions(page.items)
+      })
+      .catch(() => {
+        if (alive) setBorneOptions([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [categoriaNome])
+
   const opcoesUnidade = useMemo(
     () => unidadeMedidaOptionsComValorAtual(formData.unidade_medida),
     [formData.unidade_medida],
   )
 
+  const opcoesParceiroComAtual = useCallback(
+    (
+      idRaw: string,
+      nomeRaw: string,
+      documentoRaw: string,
+      nomeFallback = '',
+    ) => {
+      const id = idRaw.trim()
+      if (!id) return fornecedores
+      if (fornecedores.some((x) => x.id === id)) return fornecedores
+      return [
+        ...fornecedores,
+        {
+          id,
+          razao_social: nomeRaw.trim() || nomeFallback.trim() || id,
+          documento: documentoRaw.trim(),
+        },
+      ]
+    },
+    [fornecedores],
+  )
+
   const opcoesFabricanteParceiro = useMemo(() => {
-    const id = formData.fabricante_parceiro.trim()
-    if (!id) return fornecedores
-    if (fornecedores.some((x) => x.id === id)) return fornecedores
-    return [
-      ...fornecedores,
-      {
-        id,
-        razao_social:
-          formData.fabricante_parceiro_nome.trim() || formData.fabricante.trim() || id,
-        documento: formData.fabricante_parceiro_documento.trim(),
-      },
-    ]
+    return opcoesParceiroComAtual(
+      formData.fabricante_parceiro,
+      formData.fabricante_parceiro_nome,
+      formData.fabricante_parceiro_documento,
+      formData.fabricante,
+    )
   }, [
-    fornecedores,
+    opcoesParceiroComAtual,
     formData.fabricante_parceiro,
     formData.fabricante,
     formData.fabricante_parceiro_nome,
     formData.fabricante_parceiro_documento,
   ])
+
+  const opcoesFornecedorParceiro = useMemo(() => {
+    return opcoesParceiroComAtual(
+      formData.fornecedor_parceiro,
+      formData.fornecedor_parceiro_nome,
+      formData.fornecedor_parceiro_documento,
+    )
+  }, [
+    opcoesParceiroComAtual,
+    formData.fornecedor_parceiro,
+    formData.fornecedor_parceiro_nome,
+    formData.fornecedor_parceiro_documento,
+  ])
+
+  const selecionarParceiro = useCallback(
+    (id: string, opcoes: typeof fornecedores) => opcoes.find((x) => x.id === id),
+    [],
+  )
 
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -109,7 +166,7 @@ export default function ProdutoForm({
         }))
         return
       }
-      const f = opcoesFabricanteParceiro.find((x) => x.id === id)
+      const f = selecionarParceiro(id, opcoesFabricanteParceiro)
       const nome = (f?.razao_social ?? '').trim()
       setFormData((prev) => ({
         ...prev,
@@ -119,7 +176,31 @@ export default function ProdutoForm({
         fabricante: nome,
       }))
     },
-    [opcoesFabricanteParceiro],
+    [opcoesFabricanteParceiro, selecionarParceiro],
+  )
+
+  const onFornecedorParceiroChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      const id = e.target.value.trim()
+      if (!id) {
+        setFormData((prev) => ({
+          ...prev,
+          fornecedor_parceiro: '',
+          fornecedor_parceiro_nome: '',
+          fornecedor_parceiro_documento: '',
+        }))
+        return
+      }
+      const f = selecionarParceiro(id, opcoesFornecedorParceiro)
+      const nome = (f?.razao_social ?? '').trim()
+      setFormData((prev) => ({
+        ...prev,
+        fornecedor_parceiro: id,
+        fornecedor_parceiro_nome: nome,
+        fornecedor_parceiro_documento: f?.documento ?? '',
+      }))
+    },
+    [opcoesFornecedorParceiro, selecionarParceiro],
   )
 
   const patchEspecificacao = useCallback((patch: Partial<EspecificacaoFormState>) => {
@@ -129,6 +210,44 @@ export default function ProdutoForm({
         ...(prev.especificacao ?? {}),
         ...patch,
       } as EspecificacaoFormState,
+    }))
+  }, [])
+
+  const patchAcessorioCompativel = useCallback(
+    (
+      index: number,
+      patch: Partial<ProdutoFormData['acessorios_compativeis'][number]>,
+    ) => {
+      setFormData((prev) => ({
+        ...prev,
+        acessorios_compativeis: prev.acessorios_compativeis.map((row, i) =>
+          i === index ? { ...row, ...patch } : row,
+        ),
+      }))
+    },
+    [],
+  )
+
+  const adicionarAcessorioCompativel = useCallback(() => {
+    setFormData((prev) => ({
+      ...prev,
+      acessorios_compativeis: [
+        ...prev.acessorios_compativeis,
+        {
+          acessorio: '',
+          tipo_acessorio: 'TAMPA',
+          quantidade_padrao: '1.00',
+          prioridade: prev.acessorios_compativeis.length,
+          observacoes: '',
+        },
+      ],
+    }))
+  }, [])
+
+  const removerAcessorioCompativel = useCallback((index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      acessorios_compativeis: prev.acessorios_compativeis.filter((_, i) => i !== index),
     }))
   }, [])
 
@@ -311,7 +430,7 @@ export default function ProdutoForm({
 
       <div className="col-md-6">
         <label className="form-label" htmlFor="produto-fabricante-parceiro">
-          Fornecedor/Fabricante (cadastro)
+          Fabricante (cadastro)
         </label>
         <select
           id="produto-fabricante-parceiro"
@@ -336,7 +455,7 @@ export default function ProdutoForm({
         ) : null}
         {formData.fabricante_parceiro.trim() && formData.fabricante_parceiro_nome.trim() ? (
           <p className="form-text small text-muted mb-0">
-            Fornecedor vinculado:{' '}
+            Fabricante vinculado:{' '}
             <strong>
               {formData.fabricante_parceiro_nome}
               {formData.fabricante_parceiro_documento
@@ -349,6 +468,37 @@ export default function ProdutoForm({
           <p className="form-text small text-muted mb-0">
             Fabricante em texto (sem vínculo): <strong>{formData.fabricante}</strong>. Selecione um
             fornecedor acima para padronizar pelo cadastro.
+          </p>
+        ) : null}
+      </div>
+      <div className="col-md-6">
+        <label className="form-label" htmlFor="produto-fornecedor-parceiro">
+          Fornecedor (cadastro)
+        </label>
+        <select
+          id="produto-fornecedor-parceiro"
+          className="form-select"
+          value={formData.fornecedor_parceiro}
+          onChange={onFornecedorParceiroChange}
+          disabled={!canVerCadastro || loadingFornecedores}
+        >
+          <option value="">(em branco)</option>
+          {opcoesFornecedorParceiro.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.razao_social}
+              {p.documento ? ` — ${p.documento}` : ''}
+            </option>
+          ))}
+        </select>
+        {formData.fornecedor_parceiro.trim() && formData.fornecedor_parceiro_nome.trim() ? (
+          <p className="form-text small text-muted mb-0">
+            Fornecedor vinculado:{' '}
+            <strong>
+              {formData.fornecedor_parceiro_nome}
+              {formData.fornecedor_parceiro_documento
+                ? ` — ${formData.fornecedor_parceiro_documento}`
+                : ''}
+            </strong>
           </p>
         ) : null}
       </div>
@@ -430,6 +580,125 @@ export default function ProdutoForm({
           value={espec}
           onPatch={patchEspecificacao}
         />
+      ) : null}
+
+      {categoriaNome === 'BORNE' ? (
+        <>
+          <div className="col-12 mt-3">
+            <div className="d-flex justify-content-between align-items-center gap-2">
+              <h2 className="h6 text-muted mb-0">Acessórios compatíveis</h2>
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={adicionarAcessorioCompativel}
+              >
+                Adicionar
+              </button>
+            </div>
+          </div>
+          {formData.acessorios_compativeis.map((row, index) => (
+            <div key={index} className="col-12">
+              <div className="row g-2 align-items-end">
+                <div className="col-md-5">
+                  <label className="form-label" htmlFor={`acessorio-produto-${index}`}>
+                    Produto acessório
+                  </label>
+                  <select
+                    id={`acessorio-produto-${index}`}
+                    className="form-select"
+                    value={row.acessorio}
+                    onChange={(e) => patchAcessorioCompativel(index, { acessorio: e.target.value })}
+                  >
+                    <option value="">Selecione…</option>
+                    {row.acessorio &&
+                    !borneOptions.some((p) => p.id === row.acessorio) ? (
+                      <option value={row.acessorio}>
+                        {row.acessorio_codigo || row.acessorio} —{' '}
+                        {row.acessorio_descricao || 'Acessório vinculado'}
+                      </option>
+                    ) : null}
+                    {borneOptions.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.codigo} — {p.descricao}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label" htmlFor={`acessorio-tipo-${index}`}>
+                    Tipo
+                  </label>
+                  <select
+                    id={`acessorio-tipo-${index}`}
+                    className="form-select"
+                    value={row.tipo_acessorio}
+                    onChange={(e) =>
+                      patchAcessorioCompativel(index, { tipo_acessorio: e.target.value })
+                    }
+                  >
+                    {tipoBorneCatalogoOptions
+                      .filter((opt) => opt.value === 'TAMPA' || opt.value === 'JUMPER')
+                      .map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label" htmlFor={`acessorio-qtd-${index}`}>
+                    Quantidade
+                  </label>
+                  <input
+                    id={`acessorio-qtd-${index}`}
+                    className="form-control"
+                    inputMode="decimal"
+                    value={row.quantidade_padrao}
+                    onChange={(e) =>
+                      patchAcessorioCompativel(index, { quantidade_padrao: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="col-md-2">
+                  <label className="form-label" htmlFor={`acessorio-prioridade-${index}`}>
+                    Prioridade
+                  </label>
+                  <input
+                    id={`acessorio-prioridade-${index}`}
+                    className="form-control"
+                    type="number"
+                    value={row.prioridade}
+                    onChange={(e) =>
+                      patchAcessorioCompativel(index, {
+                        prioridade: Number.parseInt(e.target.value || '0', 10),
+                      })
+                    }
+                  />
+                </div>
+                <div className="col-md-1">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger w-100"
+                    onClick={() => removerAcessorioCompativel(index)}
+                    aria-label="Remover acessório compatível"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="col-12">
+                  <input
+                    className="form-control"
+                    value={row.observacoes}
+                    onChange={(e) =>
+                      patchAcessorioCompativel(index, { observacoes: e.target.value })
+                    }
+                    placeholder="Observações"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
       ) : null}
 
       <div className="col-12 mt-3">

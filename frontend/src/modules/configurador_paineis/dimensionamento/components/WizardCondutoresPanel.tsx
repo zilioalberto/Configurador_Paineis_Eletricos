@@ -3,6 +3,7 @@
 import { useWizardCondutoresPanel } from '../hooks/useWizardCondutoresPanel'
 import {
   AlimentacaoGeralSection,
+  CorrentesPorFasePainelSection,
   WizardCondutoresCircuitosBlock,
   WizardCondutoresToolbar,
 } from './WizardCondutoresSections'
@@ -92,6 +93,12 @@ export default function WizardCondutoresPanel({ projetoId, embedded = false }: P
         panel={panelSlice}
         actions={circuitoActions}
         revisaoEfetivaOk={revisaoEfetivaOk}
+      />
+
+      <CorrentesPorFasePainelSection
+        correntes={dim.correntes_por_fase_painel_a}
+        correnteTotalReferencia={dim.corrente_total_painel_a}
+        aplicaFatorDemandaSeccionamento={dim.aplica_fator_demanda_seccionamento}
       />
 
       {ag && agOv ? (

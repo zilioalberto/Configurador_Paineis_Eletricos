@@ -10,11 +10,11 @@ import {
   formatNumeroFasesCarga,
   formatPotenciaCarga,
   formatPotenciaPainelEntradaKw,
-  LEGENDA_DESCR_PAINEL_GERAL,
   LEGENDA_TAG_PAINEL_GERAL,
   LEGENDA_TIPO_PAINEL_GERAL,
   textoCorrenteEntradaPainel,
   textoDescricaoCarga,
+  textoDescricaoItemPainelSemCarga,
   textoFasesAlimentacaoProjeto,
   textoPapelItem,
   textoTensaoAlimentacaoProjeto,
@@ -110,7 +110,11 @@ function ComposicaoTabelaPendencias({
             {grupo.itens.map((p) => (
               <tr key={p.id}>
                 <td>{p.carga ? p.carga.tag : LEGENDA_TAG_PAINEL_GERAL}</td>
-                <td>{p.carga ? textoDescricaoCarga(p.carga) : LEGENDA_DESCR_PAINEL_GERAL}</td>
+                <td>
+                  {p.carga
+                    ? textoDescricaoCarga(p.carga)
+                    : textoDescricaoItemPainelSemCarga(p.parte_painel, p.parte_painel_display)}
+                </td>
                 <td>
                   {p.carga ? (
                     <span className="badge text-bg-secondary">{em(p.carga.tipo_display)}</span>

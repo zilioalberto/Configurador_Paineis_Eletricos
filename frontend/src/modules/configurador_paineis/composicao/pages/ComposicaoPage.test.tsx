@@ -70,14 +70,24 @@ vi.mock('@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamento
   }),
 }))
 
-vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates', () => ({
-  useProjetoFluxoGates: () => ({
+const useProjetoFluxoGatesMock = vi.hoisted(() =>
+  vi.fn(() => ({
     loading: false,
     temCargas: true,
     condutoresRevisaoOk: true,
+    composicaoComItens: false,
     podeAcessarDimensionamento: true,
     podeAcessarComposicao: true,
-  }),
+    podeAcessarDimensionamentoMecanico: false,
+  }))
+)
+
+vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates', () => ({
+  useProjetoFluxoGates: () => useProjetoFluxoGatesMock(),
+}))
+
+vi.mock('@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => <nav aria-label="Etapas do fluxo do painel">Fluxo do painel</nav>,
 }))
 
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation', () => ({
@@ -351,7 +361,7 @@ describe('ComposicaoPage', () => {
     expect(document.querySelector('#comp-projeto')).toBeNull()
     expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/Fluxo do painel/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /etapas do fluxo/i })).toBeInTheDocument()
     expect(screen.queryByText(/^Projeto$/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^Dimensionamento$/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Editar condutores/i })).toHaveAttribute(
@@ -362,6 +372,26 @@ describe('ComposicaoPage', () => {
     await waitFor(() => {
       expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
     })
+  })
+
+  it('exibe atalho para dimensionamento mecânico quando composição tem itens aprovados', () => {
+    useProjetoFluxoGatesMock.mockReturnValueOnce({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: true,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: true,
+    })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    renderPage(['/composicao?projeto=p1'])
+
+    expect(screen.getByRole('link', { name: /Dimensionamento mecânico/i })).toHaveAttribute(
+      'href',
+      '/configurador/configuracoes/p1/fluxo/dimensionamento_mecanico'
+    )
   })
 
   it('oculta acao de gerar sugestoes sem permissao de separacao', () => {

@@ -6,6 +6,8 @@ import { useGerarSugestoesMutation } from '@/modules/configurador_paineis/compos
 import { useReavaliarPendenciasMutation } from '@/modules/configurador_paineis/composicao/hooks/useReavaliarPendenciasMutation'
 import { DimensionamentoWizardShell } from '@/modules/configurador_paineis/dimensionamento/components/DimensionamentoWizardShell'
 import WizardCondutoresPanel from '@/modules/configurador_paineis/dimensionamento/components/WizardCondutoresPanel'
+import WizardDimensionamentoMecanicoPanel from '@/modules/configurador_paineis/dimensionamento/components/WizardDimensionamentoMecanicoPanel'
+import { useProjetoFluxoGates } from '../hooks/useProjetoFluxoGates'
 import { useRecalcularDimensionamentoMutation } from '@/modules/configurador_paineis/dimensionamento/hooks/useRecalcularDimensionamentoMutation'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ProjetoFluxoStepper } from '../components/ProjetoFluxoStepper'
@@ -41,6 +43,7 @@ export default function ProjetoWizardPage() {
 
   const { showToast } = useToast()
   const fluxo = useProjetoWizardFluxo(projetoId)
+  const gates = useProjetoFluxoGates(projetoId)
   const {
     projeto,
     loadingProjeto,
@@ -69,43 +72,61 @@ export default function ProjetoWizardPage() {
   }, [navigate, projetoId, searchParams])
 
   const toolbarConfig = useMemo(() => {
-    if (etapaAtual !== 'dimensionamento') return null
+    if (etapaAtual === 'dimensionamento') {
+      const retornoDimensionamento = withFluxoOrigem(
+        configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+        searchParams
+      )
+      const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
 
-    const retornoDimensionamento = withFluxoOrigem(
-      configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
-      searchParams
-    )
-    const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
-
-    return {
-      title: 'Dimensionamento de condutores',
-      subtitle: undefined,
-      actions: (
-        <>
-          <Link
-            to={editarConfiguracaoPath}
-            className="btn btn-outline-light btn-sm"
-          >
-            Editar configurações
-          </Link>
-          <Link
-            to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
-            className="btn btn-outline-light btn-sm"
-          >
-            Editar cargas
-          </Link>
-        </>
-      ),
-      primaryAction: {
-        label: 'Salvar e ir para sugestões',
-        disabled: !dimensionamentoEtapaConcluida,
-        onClick: onSalvarIrSugestoes,
-      },
+      return {
+        title: 'Dimensionamento de condutores',
+        subtitle: undefined,
+        actions: (
+          <>
+            <Link
+              to={editarConfiguracaoPath}
+              className="btn btn-outline-light btn-sm"
+            >
+              Editar configurações
+            </Link>
+            <Link
+              to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+              className="btn btn-outline-light btn-sm"
+            >
+              Editar cargas
+            </Link>
+          </>
+        ),
+        primaryAction: {
+          label: 'Salvar e ir para sugestões',
+          disabled: !dimensionamentoEtapaConcluida,
+          onClick: onSalvarIrSugestoes,
+        },
+      }
     }
+
+    if (etapaAtual === 'dimensionamento_mecanico') {
+      return {
+        title: 'Dimensionamento mecânico',
+        subtitle: projeto?.nome ? `${projeto.codigo} · ${projeto.nome}` : undefined,
+        actions: (
+          <Link
+            to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)}
+            className="btn btn-outline-light btn-sm"
+          >
+            Voltar à composição
+          </Link>
+        ),
+      }
+    }
+
+    return null
   }, [
     dimensionamentoEtapaConcluida,
     etapaAtual,
     onSalvarIrSugestoes,
+    projeto,
     projetoId,
     searchParams,
   ])
@@ -174,15 +195,30 @@ export default function ProjetoWizardPage() {
     return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
   }
 
-  const mostrarOverview = etapaAtual !== 'dimensionamento'
+  if (
+    etapaAtual === 'dimensionamento_mecanico' &&
+    !gates.loading &&
+    !gates.podeAcessarDimensionamentoMecanico
+  ) {
+    return (
+      <Navigate
+        to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)}
+        replace
+      />
+    )
+  }
+
+  const mostrarOverviewCards =
+    etapaAtual !== 'dimensionamento' && etapaAtual !== 'dimensionamento_mecanico'
+  const mostrarStepper = etapaAtual !== 'dimensionamento'
 
   return (
     <div className="container-fluid">
-      {mostrarOverview ? (
+      {mostrarStepper ? (
         <ProjetoFluxoStepper projetoId={projetoId} etapaAtual={etapaAtual} />
       ) : null}
 
-      {mostrarOverview ? (
+      {mostrarOverviewCards ? (
         <ProjetoWizardResumoHeader
           projetoId={projetoId}
           projeto={projeto}
@@ -218,7 +254,11 @@ export default function ProjetoWizardPage() {
         </DimensionamentoWizardShell>
       ) : null}
 
-      {mostrarOverview ? (
+      {etapaAtual === 'dimensionamento_mecanico' ? (
+        <WizardDimensionamentoMecanicoPanel projetoId={projetoId} embedded />
+      ) : null}
+
+      {mostrarOverviewCards ? (
         <>
           <ProjetoWizardStepsGrid steps={steps} etapaAtual={etapaAtual} />
           <ProjetoWizardAcoesRapidas

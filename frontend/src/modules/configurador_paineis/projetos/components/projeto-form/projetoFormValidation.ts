@@ -6,6 +6,7 @@ export const ROTULOS_CAMPOS_PROJETO: Record<string, string> = {
   familia_plc: 'Família do PLC',
   tipo_climatizacao: 'Tipo de climatização',
   tipo_seccionamento: 'Tipo de seccionamento',
+  tipo_disjuntor_geral: 'Tipo de disjuntor geral',
   tipo_conexao_alimentacao_neutro: 'Conexão do neutro',
   tipo_conexao_alimentacao_terra: 'Conexão do terra',
   tipo_conexao_alimentacao_potencia: 'Conexão da alimentação de potência',
@@ -69,6 +70,11 @@ export function validarProjetoFormulario(data: ProjetoFormData): Record<string, 
       erros.tipo_seccionamento =
         'Selecione o tipo de seccionamento ou desmarque «Possui seccionamento».'
     }
+  }
+
+  if (data.possui_disjuntor_geral && !data.tipo_disjuntor_geral) {
+    erros.tipo_disjuntor_geral =
+      'Selecione o tipo de disjuntor geral ou desmarque «Possui disjuntor geral».'
   }
 
   return erros

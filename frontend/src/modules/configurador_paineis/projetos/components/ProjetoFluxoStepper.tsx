@@ -16,6 +16,11 @@ const ETAPAS: {
   { id: 'cargas', label: '1. Cargas do projeto', descricao: 'Cadastro de cargas' },
   { id: 'dimensionamento', label: '2. Dimensionamento', descricao: 'Condutores e revisão' },
   { id: 'composicao', label: '3. Composição do painel', descricao: 'Materiais e sugestões' },
+  {
+    id: 'dimensionamento_mecanico',
+    label: '4. Dim. mecânico',
+    descricao: 'Placa e painel comercial',
+  },
 ]
 
 type Props = {

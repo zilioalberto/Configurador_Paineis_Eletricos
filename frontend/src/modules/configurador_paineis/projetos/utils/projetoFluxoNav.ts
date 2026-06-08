@@ -5,6 +5,7 @@ import { withFluxoOrigem } from './fluxoOrigem'
 export type ProjetoFluxoGatesSnapshot = {
   podeAcessarDimensionamento: boolean
   podeAcessarComposicao: boolean
+  podeAcessarDimensionamentoMecanico: boolean
 }
 
 export const PROJETO_FLUXO_ETAPAS: {
@@ -15,6 +16,11 @@ export const PROJETO_FLUXO_ETAPAS: {
   { id: 'cargas', label: '1. Cargas', shortLabel: 'Cargas' },
   { id: 'dimensionamento', label: '2. Dimensionamento', shortLabel: 'Dimensionamento' },
   { id: 'composicao', label: '3. Composição', shortLabel: 'Composição' },
+  {
+    id: 'dimensionamento_mecanico',
+    label: '4. Dim. mecânico',
+    shortLabel: 'Dim. mecânico',
+  },
 ]
 
 export function projetoFluxoHref(
@@ -33,6 +39,9 @@ export function projetoFluxoHref(
     case 'composicao':
       href = configuradorPaths.composicao(projetoId)
       break
+    case 'dimensionamento_mecanico':
+      href = configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico')
+      break
     default:
       href = configuradorPaths.cargas(projetoId)
       break
@@ -47,6 +56,7 @@ export function projetoFluxoEtapaBloqueada(
   if (etapa === 'cargas') return false
   if (etapa === 'dimensionamento') return !gates.podeAcessarDimensionamento
   if (etapa === 'composicao') return !gates.podeAcessarComposicao
+  if (etapa === 'dimensionamento_mecanico') return !gates.podeAcessarDimensionamentoMecanico
   return true
 }
 
@@ -54,6 +64,9 @@ export function projetoFluxoTituloBloqueio(etapa: ProjetoFluxoEtapaId): string |
   if (etapa === 'dimensionamento') return 'Cadastre ao menos uma carga antes desta etapa.'
   if (etapa === 'composicao') {
     return 'Conclua a revisão e aprovação das bitolas de condutores antes da composição.'
+  }
+  if (etapa === 'dimensionamento_mecanico') {
+    return 'Aprove ao menos um item na composição antes do dimensionamento mecânico.'
   }
   return undefined
 }

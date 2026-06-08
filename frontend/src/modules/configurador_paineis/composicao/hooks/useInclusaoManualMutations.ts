@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { composicaoQueryKeys } from '../composicaoQueryKeys'
+import { dimensionamentoQueryKeys } from '@/modules/configurador_paineis/dimensionamento/dimensionamentoQueryKeys'
 import {
   adicionarInclusaoManual,
   removerInclusaoManual,
@@ -19,6 +20,11 @@ export function useAdicionarInclusaoManualMutation(projetoId: string | null) {
         queryClient.setQueryData(composicaoQueryKeys.snapshot(projetoId), data.snapshot)
       }
       void queryClient.invalidateQueries({ queryKey: composicaoQueryKeys.all })
+      if (projetoId) {
+        void queryClient.invalidateQueries({
+          queryKey: dimensionamentoQueryKeys.mecanico(projetoId),
+        })
+      }
     },
   })
 }
@@ -32,6 +38,11 @@ export function useRemoverInclusaoManualMutation(projetoId: string | null) {
         queryClient.setQueryData(composicaoQueryKeys.snapshot(projetoId), data.snapshot)
       }
       void queryClient.invalidateQueries({ queryKey: composicaoQueryKeys.all })
+      if (projetoId) {
+        void queryClient.invalidateQueries({
+          queryKey: dimensionamentoQueryKeys.mecanico(projetoId),
+        })
+      }
     },
   })
 }

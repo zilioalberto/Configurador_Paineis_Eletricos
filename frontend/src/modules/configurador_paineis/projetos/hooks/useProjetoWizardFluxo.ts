@@ -13,7 +13,11 @@ import { useProjetoDetailQuery } from '../hooks/useProjetoDetailQuery'
 import { projetoQueryKeys } from '../projetoQueryKeys'
 import { listarHistoricoProjeto } from '../services/projetoService'
 
-export type WizardStepId = 'cargas' | 'dimensionamento' | 'composicao'
+export type WizardStepId =
+  | 'cargas'
+  | 'dimensionamento'
+  | 'composicao'
+  | 'dimensionamento_mecanico'
 
 export type WizardStep = {
   id: WizardStepId
@@ -33,7 +37,12 @@ export type ChecklistItem = {
 }
 
 /** Etapas válidas na URL `/projetos/:id/fluxo/:etapa`. */
-export const ETAPAS_VALIDAS: WizardStepId[] = ['cargas', 'dimensionamento', 'composicao']
+export const ETAPAS_VALIDAS: WizardStepId[] = [
+  'cargas',
+  'dimensionamento',
+  'composicao',
+  'dimensionamento_mecanico',
+]
 
 function statusDependente(
   bloqueado: boolean,
@@ -86,6 +95,10 @@ export function useProjetoWizardFluxo(projetoId: string) {
       ((composicao.totais?.sugestoes ?? 0) > 0 ||
         (composicao.totais?.composicao_itens ?? 0) > 0 ||
         (composicao.totais?.pendencias ?? 0) > 0)
+  )
+  const composicaoComItens = (composicao?.totais?.composicao_itens ?? 0) > 0
+  const dimensionamentoMecanicoCalculado = Boolean(
+    dimensionamento?.detalhe_dimensionamento_mecanico?.area_componentes_mm2
   )
 
   const maxCargaAtualizacaoMs = useMemo(() => {
@@ -145,6 +158,11 @@ export function useProjetoWizardFluxo(projetoId: string) {
         status: statusDependente(!dimensionamentoEtapaConcluida, composicaoGerada),
       },
       {
+        key: 'dimensionamento-mecanico',
+        label: 'Dimensionamento mecânico calculado',
+        status: statusDependente(!composicaoComItens, dimensionamentoMecanicoCalculado),
+      },
+      {
         key: 'rastreabilidade-usuario',
         label: 'Última ação executada por usuário identificado',
         status: statusHistorico(historico.length > 0, ultimaAcaoComUsuarioIdentificado),
@@ -158,6 +176,8 @@ export function useProjetoWizardFluxo(projetoId: string) {
       dimensionamentoEtapaConcluida,
       dimensionamentoAposUltimaCarga,
       composicaoGerada,
+      composicaoComItens,
+      dimensionamentoMecanicoCalculado,
       historico.length,
       ultimaAcaoComUsuarioIdentificado,
     ]
@@ -188,10 +208,26 @@ export function useProjetoWizardFluxo(projetoId: string) {
         description: 'Gere e aprove a composição para exportação final.',
         href: configuradorPaths.composicao(projetoId),
         canEnter: dimensionamentoEtapaConcluida,
-        done: composicaoGerada,
+        done: composicaoComItens,
+      },
+      {
+        id: 'dimensionamento_mecanico',
+        title: 'Dimensionamento mecânico',
+        description:
+          'Calcule placa mínima, canaletas e o painel comercial mais próximo do catálogo.',
+        href: configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico'),
+        canEnter: composicaoComItens,
+        done: dimensionamentoMecanicoCalculado,
       },
     ],
-    [projetoId, projeto, temCargas, dimensionamentoEtapaConcluida, composicaoGerada]
+    [
+      projetoId,
+      projeto,
+      temCargas,
+      dimensionamentoEtapaConcluida,
+      composicaoComItens,
+      dimensionamentoMecanicoCalculado,
+    ]
   )
 
   return {
@@ -205,6 +241,8 @@ export function useProjetoWizardFluxo(projetoId: string) {
     temCargas,
     dimensionamentoEtapaConcluida,
     composicaoGerada,
+    composicaoComItens,
+    dimensionamentoMecanicoCalculado,
     prontoParaExportar,
     ultimaAcaoComUsuarioIdentificado,
     ultimoEvento,

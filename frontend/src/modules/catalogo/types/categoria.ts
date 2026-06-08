@@ -34,6 +34,8 @@ export type CategoriaProdutoNome =
   | 'TRILHO_DIN'
   | 'PAINEL'
   | 'CLIMATIZACAO'
+  | 'IDENTIFICACAO'
+  | 'TERMINAIS'
   | 'OUTROS'
   | 'SEM_REGRA_SUGESTAO_AUTOMATICA'
 

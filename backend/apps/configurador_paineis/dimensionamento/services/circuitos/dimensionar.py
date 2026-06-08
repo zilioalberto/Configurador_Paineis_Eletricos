@@ -23,13 +23,6 @@ from core.choices import (
 from apps.configurador_paineis.configuracao_global import obter_degraus_margem_bitola_condutores
 from apps.configurador_paineis.dimensionamento.models import ClassificacaoCircuitoChoices
 
-def _fd(projeto) -> Decimal:
-    fd = getattr(projeto, "fator_demanda", None)
-    if fd is None:
-        return Decimal("1.00")
-    return Decimal(fd)
-
-
 def _degraus_margem_bitola(_projeto=None) -> int:
     return obter_degraus_margem_bitola_condutores()
 
@@ -67,14 +60,14 @@ def dimensionar_motor(espec_motor, projeto, carga) -> dict:
         corrente_u = Decimal("0")
 
     qtd = _qtd_unidades(carga)
-    fd = _fd(projeto)
-    corrente_projeto = (corrente_u * Decimal(qtd) * fd).quantize(Decimal("0.01"))
+    corrente_projeto = (corrente_u * Decimal(qtd)).quantize(Decimal("0.01"))
 
     nf = getattr(espec_motor, "numero_fases", None)
     trifasico = nf == NumeroFasesChoices.TRIFASICO
 
     linhas = [
-        f"Motor: Ib_unidade={corrente_u} A; quantidade={qtd}; fator_demanda={fd}; Ib_projeto={corrente_projeto} A.",
+        f"Motor: Ib_unidade={corrente_u} A; quantidade={qtd}; Ib_projeto={corrente_projeto} A.",
+        "Fator de demanda não aplicado ao circuito de carga (somente seccionamento de entrada em painel distribuição).",
     ]
     _dg = _degraus_margem_bitola(projeto)
     if _dg > 0:
@@ -146,14 +139,14 @@ def dimensionar_resistencia(espec, projeto, carga) -> dict:
         corrente_u = Decimal("0")
 
     qtd = _qtd_unidades(carga)
-    fd = _fd(projeto)
-    corrente_projeto = (corrente_u * Decimal(qtd) * fd).quantize(Decimal("0.01"))
+    corrente_projeto = (corrente_u * Decimal(qtd)).quantize(Decimal("0.01"))
 
     nf = getattr(espec, "numero_fases", None)
     trifasico = nf == NumeroFasesChoices.TRIFASICO
 
     linhas = [
-        f"Resistência: Ib_unidade={corrente_u} A; quantidade={qtd}; fd={fd}; Ib_projeto={corrente_projeto} A.",
+        f"Resistência: Ib_unidade={corrente_u} A; quantidade={qtd}; Ib_projeto={corrente_projeto} A.",
+        "Fator de demanda não aplicado ao circuito de carga (somente seccionamento de entrada em painel distribuição).",
     ]
     _dgr = _degraus_margem_bitola(projeto)
     if _dgr > 0:

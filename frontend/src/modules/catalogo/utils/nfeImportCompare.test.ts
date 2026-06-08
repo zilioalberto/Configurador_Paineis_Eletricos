@@ -40,6 +40,7 @@ const produtoBase: NfeProdutoExistenteResumo = {
   referencia_fabricante: '',
   aliquota_ipi: '1.5000',
   fabricante_parceiro_id: '',
+  fornecedor_parceiro_id: '',
 }
 
 describe('nfeImportCompare', () => {

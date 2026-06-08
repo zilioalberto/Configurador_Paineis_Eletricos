@@ -86,6 +86,10 @@ export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProj
           }
         }
 
+        if (name === 'possui_disjuntor_geral' && !checked) {
+          updated.tipo_disjuntor_geral = null
+        }
+
         return updated
       })
 
@@ -156,6 +160,9 @@ export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProj
         familia_plc: formData.possui_plc ? formData.familia_plc : null,
         tipo_seccionamento: formData.possui_seccionamento
           ? formData.tipo_seccionamento
+          : null,
+        tipo_disjuntor_geral: formData.possui_disjuntor_geral
+          ? formData.tipo_disjuntor_geral
           : null,
         responsavel: formData.responsavel || null,
       }

@@ -21,6 +21,7 @@ from apps.catalogo.models import (
     EspecificacaoFusivel,
     EspecificacaoGateway,
     EspecificacaoIHM,
+    EspecificacaoIdentificacao,
     EspecificacaoInversorFrequencia,
     EspecificacaoMiniDisjuntor,
     EspecificacaoModuloComunicacao,
@@ -34,8 +35,10 @@ from apps.catalogo.models import (
     EspecificacaoSoftStarter,
     EspecificacaoSwitchRede,
     EspecificacaoTemporizador,
+    EspecificacaoTerminal,
     EspecificacaoTrilhoDIN,
     Produto,
+    ProdutoAcessorioCompativel,
 )
 from apps.fiscal.models import ItemFiscalProduto
 from apps.fiscal.serializers import ItemFiscalProdutoSerializer, ItemFiscalProdutoWriteSerializer
@@ -108,6 +111,9 @@ from core.choices.produtos import (
     TipoTemporizadorChoices,
     TipoFuncaoTemporizadorChoices,
     TipoMontagemTemporizadorChoices,
+    TipoTerminalChoices,
+    TipoIdentificacaoChoices,
+    TamanhoPlaquetaIdentificacaoChoices,
     TipoTrilhoDINChoices,
     MaterialTrilhoDINChoices,
 )
@@ -141,6 +147,8 @@ NESTED_KEYS = (
     "especificacao_temporizador",
     "especificacao_controlador_temperatura",
     "especificacao_trilho_din",
+    "especificacao_terminal",
+    "especificacao_identificacao",
     "especificacao_barramento",
     "especificacao_gateway",
 )
@@ -174,6 +182,8 @@ CATEGORIA_PARA_CAMPO = {
     CategoriaProdutoNomeChoices.TEMPORIZADOR: "especificacao_temporizador",
     CategoriaProdutoNomeChoices.CONTROLADOR_TEMPERATURA: "especificacao_controlador_temperatura",
     CategoriaProdutoNomeChoices.TRILHO_DIN: "especificacao_trilho_din",
+    CategoriaProdutoNomeChoices.TERMINAIS: "especificacao_terminal",
+    CategoriaProdutoNomeChoices.IDENTIFICACAO: "especificacao_identificacao",
     CategoriaProdutoNomeChoices.BARRAMENTO: "especificacao_barramento",
     CategoriaProdutoNomeChoices.GATEWAY: "especificacao_gateway",
 }
@@ -207,6 +217,8 @@ MODEL_BY_CAMPO = {
     "especificacao_temporizador": EspecificacaoTemporizador,
     "especificacao_controlador_temperatura": EspecificacaoControladorTemperatura,
     "especificacao_trilho_din": EspecificacaoTrilhoDIN,
+    "especificacao_terminal": EspecificacaoTerminal,
+    "especificacao_identificacao": EspecificacaoIdentificacao,
     "especificacao_barramento": EspecificacaoBarramento,
     "especificacao_gateway": EspecificacaoGateway,
 }
@@ -332,7 +344,7 @@ DEFAULTS_POR_CATEGORIA = {
     },
     CategoriaProdutoNomeChoices.CANALETA: {
             "tipo_canaleta": TipoCanaletaChoices.FECHADA,
-            "largura_mm": "40.00",
+            "largura_base_mm": "40.00",
             "altura_mm": "25.00",
             "material": MaterialCanaletaChoices.PVC,
             "cor": CorCanaletaChoices.CINZA,
@@ -453,6 +465,22 @@ DEFAULTS_POR_CATEGORIA = {
             "comprimento_mm": 1000,
             "material": MaterialTrilhoDINChoices.ACO_GALVANIZADO,
             "perfurado": True,
+    },
+    CategoriaProdutoNomeChoices.TERMINAIS: {
+            "tipo_terminal": TipoTerminalChoices.TUBULAR,
+            "secao_min_mm2": "1.50",
+            "secao_max_mm2": "1.50",
+            "furo_olhal": "",
+    },
+    CategoriaProdutoNomeChoices.IDENTIFICACAO: {
+            "tipo_identificacao": TipoIdentificacaoChoices.ETIQUETA_CABO,
+            "secao_min_mm2": None,
+            "secao_max_mm2": None,
+            "diametro_min_mm": None,
+            "diametro_max_mm": None,
+            "comprimento_mm": None,
+            "tamanho_plaqueta": "",
+            "tensao_v": None,
     },
     CategoriaProdutoNomeChoices.BARRAMENTO: {
             "corrente_nominal_a": "100.00",
@@ -1229,6 +1257,38 @@ class EspecificacaoTrilhoDINSerializer(serializers.ModelSerializer):
         exclude = ("produto",)
 
 
+class EspecificacaoTerminalSerializer(serializers.ModelSerializer):
+    tipo_terminal_display = serializers.CharField(
+        source="get_tipo_terminal_display",
+        read_only=True,
+    )
+    furo_olhal_display = serializers.CharField(
+        source="get_furo_olhal_display",
+        read_only=True,
+        allow_blank=True,
+    )
+
+    class Meta:
+        model = EspecificacaoTerminal
+        exclude = ("produto",)
+
+
+class EspecificacaoIdentificacaoSerializer(serializers.ModelSerializer):
+    tipo_identificacao_display = serializers.CharField(
+        source="get_tipo_identificacao_display",
+        read_only=True,
+    )
+    tamanho_plaqueta_display = serializers.CharField(
+        source="get_tamanho_plaqueta_display",
+        read_only=True,
+        allow_blank=True,
+    )
+
+    class Meta:
+        model = EspecificacaoIdentificacao
+        exclude = ("produto",)
+
+
 class EspecificacaoBarramentoSerializer(serializers.ModelSerializer):
     material_display = serializers.CharField(
         source="get_material_display",
@@ -1460,6 +1520,48 @@ class EspecificacaoTrilhoDINWriteSerializer(serializers.ModelSerializer):
         exclude = _WRITE_EXCLUDE
 
 
+class EspecificacaoTerminalWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EspecificacaoTerminal
+        exclude = _WRITE_EXCLUDE
+
+
+class EspecificacaoIdentificacaoWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EspecificacaoIdentificacao
+        exclude = _WRITE_EXCLUDE
+
+
+class ProdutoAcessorioCompativelSerializer(serializers.ModelSerializer):
+    acessorio_codigo = serializers.CharField(source="acessorio.codigo", read_only=True)
+    acessorio_descricao = serializers.CharField(source="acessorio.descricao", read_only=True)
+
+    class Meta:
+        model = ProdutoAcessorioCompativel
+        fields = (
+            "id",
+            "acessorio",
+            "acessorio_codigo",
+            "acessorio_descricao",
+            "tipo_acessorio",
+            "quantidade_padrao",
+            "prioridade",
+            "observacoes",
+        )
+
+
+class ProdutoAcessorioCompativelWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProdutoAcessorioCompativel
+        fields = (
+            "acessorio",
+            "tipo_acessorio",
+            "quantidade_padrao",
+            "prioridade",
+            "observacoes",
+        )
+
+
 class EspecificacaoBarramentoWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = EspecificacaoBarramento
@@ -1501,6 +1603,8 @@ _DETALHE_FIELDS = (
     ("especificacao_temporizador", CategoriaProdutoNomeChoices.TEMPORIZADOR, EspecificacaoTemporizador, EspecificacaoTemporizadorSerializer),
     ("especificacao_controlador_temperatura", CategoriaProdutoNomeChoices.CONTROLADOR_TEMPERATURA, EspecificacaoControladorTemperatura, EspecificacaoControladorTemperaturaSerializer),
     ("especificacao_trilho_din", CategoriaProdutoNomeChoices.TRILHO_DIN, EspecificacaoTrilhoDIN, EspecificacaoTrilhoDINSerializer),
+    ("especificacao_terminal", CategoriaProdutoNomeChoices.TERMINAIS, EspecificacaoTerminal, EspecificacaoTerminalSerializer),
+    ("especificacao_identificacao", CategoriaProdutoNomeChoices.IDENTIFICACAO, EspecificacaoIdentificacao, EspecificacaoIdentificacaoSerializer),
     ("especificacao_barramento", CategoriaProdutoNomeChoices.BARRAMENTO, EspecificacaoBarramento, EspecificacaoBarramentoSerializer),
     ("especificacao_gateway", CategoriaProdutoNomeChoices.GATEWAY, EspecificacaoGateway, EspecificacaoGatewaySerializer),
 )
@@ -1567,6 +1671,8 @@ class ProdutoListSerializer(serializers.ModelSerializer):
     )
     fabricante_parceiro_nome = serializers.SerializerMethodField()
     fabricante_parceiro_documento = serializers.SerializerMethodField()
+    fornecedor_parceiro_nome = serializers.SerializerMethodField()
+    fornecedor_parceiro_documento = serializers.SerializerMethodField()
     informacao_comercial = serializers.SerializerMethodField()
     aliquota_ipi = serializers.SerializerMethodField()
 
@@ -1588,6 +1694,9 @@ class ProdutoListSerializer(serializers.ModelSerializer):
             "fabricante_parceiro",
             "fabricante_parceiro_nome",
             "fabricante_parceiro_documento",
+            "fornecedor_parceiro",
+            "fornecedor_parceiro_nome",
+            "fornecedor_parceiro_documento",
             "informacao_comercial",
             "ativo",
             "criado_em",
@@ -1602,6 +1711,12 @@ class ProdutoListSerializer(serializers.ModelSerializer):
 
     def get_fabricante_parceiro_documento(self, obj):
         return obj.fabricante_parceiro.documento if obj.fabricante_parceiro_id else None
+
+    def get_fornecedor_parceiro_nome(self, obj):
+        return obj.fornecedor_parceiro.razao_social if obj.fornecedor_parceiro_id else None
+
+    def get_fornecedor_parceiro_documento(self, obj):
+        return obj.fornecedor_parceiro.documento if obj.fornecedor_parceiro_id else None
 
     def get_informacao_comercial(self, obj):
         if not _produto_tem_informacao_comercial_significativa(obj):
@@ -1634,6 +1749,20 @@ def _salvar_itens_fiscais_catalogo(produto: Produto, rows: list) -> None:
         item.save()
 
 
+def _salvar_acessorios_compativeis_catalogo(produto: Produto, rows: list) -> None:
+    produto.acessorios_compativeis.all().delete()
+    for row in rows:
+        rel = ProdutoAcessorioCompativel(produto_base=produto, **dict(row))
+        try:
+            rel.full_clean()
+        except DjangoValidationError as exc:
+            err = getattr(exc, "message_dict", None) or getattr(exc, "error_dict", None)
+            if err:
+                raise serializers.ValidationError({"acessorios_compativeis": err}) from exc
+            raise serializers.ValidationError({"acessorios_compativeis": str(exc)}) from exc
+        rel.save()
+
+
 PRODUTO_DETAIL_FIELDS = (
     "id",
     "criado_em",
@@ -1652,6 +1781,9 @@ PRODUTO_DETAIL_FIELDS = (
     "fabricante_parceiro",
     "fabricante_parceiro_nome",
     "fabricante_parceiro_documento",
+    "fornecedor_parceiro",
+    "fornecedor_parceiro_nome",
+    "fornecedor_parceiro_documento",
     "fabricante",
     "referencia_fabricante",
     "largura_mm",
@@ -1659,6 +1791,7 @@ PRODUTO_DETAIL_FIELDS = (
     "profundidade_mm",
     "observacoes_tecnicas",
     "informacao_comercial",
+    "acessorios_compativeis",
 )
 
 
@@ -1673,9 +1806,12 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
     )
     fabricante_parceiro_nome = serializers.SerializerMethodField()
     fabricante_parceiro_documento = serializers.SerializerMethodField()
+    fornecedor_parceiro_nome = serializers.SerializerMethodField()
+    fornecedor_parceiro_documento = serializers.SerializerMethodField()
     informacao_comercial = serializers.SerializerMethodField()
     aliquota_ipi = serializers.SerializerMethodField()
     itens_fiscais = ItemFiscalProdutoSerializer(many=True, read_only=True)
+    acessorios_compativeis = ProdutoAcessorioCompativelSerializer(many=True, read_only=True)
 
     class Meta:
         model = Produto
@@ -1689,6 +1825,12 @@ class ProdutoDetailSerializer(serializers.ModelSerializer):
 
     def get_fabricante_parceiro_documento(self, obj):
         return obj.fabricante_parceiro.documento if obj.fabricante_parceiro_id else None
+
+    def get_fornecedor_parceiro_nome(self, obj):
+        return obj.fornecedor_parceiro.razao_social if obj.fornecedor_parceiro_id else None
+
+    def get_fornecedor_parceiro_documento(self, obj):
+        return obj.fornecedor_parceiro.documento if obj.fornecedor_parceiro_id else None
 
     def get_informacao_comercial(self, obj):
         if not _produto_tem_informacao_comercial_significativa(obj):
@@ -1831,7 +1973,20 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    especificacao_terminal = EspecificacaoTerminalWriteSerializer(
+        required=False,
+        allow_null=True,
+    )
+    especificacao_identificacao = EspecificacaoIdentificacaoWriteSerializer(
+        required=False,
+        allow_null=True,
+    )
     especificacao_barramento = EspecificacaoBarramentoWriteSerializer(
+        required=False,
+        allow_null=True,
+    )
+    acessorios_compativeis = ProdutoAcessorioCompativelWriteSerializer(
+        many=True,
         required=False,
         allow_null=True,
     )
@@ -1863,6 +2018,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             "preco_atualizado_em",
             "aliquota_ipi",
             "fabricante_parceiro",
+            "fornecedor_parceiro",
             "fabricante",
             "referencia_fabricante",
             "largura_mm",
@@ -1872,6 +2028,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             "ativo",
             "informacao_comercial",
             "itens_fiscais",
+            "acessorios_compativeis",
         ) + NESTED_KEYS
         read_only_fields = ("id",)
 
@@ -1893,6 +2050,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         info_payload = validated_data.pop("informacao_comercial", serializers.empty)
         itens_payload = validated_data.pop("itens_fiscais", serializers.empty)
+        acessorios_payload = validated_data.pop("acessorios_compativeis", serializers.empty)
         aliquota_ipi = validated_data.pop("aliquota_ipi", serializers.empty)
         payloads = {k: validated_data.pop(k, None) for k in NESTED_KEYS}
         merged = dict(validated_data)
@@ -1910,6 +2068,8 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             _salvar_especificacao(produto, nome, payloads.get(campo))
         if itens_payload is not serializers.empty and itens_payload is not None:
             _salvar_itens_fiscais_catalogo(produto, itens_payload)
+        if acessorios_payload is not serializers.empty and acessorios_payload is not None:
+            _salvar_acessorios_compativeis_catalogo(produto, acessorios_payload)
         if aliquota_ipi is not serializers.empty:
             aplicar_aliquota_ipi_referencia_produto(produto, aliquota_ipi)
         return produto
@@ -1929,6 +2089,14 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
             instance.itens_fiscais.all().delete()
             return
         _salvar_itens_fiscais_catalogo(instance, itens_payload)
+
+    def _sincronizar_acessorios_compativeis_update(self, instance, acessorios_payload) -> None:
+        if acessorios_payload is serializers.empty:
+            return
+        if acessorios_payload is None:
+            instance.acessorios_compativeis.all().delete()
+            return
+        _salvar_acessorios_compativeis_catalogo(instance, acessorios_payload)
 
     def _salvar_especificacao_update(
         self,
@@ -1971,6 +2139,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         info_payload = validated_data.pop("informacao_comercial", serializers.empty)
         itens_payload = validated_data.pop("itens_fiscais", serializers.empty)
+        acessorios_payload = validated_data.pop("acessorios_compativeis", serializers.empty)
         aliquota_ipi = validated_data.pop("aliquota_ipi", serializers.empty)
         payloads = {}
         for k in NESTED_KEYS:
@@ -1987,6 +2156,7 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         instance.save()
         nome_novo = instance.categoria
         self._sincronizar_itens_fiscais_update(instance, itens_payload)
+        self._sincronizar_acessorios_compativeis_update(instance, acessorios_payload)
         if aliquota_ipi is not serializers.empty:
             aplicar_aliquota_ipi_referencia_produto(instance, aliquota_ipi)
         self._salvar_especificacao_update(

@@ -9,12 +9,12 @@ import {
   formatNumeroFasesCarga,
   formatPotenciaCarga,
   formatPotenciaPainelEntradaKw,
-  LEGENDA_DESCR_PAINEL_GERAL,
   LEGENDA_PAPEL_PAINEL_GERAL,
   LEGENDA_TAG_PAINEL_GERAL,
   LEGENDA_TIPO_PAINEL_GERAL,
   textoCorrenteEntradaPainel,
   textoDescricaoCarga,
+  textoDescricaoItemPainelSemCarga,
   textoFasesAlimentacaoProjeto,
   textoPapelItem,
   textoTensaoAlimentacaoProjeto,
@@ -31,6 +31,8 @@ export type LinhaItemComposicaoEscopo = {
   categoria_produto_display?: string
   produto?: { codigo?: string; descricao?: string } | null
   produto_codigo?: string | null
+  parte_painel?: string
+  parte_painel_display?: string
 }
 
 type Props = {
@@ -53,7 +55,11 @@ export function ComposicaoLinhaEscopo({
   return (
     <tr>
       <td>{c ? c.tag : LEGENDA_TAG_PAINEL_GERAL}</td>
-      <td>{c ? textoDescricaoCarga(c) : LEGENDA_DESCR_PAINEL_GERAL}</td>
+      <td>
+        {c
+          ? textoDescricaoCarga(c)
+          : textoDescricaoItemPainelSemCarga(item.parte_painel, item.parte_painel_display)}
+      </td>
       <td>
         {c ? (
           <span className="badge text-bg-secondary">{em(c.tipo_display)}</span>

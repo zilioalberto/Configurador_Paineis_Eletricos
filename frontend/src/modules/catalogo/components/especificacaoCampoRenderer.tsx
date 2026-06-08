@@ -169,6 +169,30 @@ function deveOcultarCampoAnalogico(
   return false
 }
 
+function deveOcultarCampoTerminal(
+  categoria: CategoriaProdutoNome,
+  name: string,
+  value: Record<string, string | number | boolean>
+): boolean {
+  if (categoria !== 'TERMINAIS' || name !== 'furo_olhal') return false
+  return String(value.tipo_terminal ?? '') === 'TUBULAR'
+}
+
+function deveOcultarCampoIdentificacao(
+  categoria: CategoriaProdutoNome,
+  name: string,
+  value: Record<string, string | number | boolean>
+): boolean {
+  if (categoria !== 'IDENTIFICACAO') return false
+  const tipo = String(value.tipo_identificacao ?? '')
+  const suporte = new Set(['secao_min_mm2', 'secao_max_mm2', 'diametro_min_mm', 'diametro_max_mm'])
+  if (suporte.has(name)) return tipo === '' || tipo !== 'SUPORTE_LUVA_CABO'
+  if (name === 'comprimento_mm') return tipo !== 'FAIXA_IDENTIFICACAO'
+  if (name === 'tamanho_plaqueta') return tipo !== 'PLAQUETA_IDENTIFICACAO'
+  if (name === 'tensao_v') return tipo !== 'ADESIVO_TENSAO'
+  return false
+}
+
 function renderCampoBoolean(
   name: string,
   label: string,
@@ -255,6 +279,27 @@ function renderCampoSelect(
           }
           if (categoria === 'PAINEL' && name === 'material') {
             onPatch({ material: v, ...(v === 'ACO_INOX' ? { cor: '' } : {}) })
+            return
+          }
+          if (categoria === 'TERMINAIS' && name === 'tipo_terminal') {
+            onPatch({ tipo_terminal: v, ...(v === 'TUBULAR' ? { furo_olhal: '' } : {}) })
+            return
+          }
+          if (categoria === 'IDENTIFICACAO' && name === 'tipo_identificacao') {
+            onPatch({
+              tipo_identificacao: v,
+              ...(v === 'SUPORTE_LUVA_CABO'
+                ? {}
+                : {
+                    secao_min_mm2: '',
+                    secao_max_mm2: '',
+                    diametro_min_mm: '',
+                    diametro_max_mm: '',
+                  }),
+              ...(v === 'FAIXA_IDENTIFICACAO' ? {} : { comprimento_mm: '' }),
+              ...(v === 'PLAQUETA_IDENTIFICACAO' ? {} : { tamanho_plaqueta: '' }),
+              ...(v === 'ADESIVO_TENSAO' ? {} : { tensao_v: '' }),
+            })
             return
           }
           patch(name, numericOpts ? Number(v) : v)
@@ -370,6 +415,8 @@ export function renderCampoEspecificacao(
   if (deveOcultarCampoReleEstadoSolido(categoria, name, value)) return null
   if (deveOcultarCampoPainel(categoria, name, value)) return null
   if (deveOcultarCampoAnalogico(categoria, name, value)) return null
+  if (deveOcultarCampoTerminal(categoria, name, value)) return null
+  if (deveOcultarCampoIdentificacao(categoria, name, value)) return null
 
   const label = labelCampoEspec(name)
   const opts = opcoesEspecificacao(categoria, name, value)

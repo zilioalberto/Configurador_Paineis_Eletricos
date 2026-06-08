@@ -1,3 +1,5 @@
+import type { ObjetivoEntradaFiscal } from '@/modules/fiscal/types/documentoFiscalRecebido'
+
 /** Tipos do fluxo de importação de NF-e para o catálogo. */
 
 export type NfeEmitentePreview = {
@@ -38,6 +40,7 @@ export type NfeProdutoExistenteResumo = {
   referencia_fabricante: string
   aliquota_ipi: string
   fabricante_parceiro_id: string
+  fornecedor_parceiro_id: string
 }
 
 export type NfeItemPreview = {
@@ -87,6 +90,8 @@ export type NfeAplicarItem = {
   importar: boolean
   criar_fornecedor?: boolean
   fornecedor_id?: string
+  criar_fabricante?: boolean
+  fabricante_id?: string
   categoria_catalogo?: string
   codigo_catalogo?: string
   /** Se o código já existe e há divergência, marque para sobrescrever campos com o XML. */
@@ -99,6 +104,7 @@ export type NfeAplicarPayload = {
   fornecedor_id?: string
   categoria_padrao?: string
   fabricante_padrao?: string
+  objetivo_entrada?: ObjetivoEntradaFiscal
   itens: NfeAplicarItem[]
 }
 

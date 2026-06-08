@@ -31,7 +31,32 @@ describe('produtoDetailToForm', () => {
     expect(form.especificacao).toEqual({})
     expect(form.unidade_medida).toBe('UN')
     expect(form.fabricante_parceiro).toBe('')
+    expect(form.fornecedor_parceiro).toBe('')
     expect(form.aliquota_ipi).toBe('')
+  })
+
+  it('usa fabricante como fornecedor padrão quando API antiga não traz fornecedor', () => {
+    const categorias: CategoriaProduto[] = [
+      { id: 'c1', nome: 'GATEWAY', descricao: '', ativo: true },
+    ]
+    const p = {
+      id: 'p1',
+      codigo: 'G1',
+      descricao: 'Gw',
+      categoria: 'c1',
+      categoria_nome: 'GATEWAY' as const,
+      fabricante: 'Fabricante',
+      fabricante_parceiro: 'fab-1',
+      fabricante_parceiro_nome: 'Fabricante LTDA',
+      fabricante_parceiro_documento: '123',
+      unidade_medida: 'UN',
+      preco_base: '12',
+      ativo: true,
+    } satisfies ProdutoDetail
+    const form = produtoDetailToForm(p, categorias)
+    expect(form.fornecedor_parceiro).toBe('fab-1')
+    expect(form.fornecedor_parceiro_nome).toBe('Fabricante LTDA')
+    expect(form.fornecedor_parceiro_documento).toBe('123')
   })
 
   it('normaliza unidade de medida da API para o select do formulário', () => {

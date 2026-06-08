@@ -42,10 +42,8 @@ def selecionar_minidisjuntores(
         qs_base = qs_base.filter(
             especificacao_minidisjuntor__modo_montagem=modo_montagem
         )
-    if tensao_nominal_v is not None:
-        qs_base = qs_base.filter(
-            especificacao_minidisjuntor__tensao_nominal_v=tensao_nominal_v
-        )
+    # tensao_nominal_v: parâmetro mantido por compatibilidade; o modelo atual não
+    # expõe esse campo (filtro ignorado).
     if curva_disparo:
         qs_base = qs_base.filter(
             especificacao_minidisjuntor__curva_disparo=curva_disparo

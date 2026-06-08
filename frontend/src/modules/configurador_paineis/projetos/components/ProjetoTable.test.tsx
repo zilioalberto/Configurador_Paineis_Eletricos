@@ -45,6 +45,8 @@ function makeProjeto(): Projeto {
     degraus_margem_bitola_condutores: 0,
     possui_seccionamento: false,
     tipo_seccionamento: null,
+    possui_disjuntor_geral: false,
+    tipo_disjuntor_geral: null,
   }
 }
 

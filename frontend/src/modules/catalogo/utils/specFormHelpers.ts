@@ -21,9 +21,19 @@ const LABELS_ESPECIAIS: Record<string, string> = {
   vazao_m3_h: 'Vazão (m³/h)',
   vazao_nominal_m3_h: 'Vazão nominal (m³/h)',
   secao_mm2: 'Seção (mm²)',
+  secao_min_mm2: 'Seção mín. (mm²)',
+  secao_max_mm2: 'Seção máx. (mm²)',
   potencia_w: 'Potência (W)',
   faixa_ajuste_min_a: 'Faixa ajuste mín. (A)',
   faixa_ajuste_max_a: 'Faixa ajuste máx. (A)',
+  tipo_terminal: 'Tipo de terminal',
+  furo_olhal: 'Furo do olhal',
+  tipo_identificacao: 'Tipo de identificação',
+  diametro_min_mm: 'Diâmetro mín. (mm)',
+  diametro_max_mm: 'Diâmetro máx. (mm)',
+  comprimento_mm: 'Comprimento (mm)',
+  tamanho_plaqueta: 'Tamanho da plaqueta',
+  tensao_v: 'Tensão (V)',
 }
 
 export function labelCampoEspec(name: string): string {

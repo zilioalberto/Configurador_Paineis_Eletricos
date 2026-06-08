@@ -7,6 +7,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/configurador_paineis/cargas/utils/projetoEdicaoCargas'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
+import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoFluxoGates } from '@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
@@ -343,6 +344,17 @@ export default function ComposicaoPage() {
             >
               Editar condutores
             </Link>
+            {fluxoGates.podeAcessarDimensionamentoMecanico ? (
+              <Link
+                to={withFluxoOrigem(
+                  configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico'),
+                  searchParams
+                )}
+                className="btn btn-success btn-sm"
+              >
+                Dimensionamento mecânico
+              </Link>
+            ) : null}
           </>
         ) : null}
         {fluxoVinculadoOrcamento ? (
@@ -378,6 +390,7 @@ export default function ComposicaoPage() {
     ),
     [
       exportando,
+      fluxoGates.podeAcessarDimensionamentoMecanico,
       onExportLista,
       onRetornarOrcamento,
       fluxoVinculadoOrcamento,
@@ -433,6 +446,10 @@ export default function ComposicaoPage() {
 
   return (
     <div className="container-fluid">
+      {projetoId ? (
+        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual="composicao" compact />
+      ) : null}
+
       <ConfirmModal
         show={modalComposicao !== null}
         title={modalComposicao?.title ?? ''}

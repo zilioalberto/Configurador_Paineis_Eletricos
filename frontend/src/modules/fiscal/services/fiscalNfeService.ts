@@ -7,13 +7,21 @@ import type {
   ControleNsuDto,
   DocumentoFiscalRecebidoDetail,
   DocumentoFiscalRecebidoListRow,
+  ImportarDocumentoEmitidoResponse,
   ImportarNfeXmlResponse,
   NfesRecebidasFiltros,
+  ObjetivoEntradaFiscal,
+  ObjetivoSaidaFiscal,
+  RelatorioNFeFiltros,
+  RelatorioNFeResponse,
+  TipoDocumentoFiscalEmitido,
   TipoManifestacaoDestinatario,
 } from '../types/documentoFiscalRecebido'
 
 const NFES_URL = '/fiscal/nfes/'
 const IMPORT_MANUAL_URL = '/fiscal/nfes/importar-manual/'
+const IMPORT_EMITIDA_MANUAL_URL = '/fiscal/nfes-emitidas/importar-manual/'
+const RELATORIO_NFES_URL = '/fiscal/relatorios/nfes/'
 
 type ListResponse<T> = { results?: T[] }
 
@@ -83,7 +91,27 @@ function filtrosParaParams(filtros: NfesRecebidasFiltros): Record<string, string
   add('serie', filtros.serie)
   add('status_importacao', filtros.status_importacao)
   add('origem_importacao', filtros.origem_importacao)
+  add('objetivo_entrada', filtros.objetivo_entrada)
   add('manifestacao_status', filtros.manifestacao_status)
+  return params
+}
+
+function relatorioFiltrosParaParams(filtros: RelatorioNFeFiltros): Record<string, string> {
+  const params: Record<string, string> = {}
+  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
+    const v = (raw ?? '').trim()
+    if (!v) return
+    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
+  }
+  add('tipo_movimento', filtros.tipo_movimento || 'ENTRADA')
+  add('data_inicio', filtros.data_inicio)
+  add('data_fim', filtros.data_fim)
+  add('objetivo_entrada', filtros.objetivo_entrada)
+  add('objetivo_saida', filtros.objetivo_saida)
+  add('cnpj_emitente', filtros.cnpj_emitente, true)
+  add('cnpj_destinatario', filtros.cnpj_destinatario, true)
+  add('fornecedor', filtros.fornecedor)
+  add('cliente', filtros.cliente)
   return params
 }
 
@@ -118,10 +146,21 @@ export async function obterNfeRecebida(id: number): Promise<DocumentoFiscalReceb
   return response.data
 }
 
+/** Relatório mensal/gerencial de NF-es, com totais e itens para conferência rápida. */
+export async function obterRelatorioNfes(
+  filtros: RelatorioNFeFiltros,
+): Promise<RelatorioNFeResponse> {
+  const response = await apiClient.get<RelatorioNFeResponse>(RELATORIO_NFES_URL, {
+    params: relatorioFiltrosParaParams(filtros),
+  })
+  return response.data
+}
+
 export type ImportarNfeXmlPayload = {
   readonly xml: string
   readonly cnpj_destinatario?: string
   readonly nsu?: string
+  readonly objetivo_entrada?: ObjetivoEntradaFiscal
 }
 
 /** Importa XML pelo portal (origem MANUAL no servidor). */
@@ -133,7 +172,25 @@ export async function importarNfeXmlManual(
   if (cnpj) body.cnpj_destinatario = cnpj
   const nsu = (payload.nsu ?? '').replace(/\D/g, '')
   if (nsu) body.nsu = nsu
+  if (payload.objetivo_entrada) body.objetivo_entrada = payload.objetivo_entrada
   const response = await apiClient.post<ImportarNfeXmlResponse>(IMPORT_MANUAL_URL, body)
+  return response.data
+}
+
+export type ImportarDocumentoEmitidoPayload = {
+  readonly xml: string
+  readonly tipo_documento: TipoDocumentoFiscalEmitido
+  readonly objetivo_saida?: ObjetivoSaidaFiscal
+}
+
+/** Importa XML emitido pela ZFW (NF-e de produto ou NFS-e de serviço). */
+export async function importarDocumentoEmitidoManual(
+  payload: ImportarDocumentoEmitidoPayload,
+): Promise<ImportarDocumentoEmitidoResponse> {
+  const response = await apiClient.post<ImportarDocumentoEmitidoResponse>(
+    IMPORT_EMITIDA_MANUAL_URL,
+    payload,
+  )
   return response.data
 }
 

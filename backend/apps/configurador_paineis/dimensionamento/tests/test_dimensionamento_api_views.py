@@ -10,10 +10,24 @@ from apps.configurador_paineis.cargas.models import Carga, CargaMotor, CargaResi
 from core.choices import NumeroFasesChoices, TensaoChoices, TipoCargaChoices
 from core.choices.cargas import TipoAcionamentoResistenciaChoices
 from core.choices.usuarios import TipoUsuarioChoices
+from apps.catalogo.models import (
+    EspecificacaoCanaleta,
+    EspecificacaoMiniDisjuntor,
+    EspecificacaoPainel,
+    Produto,
+)
+from apps.configurador_paineis.composicao_painel.models import ComposicaoItem
 from apps.configurador_paineis.dimensionamento.models import (
     DimensionamentoCircuitoAlimentacaoGeral,
     DimensionamentoCircuitoCarga,
     ResumoDimensionamento,
+)
+from core.choices.paineis import MaterialPainelChoices, PartesPainelChoices, TipoInstalacaoPainelChoices, TipoPainelCatalogoChoices
+from core.choices.produtos import (
+    CategoriaProdutoNomeChoices,
+    CurvaDisparoMiniDisjuntorChoices,
+    ModoMontagemChoices,
+    NumeroPolosChoices,
 )
 from apps.configurador_paineis.dimensionamento.services import calcular_e_salvar_dimensionamento_basico
 from apps.configurador_paineis.dimensionamento.services.circuitos import calcular_e_salvar_circuitos_cargas
@@ -142,6 +156,53 @@ def test_get_dimensionamento_sincroniza_circuitos_para_nova_carga_quando_resumo_
     assert DimensionamentoCircuitoCarga.objects.filter(carga=carga_r).exists()
     tags = {x["carga_tag"] for x in response.data["circuitos_carga"]}
     assert "R10" in tags
+
+
+@pytest.mark.django_db
+def test_get_dimensionamento_inclui_correntes_por_fase(admin_client, criar_projeto):
+    client, _ = admin_client
+    projeto = criar_projeto(nome="DimFases", codigo="20009-26", tensao_nominal=TensaoChoices.V380)
+    projeto.numero_fases = NumeroFasesChoices.TRIFASICO
+    projeto.fator_demanda = Decimal("1.00")
+    projeto.save(update_fields=["numero_fases", "fator_demanda"])
+
+    carga_mono = Carga.objects.create(
+        projeto=projeto,
+        tag="R01",
+        descricao="RES MONO",
+        tipo=TipoCargaChoices.RESISTENCIA,
+        quantidade=3,
+    )
+    CargaResistencia.objects.create(
+        carga=carga_mono,
+        numero_fases=NumeroFasesChoices.MONOFASICO,
+        tensao_resistencia=TensaoChoices.V220,
+        potencia_kw=Decimal("2.200"),
+        tipo_acionamento=TipoAcionamentoResistenciaChoices.CONTATOR,
+    )
+
+    carga_tri = Carga.objects.create(
+        projeto=projeto,
+        tag="M01",
+        descricao="MOTOR TRI",
+        tipo=TipoCargaChoices.MOTOR,
+        quantidade=2,
+    )
+    CargaMotor.objects.create(
+        carga=carga_tri,
+        potencia_corrente_valor="6.00",
+        potencia_corrente_unidade="A",
+        tensao_motor=380,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+    )
+
+    calcular_e_salvar_dimensionamento_basico(projeto)
+    url = reverse("dimensionamento-por-projeto", kwargs={"projeto_id": projeto.id})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.data["correntes_por_fase_painel_a"] == ["22.00", "22.00", "22.00"]
+    assert response.data["corrente_total_painel_a"] == "22.00"
 
 
 @pytest.mark.django_db
@@ -311,3 +372,291 @@ def test_recalcular_preserva_aprovacoes_se_dimensionamento_inalterado(
     assert ag.condutores_aprovado is True
     resumo.refresh_from_db()
     assert resumo.condutores_revisao_confirmada is True
+
+
+@pytest.mark.django_db
+def test_patch_mecanico_salva_escolhas(admin_client, criar_projeto):
+    client, _ = admin_client
+    projeto = criar_projeto(nome="MecApi", codigo="20010-26")
+
+    prod_comp = Produto.objects.create(
+        codigo="MD-PATCH",
+        descricao="Mini patch",
+        categoria=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        largura_mm=Decimal("18"),
+        altura_mm=Decimal("90"),
+        profundidade_mm=Decimal("70"),
+    )
+    EspecificacaoMiniDisjuntor.objects.create(
+        produto=prod_comp,
+        corrente_nominal_a=Decimal("10"),
+        curva_disparo=CurvaDisparoMiniDisjuntorChoices.C,
+        numero_polos=NumeroPolosChoices.P1,
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    ComposicaoItem.objects.create(
+        projeto=projeto,
+        produto=prod_comp,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        quantidade=Decimal("1"),
+    )
+
+    prod_can = Produto.objects.create(
+        codigo="CAN-PATCH",
+        descricao="Canaleta patch",
+        categoria=CategoriaProdutoNomeChoices.CANALETA,
+    )
+    EspecificacaoCanaleta.objects.create(
+        produto=prod_can,
+        largura_base_mm=Decimal("40"),
+        altura_mm=Decimal("40"),
+    )
+    prod_painel = Produto.objects.create(
+        codigo="PAINEL-PATCH",
+        descricao="Painel patch",
+        categoria=CategoriaProdutoNomeChoices.PAINEL,
+        largura_mm=Decimal("500"),
+        altura_mm=Decimal("450"),
+        profundidade_mm=Decimal("200"),
+    )
+    EspecificacaoPainel.objects.create(
+        produto=prod_painel,
+        tipo_painel=TipoPainelCatalogoChoices.CAIXA_METALICA,
+        tipo_instalacao=TipoInstalacaoPainelChoices.SOBREPOR,
+        material=MaterialPainelChoices.ACO_CARBONO,
+        placa_largura_util_mm=Decimal("450"),
+        placa_altura_util_mm=Decimal("450"),
+    )
+
+    url = reverse("configurador-dimensionamento-mecanico", kwargs={"projeto_id": projeto.id})
+    post_resp = client.post(url, {}, format="json")
+    assert post_resp.status_code == 200
+
+    patch_resp = client.patch(
+        url,
+        {
+            "painel_produto_id": str(prod_painel.id),
+            "canaleta_produto_id": str(prod_can.id),
+            "canaletas_verticais": 2,
+            "faixas_horizontais": 3,
+        },
+        format="json",
+    )
+    assert patch_resp.status_code == 200, patch_resp.content
+    assert patch_resp.data["painel_escolhido"]["produto_codigo"] == "PAINEL-PATCH"
+    assert patch_resp.data["canaleta_escolhida"]["produto_codigo"] == "CAN-PATCH"
+    assert patch_resp.data["canaletas_verticais"] == 2
+    assert patch_resp.data["faixas_horizontais"] == 3
+
+    resumo = ResumoDimensionamento.objects.get(projeto=projeto)
+    assert resumo.largura_painel_mm == 450
+    assert resumo.altura_painel_mm == 450
+
+
+@pytest.mark.django_db
+def test_patch_mecanico_aceita_disposicao_com_id_reserva_disjuntor_geral(admin_client, criar_projeto):
+    from core.choices.paineis import TipoDisjuntorGeralChoices
+
+    client, _ = admin_client
+    projeto = criar_projeto(
+        nome="MecReserva",
+        codigo="20012-26",
+        possui_disjuntor_geral=True,
+        tipo_disjuntor_geral=TipoDisjuntorGeralChoices.MINIDISJUNTOR,
+    )
+
+    prod_can = Produto.objects.create(
+        codigo="CAN-RES",
+        descricao="Canaleta res",
+        categoria=CategoriaProdutoNomeChoices.CANALETA,
+    )
+    EspecificacaoCanaleta.objects.create(
+        produto=prod_can,
+        largura_base_mm=Decimal("30"),
+        altura_mm=Decimal("50"),
+    )
+    prod_painel = Produto.objects.create(
+        codigo="PAINEL-RES",
+        descricao="Painel res",
+        categoria=CategoriaProdutoNomeChoices.PAINEL,
+        largura_mm=Decimal("500"),
+        altura_mm=Decimal("450"),
+        profundidade_mm=Decimal("200"),
+    )
+    EspecificacaoPainel.objects.create(
+        produto=prod_painel,
+        tipo_painel=TipoPainelCatalogoChoices.CAIXA_METALICA,
+        tipo_instalacao=TipoInstalacaoPainelChoices.SOBREPOR,
+        material=MaterialPainelChoices.ACO_CARBONO,
+        placa_largura_util_mm=Decimal("355"),
+        placa_altura_util_mm=Decimal("355"),
+    )
+
+    url = reverse("configurador-dimensionamento-mecanico", kwargs={"projeto_id": projeto.id})
+    assert client.post(url, {}, format="json").status_code == 200
+    dados = client.get(url).json()
+    reserva_id = "reserva-geral-MINIDISJUNTOR"
+    item_reserva = next(
+        (i for i in dados["itens_considerados"] if i.get("reserva_mecanica")),
+        None,
+    )
+    assert item_reserva is not None
+    assert item_reserva["composicao_item_id"] == reserva_id
+
+    disposicao = next(
+        (d for d in dados["disposicao_componentes"] if d["composicao_item_id"] == reserva_id),
+        None,
+    )
+    assert disposicao is not None
+
+    patch_resp = client.patch(
+        url,
+        {
+            "painel_produto_id": str(prod_painel.id),
+            "canaleta_produto_id": str(prod_can.id),
+            "canaletas_verticais": 2,
+            "faixas_horizontais": 2,
+            "disposicao_componentes": [disposicao],
+        },
+        format="json",
+    )
+    assert patch_resp.status_code == 200, patch_resp.content
+
+
+@pytest.mark.django_db
+def test_get_mecanico_enriquece_canaletas_catalogo(admin_client, criar_projeto):
+    """GET deve atualizar canaletas_catalogo mesmo com JSON salvo desatualizado."""
+    client, _ = admin_client
+    projeto = criar_projeto(nome="MecGet", codigo="20011-26")
+
+    prod_comp = Produto.objects.create(
+        codigo="MD-GET",
+        descricao="Mini get",
+        categoria=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        largura_mm=Decimal("18"),
+        altura_mm=Decimal("90"),
+    )
+    EspecificacaoMiniDisjuntor.objects.create(
+        produto=prod_comp,
+        corrente_nominal_a=Decimal("10"),
+        curva_disparo=CurvaDisparoMiniDisjuntorChoices.C,
+        numero_polos=NumeroPolosChoices.P1,
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    ComposicaoItem.objects.create(
+        projeto=projeto,
+        produto=prod_comp,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        quantidade=Decimal("1"),
+    )
+
+    prod_can = Produto.objects.create(
+        codigo="CAN-GET",
+        descricao="Canaleta get",
+        categoria=CategoriaProdutoNomeChoices.CANALETA,
+    )
+    EspecificacaoCanaleta.objects.create(
+        produto=prod_can,
+        largura_base_mm=Decimal("40"),
+        altura_mm=Decimal("40"),
+    )
+
+    resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
+    resumo.detalhe_dimensionamento_mecanico = {
+        "largura_zona_util_mm": 120,
+        "altura_zona_util_mm": 90,
+        "largura_placa_min_mm": 235,
+        "altura_placa_min_mm": 185,
+        "profundidade_min_mm": 110,
+        "canaletas_verticais": 2,
+        "faixas_horizontais": 1,
+        "canaletas_catalogo": [],
+        "canaleta": None,
+    }
+    resumo.save(update_fields=["detalhe_dimensionamento_mecanico", "atualizado_em"])
+
+    url = reverse("configurador-dimensionamento-mecanico", kwargs={"projeto_id": projeto.id})
+    get_resp = client.get(url)
+    assert get_resp.status_code == 200
+    assert len(get_resp.data["canaletas_catalogo"]) >= 1
+    assert get_resp.data["canaletas_catalogo"][0]["produto_codigo"] == "CAN-GET"
+    assert get_resp.data["canaleta"]["produto_codigo"] == "CAN-GET"
+    assert len(get_resp.data["itens_considerados"]) == 1
+    assert get_resp.data["itens_considerados"][0]["produto_codigo"] == "MD-GET"
+
+
+@pytest.mark.django_db
+def test_get_mecanico_atualiza_itens_considerados_e_disposicao(admin_client, criar_projeto):
+    """GET deve recalcular componentes e posicionar no layout mesmo com JSON salvo desatualizado."""
+    from apps.catalogo.models import EspecificacaoContatora
+    from apps.configurador_paineis.composicao_painel.models import ComposicaoInclusaoManual
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        calcular_e_salvar_dimensionamento_mecanico,
+    )
+
+    client, _ = admin_client
+    projeto = criar_projeto(nome="MecGetItens", codigo="20012-26")
+
+    prod_md = Produto.objects.create(
+        codigo="MD-BASE",
+        descricao="Mini base",
+        categoria=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        largura_mm=Decimal("18"),
+        altura_mm=Decimal("90"),
+    )
+    EspecificacaoMiniDisjuntor.objects.create(
+        produto=prod_md,
+        corrente_nominal_a=Decimal("10"),
+        curva_disparo=CurvaDisparoMiniDisjuntorChoices.C,
+        numero_polos=NumeroPolosChoices.P1,
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    ComposicaoItem.objects.create(
+        projeto=projeto,
+        produto=prod_md,
+        parte_painel=PartesPainelChoices.PROTECAO_CARGA,
+        categoria_produto=CategoriaProdutoNomeChoices.MINIDISJUNTOR,
+        quantidade=Decimal("1"),
+    )
+
+    prod_manual = Produto.objects.create(
+        codigo="MAN-GET",
+        descricao="Inclusão manual get",
+        categoria=CategoriaProdutoNomeChoices.CONTATORA,
+        largura_mm=Decimal("45"),
+        altura_mm=Decimal("90"),
+    )
+    EspecificacaoContatora.objects.create(
+        produto=prod_manual,
+        corrente_ac3_a=Decimal("12"),
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    prod_can = Produto.objects.create(
+        codigo="CAN-GET2",
+        descricao="Canaleta get2",
+        categoria=CategoriaProdutoNomeChoices.CANALETA,
+    )
+    EspecificacaoCanaleta.objects.create(
+        produto=prod_can,
+        largura_base_mm=Decimal("30"),
+        altura_mm=Decimal("30"),
+    )
+
+    _, detalhe_salvo = calcular_e_salvar_dimensionamento_mecanico(projeto)
+    assert len(detalhe_salvo["itens_considerados"]) == 1
+
+    ComposicaoInclusaoManual.objects.create(
+        projeto=projeto,
+        produto=prod_manual,
+        quantidade=Decimal("1"),
+    )
+
+    url = reverse("configurador-dimensionamento-mecanico", kwargs={"projeto_id": projeto.id})
+    get_resp = client.get(url)
+    assert get_resp.status_code == 200
+
+    codigos = {item["produto_codigo"] for item in get_resp.data["itens_considerados"]}
+    assert "MD-BASE" in codigos
+    assert "MAN-GET" in codigos

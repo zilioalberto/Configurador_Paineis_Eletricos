@@ -1021,7 +1021,7 @@
       "django": "CharField"
     },
     {
-      "name": "largura_mm",
+      "name": "largura_base_mm",
       "django": "DecimalField"
     },
     {
@@ -1069,6 +1069,58 @@
     {
       "name": "observacoes",
       "django": "TextField"
+    }
+  ],
+  "TERMINAIS": [
+    {
+      "name": "tipo_terminal",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_min_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "secao_max_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "furo_olhal",
+      "django": "CharField"
+    }
+  ],
+  "IDENTIFICACAO": [
+    {
+      "name": "tipo_identificacao",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_min_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "secao_max_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "diametro_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "diametro_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "comprimento_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tamanho_plaqueta",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_v",
+      "django": "PositiveIntegerField"
     }
   ],
   "PAINEL": [

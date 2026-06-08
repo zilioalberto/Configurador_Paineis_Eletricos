@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('projetos', '0001_initial'),
+        ('projetos', '0003_rename_projeto_configurador'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                 ('colaboradores', models.ManyToManyField(blank=True, related_name='tarefas_colaborador', to=settings.AUTH_USER_MODEL)),
                 ('coluna', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='tarefas', to='tarefas.colunatarefa')),
                 ('criador', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tarefas_criadas', to=settings.AUTH_USER_MODEL)),
-                ('projeto', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tarefas', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tarefas', to='projetos.projetoconfigurador')),
                 ('responsavel', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tarefas_responsavel', to=settings.AUTH_USER_MODEL)),
                 ('supervisor', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tarefas_supervisionadas', to=settings.AUTH_USER_MODEL)),
             ],

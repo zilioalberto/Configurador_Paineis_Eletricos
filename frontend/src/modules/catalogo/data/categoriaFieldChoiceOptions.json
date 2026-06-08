@@ -1664,6 +1664,18 @@
       {
         "value": "AFERICAO",
         "label": "Borne de aferição"
+      },
+      {
+        "value": "TAMPA",
+        "label": "Tampa"
+      },
+      {
+        "value": "POSTE",
+        "label": "Poste"
+      },
+      {
+        "value": "JUMPER",
+        "label": "Jumper"
       }
     ],
     "tipo_conexao": [

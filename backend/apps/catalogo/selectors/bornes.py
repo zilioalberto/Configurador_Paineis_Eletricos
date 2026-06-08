@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from django.db.models import QuerySet
 
-from apps.catalogo.models import Produto
+from apps.catalogo.models import Produto, ProdutoAcessorioCompativel
 from apps.catalogo.selectors._base import filtrar_produtos_especificacao
 from core.choices.produtos import CategoriaProdutoNomeChoices as Cat
 
@@ -34,4 +34,20 @@ def selecionar_bornes(
         "especificacao_borne__corrente_nominal_a",
         "codigo",
         "descricao",
+    )
+
+
+def selecionar_acessorios_borne_compativeis(
+    produto_base: Produto,
+    tipo_acessorio: str,
+) -> QuerySet[ProdutoAcessorioCompativel]:
+    return (
+        ProdutoAcessorioCompativel.objects.filter(
+            produto_base=produto_base,
+            tipo_acessorio=tipo_acessorio,
+            acessorio__ativo=True,
+            acessorio__categoria=Cat.BORNE,
+        )
+        .select_related("acessorio", "acessorio__especificacao_borne")
+        .order_by("prioridade", "acessorio__codigo", "acessorio__descricao")
     )

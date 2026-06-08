@@ -8,6 +8,34 @@ export type StatusImportacaoFiscal =
 /** Origem da importação da NF-e. */
 export type OrigemImportacaoFiscal = 'MANUAL' | 'PONTE_A3' | 'API' | 'OUTRO'
 
+export type ObjetivoEntradaFiscal =
+  | 'INDUSTRIALIZACAO'
+  | 'REVENDA'
+  | 'USO_CONSUMO'
+  | 'ATIVO_IMOBILIZADO'
+  | 'DEVOLUCAO_VENDA'
+  | 'RETORNO_INDUSTRIALIZACAO'
+  | 'RETORNO_CONSERTO_REPARO'
+  | 'TRANSFERENCIA'
+  | 'BONIFICACAO_DOACAO_BRINDE'
+  | 'AMOSTRA_GRATIS'
+  | 'COMODATO_EMPRESTIMO'
+  | 'DEMONSTRACAO'
+  | 'IMPORTACAO'
+  | 'OUTRAS_ENTRADAS'
+
+export type TipoDocumentoFiscalEmitido = 'NFE_PRODUTO' | 'NFSE_SERVICO'
+
+export type ObjetivoSaidaFiscal =
+  | 'VENDA_PRODUTO'
+  | 'PRESTACAO_SERVICO'
+  | 'INDUSTRIALIZACAO'
+  | 'DEVOLUCAO_COMPRA'
+  | 'REMESSA'
+  | 'TRANSFERENCIA'
+  | 'BONIFICACAO_DOACAO_BRINDE'
+  | 'OUTRAS_SAIDAS'
+
 export type TipoManifestacaoDestinatario =
   | 'CIENCIA'
   | 'CONFIRMACAO'
@@ -51,6 +79,7 @@ export type DocumentoFiscalRecebidoListRow = {
   readonly natureza_operacao: string
   readonly status_importacao: StatusImportacaoFiscal
   readonly origem_importacao: OrigemImportacaoFiscal
+  readonly objetivo_entrada: ObjetivoEntradaFiscal
   readonly manifestacao_status: StatusManifestacaoDestinatario
   readonly manifestacao_tipo: TipoManifestacaoDestinatario | ''
   readonly manifestacao_justificativa: string
@@ -96,5 +125,81 @@ export type NfesRecebidasFiltros = {
   readonly serie?: string
   readonly status_importacao?: StatusImportacaoFiscal | ''
   readonly origem_importacao?: OrigemImportacaoFiscal | ''
+  readonly objetivo_entrada?: ObjetivoEntradaFiscal | ''
   readonly manifestacao_status?: StatusManifestacaoDestinatario | ''
+}
+
+export type TipoMovimentoRelatorioNFe = 'ENTRADA' | 'SAIDA' | 'TODOS'
+
+export type RelatorioNFeFiltros = {
+  readonly tipo_movimento?: TipoMovimentoRelatorioNFe
+  readonly data_inicio?: string
+  readonly data_fim?: string
+  readonly objetivo_entrada?: ObjetivoEntradaFiscal | ''
+  readonly objetivo_saida?: ObjetivoSaidaFiscal | ''
+  readonly cnpj_emitente?: string
+  readonly cnpj_destinatario?: string
+  readonly fornecedor?: string
+  readonly cliente?: string
+}
+
+export type RelatorioNFePorObjetivo = {
+  readonly tipo_movimento: 'ENTRADA' | 'SAIDA'
+  readonly objetivo: ObjetivoEntradaFiscal | ObjetivoSaidaFiscal
+  readonly total_documentos: number
+  readonly valor_total: string
+}
+
+export type RelatorioNFeResumo = {
+  readonly tipo_movimento: TipoMovimentoRelatorioNFe
+  readonly total_documentos: number
+  readonly valor_total: string
+  readonly por_objetivo: RelatorioNFePorObjetivo[]
+}
+
+export type RelatorioNFeResponse = {
+  readonly filtros: RelatorioNFeFiltros
+  readonly resumo: RelatorioNFeResumo
+  readonly documentos: RelatorioNFeDocumentoRow[]
+}
+
+export type ItemDocumentoFiscalRelatorioRow = {
+  readonly id: number
+  readonly numero_item: number
+  readonly codigo_fornecedor?: string
+  readonly codigo?: string
+  readonly descricao: string
+  readonly ncm: string
+  readonly cfop: string
+  readonly unidade: string
+  readonly quantidade: string
+  readonly valor_unitario: string
+  readonly valor_total: string
+}
+
+export type RelatorioNFeDocumentoRow = {
+  readonly id: number
+  readonly tipo_movimento: 'ENTRADA' | 'SAIDA'
+  readonly tipo_documento: TipoDocumentoFiscalEmitido
+  readonly chave_acesso: string
+  readonly numero: string
+  readonly serie: string
+  readonly data_emissao: string | null
+  readonly valor_total: string
+  readonly natureza_operacao: string
+  readonly participante_nome: string
+  readonly participante_cnpj: string
+  readonly objetivo: ObjetivoEntradaFiscal | ObjetivoSaidaFiscal
+  readonly nome_emitente?: string
+  readonly cnpj_emitente?: string
+  readonly nome_destinatario?: string
+  readonly cnpj_destinatario?: string
+  readonly itens: ItemDocumentoFiscalRelatorioRow[]
+}
+
+export type ImportarDocumentoEmitidoResponse = {
+  readonly created: boolean
+  readonly message: string
+  readonly documento_id: number
+  readonly identificador: string
 }

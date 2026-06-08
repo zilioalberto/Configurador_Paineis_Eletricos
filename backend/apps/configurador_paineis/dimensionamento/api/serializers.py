@@ -15,6 +15,10 @@ from apps.configurador_paineis.dimensionamento.models import (
     DimensionamentoCircuitoCarga,
     ResumoDimensionamento,
 )
+from apps.configurador_paineis.dimensionamento.services.corrente_total import (
+    calcular_correntes_por_fase_painel,
+    painel_aplica_fator_demanda,
+)
 
 
 def _mm2_efetivo(escolhida, sugerida):
@@ -151,6 +155,13 @@ class DimensionamentoAlimentacaoGeralDetalheSerializer(serializers.ModelSerializ
 class ResumoDimensionamentoSerializer(serializers.ModelSerializer):
     """Resumo agregado do dimensionamento (sem detalhe de circuitos)."""
 
+    correntes_por_fase_painel_a = serializers.SerializerMethodField()
+    aplica_fator_demanda_seccionamento = serializers.SerializerMethodField()
+    tipo_painel = serializers.CharField(source="projeto.tipo_painel", read_only=True)
+    tipo_painel_display = serializers.CharField(
+        source="projeto.get_tipo_painel_display",
+        read_only=True,
+    )
     projeto = serializers.UUIDField(source="projeto_id", read_only=True)
     projeto_codigo = serializers.CharField(source="projeto.codigo", read_only=True)
     projeto_nome = serializers.CharField(source="projeto.nome", read_only=True)
@@ -179,6 +190,10 @@ class ResumoDimensionamentoSerializer(serializers.ModelSerializer):
             "criado_em",
             "atualizado_em",
             "corrente_total_painel_a",
+            "correntes_por_fase_painel_a",
+            "aplica_fator_demanda_seccionamento",
+            "tipo_painel",
+            "tipo_painel_display",
             "corrente_estimada_fonte_24vcc_a",
             "necessita_fonte_24vcc",
             "necessita_plc",
@@ -191,6 +206,7 @@ class ResumoDimensionamentoSerializer(serializers.ModelSerializer):
             "altura_painel_mm",
             "profundidade_painel_mm",
             "taxa_ocupacao_percentual",
+            "detalhe_dimensionamento_mecanico",
             "horas_montagem",
             "observacoes",
             "possui_seccionamento",
@@ -198,6 +214,13 @@ class ResumoDimensionamentoSerializer(serializers.ModelSerializer):
             "tipo_seccionamento_display",
             "condutores_revisao_confirmada",
         )
+
+    def get_correntes_por_fase_painel_a(self, obj):
+        correntes = calcular_correntes_por_fase_painel(obj.projeto)
+        return [str(Decimal(c).quantize(Decimal("0.01"))) for c in correntes]
+
+    def get_aplica_fator_demanda_seccionamento(self, obj):
+        return painel_aplica_fator_demanda(obj.projeto)
 
 
 class DimensionamentoProjetoDetalheSerializer(ResumoDimensionamentoSerializer):
@@ -258,3 +281,39 @@ class EscolhasCondutoresInputSerializer(serializers.Serializer):
         attrs.setdefault("circuitos", [])
         attrs.setdefault("alimentacao_geral", {})
         return attrs
+
+
+class DisposicaoComponenteInputSerializer(serializers.Serializer):
+    instancia_id = serializers.CharField(max_length=80)
+    composicao_item_id = serializers.CharField(max_length=80)
+    produto_codigo = serializers.CharField(max_length=120)
+    produto_descricao = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    modo_montagem = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    x_mm = serializers.IntegerField(min_value=0)
+    y_mm = serializers.IntegerField(min_value=0)
+    largura_mm = serializers.IntegerField(min_value=1)
+    altura_mm = serializers.IntegerField(min_value=1)
+    trilho_indice = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    manual = serializers.BooleanField(required=False, default=False)
+
+
+class EscolhasDimensionamentoMecanicoInputSerializer(serializers.Serializer):
+    """Payload do PATCH `/mecanico/`: painel, canaleta e quantidades configuradas."""
+
+    painel_produto_id = serializers.UUIDField(required=False, allow_null=True)
+    canaleta_produto_id = serializers.UUIDField(required=False, allow_null=True)
+    canaletas_verticais = serializers.IntegerField(required=False, min_value=0, max_value=8)
+    faixas_horizontais = serializers.IntegerField(required=False, min_value=2, max_value=12)
+    taxa_ocupacao_max_percentual = serializers.DecimalField(
+        required=False,
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("1"),
+        max_value=Decimal("100"),
+    )
+    disposicao_componentes = DisposicaoComponenteInputSerializer(many=True, required=False)
+    canaletas_horizontais_intermediarias_y_mm = serializers.ListField(
+        child=serializers.IntegerField(min_value=0),
+        required=False,
+        allow_empty=True,
+    )
