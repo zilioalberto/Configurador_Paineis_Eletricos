@@ -57,7 +57,6 @@ def test_minidisjuntor_filtra_por_modo_curva_polos_e_tensao():
         modo_montagem=ModoMontagemChoices.TRILHO_DIN,
         curva_disparo=CurvaDisparoMiniDisjuntorChoices.C,
         numero_polos=NumeroPolosChoices.P2,
-        tensao_nominal_v=None,
         niveis=1,
     )
     assert list(qs.values_list("codigo", flat=True)) == ["MINI-OK"]

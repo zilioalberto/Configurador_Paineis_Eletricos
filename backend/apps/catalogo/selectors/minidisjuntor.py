@@ -11,7 +11,6 @@ from core.choices.produtos import CategoriaProdutoNomeChoices
 def selecionar_minidisjuntores(
     corrente_nominal: Decimal | float | int,
     modo_montagem: str | None = None,
-    tensao_nominal_v: int | None = None,
     curva_disparo: str | None = None,
     numero_polos: str | None = None,
     niveis: int | None = 1,
@@ -42,8 +41,6 @@ def selecionar_minidisjuntores(
         qs_base = qs_base.filter(
             especificacao_minidisjuntor__modo_montagem=modo_montagem
         )
-    # tensao_nominal_v: parâmetro mantido por compatibilidade; o modelo atual não
-    # expõe esse campo (filtro ignorado).
     if curva_disparo:
         qs_base = qs_base.filter(
             especificacao_minidisjuntor__curva_disparo=curva_disparo

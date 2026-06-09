@@ -1569,7 +1569,7 @@ def _gerar_acessorios_regua_motores(
         return []
 
     motores = {s.carga_id for s in bornes_motores}
-    representante = sorted(bornes_motores, key=lambda s: str(s.carga_id))[0].carga
+    representante = min(bornes_motores, key=lambda s: str(s.carga_id)).carga
     secoes = sorted({_secao_borne_sugestao(s) for s in bornes_motores}, reverse=True)
     mudancas_bitola = max(0, len(secoes) - 1)
     out: list[SugestaoItem] = []
@@ -1598,11 +1598,10 @@ def _gerar_acessorios_regua_motores(
         )
 
     if len(motores) > _LIMITE_MOTORES_REGUA_LONGA:
-        maior_borne = sorted(
+        maior_borne = max(
             bornes_motores,
             key=lambda s: (_secao_borne_sugestao(s), s.produto.codigo),
-            reverse=True,
-        )[0]
+        )
         memoria_borne_extra = (
             "[ACESSORIO REGUA MOTORES - BORNE EXTRA]\n"
             f"Quantidade de motores na regua: {len(motores)}\n"
@@ -1681,7 +1680,7 @@ def _gerar_acessorios_regua_por_cargas(
             _limpar_acessorio_regua(projeto, indice_escopo=indice)
         return []
 
-    representante = sorted(bornes, key=lambda s: str(s.carga_id))[0].carga
+    representante = min(bornes, key=lambda s: str(s.carga_id)).carga
     out: list[SugestaoItem] = []
     poste = _salvar_ou_pendenciar_acessorio_regua(
         projeto,
