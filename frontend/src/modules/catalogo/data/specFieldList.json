@@ -599,6 +599,10 @@
       "django": "IntegerField"
     },
     {
+      "name": "tipo_corrente_alimentacao",
+      "django": "CharField"
+    },
+    {
       "name": "tipo_sinal_digital",
       "django": "CharField"
     },
@@ -969,6 +973,10 @@
       "django": "DecimalField"
     },
     {
+      "name": "modo_montagem",
+      "django": "CharField"
+    },
+    {
       "name": "isolado",
       "django": "BooleanField"
     }
@@ -1071,96 +1079,6 @@
       "django": "TextField"
     }
   ],
-  "TERMINAIS": [
-    {
-      "name": "tipo_terminal",
-      "django": "CharField"
-    },
-    {
-      "name": "secao_min_mm2",
-      "django": "DecimalField"
-    },
-    {
-      "name": "secao_max_mm2",
-      "django": "DecimalField"
-    },
-    {
-      "name": "furo_olhal",
-      "django": "CharField"
-    }
-  ],
-  "IDENTIFICACAO": [
-    {
-      "name": "tipo_identificacao",
-      "django": "CharField"
-    },
-    {
-      "name": "secao_min_mm2",
-      "django": "DecimalField"
-    },
-    {
-      "name": "secao_max_mm2",
-      "django": "DecimalField"
-    },
-    {
-      "name": "diametro_min_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "diametro_max_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "comprimento_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "tamanho_plaqueta",
-      "django": "CharField"
-    },
-    {
-      "name": "tensao_v",
-      "django": "PositiveIntegerField"
-    }
-  ],
-  "ACESSORIOS_GERAIS": [
-    {
-      "name": "tipo_acessorio",
-      "django": "CharField"
-    },
-    {
-      "name": "porte_painel",
-      "django": "CharField"
-    },
-    {
-      "name": "largura_min_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "largura_max_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "altura_min_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "altura_max_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "profundidade_min_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "profundidade_max_mm",
-      "django": "DecimalField"
-    },
-    {
-      "name": "quantidade_padrao",
-      "django": "DecimalField"
-    }
-  ],
   "PAINEL": [
     {
       "name": "tipo_painel",
@@ -1191,12 +1109,12 @@
       "django": "CharField"
     },
     {
-      "name": "possui_flange",
-      "django": "BooleanField"
-    },
-    {
       "name": "cor",
       "django": "CharField"
+    },
+    {
+      "name": "possui_flange",
+      "django": "BooleanField"
     }
   ],
   "CLIMATIZACAO": [
@@ -1235,6 +1153,96 @@
     {
       "name": "modo_montagem",
       "django": "CharField"
+    }
+  ],
+  "IDENTIFICACAO": [
+    {
+      "name": "tipo_identificacao",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_min_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "secao_max_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "diametro_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "diametro_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "comprimento_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "tamanho_plaqueta",
+      "django": "CharField"
+    },
+    {
+      "name": "tensao_v",
+      "django": "PositiveIntegerField"
+    }
+  ],
+  "TERMINAIS": [
+    {
+      "name": "tipo_terminal",
+      "django": "CharField"
+    },
+    {
+      "name": "secao_min_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "secao_max_mm2",
+      "django": "DecimalField"
+    },
+    {
+      "name": "furo_olhal",
+      "django": "CharField"
+    }
+  ],
+  "ACESSORIOS_GERAIS": [
+    {
+      "name": "tipo_acessorio",
+      "django": "CharField"
+    },
+    {
+      "name": "porte_painel",
+      "django": "CharField"
+    },
+    {
+      "name": "largura_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "largura_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "altura_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "altura_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "profundidade_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "profundidade_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "quantidade_padrao",
+      "django": "DecimalField"
     }
   ]
 }

@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from collections import OrderedDict
+from decimal import Decimal
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 if ROOT not in sys.path:
@@ -29,10 +30,17 @@ FRONTEND_DATA_DIR = os.path.join(
 )
 
 
+def _choice_value(value):
+    if isinstance(value, Decimal):
+        integral = value.to_integral_value()
+        return int(integral) if value == integral else float(value)
+    return value
+
+
 def _choice_options(choices):
     out = []
     for value, label in choices:
-        out.append({"value": value, "label": str(label)})
+        out.append({"value": _choice_value(value), "label": str(label)})
     return out
 
 
