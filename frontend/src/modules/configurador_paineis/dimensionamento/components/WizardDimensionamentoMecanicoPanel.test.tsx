@@ -292,4 +292,105 @@ describe('WizardDimensionamentoMecanicoPanel', () => {
 
     consoleErrorSpy.mockRestore()
   })
+
+  it('lista componentes considerados e permite sugerir disposição automática', () => {
+    mockMecanicoQuery(
+      detalheMecanico({
+        itens_considerados: [
+          {
+            composicao_item_id: 'cmp-1',
+            produto_codigo: 'K1',
+            produto_descricao: 'Contator',
+            quantidade: '1',
+            largura_mm: '45',
+            altura_mm: '80',
+            profundidade_mm: '70',
+            modo_montagem: 'TRILHO_DIN',
+            parte_painel: 'POTENCIA',
+            categoria_produto: 'CONTATORA',
+            area_frontal_mm2: '3600',
+          },
+        ],
+      })
+    )
+    renderPanel()
+
+    expect(screen.getByText(/Componentes considerados \(1\)/i)).toBeInTheDocument()
+    expect(screen.getByText('K1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Sugerir disposição automática' }))
+    expect(screen.getByText(/Disposição alterada/i)).toBeInTheDocument()
+  })
+
+  it('exibe aviso de itens sem dimensão no catálogo', () => {
+    mockMecanicoQuery(
+      detalheMecanico({
+        itens_sem_dimensao: [
+          {
+            composicao_item_id: 'sem-dim',
+            produto_codigo: 'X-SEM',
+            produto_descricao: 'Produto sem medidas',
+            quantidade: '1',
+            parte_painel: 'COMANDO',
+            categoria_produto: 'ACESSORIO',
+          },
+        ],
+      })
+    )
+    renderPanel()
+
+    expect(screen.getByText(/item\(ns\) sem dimensões no catálogo/i)).toBeInTheDocument()
+    expect(screen.getByText(/X-SEM/)).toBeInTheDocument()
+  })
+
+  it('exibe aviso quando nenhum painel comercial atende dimensões mínimas', () => {
+    mockMecanicoQuery(
+      detalheMecanico({
+        paineis_sugeridos: [],
+      })
+    )
+    renderPanel()
+
+    expect(screen.getByText(/Nenhum painel do catálogo atende às dimensões mínimas/i)).toBeInTheDocument()
+  })
+
+  it('atualiza taxa máxima de ocupação no formulário', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText(/Taxa máx. de ocupação/i), {
+      target: { value: '65' },
+    })
+
+    expect(screen.getByLabelText(/Taxa máx. de ocupação/i)).toHaveValue(65)
+  })
+
+  it('restaura faixas horizontais sugeridas pelo sistema', () => {
+    renderPanel()
+
+    fireEvent.change(screen.getByLabelText(/Faixas horizontais/i), {
+      target: { value: '5' },
+    })
+    expect(screen.getByLabelText(/Faixas horizontais/i)).toHaveValue(5)
+
+    fireEvent.click(screen.getByRole('button', { name: /Usar sugestão/i }))
+    expect(screen.getByLabelText(/Faixas horizontais/i)).not.toHaveValue(5)
+  })
+
+  it('exibe toast de erro quando salvar escolhas falha', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    salvarMutateAsyncMock.mockRejectedValueOnce(new Error('Falha ao salvar'))
+    renderPanel()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar escolhas' }))
+
+    await waitFor(() =>
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'danger',
+          title: 'Falha ao salvar',
+        })
+      )
+    )
+
+    consoleErrorSpy.mockRestore()
+  })
 })

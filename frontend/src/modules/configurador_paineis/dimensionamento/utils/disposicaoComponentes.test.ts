@@ -3,10 +3,14 @@ import { atualizarCanaletaIntermediariaY, gerarLayoutPlaca } from './layoutPlaca
 import {
   ajustarLayoutPlacaParaItens,
   ajustarPosicaoArraste,
+  criarMapaEscopoPorComposicaoItem,
   disposicaoTemSobreposicao,
   expandirInstanciasComponentes,
+  idsComponentesComConflitoDisposicao,
+  mesclarDisposicaoSalva,
   montarTooltipComponenteDisposicao,
   rectSobrepoeCanaletas,
+  rotuloComponenteCurto,
   segmentarTrilhosDinComDisposicao,
   sugerirDisposicaoComponentes,
   validarDisposicaoComponentes,
@@ -487,6 +491,42 @@ describe('disposicaoComponentes', () => {
       layoutBase.canaletas_horizontais_intermediarias_y_mm[0]
     )
     assertPainelCompleto(layoutSubido)
+  })
+
+  it('mesclarDisposicaoSalva retorna sugestão quando não há disposição salva', () => {
+    const sugerida = sugerirDisposicaoComponentes(layout, itensExemplo)
+    expect(mesclarDisposicaoSalva(undefined, layout, itensExemplo)).toEqual(sugerida)
+  })
+
+  it('mesclarDisposicaoSalva completa instâncias faltantes a partir de disposição parcial', () => {
+    const disposicao = sugerirDisposicaoComponentes(layout, itensExemplo)
+    const mesclada = mesclarDisposicaoSalva([disposicao[0]], layout, itensExemplo)
+    expect(mesclada).toHaveLength(3)
+    expect(mesclada.map((d) => d.instancia_id).sort()).toEqual(
+      disposicao.map((d) => d.instancia_id).sort()
+    )
+  })
+
+  it('idsComponentesComConflitoDisposicao marca sobreposição entre componentes', () => {
+    const disposicao = sugerirDisposicaoComponentes(layout, itensExemplo)
+    const conflituosa = [
+      disposicao[0],
+      { ...disposicao[1], x_mm: disposicao[0].x_mm, y_mm: disposicao[0].y_mm },
+    ]
+    const ids = idsComponentesComConflitoDisposicao(conflituosa, layout)
+    expect(ids.size).toBeGreaterThan(0)
+    expect(validarDisposicaoComponentes(conflituosa, layout).length).toBeGreaterThan(0)
+  })
+
+  it('rotuloComponenteCurto trunca códigos longos', () => {
+    expect(rotuloComponenteCurto('ABCDEFGHIJ', 5)).toBe('ABCD…')
+    expect(rotuloComponenteCurto('ABC')).toBe('ABC')
+  })
+
+  it('criarMapaEscopoPorComposicaoItem indexa escopo por composicao_item_id', () => {
+    const mapa = criarMapaEscopoPorComposicaoItem(itensExemplo)
+    expect(mapa.get('a1')?.categoria_produto).toBe('RELE_INTERFACE')
+    expect(mapa.get('b1')?.parte_painel).toBe('COMANDO')
   })
 
   it('segmenta trilho DIN com folga de 10 mm sob componente em placa', () => {

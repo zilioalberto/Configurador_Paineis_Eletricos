@@ -977,3 +977,71 @@ def test_posicoes_x_canaletas_verticais_distribui_entre_bordas():
     assert _posicoes_x_canaletas_verticais(355, 1, 30) == [0]
     assert _posicoes_x_canaletas_verticais(355, 2, 30) == [0, 325]
     assert _posicoes_x_canaletas_verticais(355, 3, 30) == [0, 162, 325]
+
+
+def test_posicoes_y_faixas_horizontais_respeita_intermediarias_customizadas():
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        _posicoes_y_faixas_horizontais,
+        _posicoes_y_intermediarias_padrao,
+    )
+
+    assert _posicoes_y_intermediarias_padrao(450, 2, 30) == []
+    assert _posicoes_y_intermediarias_padrao(450, 3, 30) == [210]
+
+    assert _posicoes_y_faixas_horizontais(355, 0, 30) == []
+    assert _posicoes_y_faixas_horizontais(355, 1, 30) == [0]
+    assert _posicoes_y_faixas_horizontais(355, 2, 30) == [0, 325]
+    assert _posicoes_y_faixas_horizontais(355, 3, 30, [150]) == [0, 150, 325]
+
+
+def test_gerar_trilhos_din_layout_entre_faixas_horizontais():
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        _gerar_trilhos_din_layout,
+    )
+
+    horizontais = [
+        {"y_mm": 0, "altura_mm": 30},
+        {"y_mm": 163, "altura_mm": 30},
+        {"y_mm": 325, "altura_mm": 30},
+    ]
+    trilhos = _gerar_trilhos_din_layout(
+        horizontais,
+        x_inicio_mm=30,
+        comprimento_mm=295,
+        altura_perfil_mm=35,
+    )
+    assert len(trilhos) == 2
+    assert trilhos[0]["comprimento_mm"] == 295
+    assert trilhos[0]["orientacao"] == "trilho_din"
+
+
+def test_gerar_layout_placa_monta_canaletas_e_zona_util():
+    from decimal import Decimal
+
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        _gerar_layout_placa,
+    )
+
+    layout = _gerar_layout_placa(
+        355,
+        355,
+        canaletas_verticais=2,
+        faixas_horizontais=3,
+        largura_base_mm=Decimal("30"),
+        canaleta_altura_perfil_mm=50,
+    )
+
+    assert layout["placa_largura_mm"] == 355
+    assert len(layout["canaletas_verticais"]) == 2
+    assert len(layout["canaletas_horizontais"]) == 3
+    assert len(layout["trilhos_din"]) == 2
+    assert layout["zona_componentes"]["largura_mm"] == 295
+    assert layout["zona_componentes"]["altura_mm"] == 265
+
+
+def test_enriquecer_detalhe_dimensionamento_mecanico_retorna_none_quando_vazio():
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        enriquecer_detalhe_dimensionamento_mecanico,
+    )
+
+    assert enriquecer_detalhe_dimensionamento_mecanico(None) is None

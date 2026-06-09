@@ -6,17 +6,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const obterMock = vi.hoisted(() => vi.fn())
 const patchMock = vi.hoisted(() => vi.fn())
 const recalcularMock = vi.hoisted(() => vi.fn())
+const obterMecanicoMock = vi.hoisted(() => vi.fn())
+const calcularMecanicoMock = vi.hoisted(() => vi.fn())
+const salvarMecanicoMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../services/dimensionamentoService', () => ({
   obterDimensionamentoPorProjeto: obterMock,
   patchCondutoresDimensionamento: patchMock,
   recalcularDimensionamento: recalcularMock,
+  obterDimensionamentoMecanico: obterMecanicoMock,
+  calcularDimensionamentoMecanico: calcularMecanicoMock,
+  salvarEscolhasDimensionamentoMecanico: salvarMecanicoMock,
 }))
 
 import { dimensionamentoQueryKeys } from '../dimensionamentoQueryKeys'
+import { useCalcularDimensionamentoMecanicoMutation } from './useCalcularDimensionamentoMecanicoMutation'
+import { useDimensionamentoMecanicoQuery } from './useDimensionamentoMecanicoQuery'
 import { useDimensionamentoQuery } from './useDimensionamentoQuery'
 import { usePatchCondutoresDimensionamentoMutation } from './usePatchCondutoresDimensionamentoMutation'
 import { useRecalcularDimensionamentoMutation } from './useRecalcularDimensionamentoMutation'
+import { useSalvarDimensionamentoMecanicoEscolhasMutation } from './useSalvarDimensionamentoMecanicoEscolhasMutation'
 
 function createClient() {
   return new QueryClient({
@@ -126,5 +135,83 @@ describe('hooks de dimensionamento', () => {
     expect(recalcularMock).toHaveBeenCalledWith('proj-3')
     expect(client.getQueryData(dimensionamentoQueryKeys.porProjeto('proj-3'))).toEqual(data)
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: dimensionamentoQueryKeys.all })
+  })
+})
+
+describe('hooks de dimensionamento mecânico', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('useDimensionamentoMecanicoQuery fica desabilitado sem projeto', () => {
+    const client = createClient()
+
+    renderHook(() => useDimensionamentoMecanicoQuery(null), {
+      wrapper: createWrapper(client),
+    })
+
+    expect(obterMecanicoMock).not.toHaveBeenCalled()
+  })
+
+  it('useDimensionamentoMecanicoQuery carrega dados do projeto', async () => {
+    const client = createClient()
+    obterMecanicoMock.mockResolvedValueOnce({ area_componentes_mm2: '1200' })
+
+    const { result } = renderHook(() => useDimensionamentoMecanicoQuery('proj-m1'), {
+      wrapper: createWrapper(client),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(obterMecanicoMock).toHaveBeenCalledWith('proj-m1')
+    expect(result.current.data).toEqual({ area_componentes_mm2: '1200' })
+  })
+
+  it('useCalcularDimensionamentoMecanicoMutation invalida consultas mecânico e resumo', async () => {
+    const client = createClient()
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries')
+    calcularMecanicoMock.mockResolvedValueOnce({ canaletas_verticais: 2 })
+
+    const { result } = renderHook(() => useCalcularDimensionamentoMecanicoMutation('proj-m2'), {
+      wrapper: createWrapper(client),
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync()
+    })
+
+    expect(calcularMecanicoMock).toHaveBeenCalledWith('proj-m2')
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: dimensionamentoQueryKeys.mecanico('proj-m2'),
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: dimensionamentoQueryKeys.porProjeto('proj-m2'),
+    })
+  })
+
+  it('useSalvarDimensionamentoMecanicoEscolhasMutation persiste escolhas', async () => {
+    const client = createClient()
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries')
+    const payload = {
+      painel_produto_id: 'painel-1',
+      canaletas_verticais: 3,
+    }
+    salvarMecanicoMock.mockResolvedValueOnce({ canaletas_verticais: 3 })
+
+    const { result } = renderHook(() => useSalvarDimensionamentoMecanicoEscolhasMutation('proj-m3'), {
+      wrapper: createWrapper(client),
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    expect(salvarMecanicoMock).toHaveBeenCalledWith('proj-m3', payload)
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: dimensionamentoQueryKeys.mecanico('proj-m3'),
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: dimensionamentoQueryKeys.porProjeto('proj-m3'),
+    })
   })
 })
