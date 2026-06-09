@@ -166,7 +166,7 @@ class DimensionamentoMecanicoView(APIView):
             ]
 
         try:
-            resumo, dados = aplicar_escolhas_dimensionamento_mecanico(projeto, **kwargs)
+            _, dados = aplicar_escolhas_dimensionamento_mecanico(projeto, **kwargs)
         except DjangoValidationError as exc:
             detail = getattr(exc, "message_dict", None) or list(exc.messages)
             return Response(detail, status=status.HTTP_400_BAD_REQUEST)
