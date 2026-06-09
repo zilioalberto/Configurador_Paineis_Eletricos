@@ -26,6 +26,61 @@ import {
 import { withFluxoOrigem } from '../utils/fluxoOrigem'
 import { configuradorPaths } from '../../configuradorPaths'
 
+function toolbarDimensionamento(
+  projetoId: string,
+  searchParams: URLSearchParams,
+  dimensionamentoEtapaConcluida: boolean,
+  onSalvarIrSugestoes: () => void
+) {
+  const retornoDimensionamento = withFluxoOrigem(
+    configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
+    searchParams
+  )
+  const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
+
+  return {
+    title: 'Dimensionamento de condutores',
+    subtitle: undefined,
+    actions: (
+      <>
+        <Link to={editarConfiguracaoPath} className="btn btn-outline-light btn-sm">
+          Editar configurações
+        </Link>
+        <Link
+          to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
+          className="btn btn-outline-light btn-sm"
+        >
+          Editar cargas
+        </Link>
+      </>
+    ),
+    primaryAction: {
+      label: 'Salvar e ir para sugestões',
+      disabled: !dimensionamentoEtapaConcluida,
+      onClick: onSalvarIrSugestoes,
+    },
+  }
+}
+
+function toolbarDimensionamentoMecanico(
+  projetoId: string,
+  searchParams: URLSearchParams,
+  projeto: { codigo?: string; nome?: string } | null | undefined
+) {
+  return {
+    title: 'Dimensionamento mecânico',
+    subtitle: projeto?.nome ? `${projeto.codigo} · ${projeto.nome}` : undefined,
+    actions: (
+      <Link
+        to={withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)}
+        className="btn btn-success btn-sm"
+      >
+        Ir para composição final
+      </Link>
+    ),
+  }
+}
+
 /**
  * Shell do wizard por etapa (`/projetos/:id/fluxo/:etapa`):
  * overview, dimensionamento embutido ou redirecionamentos para cargas/composição.
@@ -73,52 +128,16 @@ export default function ProjetoWizardPage() {
 
   const toolbarConfig = useMemo(() => {
     if (etapaAtual === 'dimensionamento') {
-      const retornoDimensionamento = withFluxoOrigem(
-        configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
-        searchParams
+      return toolbarDimensionamento(
+        projetoId,
+        searchParams,
+        dimensionamentoEtapaConcluida,
+        onSalvarIrSugestoes
       )
-      const editarConfiguracaoPath = `${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(retornoDimensionamento)}`
-
-      return {
-        title: 'Dimensionamento de condutores',
-        subtitle: undefined,
-        actions: (
-          <>
-            <Link
-              to={editarConfiguracaoPath}
-              className="btn btn-outline-light btn-sm"
-            >
-              Editar configurações
-            </Link>
-            <Link
-              to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
-              className="btn btn-outline-light btn-sm"
-            >
-              Editar cargas
-            </Link>
-          </>
-        ),
-        primaryAction: {
-          label: 'Salvar e ir para sugestões',
-          disabled: !dimensionamentoEtapaConcluida,
-          onClick: onSalvarIrSugestoes,
-        },
-      }
     }
 
     if (etapaAtual === 'dimensionamento_mecanico') {
-      return {
-        title: 'Dimensionamento mecânico',
-        subtitle: projeto?.nome ? `${projeto.codigo} · ${projeto.nome}` : undefined,
-        actions: (
-          <Link
-            to={withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)}
-            className="btn btn-success btn-sm"
-          >
-            Ir para composição final
-          </Link>
-        ),
-      }
+      return toolbarDimensionamentoMecanico(projetoId, searchParams, projeto)
     }
 
     return null

@@ -16,6 +16,59 @@ type UseProjetoFormParams = {
   initialData?: ProjetoFormData
 }
 
+const numericFields = ['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia']
+
+function aplicarDependenciasCheckbox(
+  data: ProjetoFormData,
+  name: string,
+  checked: boolean,
+  anterior: ProjetoFormData
+): ProjetoFormData {
+  const updated = { ...data }
+  if (name === 'possui_neutro' && !checked) updated.tipo_conexao_alimentacao_neutro = null
+  if (name === 'possui_terra' && !checked) updated.tipo_conexao_alimentacao_terra = null
+  if (name === 'possui_climatizacao' && !checked) updated.tipo_climatizacao = null
+  if (name === 'possui_plc' && !checked) updated.familia_plc = null
+  if (name === 'possui_seccionamento' && !checked) updated.tipo_seccionamento = null
+  if (name === 'possui_seccionamento' && checked && anterior.tipo_seccionamento === 'NENHUM') {
+    updated.tipo_seccionamento = null
+  }
+  if (name === 'possui_disjuntor_geral' && !checked) updated.tipo_disjuntor_geral = null
+  return updated
+}
+
+function valorCampoProjeto(name: string, value: string) {
+  if (name === 'responsavel') return value === '' ? null : Number(value)
+  if (name === 'familia_plc') return value === '' ? null : value
+  if (value === '') return ''
+  return numericFields.includes(name) ? Number(value) : value
+}
+
+function aplicarDependenciasCampo(
+  data: ProjetoFormData,
+  name: string,
+  value: string
+): ProjetoFormData {
+  if (name !== 'tipo_corrente') return data
+  if (value === 'CC') {
+    return {
+      ...data,
+      numero_fases: null,
+      frequencia: null,
+      possui_neutro: false,
+      tipo_conexao_alimentacao_neutro: null,
+    }
+  }
+  if (value === 'CA') {
+    return {
+      ...data,
+      numero_fases: data.numero_fases ?? 3,
+      frequencia: data.frequencia ?? 60,
+    }
+  }
+  return data
+}
+
 export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProjetoFormParams) {
   const [formData, setFormData] = useState<ProjetoFormData>(
     () => initialData ?? projetoFormInitialState
@@ -55,88 +108,14 @@ export function useProjetoForm({ onSubmit, onSubmitError, initialData }: UseProj
       const checked = event.target.checked
 
       setFormData((prev) => {
-        const updated = {
-          ...prev,
-          [name]: checked,
-        }
-
-        if (name === 'possui_neutro' && !checked) {
-          updated.tipo_conexao_alimentacao_neutro = null
-        }
-
-        if (name === 'possui_terra' && !checked) {
-          updated.tipo_conexao_alimentacao_terra = null
-        }
-
-        if (name === 'possui_climatizacao' && !checked) {
-          updated.tipo_climatizacao = null
-        }
-
-        if (name === 'possui_plc' && !checked) {
-          updated.familia_plc = null
-        }
-
-        if (name === 'possui_seccionamento' && !checked) {
-          updated.tipo_seccionamento = null
-        }
-
-        if (name === 'possui_seccionamento' && checked) {
-          if (prev.tipo_seccionamento === 'NENHUM') {
-            updated.tipo_seccionamento = null
-          }
-        }
-
-        if (name === 'possui_disjuntor_geral' && !checked) {
-          updated.tipo_disjuntor_geral = null
-        }
-
-        return updated
+        return aplicarDependenciasCheckbox({ ...prev, [name]: checked }, name, checked, prev)
       })
 
       return
     }
 
     setFormData((prev) => {
-      const numericFields = [
-        'tensao_nominal',
-        'tensao_comando',
-        'numero_fases',
-        'frequencia',
-      ]
-      const updatedValue =
-        name === 'responsavel'
-          ? value === ''
-            ? null
-            : Number(value)
-          : value === ''
-            ? ''
-            : numericFields.includes(name)
-              ? Number(value)
-              : value
-
-      const updated = {
-        ...prev,
-        [name]:
-          name === 'familia_plc'
-            ? value === ''
-              ? null
-              : value
-            : updatedValue,
-      }
-
-      if (name === 'tipo_corrente' && value === 'CC') {
-        updated.numero_fases = null
-        updated.frequencia = null
-        updated.possui_neutro = false
-        updated.tipo_conexao_alimentacao_neutro = null
-      }
-
-      if (name === 'tipo_corrente' && value === 'CA') {
-        updated.numero_fases ??= 3
-        updated.frequencia ??= 60
-      }
-
-      return updated
+      return aplicarDependenciasCampo({ ...prev, [name]: valorCampoProjeto(name, value) }, name, value)
     })
   }, [clearFieldError])
 

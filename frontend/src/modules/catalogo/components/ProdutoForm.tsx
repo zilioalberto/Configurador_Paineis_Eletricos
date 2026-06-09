@@ -31,6 +31,30 @@ type ProdutoFormProps = {
   lockCategoria?: boolean
 }
 
+function mensagemValidacaoEspecificacao(
+  categoriaNome: CategoriaProdutoNome | undefined,
+  esp: ProdutoFormData['especificacao'],
+): string | null {
+  if (categoriaNome === 'CONTATORA' && esp) {
+    const ac3 = String(esp.corrente_ac3_a ?? '').trim()
+    const ac1 = String(esp.corrente_ac1_a ?? '').trim()
+    return !ac3 && !ac1 ? 'Informe corrente AC-3 ou AC-1 da contatora.' : null
+  }
+  if (categoriaNome === 'SECCIONADORA' && esp) {
+    const ac1 = String(esp.corrente_ac1_a ?? '').trim()
+    const ac3 = String(esp.corrente_ac3_a ?? '').trim()
+    return !ac1 || !ac3 ? 'Informe corrente AC-1 e AC-3 da seccionadora.' : null
+  }
+  if (categoriaNome === 'DISJUNTOR_MOTOR' && esp) {
+    const mn = String(esp.faixa_ajuste_min_a ?? '').trim()
+    const mx = String(esp.faixa_ajuste_max_a ?? '').trim()
+    return !mn || !mx
+      ? 'Informe faixa de ajuste mínima e máxima (A) do disjuntor motor.'
+      : null
+  }
+  return null
+}
+
 /** Formulário principal de produto (dados gerais + especificação). */
 export default function ProdutoForm({
   categorias,
@@ -255,42 +279,10 @@ export default function ProdutoForm({
     e.preventDefault()
     if (!formData.categoria.trim()) return
 
-    const esp = formData.especificacao
-
-    if (categoriaNome === 'CONTATORA' && esp) {
-      const ac3 = String(esp.corrente_ac3_a ?? '').trim()
-      const ac1 = String(esp.corrente_ac1_a ?? '').trim()
-      if (!ac3 && !ac1) {
-        showToast({
-          variant: 'warning',
-          message: 'Informe corrente AC-3 ou AC-1 da contatora.',
-        })
-        return
-      }
-    }
-
-    if (categoriaNome === 'SECCIONADORA' && esp) {
-      const ac1 = String(esp.corrente_ac1_a ?? '').trim()
-      const ac3 = String(esp.corrente_ac3_a ?? '').trim()
-      if (!ac1 || !ac3) {
-        showToast({
-          variant: 'warning',
-          message: 'Informe corrente AC-1 e AC-3 da seccionadora.',
-        })
-        return
-      }
-    }
-
-    if (categoriaNome === 'DISJUNTOR_MOTOR' && esp) {
-      const mn = String(esp.faixa_ajuste_min_a ?? '').trim()
-      const mx = String(esp.faixa_ajuste_max_a ?? '').trim()
-      if (!mn || !mx) {
-        showToast({
-          variant: 'warning',
-          message: 'Informe faixa de ajuste mínima e máxima (A) do disjuntor motor.',
-        })
-        return
-      }
+    const mensagem = mensagemValidacaoEspecificacao(categoriaNome, formData.especificacao)
+    if (mensagem) {
+      showToast({ variant: 'warning', message: mensagem })
+      return
     }
 
     await onSubmit(formData)

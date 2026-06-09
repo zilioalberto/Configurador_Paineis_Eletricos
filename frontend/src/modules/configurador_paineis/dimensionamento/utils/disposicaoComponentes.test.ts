@@ -502,8 +502,8 @@ describe('disposicaoComponentes', () => {
     const disposicao = sugerirDisposicaoComponentes(layout, itensExemplo)
     const mesclada = mesclarDisposicaoSalva([disposicao[0]], layout, itensExemplo)
     expect(mesclada).toHaveLength(3)
-    expect(mesclada.map((d) => d.instancia_id).sort()).toEqual(
-      disposicao.map((d) => d.instancia_id).sort()
+    expect(mesclada.map((d) => d.instancia_id).sort((a, b) => a.localeCompare(b))).toEqual(
+      disposicao.map((d) => d.instancia_id).sort((a, b) => a.localeCompare(b))
     )
   })
 

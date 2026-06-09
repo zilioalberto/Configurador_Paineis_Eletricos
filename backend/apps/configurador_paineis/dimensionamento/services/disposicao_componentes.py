@@ -266,10 +266,9 @@ def _posicao_valida(item: dict, layout_placa: dict, outros: list[dict]) -> bool:
     return True
 
 
-def _montar_candidato_trilho(
+def _montar_candidato_disposicao(
     inst: dict,
-    trilho: dict,
-    trilho_indice: int,
+    trilho_indice: int | None,
     x_mm: int,
     y_mm: int,
 ) -> dict:
@@ -286,6 +285,16 @@ def _montar_candidato_trilho(
         "trilho_indice": trilho_indice,
         "manual": False,
     }
+
+
+def _montar_candidato_trilho(
+    inst: dict,
+    trilho: dict,
+    trilho_indice: int,
+    x_mm: int,
+    y_mm: int,
+) -> dict:
+    return _montar_candidato_disposicao(inst, trilho_indice, x_mm, y_mm)
 
 
 def _buscar_posicao_valida_no_trilho(
@@ -340,14 +349,12 @@ def _buscar_posicao_valida_na_faixa(
     y_inicio = max(y_min, min(int(round(y_preferido)), y_max))
 
     for y in range(y_inicio, y_max + 1, passo_mm):
-        candidato = _montar_candidato_trilho(inst, {}, None, x, y)
-        candidato["trilho_indice"] = None
+        candidato = _montar_candidato_disposicao(inst, None, x, y)
         if _posicao_valida(candidato, layout_placa, ja_posicionados):
             return candidato
 
     for y in range(y_min, y_inicio, passo_mm):
-        candidato = _montar_candidato_trilho(inst, {}, None, x, y)
-        candidato["trilho_indice"] = None
+        candidato = _montar_candidato_disposicao(inst, None, x, y)
         if _posicao_valida(candidato, layout_placa, ja_posicionados):
             return candidato
     return None
@@ -411,6 +418,71 @@ def _ordenar_contatoras_agrupadas(insts: list[dict]) -> list[dict]:
     return sorted(insts, key=lambda inst: (inst.get("produto_codigo") or "", inst["instancia_id"]))
 
 
+def _x_inicial_para_posicao(pos: int, indice_minimo: int, x_inicial: int | None) -> int | None:
+    return x_inicial if pos == indice_minimo else None
+
+
+def _distribuir_grupo_em_um_trilho(
+    trilhos: list[dict],
+    indices_preferencia: list[int],
+    instancias: list[dict],
+    layout_placa: dict,
+    resultado: list[dict],
+    *,
+    indice_minimo: int,
+    x_inicial: int | None,
+) -> tuple[list[dict], int] | None:
+    for pos, indice in enumerate(indices_preferencia[indice_minimo:], start=indice_minimo):
+        x_posicao = _x_inicial_para_posicao(pos, indice_minimo, x_inicial)
+        trilho = trilhos[indice]
+        if not _grupo_cabe_no_trilho(trilho, instancias, x_posicao):
+            continue
+        posicionados = _distribuir_sequencial_esquerda_no_trilho(
+            trilho,
+            indice,
+            instancias,
+            layout_placa,
+            resultado,
+            x_inicial=x_posicao,
+        )
+        if len(posicionados) == len(instancias):
+            return posicionados, pos
+    return None
+
+
+def _distribuir_grupo_parcial_por_trilhos(
+    trilhos: list[dict],
+    indices_preferencia: list[int],
+    instancias: list[dict],
+    layout_placa: dict,
+    resultado: list[dict],
+    *,
+    indice_minimo: int,
+    x_inicial: int | None,
+) -> tuple[list[dict], int]:
+    posicionados: list[dict] = []
+    restantes = list(instancias)
+    ultimo_pos = indice_minimo
+    for pos, indice in enumerate(indices_preferencia[indice_minimo:], start=indice_minimo):
+        if not restantes:
+            break
+        parciais = _distribuir_sequencial_esquerda_no_trilho(
+            trilhos[indice],
+            indice,
+            restantes,
+            layout_placa,
+            [*resultado, *posicionados],
+            x_inicial=_x_inicial_para_posicao(pos, indice_minimo, x_inicial),
+        )
+        if not parciais:
+            continue
+        ids = {item["instancia_id"] for item in parciais}
+        posicionados.extend(parciais)
+        restantes = [inst for inst in restantes if inst["instancia_id"] not in ids]
+        ultimo_pos = pos
+    return posicionados, ultimo_pos
+
+
 def _distribuir_grupo_preferindo_mesmo_trilho(
     trilhos: list[dict],
     indices_preferencia: list[int],
@@ -424,43 +496,26 @@ def _distribuir_grupo_preferindo_mesmo_trilho(
     if not instancias:
         return [], indice_minimo
 
-    for pos, indice in enumerate(indices_preferencia[indice_minimo:], start=indice_minimo):
-        trilho = trilhos[indice]
-        if not _grupo_cabe_no_trilho(trilho, instancias, x_inicial if pos == indice_minimo else None):
-            continue
-        posicionados = _distribuir_sequencial_esquerda_no_trilho(
-            trilho,
-            indice,
-            instancias,
-            layout_placa,
-            resultado,
-            x_inicial=x_inicial if pos == indice_minimo else None,
-        )
-        if len(posicionados) == len(instancias):
-            return posicionados, pos
-
-    posicionados: list[dict] = []
-    restantes = list(instancias)
-    ultimo_pos = indice_minimo
-    for pos, indice in enumerate(indices_preferencia[indice_minimo:], start=indice_minimo):
-        if not restantes:
-            break
-        trilho = trilhos[indice]
-        parciais = _distribuir_sequencial_esquerda_no_trilho(
-            trilho,
-            indice,
-            restantes,
-            layout_placa,
-            [*resultado, *posicionados],
-            x_inicial=x_inicial if pos == indice_minimo else None,
-        )
-        if not parciais:
-            continue
-        ids = {item["instancia_id"] for item in parciais}
-        posicionados.extend(parciais)
-        restantes = [inst for inst in restantes if inst["instancia_id"] not in ids]
-        ultimo_pos = pos
-    return posicionados, ultimo_pos
+    completos = _distribuir_grupo_em_um_trilho(
+        trilhos,
+        indices_preferencia,
+        instancias,
+        layout_placa,
+        resultado,
+        indice_minimo=indice_minimo,
+        x_inicial=x_inicial,
+    )
+    if completos is not None:
+        return completos
+    return _distribuir_grupo_parcial_por_trilhos(
+        trilhos,
+        indices_preferencia,
+        instancias,
+        layout_placa,
+        resultado,
+        indice_minimo=indice_minimo,
+        x_inicial=x_inicial,
+    )
 
 
 def _listar_faixas_horizontais_livres(layout_placa: dict) -> list[dict]:
@@ -669,14 +724,7 @@ def _posicionar_itens_placa(
     return resultado
 
 
-def sugerir_disposicao_componentes(layout_placa: dict, itens: list[dict]) -> list[dict]:
-    layout_placa = ajustar_layout_placa_para_itens(layout_placa, itens)
-    instancias = expandir_instancias_componentes(itens)
-    trilhos = layout_placa.get("trilhos_din") or []
-    idx_inferior = _indice_trilho_inferior(trilhos)
-    idx_superior = _indice_trilho_superior(trilhos)
-    trilho_unico = idx_inferior is not None and idx_superior == idx_inferior
-
+def _classificar_instancias_disposicao(instancias: list[dict]) -> dict:
     bornes = [i for i in instancias if _eh_borne(i) and i["modo_montagem"] == "TRILHO_DIN"]
     trilho_itens = [
         i for i in instancias if i["modo_montagem"] == "TRILHO_DIN" and not _eh_borne(i)
@@ -688,120 +736,195 @@ def sugerir_disposicao_componentes(layout_placa: dict, itens: list[dict]) -> lis
     outros_trilho = [
         i for i in resto_trilho if not _eh_disjuntor(i) and not _eh_contatora(i)
     ]
-    placa_itens = [i for i in instancias if i["modo_montagem"] != "TRILHO_DIN"]
+    return {
+        "bornes": bornes,
+        "disjuntores_superiores": disjuntores_superiores,
+        "disjuntores": disjuntores,
+        "contatoras": contatoras,
+        "outros_trilho": outros_trilho,
+        "placa_itens": [i for i in instancias if i["modo_montagem"] != "TRILHO_DIN"],
+    }
 
-    resultado: list[dict] = []
 
-    if trilho_unico and idx_superior is not None:
-        lista_nao_bornes = [
-            *_ordenar_disjuntores_superiores(disjuntores_superiores),
-            *disjuntores,
-            *contatoras,
-            *outros_trilho,
-        ]
-        if lista_nao_bornes:
-            resultado.extend(
-                _distribuir_sequencial_esquerda_no_trilho(
-                    trilhos[idx_superior],
-                    idx_superior,
-                    lista_nao_bornes,
-                    layout_placa,
-                    resultado,
-                )
+def _distribuir_trilho_unico(
+    trilhos: list[dict],
+    idx_superior: int,
+    grupos: dict,
+    layout_placa: dict,
+    resultado: list[dict],
+) -> None:
+    lista_nao_bornes = [
+        *_ordenar_disjuntores_superiores(grupos["disjuntores_superiores"]),
+        *grupos["disjuntores"],
+        *grupos["contatoras"],
+        *grupos["outros_trilho"],
+    ]
+    if lista_nao_bornes:
+        resultado.extend(
+            _distribuir_sequencial_esquerda_no_trilho(
+                trilhos[idx_superior],
+                idx_superior,
+                lista_nao_bornes,
+                layout_placa,
+                resultado,
             )
-        if bornes:
-            ultimo = resultado[-1] if resultado else None
-            x_bornes = (
-                ultimo["x_mm"] + ultimo["largura_mm"] + _GAP_COMPONENTES_MM if ultimo else None
-            )
-            resultado.extend(
-                _distribuir_sequencial_esquerda_no_trilho(
-                    trilhos[idx_superior],
-                    idx_superior,
-                    _ordenar_bornes(bornes),
-                    layout_placa,
-                    resultado,
-                    gap_mm=0,
-                    x_inicial=x_bornes,
-                )
-            )
-    else:
-        indices_superiores = sorted(
-            [idx for idx in range(len(trilhos)) if idx != idx_inferior],
-            key=lambda idx: _centro_y_trilho_dict(trilhos[idx]),
         )
-        pos_corrente = 0
-        if idx_superior is not None:
-            lista_superior = _ordenar_disjuntores_superiores(disjuntores_superiores)
-            if lista_superior:
-                resultado.extend(
-                    _distribuir_sequencial_esquerda_no_trilho(
-                        trilhos[idx_superior],
-                        idx_superior,
-                        lista_superior,
-                        layout_placa,
-                        resultado,
-                    )
-                )
-
-        x_apos_superiores = None
-        if resultado and idx_superior is not None and resultado[-1].get("trilho_indice") == idx_superior:
-            ultimo = resultado[-1]
-            x_apos_superiores = ultimo["x_mm"] + ultimo["largura_mm"] + _GAP_COMPONENTES_MM
-
-        posicionados_disj, pos_disj = _distribuir_grupo_preferindo_mesmo_trilho(
-            trilhos,
-            indices_superiores,
-            disjuntores,
+    if not grupos["bornes"]:
+        return
+    ultimo = resultado[-1] if resultado else None
+    x_bornes = ultimo["x_mm"] + ultimo["largura_mm"] + _GAP_COMPONENTES_MM if ultimo else None
+    resultado.extend(
+        _distribuir_sequencial_esquerda_no_trilho(
+            trilhos[idx_superior],
+            idx_superior,
+            _ordenar_bornes(grupos["bornes"]),
             layout_placa,
             resultado,
-            indice_minimo=pos_corrente,
-            x_inicial=x_apos_superiores,
+            gap_mm=0,
+            x_inicial=x_bornes,
         )
-        resultado.extend(posicionados_disj)
-        if posicionados_disj:
-            pos_corrente = pos_disj + 1 if pos_disj + 1 < len(indices_superiores) else pos_disj
+    )
 
-        posicionados_contatoras, pos_contatoras = _distribuir_grupo_preferindo_mesmo_trilho(
-            trilhos,
+
+def _indices_trilhos_superiores(trilhos: list[dict], idx_inferior: int | None) -> list[int]:
+    return sorted(
+        [idx for idx in range(len(trilhos)) if idx != idx_inferior],
+        key=lambda idx: _centro_y_trilho_dict(trilhos[idx]),
+    )
+
+
+def _x_apos_ultimo_no_trilho(resultado: list[dict], trilho_indice: int | None) -> int | None:
+    if not resultado or trilho_indice is None:
+        return None
+    ultimo = resultado[-1]
+    if ultimo.get("trilho_indice") != trilho_indice:
+        return None
+    return ultimo["x_mm"] + ultimo["largura_mm"] + _GAP_COMPONENTES_MM
+
+
+def _proxima_posicao_trilho(pos: int, total: int) -> int:
+    return pos + 1 if pos + 1 < total else pos
+
+
+def _distribuir_outros_trilho(
+    trilhos: list[dict],
+    indices_superiores: list[int],
+    outros_trilho: list[dict],
+    layout_placa: dict,
+    resultado: list[dict],
+) -> None:
+    for inst in outros_trilho:
+        if not indices_superiores:
+            break
+        indice_menor = min(
             indices_superiores,
-            contatoras,
-            layout_placa,
-            resultado,
-            indice_minimo=pos_corrente,
+            key=lambda idx: sum(
+                item["largura_mm"]
+                for item in resultado
+                if item.get("trilho_indice") == idx
+            ),
         )
-        resultado.extend(posicionados_contatoras)
-        if posicionados_contatoras:
-            pos_corrente = pos_contatoras + 1 if pos_contatoras + 1 < len(indices_superiores) else pos_contatoras
-
-        for inst in outros_trilho:
-            if not indices_superiores:
-                break
-            indice_menor = min(
-                indices_superiores,
-                key=lambda idx: sum(
-                    item["largura_mm"]
-                    for item in resultado
-                    if item.get("trilho_indice") == idx
-                ),
-            )
-            candidato = _distribuir_sequencial_esquerda_no_trilho(
+        resultado.extend(
+            _distribuir_sequencial_esquerda_no_trilho(
                 trilhos[indice_menor],
                 indice_menor,
                 [inst],
                 layout_placa,
                 resultado,
             )
-            resultado.extend(candidato)
+        )
 
-        if idx_inferior is not None and bornes:
+
+def _distribuir_multiplos_trilhos(
+    trilhos: list[dict],
+    idx_inferior: int | None,
+    idx_superior: int | None,
+    grupos: dict,
+    layout_placa: dict,
+    resultado: list[dict],
+) -> None:
+    indices_superiores = _indices_trilhos_superiores(trilhos, idx_inferior)
+    pos_corrente = 0
+    if idx_superior is not None:
+        lista_superior = _ordenar_disjuntores_superiores(grupos["disjuntores_superiores"])
+        if lista_superior:
             resultado.extend(
-                _distribuir_bornes_no_trilho(
-                    trilhos[idx_inferior], idx_inferior, bornes, layout_placa, resultado
+                _distribuir_sequencial_esquerda_no_trilho(
+                    trilhos[idx_superior],
+                    idx_superior,
+                    lista_superior,
+                    layout_placa,
+                    resultado,
                 )
             )
 
-    resultado.extend(_posicionar_itens_placa(placa_itens, layout_placa, resultado))
+    posicionados_disj, pos_disj = _distribuir_grupo_preferindo_mesmo_trilho(
+        trilhos,
+        indices_superiores,
+        grupos["disjuntores"],
+        layout_placa,
+        resultado,
+        indice_minimo=pos_corrente,
+        x_inicial=_x_apos_ultimo_no_trilho(resultado, idx_superior),
+    )
+    resultado.extend(posicionados_disj)
+    if posicionados_disj:
+        pos_corrente = _proxima_posicao_trilho(pos_disj, len(indices_superiores))
+
+    posicionados_contatoras, pos_contatoras = _distribuir_grupo_preferindo_mesmo_trilho(
+        trilhos,
+        indices_superiores,
+        grupos["contatoras"],
+        layout_placa,
+        resultado,
+        indice_minimo=pos_corrente,
+    )
+    resultado.extend(posicionados_contatoras)
+    if posicionados_contatoras:
+        pos_corrente = _proxima_posicao_trilho(pos_contatoras, len(indices_superiores))
+
+    _distribuir_outros_trilho(
+        trilhos,
+        indices_superiores,
+        grupos["outros_trilho"],
+        layout_placa,
+        resultado,
+    )
+
+    if idx_inferior is not None and grupos["bornes"]:
+        resultado.extend(
+            _distribuir_bornes_no_trilho(
+                trilhos[idx_inferior],
+                idx_inferior,
+                grupos["bornes"],
+                layout_placa,
+                resultado,
+            )
+        )
+
+
+def sugerir_disposicao_componentes(layout_placa: dict, itens: list[dict]) -> list[dict]:
+    layout_placa = ajustar_layout_placa_para_itens(layout_placa, itens)
+    instancias = expandir_instancias_componentes(itens)
+    trilhos = layout_placa.get("trilhos_din") or []
+    idx_inferior = _indice_trilho_inferior(trilhos)
+    idx_superior = _indice_trilho_superior(trilhos)
+    grupos = _classificar_instancias_disposicao(instancias)
+    resultado: list[dict] = []
+
+    if idx_inferior is not None and idx_superior == idx_inferior:
+        _distribuir_trilho_unico(trilhos, idx_superior, grupos, layout_placa, resultado)
+    else:
+        _distribuir_multiplos_trilhos(
+            trilhos,
+            idx_inferior,
+            idx_superior,
+            grupos,
+            layout_placa,
+            resultado,
+        )
+
+    resultado.extend(_posicionar_itens_placa(grupos["placa_itens"], layout_placa, resultado))
 
     return _completar_disposicao_faltante(instancias, layout_placa, resultado)
 
@@ -920,6 +1043,39 @@ def validar_disposicao_para_itens(
     return validar_disposicao_componentes(disposicao, layout_placa)
 
 
+def _fallback_disposicao_instancia(
+    inst_id: str,
+    mapa_instancias: dict,
+    mapa_sugerida: dict,
+    layout_placa: dict,
+    resultado: list[dict],
+) -> dict | None:
+    fallback = mapa_sugerida.get(inst_id)
+    if fallback is not None:
+        return fallback
+    inst = mapa_instancias.get(inst_id)
+    if inst is None:
+        return None
+    return _posicionar_instancia_faltante(inst, layout_placa, resultado)
+
+
+def _mesclar_item_disposicao_salva(
+    *,
+    salvo: dict | None,
+    fallback: dict,
+    layout_placa: dict,
+    resultado: list[dict],
+) -> dict:
+    if not salvo:
+        return fallback
+    candidato = dict(salvo)
+    if salvo.get("manual"):
+        candidato["manual"] = True
+    if _posicao_valida(candidato, layout_placa, resultado):
+        return candidato
+    return fallback
+
+
 def mesclar_disposicao_salva(
     salva: list[dict] | None,
     layout_placa: dict,
@@ -938,29 +1094,23 @@ def mesclar_disposicao_salva(
     resultado: list[dict] = []
 
     for inst_id in instancias_atuais:
-        fallback = mapa_sugerida.get(inst_id)
-        if fallback is None:
-            inst = mapa_instancias.get(inst_id)
-            if inst is not None:
-                fallback = _posicionar_instancia_faltante(inst, layout_ajustado, resultado)
+        fallback = _fallback_disposicao_instancia(
+            inst_id,
+            mapa_instancias,
+            mapa_sugerida,
+            layout_ajustado,
+            resultado,
+        )
         if fallback is None:
             continue
-        salvo = mapa_salva.get(inst_id)
-        if salvo and salvo.get("manual"):
-            candidato = dict(salvo)
-            candidato["manual"] = True
-            if _posicao_valida(candidato, layout_placa, resultado):
-                resultado.append(candidato)
-            else:
-                resultado.append(fallback)
-        elif salvo:
-            candidato = dict(salvo)
-            if _posicao_valida(candidato, layout_placa, resultado):
-                resultado.append(candidato)
-            else:
-                resultado.append(fallback)
-        else:
-            resultado.append(fallback)
+        resultado.append(
+            _mesclar_item_disposicao_salva(
+                salvo=mapa_salva.get(inst_id),
+                fallback=fallback,
+                layout_placa=layout_placa,
+                resultado=resultado,
+            )
+        )
 
     return _completar_disposicao_faltante(instancias, layout_ajustado, resultado)
 

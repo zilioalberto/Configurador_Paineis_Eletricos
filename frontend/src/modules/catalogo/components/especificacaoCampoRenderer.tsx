@@ -241,18 +241,10 @@ function renderCampoSelect(
   onPatch: (patch: Record<string, string | number | boolean>) => void
 ): ReactNode {
   const numericOpts = opts!.every((o) => typeof o.value === 'number')
-  let strVal = current === undefined || current === null ? '' : String(current)
-  const djangoNumeric =
-    django === 'DecimalField' ||
-    django === 'IntegerField' ||
-    django === 'PositiveIntegerField' ||
-    django === 'PositiveSmallIntegerField'
-  if (numericOpts && current !== '' && current != null && djangoNumeric) {
-    const n = Number(current)
-    if (Number.isFinite(n)) {
-      const matched = opts!.find((o) => Number(o.value) === n)
-      if (matched) strVal = String(matched.value)
-    }
+  const strVal = valorSelectEspecificacao(current, django, opts!, numericOpts)
+  const onChange = (v: string) => {
+    if (aplicarPatchEspecialSelect(categoria, name, v, onPatch)) return
+    patch(name, numericOpts ? Number(v) : v)
   }
   return (
     <div key={name} className="col-md-4">
@@ -269,40 +261,7 @@ function renderCampoSelect(
             patch(name, '')
             return
           }
-          if (categoria === 'DISJUNTOR_CAIXA_MOLDADA' && name === 'configuracao_disparador') {
-            onPatch(patchLimpezaDcmConfig(v))
-            return
-          }
-          if (categoria === 'FUSIVEL' && name === 'formato') {
-            onPatch({ formato: v, tamanho: '' })
-            return
-          }
-          if (categoria === 'PAINEL' && name === 'material') {
-            onPatch({ material: v, ...(v === 'ACO_INOX' ? { cor: '' } : {}) })
-            return
-          }
-          if (categoria === 'TERMINAIS' && name === 'tipo_terminal') {
-            onPatch({ tipo_terminal: v, ...(v === 'TUBULAR' ? { furo_olhal: '' } : {}) })
-            return
-          }
-          if (categoria === 'IDENTIFICACAO' && name === 'tipo_identificacao') {
-            onPatch({
-              tipo_identificacao: v,
-              ...(v === 'SUPORTE_LUVA_CABO'
-                ? {}
-                : {
-                    secao_min_mm2: '',
-                    secao_max_mm2: '',
-                    diametro_min_mm: '',
-                    diametro_max_mm: '',
-                  }),
-              ...(v === 'FAIXA_IDENTIFICACAO' ? {} : { comprimento_mm: '' }),
-              ...(v === 'PLAQUETA_IDENTIFICACAO' ? {} : { tamanho_plaqueta: '' }),
-              ...(v === 'ADESIVO_TENSAO' ? {} : { tensao_v: '' }),
-            })
-            return
-          }
-          patch(name, numericOpts ? Number(v) : v)
+          onChange(v)
         }}
       >
         <option value="">—</option>
@@ -314,6 +273,77 @@ function renderCampoSelect(
       </select>
     </div>
   )
+}
+
+function ehCampoNumericoDjango(django: string): boolean {
+  return (
+    django === 'DecimalField' ||
+    django === 'IntegerField' ||
+    django === 'PositiveIntegerField' ||
+    django === 'PositiveSmallIntegerField'
+  )
+}
+
+function valorSelectEspecificacao(
+  current: unknown,
+  django: string,
+  opts: ReturnType<typeof selectOptionsParaCampo>,
+  numericOpts: boolean
+): string {
+  const strVal = current === undefined || current === null ? '' : String(current)
+  if (!numericOpts || current === '' || current == null || !ehCampoNumericoDjango(django)) {
+    return strVal
+  }
+  const n = Number(current)
+  if (!Number.isFinite(n)) return strVal
+  const matched = opts!.find((o) => Number(o.value) === n)
+  return matched ? String(matched.value) : strVal
+}
+
+function patchIdentificacaoTipo(v: string): Record<string, string> {
+  return {
+    tipo_identificacao: v,
+    ...(v === 'SUPORTE_LUVA_CABO'
+      ? {}
+      : {
+          secao_min_mm2: '',
+          secao_max_mm2: '',
+          diametro_min_mm: '',
+          diametro_max_mm: '',
+        }),
+    ...(v === 'FAIXA_IDENTIFICACAO' ? {} : { comprimento_mm: '' }),
+    ...(v === 'PLAQUETA_IDENTIFICACAO' ? {} : { tamanho_plaqueta: '' }),
+    ...(v === 'ADESIVO_TENSAO' ? {} : { tensao_v: '' }),
+  }
+}
+
+function aplicarPatchEspecialSelect(
+  categoria: CategoriaProdutoNome,
+  name: string,
+  v: string,
+  onPatch: (patch: Record<string, string | number | boolean>) => void
+): boolean {
+  if (categoria === 'DISJUNTOR_CAIXA_MOLDADA' && name === 'configuracao_disparador') {
+    onPatch(patchLimpezaDcmConfig(v))
+    return true
+  }
+  if (categoria === 'FUSIVEL' && name === 'formato') {
+    onPatch({ formato: v, tamanho: '' })
+    return true
+  }
+  if (categoria === 'PAINEL' && name === 'material') {
+    onPatch({ material: v, ...(v === 'ACO_INOX' ? { cor: '' } : {}) })
+    return true
+  }
+  if (categoria === 'TERMINAIS' && name === 'tipo_terminal') {
+    onPatch({ tipo_terminal: v, ...(v === 'TUBULAR' ? { furo_olhal: '' } : {}) })
+    return true
+  }
+  if (categoria === 'IDENTIFICACAO' && name === 'tipo_identificacao') {
+    onPatch(patchIdentificacaoTipo(v))
+    return true
+  }
+  return false
 }
 
 function opcoesEspecificacao(

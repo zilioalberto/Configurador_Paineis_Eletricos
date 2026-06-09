@@ -40,6 +40,18 @@ type DeleteTarget = {
   label: string
 }
 
+type ItemComNome = { id: string; nome: string }
+
+function deleteTargetPorLista<T extends ItemComNome>(
+  tipo: AbaRh,
+  id: string | null,
+  lista: T[]
+): DeleteTarget | null {
+  if (!id) return null
+  const item = lista.find((row) => row.id === id)
+  return item ? { tipo, id: item.id, label: item.nome } : null
+}
+
 type ColaboradorForm = {
   matricula: string
   nome: string
@@ -378,35 +390,21 @@ export default function RhPage() {
   )
 
   const exclusaoAlvoAtual = useMemo((): DeleteTarget | null => {
-    switch (aba) {
-      case 'colaboradores': {
-        if (!colaboradorId) return null
-        const item = colaboradores.find((c) => c.id === colaboradorId)
-        return item ? { tipo: 'colaboradores', id: item.id, label: item.nome } : null
-      }
-      case 'departamentos': {
-        if (!departamentoId) return null
-        const item = departamentos.find((d) => d.id === departamentoId)
-        return item ? { tipo: 'departamentos', id: item.id, label: item.nome } : null
-      }
-      case 'cargos': {
-        if (!cargoId) return null
-        const item = cargos.find((c) => c.id === cargoId)
-        return item ? { tipo: 'cargos', id: item.id, label: item.nome } : null
-      }
-      case 'equipes': {
-        if (!equipeId) return null
-        const item = equipes.find((e) => e.id === equipeId)
-        return item ? { tipo: 'equipes', id: item.id, label: item.nome } : null
-      }
-      case 'jornadas': {
-        if (!jornadaId) return null
-        const item = jornadas.find((j) => j.id === jornadaId)
-        return item ? { tipo: 'jornadas', id: item.id, label: item.nome } : null
-      }
-      default:
-        return null
+    const ids = {
+      colaboradores: colaboradorId,
+      departamentos: departamentoId,
+      cargos: cargoId,
+      equipes: equipeId,
+      jornadas: jornadaId,
     }
+    const listas: Record<AbaRh, ItemComNome[]> = {
+      colaboradores,
+      departamentos,
+      cargos,
+      equipes,
+      jornadas,
+    }
+    return deleteTargetPorLista(aba, ids[aba], listas[aba])
   }, [
     aba,
     cargoId,

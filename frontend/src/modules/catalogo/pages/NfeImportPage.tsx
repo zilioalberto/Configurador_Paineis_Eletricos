@@ -96,6 +96,74 @@ function selecaoPadraoItem(item: NfeItemSnapshot, snapshot: NfeSnapshot): ItemSe
   }
 }
 
+function selecaoFallbackPayload(item: NfeItemSnapshot): ItemSelecaoImportacao {
+  return {
+    importar: false,
+    codigo: item.c_prod,
+    fornecedor: FORNECEDOR_NENHUM,
+    fabricante: FORNECEDOR_NENHUM,
+    categoria: '',
+    atualizar_se_existir: false,
+  }
+}
+
+function itemPayloadAplicacao(
+  item: NfeItemSnapshot,
+  selecao: ItemSelecaoImportacao
+): NfeAplicarItem {
+  return {
+    n_item: item.n_item,
+    importar: selecao.importar,
+    ...payloadFornecedor(selecao.fornecedor),
+    ...payloadFabricante(selecao.fabricante),
+    categoria_catalogo: selecao.categoria || undefined,
+    codigo_catalogo: selecao.codigo.trim() || undefined,
+    ...(selecao.atualizar_se_existir ? { atualizar_se_existir: true } : {}),
+  }
+}
+
+async function carregarPreviewDocumentoFiscal(documentoId: number) {
+  const documento = await obterNfeRecebida(documentoId)
+  if (!documento.xml_original?.trim()) {
+    throw new Error('Esta NF-e fiscal não possui XML original armazenado.')
+  }
+  const file = new File([documento.xml_original], `nfe-fiscal-${documento.id}.xml`, {
+    type: 'text/xml',
+  })
+  return {
+    dados: await previewNfeXml(file),
+    origem: { id: documento.id, numero: documento.numero },
+    objetivoEntrada: documento.objetivo_entrada,
+    xml: documento.xml_original,
+  }
+}
+
+function deveRegistrarNfeFiscal(
+  registrarNoFiscal: boolean,
+  origemFiscal: { id: number; numero: string } | null,
+  xmlFonte: string
+) {
+  return registrarNoFiscal && !origemFiscal && Boolean(xmlFonte.trim())
+}
+
+function mensagemResultadoImportacao(
+  resultado: NfeAplicarResponse,
+  resFiscal: Awaited<ReturnType<typeof importarNfeXmlManual>> | null
+) {
+  return [
+    resFiscal ? (resFiscal.created ? 'NF-e registrada no fiscal.' : 'NF-e já existia no fiscal.') : '',
+    resultado.fornecedor_criado ? 'Fornecedor criado.' : '',
+    resultado.produtos_criados.length
+      ? `${resultado.produtos_criados.length} produto(s) criado(s).`
+      : '',
+    resultado.produtos_ignorados.length
+      ? `${resultado.produtos_ignorados.length} linha(s) ignorada(s).`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function linhaCatalogoClass(existente: NfeProdutoExistenteResumo | null, diverge: boolean): string {
   if (!existente) return ''
   return diverge ? 'table-warning' : 'table-success'
@@ -658,23 +726,16 @@ export default function NfeImportPage() {
     let ativo = true
     documentoFiscalCarregadoRef.current = documentoFiscalIdParam
     setCarregandoPreview(true)
-    obterNfeRecebida(documentoId)
-      .then(async (documento) => {
-        if (!documento.xml_original?.trim()) {
-          throw new Error('Esta NF-e fiscal não possui XML original armazenado.')
-        }
-        const file = new File([documento.xml_original], `nfe-fiscal-${documento.id}.xml`, {
-          type: 'text/xml',
-        })
-        const dados = await previewNfeXml(file)
+    carregarPreviewDocumentoFiscal(documentoId)
+      .then(({ dados, origem, objetivoEntrada: objetivo, xml }) => {
         if (!ativo) return
         setArquivo(null)
-        setXmlFonte(documento.xml_original)
-        setOrigemFiscal({ id: documento.id, numero: documento.numero })
+        setXmlFonte(xml)
+        setOrigemFiscal(origem)
         setRegistrarNoFiscal(false)
         setPreview(dados)
         setResultadoImportacao(null)
-        setObjetivoEntrada(documento.objetivo_entrada)
+        setObjetivoEntrada(objetivo)
         sincronizarSelecoes(dados.snapshot)
         showToast({
           variant: 'success',
@@ -701,23 +762,7 @@ export default function NfeImportPage() {
   const itensPayload = useMemo((): NfeAplicarItem[] => {
     if (!snapshot) return []
     return snapshot.itens.map((it) => {
-      const s = selecoes[it.n_item] ?? {
-        importar: false,
-        codigo: it.c_prod,
-        fornecedor: FORNECEDOR_NENHUM,
-        fabricante: FORNECEDOR_NENHUM,
-        categoria: '',
-        atualizar_se_existir: false,
-      }
-      return {
-        n_item: it.n_item,
-        importar: s.importar,
-        ...payloadFornecedor(s.fornecedor),
-        ...payloadFabricante(s.fabricante),
-        categoria_catalogo: s.categoria || undefined,
-        codigo_catalogo: s.codigo.trim() || undefined,
-        ...(s.atualizar_se_existir ? { atualizar_se_existir: true } : {}),
-      }
+      return itemPayloadAplicacao(it, selecoes[it.n_item] ?? selecaoFallbackPayload(it))
     })
   }, [snapshot, selecoes])
 
@@ -858,15 +903,12 @@ export default function NfeImportPage() {
       return
     }
     setAplicando(true)
-    setRegistrandoFiscal(registrarNoFiscal && !origemFiscal && Boolean(xmlFonte.trim()))
+    const registrarFiscal = deveRegistrarNfeFiscal(registrarNoFiscal, origemFiscal, xmlFonte)
+    setRegistrandoFiscal(registrarFiscal)
     try {
-      const resFiscal =
-        registrarNoFiscal && !origemFiscal && xmlFonte.trim()
-          ? await importarNfeXmlManual({
-              xml: xmlFonte,
-              objetivo_entrada: objetivoEntrada,
-            })
-          : null
+      const resFiscal = registrarFiscal
+        ? await importarNfeXmlManual({ xml: xmlFonte, objetivo_entrada: objetivoEntrada })
+        : null
       const res = await aplicarImportacaoNfe({
         snapshot: preview.snapshot,
         fabricante_padrao: fabricantePadrao.trim(),
@@ -874,21 +916,10 @@ export default function NfeImportPage() {
         itens: itensPayload,
       })
       setResultadoImportacao(res)
-      const partes = [
-        resFiscal ? (resFiscal.created ? 'NF-e registrada no fiscal.' : 'NF-e já existia no fiscal.') : '',
-        res.fornecedor_criado ? 'Fornecedor criado.' : '',
-        res.produtos_criados.length
-          ? `${res.produtos_criados.length} produto(s) criado(s).`
-          : '',
-        res.produtos_ignorados.length
-          ? `${res.produtos_ignorados.length} linha(s) ignorada(s).`
-          : '',
-      ]
-        .filter(Boolean)
-        .join(' ')
+      const mensagem = mensagemResultadoImportacao(res, resFiscal)
       showToast({
         variant: res.produtos_criados.length ? 'success' : 'warning',
-        message: partes || 'Nenhuma alteração.',
+        message: mensagem || 'Nenhuma alteração.',
       })
     } catch (err) {
       showToast({

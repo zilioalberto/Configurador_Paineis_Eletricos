@@ -484,21 +484,23 @@ function ordenarContatorasAgrupadas(insts: InstanciaComponente[]): InstanciaComp
   )
 }
 
-function distribuirGrupoPreferindoMesmoTrilho(
+function xInicialParaPosicao(pos: number, indiceMinimo: number, xInicial?: number): number | undefined {
+  return pos === indiceMinimo ? xInicial : undefined
+}
+
+function distribuirGrupoEmUmTrilho(
   trilhos: TrilhoDinLayoutItem[],
   indicesPreferencia: number[],
   instancias: InstanciaComponente[],
   layout: LayoutPlaca,
   resultado: ComponenteDisposicaoItem[],
-  indiceMinimo = 0,
+  indiceMinimo: number,
   xInicial?: number
-): { posicionados: ComponenteDisposicaoItem[]; posicaoIndice: number } {
-  if (!instancias.length) return { posicionados: [], posicaoIndice: indiceMinimo }
-
+): { posicionados: ComponenteDisposicaoItem[]; posicaoIndice: number } | null {
   for (let pos = indiceMinimo; pos < indicesPreferencia.length; pos += 1) {
     const indice = indicesPreferencia[pos]
     const trilho = trilhos[indice]
-    const xGrupo = pos === indiceMinimo ? xInicial : undefined
+    const xGrupo = xInicialParaPosicao(pos, indiceMinimo, xInicial)
     if (!grupoCabeNoTrilho(trilho, instancias, xGrupo)) continue
     const posicionados = distribuirSequencialEsquerdaNoTrilho(
       trilho,
@@ -513,7 +515,18 @@ function distribuirGrupoPreferindoMesmoTrilho(
       return { posicionados, posicaoIndice: pos }
     }
   }
+  return null
+}
 
+function distribuirGrupoParcialPorTrilhos(
+  trilhos: TrilhoDinLayoutItem[],
+  indicesPreferencia: number[],
+  instancias: InstanciaComponente[],
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[],
+  indiceMinimo: number,
+  xInicial?: number
+): { posicionados: ComponenteDisposicaoItem[]; posicaoIndice: number } {
   const posicionados: ComponenteDisposicaoItem[] = []
   let restantes = [...instancias]
   let ultimaPosicao = indiceMinimo
@@ -527,7 +540,7 @@ function distribuirGrupoPreferindoMesmoTrilho(
       layout,
       [...resultado, ...posicionados],
       GAP_COMPONENTES_MM,
-      pos === indiceMinimo ? xInicial : undefined
+      xInicialParaPosicao(pos, indiceMinimo, xInicial)
     )
     if (!parciais.length) continue
     const ids = new Set(parciais.map((item) => item.instancia_id))
@@ -536,6 +549,38 @@ function distribuirGrupoPreferindoMesmoTrilho(
     ultimaPosicao = pos
   }
   return { posicionados, posicaoIndice: ultimaPosicao }
+}
+
+function distribuirGrupoPreferindoMesmoTrilho(
+  trilhos: TrilhoDinLayoutItem[],
+  indicesPreferencia: number[],
+  instancias: InstanciaComponente[],
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[],
+  indiceMinimo = 0,
+  xInicial?: number
+): { posicionados: ComponenteDisposicaoItem[]; posicaoIndice: number } {
+  if (!instancias.length) return { posicionados: [], posicaoIndice: indiceMinimo }
+
+  const completos = distribuirGrupoEmUmTrilho(
+    trilhos,
+    indicesPreferencia,
+    instancias,
+    layout,
+    resultado,
+    indiceMinimo,
+    xInicial
+  )
+  if (completos) return completos
+  return distribuirGrupoParcialPorTrilhos(
+    trilhos,
+    indicesPreferencia,
+    instancias,
+    layout,
+    resultado,
+    indiceMinimo,
+    xInicial
+  )
 }
 
 export type FaixaHorizontalLivre = {
@@ -782,6 +827,186 @@ export function montarTooltipComponenteDisposicao(
   return pertence ? `${linha1}\n${pertence}` : linha1
 }
 
+type GruposDisposicao = {
+  bornes: InstanciaComponente[]
+  disjuntoresSuperiores: InstanciaComponente[]
+  disjuntores: InstanciaComponente[]
+  contatoras: InstanciaComponente[]
+  outrosTrilho: InstanciaComponente[]
+  placaItens: InstanciaComponente[]
+}
+
+function classificarInstanciasDisposicao(instancias: InstanciaComponente[]): GruposDisposicao {
+  const bornes = instancias.filter((i) => ehBorne(i) && i.modo_montagem === 'TRILHO_DIN')
+  const trilhoItens = instancias.filter(
+    (i) => i.modo_montagem === 'TRILHO_DIN' && !ehBorne(i)
+  )
+  const disjuntoresSuperiores = trilhoItens.filter(ehDisjuntorSuperiorEsquerda)
+  const restoTrilho = trilhoItens.filter((i) => !ehDisjuntorSuperiorEsquerda(i))
+  return {
+    bornes,
+    disjuntoresSuperiores,
+    disjuntores: ordenarDisjuntoresAgrupados(restoTrilho.filter(ehDisjuntor)),
+    contatoras: ordenarContatorasAgrupadas(restoTrilho.filter(ehContatora)),
+    outrosTrilho: restoTrilho.filter((i) => !ehDisjuntor(i) && !ehContatora(i)),
+    placaItens: instancias.filter((i) => i.modo_montagem !== 'TRILHO_DIN'),
+  }
+}
+
+function distribuirTrilhoUnico(
+  trilhos: TrilhoDinLayoutItem[],
+  idxSuperior: number,
+  grupos: GruposDisposicao,
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[]
+) {
+  const listaNaoBornes = [
+    ...ordenarDisjuntoresSuperiores(grupos.disjuntoresSuperiores),
+    ...grupos.disjuntores,
+    ...grupos.contatoras,
+    ...grupos.outrosTrilho,
+  ]
+  if (listaNaoBornes.length > 0) {
+    resultado.push(
+      ...distribuirSequencialEsquerdaNoTrilho(
+        trilhos[idxSuperior],
+        idxSuperior,
+        listaNaoBornes,
+        layout,
+        resultado
+      )
+    )
+  }
+  if (!grupos.bornes.length) return
+  const ultimo = resultado.at(-1)
+  const xBornes = ultimo ? ultimo.x_mm + ultimo.largura_mm + GAP_COMPONENTES_MM : undefined
+  resultado.push(
+    ...distribuirSequencialEsquerdaNoTrilho(
+      trilhos[idxSuperior],
+      idxSuperior,
+      ordenarBornes(grupos.bornes),
+      layout,
+      resultado,
+      0,
+      xBornes
+    )
+  )
+}
+
+function indicesTrilhosSuperiores(
+  trilhos: TrilhoDinLayoutItem[],
+  idxInferior: number | null
+): number[] {
+  return trilhos
+    .map((_, idx) => idx)
+    .filter((idx) => idx !== idxInferior)
+    .sort((a, b) => centroYTrilho(trilhos[a]) - centroYTrilho(trilhos[b]))
+}
+
+function xAposUltimoNoTrilho(
+  resultado: ComponenteDisposicaoItem[],
+  trilhoIndice: number | null
+): number | undefined {
+  const ultimo = resultado.at(-1)
+  if (!ultimo || ultimo.trilho_indice !== trilhoIndice) return undefined
+  return ultimo.x_mm + ultimo.largura_mm + GAP_COMPONENTES_MM
+}
+
+function proximaPosicaoTrilho(posicaoIndice: number, total: number): number {
+  return posicaoIndice + 1 < total ? posicaoIndice + 1 : posicaoIndice
+}
+
+function distribuirOutrosTrilho(
+  trilhos: TrilhoDinLayoutItem[],
+  indicesSuperiores: number[],
+  outrosTrilho: InstanciaComponente[],
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[]
+) {
+  for (const inst of outrosTrilho) {
+    if (!indicesSuperiores.length) break
+    const indiceMenor = indicesSuperiores.reduce((melhor, idx) => {
+      const larguraIdx = resultado
+        .filter((item) => item.trilho_indice === idx)
+        .reduce((acc, item) => acc + item.largura_mm, 0)
+      const larguraMelhor = resultado
+        .filter((item) => item.trilho_indice === melhor)
+        .reduce((acc, item) => acc + item.largura_mm, 0)
+      return larguraIdx < larguraMelhor ? idx : melhor
+    }, indicesSuperiores[0])
+    resultado.push(
+      ...distribuirSequencialEsquerdaNoTrilho(
+        trilhos[indiceMenor],
+        indiceMenor,
+        [inst],
+        layout,
+        resultado
+      )
+    )
+  }
+}
+
+function distribuirMultiplosTrilhos(
+  trilhos: TrilhoDinLayoutItem[],
+  idxInferior: number | null,
+  idxSuperior: number | null,
+  grupos: GruposDisposicao,
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[]
+) {
+  const indicesSuperiores = indicesTrilhosSuperiores(trilhos, idxInferior)
+  let posCorrente = 0
+
+  if (idxSuperior !== null) {
+    resultado.push(
+      ...distribuirSequencialEsquerdaNoTrilho(
+        trilhos[idxSuperior],
+        idxSuperior,
+        ordenarDisjuntoresSuperiores(grupos.disjuntoresSuperiores),
+        layout,
+        resultado
+      )
+    )
+  }
+
+  const disjResultado = distribuirGrupoPreferindoMesmoTrilho(
+    trilhos,
+    indicesSuperiores,
+    grupos.disjuntores,
+    layout,
+    resultado,
+    posCorrente,
+    xAposUltimoNoTrilho(resultado, idxSuperior)
+  )
+  resultado.push(...disjResultado.posicionados)
+  if (disjResultado.posicionados.length > 0) {
+    posCorrente = proximaPosicaoTrilho(disjResultado.posicaoIndice, indicesSuperiores.length)
+  }
+
+  const contatoraResultado = distribuirGrupoPreferindoMesmoTrilho(
+    trilhos,
+    indicesSuperiores,
+    grupos.contatoras,
+    layout,
+    resultado,
+    posCorrente
+  )
+  resultado.push(...contatoraResultado.posicionados)
+
+  distribuirOutrosTrilho(trilhos, indicesSuperiores, grupos.outrosTrilho, layout, resultado)
+  if (idxInferior !== null && grupos.bornes.length > 0) {
+    resultado.push(
+      ...distribuirBornesNoTrilho(
+        trilhos[idxInferior],
+        idxInferior,
+        grupos.bornes,
+        layout,
+        resultado
+      )
+    )
+  }
+}
+
 export function sugerirDisposicaoComponentes(
   layout: LayoutPlaca,
   itens: DimensionamentoMecanicoItem[]
@@ -791,153 +1016,16 @@ export function sugerirDisposicaoComponentes(
   const trilhos = obterTrilhosLayout(layoutAjustado)
   const idxInferior = indiceTrilhoInferior(trilhos)
   const idxSuperior = indiceTrilhoSuperior(trilhos)
-  const trilhoUnico = idxInferior !== null && idxSuperior === idxInferior
-
-  const bornes = instancias.filter((i) => ehBorne(i) && i.modo_montagem === 'TRILHO_DIN')
-  const trilhoItens = instancias.filter(
-    (i) => i.modo_montagem === 'TRILHO_DIN' && !ehBorne(i)
-  )
-  const disjuntoresSuperiores = trilhoItens.filter(ehDisjuntorSuperiorEsquerda)
-  const restoTrilho = trilhoItens.filter((i) => !ehDisjuntorSuperiorEsquerda(i))
-  const disjuntores = ordenarDisjuntoresAgrupados(restoTrilho.filter(ehDisjuntor))
-  const contatoras = ordenarContatorasAgrupadas(restoTrilho.filter(ehContatora))
-  const outrosTrilho = restoTrilho.filter((i) => !ehDisjuntor(i) && !ehContatora(i))
-  const placaItens = instancias.filter((i) => i.modo_montagem !== 'TRILHO_DIN')
-
+  const grupos = classificarInstanciasDisposicao(instancias)
   const resultado: ComponenteDisposicaoItem[] = []
 
-  if (trilhoUnico && idxSuperior !== null) {
-    const listaNaoBornes = [
-      ...ordenarDisjuntoresSuperiores(disjuntoresSuperiores),
-      ...disjuntores,
-      ...contatoras,
-      ...outrosTrilho,
-    ]
-    if (listaNaoBornes.length > 0) {
-      resultado.push(
-        ...distribuirSequencialEsquerdaNoTrilho(
-          trilhos[idxSuperior],
-          idxSuperior,
-          listaNaoBornes,
-          layoutAjustado,
-          resultado
-        )
-      )
-    }
-    if (bornes.length > 0) {
-      const ultimo = resultado.at(-1)
-      const xBornes = ultimo
-        ? ultimo.x_mm + ultimo.largura_mm + GAP_COMPONENTES_MM
-        : undefined
-      resultado.push(
-        ...distribuirSequencialEsquerdaNoTrilho(
-          trilhos[idxSuperior],
-          idxSuperior,
-          ordenarBornes(bornes),
-          layoutAjustado,
-          resultado,
-          0,
-          xBornes
-        )
-      )
-    }
+  if (idxInferior !== null && idxSuperior === idxInferior) {
+    distribuirTrilhoUnico(trilhos, idxSuperior, grupos, layoutAjustado, resultado)
   } else {
-    const indicesSuperiores = trilhos
-      .map((_, idx) => idx)
-      .filter((idx) => idx !== idxInferior)
-      .sort((a, b) => centroYTrilho(trilhos[a]) - centroYTrilho(trilhos[b]))
-    let posCorrente = 0
-
-    if (idxSuperior !== null) {
-      const listaSuperior = [...ordenarDisjuntoresSuperiores(disjuntoresSuperiores)]
-      if (listaSuperior.length > 0) {
-        resultado.push(
-          ...distribuirSequencialEsquerdaNoTrilho(
-            trilhos[idxSuperior],
-            idxSuperior,
-            listaSuperior,
-            layoutAjustado,
-            resultado
-          )
-        )
-      }
-    }
-
-    const ultimo = resultado.at(-1)
-    const xAposSuperiores =
-      ultimo && ultimo.trilho_indice === idxSuperior
-        ? ultimo.x_mm + ultimo.largura_mm + GAP_COMPONENTES_MM
-        : undefined
-
-    const disjResultado = distribuirGrupoPreferindoMesmoTrilho(
-      trilhos,
-      indicesSuperiores,
-      disjuntores,
-      layoutAjustado,
-      resultado,
-      posCorrente,
-      xAposSuperiores
-    )
-    resultado.push(...disjResultado.posicionados)
-    if (disjResultado.posicionados.length > 0) {
-      posCorrente =
-        disjResultado.posicaoIndice + 1 < indicesSuperiores.length
-          ? disjResultado.posicaoIndice + 1
-          : disjResultado.posicaoIndice
-    }
-
-    const contatoraResultado = distribuirGrupoPreferindoMesmoTrilho(
-      trilhos,
-      indicesSuperiores,
-      contatoras,
-      layoutAjustado,
-      resultado,
-      posCorrente
-    )
-    resultado.push(...contatoraResultado.posicionados)
-    if (contatoraResultado.posicionados.length > 0) {
-      posCorrente =
-        contatoraResultado.posicaoIndice + 1 < indicesSuperiores.length
-          ? contatoraResultado.posicaoIndice + 1
-          : contatoraResultado.posicaoIndice
-    }
-
-    for (const inst of outrosTrilho) {
-      if (!indicesSuperiores.length) break
-      const indiceMenor = indicesSuperiores.reduce((melhor, idx) => {
-        const larguraIdx = resultado
-          .filter((item) => item.trilho_indice === idx)
-          .reduce((acc, item) => acc + item.largura_mm, 0)
-        const larguraMelhor = resultado
-          .filter((item) => item.trilho_indice === melhor)
-          .reduce((acc, item) => acc + item.largura_mm, 0)
-        return larguraIdx < larguraMelhor ? idx : melhor
-      }, indicesSuperiores[0])
-      resultado.push(
-        ...distribuirSequencialEsquerdaNoTrilho(
-          trilhos[indiceMenor],
-          indiceMenor,
-          [inst],
-          layoutAjustado,
-          resultado
-        )
-      )
-    }
-
-    if (idxInferior !== null && bornes.length > 0) {
-      resultado.push(
-        ...distribuirBornesNoTrilho(
-          trilhos[idxInferior],
-          idxInferior,
-          bornes,
-          layoutAjustado,
-          resultado
-        )
-      )
-    }
+    distribuirMultiplosTrilhos(trilhos, idxInferior, idxSuperior, grupos, layoutAjustado, resultado)
   }
 
-  resultado.push(...posicionarItensPlaca(placaItens, layoutAjustado, resultado))
+  resultado.push(...posicionarItensPlaca(grupos.placaItens, layoutAjustado, resultado))
 
   return completarDisposicaoFaltante(instancias, layoutAjustado, resultado)
 }
@@ -986,6 +1074,36 @@ export function ajustarPosicaoArraste(
   return candidato
 }
 
+function fallbackDisposicaoInstancia(
+  instId: string,
+  mapaInstancias: Map<string, InstanciaComponente>,
+  mapaSugerida: Map<string, ComponenteDisposicaoItem>,
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[]
+): ComponenteDisposicaoItem | undefined {
+  const fallback = mapaSugerida.get(instId)
+  if (fallback) return fallback
+  const inst = mapaInstancias.get(instId)
+  return inst ? posicionarInstanciaFaltante(inst, layout, resultado) ?? undefined : undefined
+}
+
+function ajustarSalvoOuFallback(
+  salvo: ComponenteDisposicaoItem | undefined,
+  fallback: ComponenteDisposicaoItem,
+  layout: LayoutPlaca,
+  resultado: ComponenteDisposicaoItem[]
+): ComponenteDisposicaoItem {
+  if (!salvo) return fallback
+  const ajustado = ajustarPosicaoArraste(
+    { ...salvo, manual: Boolean(salvo.manual) },
+    salvo.x_mm,
+    salvo.y_mm,
+    layout,
+    resultado
+  )
+  return ajustado ?? fallback
+}
+
 export function mesclarDisposicaoSalva(
   salva: ComponenteDisposicaoItem[] | undefined,
   layout: LayoutPlaca,
@@ -999,43 +1117,19 @@ export function mesclarDisposicaoSalva(
   const mapaInstancias = new Map(instancias.map((inst) => [inst.instancia_id, inst]))
   const instanciasAtuais = new Set(instancias.map((i) => i.instancia_id))
   const mapaSugerida = new Map(sugerida.map((item) => [item.instancia_id, item]))
+  const mapaSalva = new Map(salva.map((item) => [item.instancia_id, item]))
   const resultado: ComponenteDisposicaoItem[] = []
 
   for (const instId of instanciasAtuais) {
-    const manual = salva.find((s) => s.instancia_id === instId && s.manual)
-    let fallback = mapaSugerida.get(instId)
-    if (!fallback) {
-      const inst = mapaInstancias.get(instId)
-      if (inst) {
-        fallback = posicionarInstanciaFaltante(inst, layoutAjustado, resultado) ?? undefined
-      }
-    }
+    const fallback = fallbackDisposicaoInstancia(
+      instId,
+      mapaInstancias,
+      mapaSugerida,
+      layoutAjustado,
+      resultado
+    )
     if (!fallback) continue
-
-    if (manual) {
-      const ajustado = ajustarPosicaoArraste(
-        { ...manual, manual: true },
-        manual.x_mm,
-        manual.y_mm,
-        layoutAjustado,
-        resultado
-      )
-      resultado.push(ajustado ?? fallback)
-    } else {
-      const salvoAuto = salva.find((s) => s.instancia_id === instId)
-      if (salvoAuto) {
-        const ajustado = ajustarPosicaoArraste(
-          { ...salvoAuto, manual: false },
-          salvoAuto.x_mm,
-          salvoAuto.y_mm,
-          layoutAjustado,
-          resultado
-        )
-        resultado.push(ajustado ?? fallback)
-      } else {
-        resultado.push(fallback)
-      }
-    }
+    resultado.push(ajustarSalvoOuFallback(mapaSalva.get(instId), fallback, layoutAjustado, resultado))
   }
 
   return completarDisposicaoFaltante(instancias, layoutAjustado, resultado)

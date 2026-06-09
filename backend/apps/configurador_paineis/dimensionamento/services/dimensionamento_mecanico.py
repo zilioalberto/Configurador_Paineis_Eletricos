@@ -63,6 +63,7 @@ _PARTES_BORNE_ALIMENTACAO = frozenset({
     PartesPainelChoices.PROTECAO_GERAL,
 })
 _PARTE_PAINEL_INCLUSAO_MANUAL = PartesPainelChoices.COMANDO
+_PARTE_PAINEL_INCLUSAO_MANUAL_DISPLAY = "Inclusão manual"
 _PARTES_RESERVA_MECANICA = frozenset({
     PartesPainelChoices.PROTECAO_GERAL,
     PartesPainelChoices.SECCIONAMENTO,
@@ -353,11 +354,64 @@ def _dados_extras_item_composicao(item: ComposicaoItem, produto: Produto) -> dic
     return extras
 
 
-def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
-    considerados: list[dict] = []
-    sem_dimensao: list[dict] = []
-    escopos_cobertos: set[tuple] = set()
+def _dados_extras_borne(produto: Produto, parte_painel: str) -> dict:
+    extras = {}
+    spec = getattr(produto, "especificacao_borne", None)
+    if spec is not None:
+        extras["secao_max_mm2"] = str(spec.secao_max_mm2)
+    extras["eh_borne_alimentacao"] = parte_painel in _PARTES_BORNE_ALIMENTACAO
+    return extras
 
+
+def _append_considerado_ou_sem_dimensao(
+    considerados: list[dict],
+    sem_dimensao: list[dict],
+    *,
+    item_id: str,
+    produto: Produto,
+    quantidade: Decimal,
+    parte_painel: str,
+    parte_painel_display: str,
+    categoria_produto: str,
+    origem_item: str,
+    carga_tag=None,
+    carga_descricao=None,
+    extras: dict | None = None,
+) -> None:
+    antes = len(considerados)
+    _append_item_considerado(
+        considerados,
+        item_id=item_id,
+        produto=produto,
+        quantidade=quantidade,
+        parte_painel=parte_painel,
+        parte_painel_display=parte_painel_display,
+        categoria_produto=categoria_produto,
+        origem_item=origem_item,
+        carga_tag=carga_tag,
+        carga_descricao=carga_descricao,
+        extras=extras,
+    )
+    if len(considerados) != antes:
+        return
+    _append_item_sem_dimensao(
+        sem_dimensao,
+        item_id=item_id,
+        produto=produto,
+        quantidade=quantidade,
+        parte_painel=parte_painel,
+        parte_painel_display=parte_painel_display,
+        categoria_produto=categoria_produto,
+        origem_item=origem_item,
+    )
+
+
+def _coletar_itens_composicao_placa(
+    projeto,
+    considerados: list[dict],
+    sem_dimensao: list[dict],
+    escopos_cobertos: set[tuple],
+) -> None:
     composicao_itens = (
         ComposicaoItem.objects.filter(projeto=projeto)
         .select_related("produto", "produto__fabricante_parceiro", "carga")
@@ -419,6 +473,13 @@ def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
             }
         )
 
+
+def _coletar_sugestoes_placa(
+    projeto,
+    considerados: list[dict],
+    sem_dimensao: list[dict],
+    escopos_cobertos: set[tuple],
+) -> None:
     sugestoes = (
         SugestaoItem.objects.filter(
             projeto=projeto,
@@ -444,30 +505,14 @@ def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
             continue
         escopos_cobertos.add(chave)
         qtd = Decimal(sugestao.quantidade or 1)
-        extras = {}
-        if sugestao.categoria_produto == CategoriaProdutoNomeChoices.BORNE:
-            spec = getattr(sugestao.produto, "especificacao_borne", None)
-            if spec is not None:
-                extras["secao_max_mm2"] = str(spec.secao_max_mm2)
-            extras["eh_borne_alimentacao"] = (
-                sugestao.parte_painel in _PARTES_BORNE_ALIMENTACAO
-            )
-        largura, altura, _ = _dimensoes_produto(sugestao.produto)
-        if largura is None or altura is None or largura <= 0 or altura <= 0:
-            _append_item_sem_dimensao(
-                sem_dimensao,
-                item_id=str(sugestao.id),
-                produto=sugestao.produto,
-                quantidade=qtd,
-                parte_painel=sugestao.parte_painel,
-                parte_painel_display=sugestao.get_parte_painel_display(),
-                categoria_produto=sugestao.categoria_produto,
-                origem_item="sugestao",
-            )
-            continue
-        antes = len(considerados)
-        _append_item_considerado(
+        extras = (
+            _dados_extras_borne(sugestao.produto, sugestao.parte_painel)
+            if sugestao.categoria_produto == CategoriaProdutoNomeChoices.BORNE
+            else None
+        )
+        _append_considerado_ou_sem_dimensao(
             considerados,
+            sem_dimensao,
             item_id=str(sugestao.id),
             produto=sugestao.produto,
             quantidade=qtd,
@@ -477,20 +522,15 @@ def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
             origem_item="sugestao",
             carga_tag=sugestao.carga.tag if sugestao.carga_id else None,
             carga_descricao=sugestao.carga.descricao if sugestao.carga_id else None,
-            extras=extras or None,
+            extras=extras,
         )
-        if len(considerados) == antes:
-            _append_item_sem_dimensao(
-                sem_dimensao,
-                item_id=str(sugestao.id),
-                produto=sugestao.produto,
-                quantidade=qtd,
-                parte_painel=sugestao.parte_painel,
-                parte_painel_display=sugestao.get_parte_painel_display(),
-                categoria_produto=sugestao.categoria_produto,
-                origem_item="sugestao",
-            )
 
+
+def _coletar_reserva_disjuntor_geral(
+    projeto,
+    considerados: list[dict],
+    escopos_cobertos: set[tuple],
+) -> None:
     if projeto.possui_disjuntor_geral:
         categoria_reserva = _categoria_reserva_disjuntor_geral(projeto)
         if categoria_reserva:
@@ -527,6 +567,12 @@ def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
                 )
                 escopos_cobertos.add(chave_geral)
 
+
+def _coletar_inclusoes_manuais_placa(
+    projeto,
+    considerados: list[dict],
+    sem_dimensao: list[dict],
+) -> None:
     inclusoes_manuais = (
         ComposicaoInclusaoManual.objects.filter(projeto=projeto)
         .select_related("produto", "produto__fabricante_parceiro")
@@ -541,42 +587,29 @@ def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
         extras = {}
         if inclusao.observacoes:
             extras["observacoes_inclusao"] = inclusao.observacoes
-        largura, altura, _ = _dimensoes_produto(produto)
-        if largura is None or altura is None or largura <= 0 or altura <= 0:
-            _append_item_sem_dimensao(
-                sem_dimensao,
-                item_id=str(inclusao.id),
-                produto=produto,
-                quantidade=qtd,
-                parte_painel=_PARTE_PAINEL_INCLUSAO_MANUAL,
-                parte_painel_display="Inclusão manual",
-                categoria_produto=categoria,
-                origem_item="inclusao_manual",
-            )
-            continue
-        antes = len(considerados)
-        _append_item_considerado(
+        _append_considerado_ou_sem_dimensao(
             considerados,
+            sem_dimensao,
             item_id=str(inclusao.id),
             produto=produto,
             quantidade=qtd,
             parte_painel=_PARTE_PAINEL_INCLUSAO_MANUAL,
-            parte_painel_display="Inclusão manual",
+            parte_painel_display=_PARTE_PAINEL_INCLUSAO_MANUAL_DISPLAY,
             categoria_produto=categoria,
             origem_item="inclusao_manual",
             extras=extras or None,
         )
-        if len(considerados) == antes:
-            _append_item_sem_dimensao(
-                sem_dimensao,
-                item_id=str(inclusao.id),
-                produto=produto,
-                quantidade=qtd,
-                parte_painel=_PARTE_PAINEL_INCLUSAO_MANUAL,
-                parte_painel_display="Inclusão manual",
-                categoria_produto=categoria,
-                origem_item="inclusao_manual",
-            )
+
+
+def _coletar_itens_placa(projeto) -> tuple[list[dict], list[dict]]:
+    considerados: list[dict] = []
+    sem_dimensao: list[dict] = []
+    escopos_cobertos: set[tuple] = set()
+
+    _coletar_itens_composicao_placa(projeto, considerados, sem_dimensao, escopos_cobertos)
+    _coletar_sugestoes_placa(projeto, considerados, sem_dimensao, escopos_cobertos)
+    _coletar_reserva_disjuntor_geral(projeto, considerados, escopos_cobertos)
+    _coletar_inclusoes_manuais_placa(projeto, considerados, sem_dimensao)
 
     return considerados, sem_dimensao
 
@@ -1076,6 +1109,71 @@ def _gerar_trilhos_din_layout(
     return trilhos
 
 
+def _extremidade_canaleta_horizontal(indice: int, total: int) -> str | None:
+    if indice == 0:
+        return "superior"
+    if indice == total - 1:
+        return "inferior"
+    return None
+
+
+def _montar_canaletas_horizontais(
+    *,
+    posicoes_y: list[int],
+    x_inicio_mm: int,
+    largura_placa_mm: int,
+    comprimento_mm: int,
+    largura_base_mm: int,
+) -> list[dict]:
+    horizontais: list[dict] = []
+    total = len(posicoes_y)
+    for indice, y in enumerate(posicoes_y):
+        extremidade = _extremidade_canaleta_horizontal(indice, total)
+        largura_total = extremidade is not None
+        comprimento = largura_placa_mm if largura_total else comprimento_mm
+        horizontais.append(
+            {
+                "orientacao": "horizontal",
+                "x_mm": 0 if largura_total else x_inicio_mm,
+                "y_mm": y,
+                "largura_mm": comprimento,
+                "altura_mm": largura_base_mm,
+                "comprimento_mm": comprimento,
+                "fixa_extremidade": extremidade,
+                "arrastavel": extremidade is None,
+                "indice_faixa": indice,
+            }
+        )
+    return horizontais
+
+
+def _montar_canaletas_verticais(
+    *,
+    largura_placa_mm: int,
+    canaletas_verticais: int,
+    largura_base_mm: int,
+    y_mm: int,
+    altura_mm: int,
+) -> list[dict]:
+    return [
+        {
+            "orientacao": "vertical",
+            "x_mm": x,
+            "y_mm": y_mm,
+            "largura_mm": largura_base_mm,
+            "altura_mm": altura_mm,
+            "comprimento_mm": altura_mm,
+            "fixa_extremidade": None,
+            "arrastavel": False,
+        }
+        for x in _posicoes_x_canaletas_verticais(
+            largura_placa_mm,
+            canaletas_verticais,
+            largura_base_mm,
+        )
+    ]
+
+
 def _gerar_layout_placa(
     largura_placa_mm: int,
     altura_placa_mm: int,
@@ -1094,8 +1192,6 @@ def _gerar_layout_placa(
     y_vertical = lb
 
     x_inicio_h = lb if canaletas_verticais >= 1 else 0
-    if canaletas_verticais == 2:
-        x_inicio_h = lb
 
     padrao_intermediarias = _posicoes_y_intermediarias_padrao(
         altura_placa_mm, faixas_horizontais, lb
@@ -1112,42 +1208,20 @@ def _gerar_layout_placa(
         intermediarias_salvas,
     )
 
-    horizontais: list[dict] = []
-    for indice, y in enumerate(posicoes_y):
-        if indice == 0:
-            extremidade = "superior"
-        elif indice == len(posicoes_y) - 1:
-            extremidade = "inferior"
-        else:
-            extremidade = None
-        largura_total = extremidade is not None
-        horizontais.append(
-            {
-                "orientacao": "horizontal",
-                "x_mm": 0 if largura_total else x_inicio_h,
-                "y_mm": y,
-                "largura_mm": largura_placa_mm if largura_total else comprimento_horizontal,
-                "altura_mm": lb,
-                "comprimento_mm": largura_placa_mm if largura_total else comprimento_horizontal,
-                "fixa_extremidade": extremidade,
-                "arrastavel": extremidade is None,
-                "indice_faixa": indice,
-            }
-        )
-
-    verticais = [
-        {
-            "orientacao": "vertical",
-            "x_mm": x,
-            "y_mm": y_vertical,
-            "largura_mm": lb,
-            "altura_mm": altura_vertical,
-            "comprimento_mm": altura_vertical,
-            "fixa_extremidade": None,
-            "arrastavel": False,
-        }
-        for x in _posicoes_x_canaletas_verticais(largura_placa_mm, canaletas_verticais, lb)
-    ]
+    horizontais = _montar_canaletas_horizontais(
+        posicoes_y=posicoes_y,
+        x_inicio_mm=x_inicio_h,
+        largura_placa_mm=largura_placa_mm,
+        comprimento_mm=comprimento_horizontal,
+        largura_base_mm=lb,
+    )
+    verticais = _montar_canaletas_verticais(
+        largura_placa_mm=largura_placa_mm,
+        canaletas_verticais=canaletas_verticais,
+        largura_base_mm=lb,
+        y_mm=y_vertical,
+        altura_mm=altura_vertical,
+    )
 
     zona = _calcular_zona_util_componentes(
         largura_placa_mm,
@@ -1561,6 +1635,71 @@ def _aplicar_dimensoes_resumo(resumo: ResumoDimensionamento, dados: dict) -> Non
     resumo.taxa_ocupacao_percentual = min(taxa, _TAXA_OCUPACAO_MAX_RESUMO)
 
 
+def _atualizar_escolhas_dimensionamento(
+    escolhas: dict,
+    *,
+    painel_produto_id: str | None,
+    canaleta_produto_id: str | None,
+    canaletas_verticais: int | None,
+    faixas_horizontais: int | None,
+    taxa_ocupacao_max_percentual,
+    canaletas_horizontais_intermediarias_y_mm: list[int] | None,
+) -> None:
+    if painel_produto_id is not None:
+        escolhas["painel_produto_id"] = _uuid_pk(painel_produto_id)
+    if canaleta_produto_id is not None:
+        escolhas["canaleta_produto_id"] = _uuid_pk(canaleta_produto_id)
+    if canaletas_verticais is not None:
+        escolhas["canaletas_verticais"] = _coerce_int_opcional(canaletas_verticais)
+    if faixas_horizontais is not None:
+        escolhas["faixas_horizontais"] = _coerce_int_opcional(faixas_horizontais)
+    if taxa_ocupacao_max_percentual is not None:
+        escolhas["taxa_ocupacao_max_percentual"] = taxa_ocupacao_max_percentual
+    if canaletas_horizontais_intermediarias_y_mm is not None:
+        escolhas["canaletas_horizontais_intermediarias_y_mm"] = (
+            canaletas_horizontais_intermediarias_y_mm
+        )
+
+
+def _validar_dimensionamento_calculado(dados: dict) -> None:
+    validacao = dados.get("validacao_zona_util") or {}
+    if validacao.get("ok", True):
+        return
+    from django.core.exceptions import ValidationError
+
+    raise ValidationError(validacao.get("alertas") or ["Configuração de canaletas inválida."])
+
+
+def _resolver_disposicao_componentes_aplicada(
+    *,
+    base: dict,
+    dados: dict,
+    disposicao_componentes: list[dict] | None,
+) -> list[dict]:
+    itens = dados.get("itens_considerados") or []
+    layout_placa = dados.get("layout_placa")
+    if disposicao_componentes is None:
+        return sincronizar_disposicao_com_itens(
+            base.get("disposicao_componentes"),
+            layout_placa,
+            itens,
+        )
+
+    disposicao_efetiva = mesclar_disposicao_salva(
+        disposicao_componentes or None,
+        layout_placa,
+        itens,
+    )
+    erros_disp = validar_disposicao_para_itens(disposicao_efetiva, layout_placa, itens)
+    if not erros_disp:
+        erros_disp = validar_disposicao_componentes(disposicao_efetiva, layout_placa)
+    if erros_disp:
+        from django.core.exceptions import ValidationError
+
+        raise ValidationError(erros_disp)
+    return disposicao_efetiva
+
+
 def calcular_e_salvar_dimensionamento_mecanico(projeto) -> tuple[ResumoDimensionamento, dict]:
     resumo, _ = ResumoDimensionamento.objects.get_or_create(projeto=projeto)
     anterior = resumo.detalhe_dimensionamento_mecanico
@@ -1602,48 +1741,23 @@ def aplicar_escolhas_dimensionamento_mecanico(
     base = resumo.detalhe_dimensionamento_mecanico or calcular_dimensionamento_mecanico(projeto)
     escolhas = _extrair_escolhas_salvas(base)
 
-    if painel_produto_id is not None:
-        escolhas["painel_produto_id"] = _uuid_pk(painel_produto_id)
-    if canaleta_produto_id is not None:
-        escolhas["canaleta_produto_id"] = _uuid_pk(canaleta_produto_id)
-    if canaletas_verticais is not None:
-        escolhas["canaletas_verticais"] = _coerce_int_opcional(canaletas_verticais)
-    if faixas_horizontais is not None:
-        escolhas["faixas_horizontais"] = _coerce_int_opcional(faixas_horizontais)
-    if taxa_ocupacao_max_percentual is not None:
-        escolhas["taxa_ocupacao_max_percentual"] = taxa_ocupacao_max_percentual
-    if canaletas_horizontais_intermediarias_y_mm is not None:
-        escolhas["canaletas_horizontais_intermediarias_y_mm"] = canaletas_horizontais_intermediarias_y_mm
+    _atualizar_escolhas_dimensionamento(
+        escolhas,
+        painel_produto_id=painel_produto_id,
+        canaleta_produto_id=canaleta_produto_id,
+        canaletas_verticais=canaletas_verticais,
+        faixas_horizontais=faixas_horizontais,
+        taxa_ocupacao_max_percentual=taxa_ocupacao_max_percentual,
+        canaletas_horizontais_intermediarias_y_mm=canaletas_horizontais_intermediarias_y_mm,
+    )
 
     dados = calcular_dimensionamento_mecanico(projeto, **_kwargs_calcular_escolhas(escolhas))
-    validacao = dados.get("validacao_zona_util") or {}
-    if not validacao.get("ok", True):
-        from django.core.exceptions import ValidationError
-
-        raise ValidationError(validacao.get("alertas") or ["Configuração de canaletas inválida."])
-
-    itens = dados.get("itens_considerados") or []
-    layout_placa = dados.get("layout_placa")
-    if disposicao_componentes is not None:
-        disposicao_efetiva = mesclar_disposicao_salva(
-            disposicao_componentes or None,
-            layout_placa,
-            itens,
-        )
-        erros_disp = validar_disposicao_para_itens(disposicao_efetiva, layout_placa, itens)
-        if not erros_disp:
-            erros_disp = validar_disposicao_componentes(disposicao_efetiva, layout_placa)
-        if erros_disp:
-            from django.core.exceptions import ValidationError
-
-            raise ValidationError(erros_disp)
-        dados["disposicao_componentes"] = disposicao_efetiva
-    else:
-        dados["disposicao_componentes"] = sincronizar_disposicao_com_itens(
-            base.get("disposicao_componentes"),
-            layout_placa,
-            itens,
-        )
+    _validar_dimensionamento_calculado(dados)
+    dados["disposicao_componentes"] = _resolver_disposicao_componentes_aplicada(
+        base=base,
+        dados=dados,
+        disposicao_componentes=disposicao_componentes,
+    )
 
     _aplicar_dimensoes_resumo(resumo, dados)
     resumo.detalhe_dimensionamento_mecanico = dados

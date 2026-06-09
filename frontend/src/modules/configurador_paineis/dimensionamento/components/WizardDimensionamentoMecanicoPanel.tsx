@@ -9,7 +9,12 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCalcularDimensionamentoMecanicoMutation } from '../hooks/useCalcularDimensionamentoMecanicoMutation'
 import { useDimensionamentoMecanicoQuery } from '../hooks/useDimensionamentoMecanicoQuery'
 import { useSalvarDimensionamentoMecanicoEscolhasMutation } from '../hooks/useSalvarDimensionamentoMecanicoEscolhasMutation'
-import type { ComponenteDisposicaoItem } from '../types/dimensionamento'
+import type {
+  CanaletaCatalogo,
+  ComponenteDisposicaoItem,
+  DimensionamentoMecanicoDetalhe,
+  PainelSugerido,
+} from '../types/dimensionamento'
 import { sugerirFaixasHorizontais } from '../utils/canaletasHorizontais'
 import {
   calcularZonaUtilComponentes,
@@ -42,6 +47,193 @@ type Props = {
 type FormState = FormStateMecanico
 
 const formFromData = formFromDataMecanico
+
+function canaletasDisponiveis(data: DimensionamentoMecanicoDetalhe | undefined) {
+  return data?.canaletas_catalogo ?? (data?.canaleta ? [data.canaleta] : data?.canaleta_escolhida ? [data.canaleta_escolhida] : [])
+}
+
+function selecionarCanaletaPreview(
+  data: DimensionamentoMecanicoDetalhe,
+  form: FormState,
+  canaletasCatalogo: CanaletaCatalogo[]
+) {
+  return (
+    canaletasCatalogo.find((c) => c.produto_id === form.canaletaProdutoId) ??
+    data.canaleta_escolhida ??
+    data.canaleta ??
+    null
+  )
+}
+
+function selecionarPainelPreview(data: DimensionamentoMecanicoDetalhe, form: FormState) {
+  return (
+    data.paineis_sugeridos.find((p) => p.produto_id === form.painelProdutoId) ??
+    data.painel_escolhido ??
+    null
+  )
+}
+
+function dimensoesPlacaPreview(
+  data: DimensionamentoMecanicoDetalhe,
+  form: FormState,
+  canaleta: CanaletaCatalogo,
+  painelSelecionado: PainelSugerido | null
+) {
+  const larguraBase = Number(canaleta.largura_base_mm)
+  return {
+    larguraBase,
+    larguraPlaca: painelSelecionado
+      ? Number(painelSelecionado.placa_largura_util_mm)
+      : data.largura_zona_util_mm + form.canaletasVerticais * larguraBase,
+    alturaPlaca: painelSelecionado
+      ? Number(painelSelecionado.placa_altura_util_mm)
+      : data.altura_zona_util_mm + form.faixasHorizontais * larguraBase,
+  }
+}
+
+function calcularValidacaoPreview(
+  data: DimensionamentoMecanicoDetalhe | undefined,
+  form: FormState | null,
+  canaletasCatalogo: CanaletaCatalogo[]
+) {
+  if (!data || !form) return null
+  const canaleta = selecionarCanaletaPreview(data, form, canaletasCatalogo)
+  if (!canaleta) return null
+  const dimensoes = dimensoesPlacaPreview(data, form, canaleta, selecionarPainelPreview(data, form))
+  const zona = calcularZonaUtilComponentes(
+    dimensoes.larguraPlaca,
+    dimensoes.alturaPlaca,
+    form.canaletasVerticais,
+    form.faixasHorizontais,
+    dimensoes.larguraBase
+  )
+  return validarZonaUtilComponentes(zona, Number(data.area_componentes_mm2), form.taxaOcupacaoMax)
+}
+
+function calcularLayoutPreview(
+  data: DimensionamentoMecanicoDetalhe | undefined,
+  form: FormState | null,
+  canaletasCatalogo: CanaletaCatalogo[],
+  intermediariasY: number[]
+) {
+  if (!data || !form) return normalizarLayoutPlacaApi(data?.layout_placa)
+  const canaleta = selecionarCanaletaPreview(data, form, canaletasCatalogo)
+  if (!canaleta) return normalizarLayoutPlacaApi(data.layout_placa)
+  const dimensoes = dimensoesPlacaPreview(data, form, canaleta, selecionarPainelPreview(data, form))
+  const alturaPerfilCanaleta = Number(canaleta.altura_mm)
+  return ajustarLayoutPlacaParaItens(
+    gerarLayoutPlaca(
+      dimensoes.larguraPlaca,
+      dimensoes.alturaPlaca,
+      form.canaletasVerticais,
+      form.faixasHorizontais,
+      dimensoes.larguraBase,
+      intermediariasY,
+      Number.isFinite(alturaPerfilCanaleta) && alturaPerfilCanaleta > 0
+        ? alturaPerfilCanaleta
+        : undefined
+    ),
+    data.itens_considerados
+  )
+}
+
+function calcularFaixasSugeridasPreview(
+  data: DimensionamentoMecanicoDetalhe | undefined,
+  form: FormState | null,
+  canaletasCatalogo: CanaletaCatalogo[]
+) {
+  if (!data || !form) return data?.faixas_horizontais_sugeridas ?? 2
+  const canaleta = selecionarCanaletaPreview(data, form, canaletasCatalogo)
+  const larguraBase = canaleta ? Number(canaleta.largura_base_mm) : 0
+  return sugerirFaixasHorizontais(
+    alturaReferenciaCanaletas(data, form.painelProdutoId),
+    larguraBase,
+    data.espacamento_max_horizontal_mm ?? 160
+  )
+}
+
+type ValidacaoUi = Readonly<{ ok: boolean; alertas: string[] }>
+
+type PreparacaoSalvar = Readonly<{
+  erro?: { title: string; message: string }
+  disposicaoParaSalvar: ComponenteDisposicaoItem[]
+}>
+
+function prepararSalvamentoDisposicao({
+  data,
+  form,
+  validacaoPreview,
+  validacaoDisposicao,
+  layoutPreview,
+  disposicao,
+  instanciasEsperadas,
+}: Readonly<{
+  data: DimensionamentoMecanicoDetalhe | undefined
+  form: FormState | null
+  validacaoPreview: ValidacaoUi | null
+  validacaoDisposicao: ValidacaoUi
+  layoutPreview: LayoutPlaca | null | undefined
+  disposicao: ComponenteDisposicaoItem[]
+  instanciasEsperadas: number
+}>): PreparacaoSalvar | null {
+  if (!form || !data) return null
+  if (validacaoPreview && !validacaoPreview.ok) {
+    return {
+      disposicaoParaSalvar: disposicao,
+      erro: {
+        title: 'Configuração inválida',
+        message: validacaoPreview.alertas[0] ?? 'Ajuste canaletas ou painel antes de salvar.',
+      },
+    }
+  }
+  if (!validacaoDisposicao.ok) {
+    return {
+      disposicaoParaSalvar: disposicao,
+      erro: {
+        title: 'Disposição inválida',
+        message:
+          validacaoDisposicao.alertas[0] ??
+          'Ajuste a posição dos componentes para não sobrepor canaletas.',
+      },
+    }
+  }
+  const disposicaoParaSalvar =
+    layoutPreview && data.itens_considerados.length > 0
+      ? sincronizarDisposicaoComItens(disposicao, layoutPreview, data.itens_considerados)
+      : disposicao
+  return validarDisposicaoParaSalvar(
+    disposicaoParaSalvar,
+    layoutPreview,
+    instanciasEsperadas
+  )
+}
+
+function validarDisposicaoParaSalvar(
+  disposicaoParaSalvar: ComponenteDisposicaoItem[],
+  layoutPreview: LayoutPlaca | null | undefined,
+  instanciasEsperadas: number
+): PreparacaoSalvar {
+  if (instanciasEsperadas > 0 && disposicaoParaSalvar.length !== instanciasEsperadas) {
+    return {
+      disposicaoParaSalvar,
+      erro: {
+        title: 'Painel insuficiente',
+        message:
+          'A disposição automática não conseguiu encaixar todos os componentes. Escolha um painel maior, aumente as faixas úteis ou revise a canaleta.',
+      },
+    }
+  }
+  const alertas =
+    layoutPreview && disposicaoParaSalvar.length > 0
+      ? [...new Set(validarDisposicaoComponentes(disposicaoParaSalvar, layoutPreview))]
+      : []
+  return {
+    disposicaoParaSalvar,
+    erro: alertas.length
+      ? { title: 'Disposição inválida', message: alertas[0] }
+      : undefined,
+  }
+}
 
 export default function WizardDimensionamentoMecanicoPanel({
   projetoId,
@@ -83,86 +275,14 @@ export default function WizardDimensionamentoMecanicoPanel({
     }
   }, [data, projetoId, disposicaoDirty])
 
-  const canaletasCatalogo = useMemo(
-    () =>
-      data?.canaletas_catalogo ??
-      (data?.canaleta
-        ? [data.canaleta]
-        : data?.canaleta_escolhida
-          ? [data.canaleta_escolhida]
-          : []),
-    [data]
-  )
+  const canaletasCatalogo = useMemo(() => canaletasDisponiveis(data), [data])
 
   const validacaoPreview = useMemo(() => {
-    if (!data || !form) return null
-
-    const canaleta =
-      canaletasCatalogo.find((c) => c.produto_id === form.canaletaProdutoId) ??
-      data.canaleta_escolhida ??
-      data.canaleta
-    if (!canaleta) return null
-
-    const painelSelecionado =
-      data.paineis_sugeridos.find((p) => p.produto_id === form.painelProdutoId) ??
-      data.painel_escolhido ??
-      null
-    const larguraPlaca = painelSelecionado
-      ? Number(painelSelecionado.placa_largura_util_mm)
-      : data.largura_zona_util_mm + form.canaletasVerticais * Number(canaleta.largura_base_mm)
-    const alturaPlaca = painelSelecionado
-      ? Number(painelSelecionado.placa_altura_util_mm)
-      : data.altura_zona_util_mm + form.faixasHorizontais * Number(canaleta.largura_base_mm)
-    const larguraBase = Number(canaleta.largura_base_mm)
-    const zona = calcularZonaUtilComponentes(
-      larguraPlaca,
-      alturaPlaca,
-      form.canaletasVerticais,
-      form.faixasHorizontais,
-      larguraBase
-    )
-    return validarZonaUtilComponentes(
-      zona,
-      Number(data.area_componentes_mm2),
-      form.taxaOcupacaoMax
-    )
+    return calcularValidacaoPreview(data, form, canaletasCatalogo)
   }, [canaletasCatalogo, data, form])
 
   const layoutPreview = useMemo(() => {
-    if (!data || !form) return normalizarLayoutPlacaApi(data?.layout_placa)
-    const canaleta =
-      canaletasCatalogo.find((c) => c.produto_id === form.canaletaProdutoId) ??
-      data.canaleta_escolhida ??
-      data.canaleta
-    if (!canaleta) return normalizarLayoutPlacaApi(data.layout_placa)
-
-    const painelSelecionado =
-      data.paineis_sugeridos.find((p) => p.produto_id === form.painelProdutoId) ??
-      data.painel_escolhido ??
-      null
-    const larguraPlaca = painelSelecionado
-      ? Number(painelSelecionado.placa_largura_util_mm)
-      : data.largura_zona_util_mm + form.canaletasVerticais * Number(canaleta.largura_base_mm)
-    const alturaPlaca = painelSelecionado
-      ? Number(painelSelecionado.placa_altura_util_mm)
-      : data.altura_zona_util_mm + form.faixasHorizontais * Number(canaleta.largura_base_mm)
-
-    const alturaPerfilCanaleta = Number(canaleta.altura_mm)
-
-    return ajustarLayoutPlacaParaItens(
-      gerarLayoutPlaca(
-        larguraPlaca,
-        alturaPlaca,
-        form.canaletasVerticais,
-        form.faixasHorizontais,
-        Number(canaleta.largura_base_mm),
-        intermediariasY,
-        Number.isFinite(alturaPerfilCanaleta) && alturaPerfilCanaleta > 0
-          ? alturaPerfilCanaleta
-          : undefined
-      ),
-      data.itens_considerados
-    )
+    return calcularLayoutPreview(data, form, canaletasCatalogo, intermediariasY)
   }, [canaletasCatalogo, data, form, intermediariasY])
 
   useEffect(() => {
@@ -194,15 +314,7 @@ export default function WizardDimensionamentoMecanicoPanel({
   }, [disposicao, layoutPreview])
 
   const faixasSugeridasPreview = useMemo(() => {
-    if (!data || !form) return data?.faixas_horizontais_sugeridas ?? 2
-    const canaleta =
-      canaletasCatalogo.find((c) => c.produto_id === form.canaletaProdutoId) ??
-      data.canaleta_escolhida ??
-      data.canaleta
-    const larguraBase = canaleta ? Number(canaleta.largura_base_mm) : 0
-    const alturaPlaca = alturaReferenciaCanaletas(data, form.painelProdutoId)
-    const espacamento = data.espacamento_max_horizontal_mm ?? 160
-    return sugerirFaixasHorizontais(alturaPlaca, larguraBase, espacamento)
+    return calcularFaixasSugeridasPreview(data, form, canaletasCatalogo)
   }, [canaletasCatalogo, data, form])
 
   const onRecalcular = async () => {
@@ -220,47 +332,18 @@ export default function WizardDimensionamentoMecanicoPanel({
 
   const onSalvarEscolhas = async () => {
     if (!form || !data) return
-    if (validacaoPreview && !validacaoPreview.ok) {
-      showToast({
-        variant: 'danger',
-        title: 'Configuração inválida',
-        message: validacaoPreview.alertas[0] ?? 'Ajuste canaletas ou painel antes de salvar.',
-      })
-      return
-    }
-    if (!validacaoDisposicao.ok) {
-      showToast({
-        variant: 'danger',
-        title: 'Disposição inválida',
-        message:
-          validacaoDisposicao.alertas[0] ??
-          'Ajuste a posição dos componentes para não sobrepor canaletas.',
-      })
-      return
-    }
-    const disposicaoParaSalvar =
-      layoutPreview && data.itens_considerados.length > 0
-        ? sincronizarDisposicaoComItens(disposicao, layoutPreview, data.itens_considerados)
-        : disposicao
-    if (instanciasEsperadas > 0 && disposicaoParaSalvar.length !== instanciasEsperadas) {
-      showToast({
-        variant: 'danger',
-        title: 'Painel insuficiente',
-        message:
-          'A disposição automática não conseguiu encaixar todos os componentes. Escolha um painel maior, aumente as faixas úteis ou revise a canaleta.',
-      })
-      return
-    }
-    const alertasDisposicaoSalvar =
-      layoutPreview && disposicaoParaSalvar.length > 0
-        ? [...new Set(validarDisposicaoComponentes(disposicaoParaSalvar, layoutPreview))]
-        : []
-    if (alertasDisposicaoSalvar.length > 0) {
-      showToast({
-        variant: 'danger',
-        title: 'Disposição inválida',
-        message: alertasDisposicaoSalvar[0],
-      })
+    const preparacao = prepararSalvamentoDisposicao({
+      data,
+      form,
+      validacaoPreview,
+      validacaoDisposicao,
+      layoutPreview,
+      disposicao,
+      instanciasEsperadas,
+    })
+    if (!preparacao) return
+    if (preparacao.erro) {
+      showToast({ variant: 'danger', ...preparacao.erro })
       return
     }
     try {
@@ -270,7 +353,7 @@ export default function WizardDimensionamentoMecanicoPanel({
         canaletas_verticais: form.canaletasVerticais,
         faixas_horizontais: form.faixasHorizontais,
         taxa_ocupacao_max_percentual: form.taxaOcupacaoMax,
-        disposicao_componentes: disposicaoParaSalvar,
+        disposicao_componentes: preparacao.disposicaoParaSalvar,
         canaletas_horizontais_intermediarias_y_mm:
           layoutPreview?.canaletas_horizontais_intermediarias_y_mm ?? intermediariasY,
       })

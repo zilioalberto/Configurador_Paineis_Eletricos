@@ -245,61 +245,92 @@ class RelatorioNFeView(APIView):
             "objetivo": doc.objetivo_saida,
         }
 
-    def get(self, request):
+    def _validar_tipo_movimento(self, request) -> str:
         tipo_movimento = (request.query_params.get("tipo_movimento") or "ENTRADA").strip().upper()
         if tipo_movimento not in {"ENTRADA", "SAIDA", "TODOS"}:
             raise ValidationError({"tipo_movimento": "Tipo de movimento inválido."})
+        return tipo_movimento
 
-        entradas = self._queryset_entradas(request.query_params) if tipo_movimento in {"ENTRADA", "TODOS"} else []
-        saidas = self._queryset_saidas(request.query_params) if tipo_movimento in {"SAIDA", "TODOS"} else []
-        documentos = []
+    def _querysets_relatorio(self, tipo_movimento: str, params) -> tuple:
+        entradas = self._queryset_entradas(params) if tipo_movimento in {"ENTRADA", "TODOS"} else []
+        saidas = self._queryset_saidas(params) if tipo_movimento in {"SAIDA", "TODOS"} else []
+        return entradas, saidas
+
+    def _registrar_documento_relatorio(
+        self,
+        *,
+        doc,
+        tipo_movimento: str,
+        objetivo: str,
+        linha: dict,
+        documentos: list[dict],
+        por_objetivo_map: dict[tuple[str, str], dict],
+    ) -> Decimal:
+        valor = doc.valor_total or Decimal("0.00")
+        documentos.append(linha)
+        row = por_objetivo_map.setdefault(
+            (tipo_movimento, objetivo),
+            {
+                "tipo_movimento": tipo_movimento,
+                "objetivo": objetivo,
+                "total_documentos": 0,
+                "valor_total": Decimal("0.00"),
+            },
+        )
+        row["total_documentos"] += 1
+        row["valor_total"] += valor
+        return valor
+
+    def _montar_documentos_relatorio(self, entradas, saidas) -> tuple[list[dict], Decimal, dict]:
+        documentos: list[dict] = []
         valor_total = Decimal("0.00")
         por_objetivo_map: dict[tuple[str, str], dict] = {}
 
         for doc in list(entradas)[:1000]:
-            documentos.append(self._linha_entrada(doc))
-            valor_total += doc.valor_total or Decimal("0.00")
-            row = por_objetivo_map.setdefault(
-                ("ENTRADA", doc.objetivo_entrada),
-                {
-                    "tipo_movimento": "ENTRADA",
-                    "objetivo": doc.objetivo_entrada,
-                    "total_documentos": 0,
-                    "valor_total": Decimal("0.00"),
-                },
+            valor_total += self._registrar_documento_relatorio(
+                doc=doc,
+                tipo_movimento="ENTRADA",
+                objetivo=doc.objetivo_entrada,
+                linha=self._linha_entrada(doc),
+                documentos=documentos,
+                por_objetivo_map=por_objetivo_map,
             )
-            row["total_documentos"] += 1
-            row["valor_total"] += doc.valor_total or Decimal("0.00")
 
         limite_saidas = max(0, 1000 - len(documentos))
         for doc in list(saidas)[:limite_saidas]:
-            documentos.append(self._linha_saida(doc))
-            valor_total += doc.valor_total or Decimal("0.00")
-            row = por_objetivo_map.setdefault(
-                ("SAIDA", doc.objetivo_saida),
-                {
-                    "tipo_movimento": "SAIDA",
-                    "objetivo": doc.objetivo_saida,
-                    "total_documentos": 0,
-                    "valor_total": Decimal("0.00"),
-                },
+            valor_total += self._registrar_documento_relatorio(
+                doc=doc,
+                tipo_movimento="SAIDA",
+                objetivo=doc.objetivo_saida,
+                linha=self._linha_saida(doc),
+                documentos=documentos,
+                por_objetivo_map=por_objetivo_map,
             )
-            row["total_documentos"] += 1
-            row["valor_total"] += doc.valor_total or Decimal("0.00")
-
         documentos.sort(key=lambda row: row.get("data_emissao") or "", reverse=True)
+        return documentos, valor_total, por_objetivo_map
+
+    def _filtros_relatorio(self, request, tipo_movimento: str) -> dict:
+        return {
+            "tipo_movimento": tipo_movimento,
+            "data_inicio": (request.query_params.get("data_inicio") or "").strip(),
+            "data_fim": (request.query_params.get("data_fim") or "").strip(),
+            "objetivo_entrada": (request.query_params.get("objetivo_entrada") or "").strip(),
+            "objetivo_saida": (request.query_params.get("objetivo_saida") or "").strip(),
+            "cnpj_emitente": (request.query_params.get("cnpj_emitente") or "").strip(),
+            "cnpj_destinatario": (request.query_params.get("cnpj_destinatario") or "").strip(),
+            "fornecedor": (request.query_params.get("fornecedor") or "").strip(),
+            "cliente": (request.query_params.get("cliente") or "").strip(),
+        }
+
+    def get(self, request):
+        tipo_movimento = self._validar_tipo_movimento(request)
+        entradas, saidas = self._querysets_relatorio(tipo_movimento, request.query_params)
+        documentos, valor_total, por_objetivo_map = self._montar_documentos_relatorio(
+            entradas,
+            saidas,
+        )
         payload = {
-            "filtros": {
-                "tipo_movimento": tipo_movimento,
-                "data_inicio": (request.query_params.get("data_inicio") or "").strip(),
-                "data_fim": (request.query_params.get("data_fim") or "").strip(),
-                "objetivo_entrada": (request.query_params.get("objetivo_entrada") or "").strip(),
-                "objetivo_saida": (request.query_params.get("objetivo_saida") or "").strip(),
-                "cnpj_emitente": (request.query_params.get("cnpj_emitente") or "").strip(),
-                "cnpj_destinatario": (request.query_params.get("cnpj_destinatario") or "").strip(),
-                "fornecedor": (request.query_params.get("fornecedor") or "").strip(),
-                "cliente": (request.query_params.get("cliente") or "").strip(),
-            },
+            "filtros": self._filtros_relatorio(request, tipo_movimento),
             "resumo": {
                 "tipo_movimento": tipo_movimento,
                 "total_documentos": len(documentos),
