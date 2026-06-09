@@ -9,11 +9,7 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCalcularDimensionamentoMecanicoMutation } from '../hooks/useCalcularDimensionamentoMecanicoMutation'
 import { useDimensionamentoMecanicoQuery } from '../hooks/useDimensionamentoMecanicoQuery'
 import { useSalvarDimensionamentoMecanicoEscolhasMutation } from '../hooks/useSalvarDimensionamentoMecanicoEscolhasMutation'
-import type {
-  ComponenteDisposicaoItem,
-  DimensionamentoMecanicoDetalhe,
-  LayoutPlacaDetalhe,
-} from '../types/dimensionamento'
+import type { ComponenteDisposicaoItem } from '../types/dimensionamento'
 import { sugerirFaixasHorizontais } from '../utils/canaletasHorizontais'
 import {
   calcularZonaUtilComponentes,
@@ -22,16 +18,20 @@ import {
 import {
   ajustarLayoutPlacaParaItens,
   expandirInstanciasComponentes,
-  mesclarDisposicaoSalva,
   sugerirDisposicaoComponentes,
   validarDisposicaoComponentes,
 } from '../utils/disposicaoComponentes'
 import {
   gerarLayoutPlaca,
-  gerarTrilhosDinLayout,
-  TRILHO_DIN_ALTURA_PERFIL_MM,
   type LayoutPlaca,
 } from '../utils/layoutPlaca'
+import {
+  alturaReferenciaCanaletas,
+  formFromDataMecanico,
+  normalizarLayoutPlacaApi,
+  sincronizarDisposicaoComItens,
+  type FormStateMecanico,
+} from '../utils/wizardDimensionamentoMecanicoUtils'
 import PlacaCanaletasDiagram from './PlacaCanaletasDiagram'
 
 type Props = {
@@ -39,67 +39,9 @@ type Props = {
   embedded?: boolean
 }
 
-type FormState = {
-  painelProdutoId: string
-  canaletaProdutoId: string
-  canaletasVerticais: number
-  faixasHorizontais: number
-  taxaOcupacaoMax: number
-}
+type FormState = FormStateMecanico
 
-function formFromData(data: DimensionamentoMecanicoDetalhe): FormState {
-  const canaleta = data.canaleta_escolhida ?? data.canaleta
-  return {
-    painelProdutoId: data.painel_escolhido?.produto_id ?? data.paineis_sugeridos[0]?.produto_id ?? '',
-    canaletaProdutoId: canaleta?.produto_id ?? '',
-    canaletasVerticais: data.canaletas_verticais ?? data.canaletas_verticais_sugeridas ?? 2,
-    faixasHorizontais: data.faixas_horizontais ?? data.faixas_horizontais_sugeridas ?? 2,
-    taxaOcupacaoMax: Number(data.taxa_ocupacao_max_configurada_percentual) || 80,
-  }
-}
-
-function alturaReferenciaCanaletas(
-  data: DimensionamentoMecanicoDetalhe,
-  painelProdutoId: string
-): number {
-  const painel =
-    data.paineis_sugeridos.find((p) => p.produto_id === painelProdutoId) ??
-    data.painel_escolhido ??
-    null
-  if (painel) return Number(painel.placa_altura_util_mm)
-  return data.altura_referencia_canaletas_mm ?? data.altura_placa_min_mm
-}
-
-function sincronizarDisposicaoComItens(
-  salva: ComponenteDisposicaoItem[] | undefined,
-  layout: LayoutPlaca,
-  itens: DimensionamentoMecanicoDetalhe['itens_considerados']
-): ComponenteDisposicaoItem[] {
-  const merged = mesclarDisposicaoSalva(salva, layout, itens)
-  const esperado = expandirInstanciasComponentes(itens).length
-  if (merged.length === esperado) return merged
-  return sugerirDisposicaoComponentes(layout, itens)
-}
-
-function normalizarLayoutPlacaApi(layout?: LayoutPlacaDetalhe | null): LayoutPlaca | null {
-  if (!layout) return null
-  const trilhoAltura = layout.trilho_din_altura_perfil_mm ?? TRILHO_DIN_ALTURA_PERFIL_MM
-  const trilhos =
-    layout.trilhos_din ??
-    gerarTrilhosDinLayout(
-      layout.canaletas_horizontais,
-      layout.zona_componentes.x_mm,
-      layout.comprimento_canaleta_horizontal_mm,
-      trilhoAltura
-    )
-  return {
-    ...layout,
-    trilho_din_altura_perfil_mm: trilhoAltura,
-    canaletas_horizontais_intermediarias_y_mm:
-      layout.canaletas_horizontais_intermediarias_y_mm ?? [],
-    trilhos_din: trilhos,
-  }
-}
+const formFromData = formFromDataMecanico
 
 export default function WizardDimensionamentoMecanicoPanel({
   projetoId,

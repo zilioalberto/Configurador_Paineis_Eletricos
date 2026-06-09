@@ -966,3 +966,14 @@ def test_obter_dimensionamento_mecanico_atualizado_inclusao_manual_e_disposicao(
     codigos = {item["produto_codigo"] for item in dados["itens_considerados"]}
     assert codigos == {"MD-OBTER", "MAN-OBTER"}
     assert len(dados["disposicao_componentes"]) == 2
+
+
+def test_posicoes_x_canaletas_verticais_distribui_entre_bordas():
+    from apps.configurador_paineis.dimensionamento.services.dimensionamento_mecanico import (
+        _posicoes_x_canaletas_verticais,
+    )
+
+    assert _posicoes_x_canaletas_verticais(355, 0, 30) == []
+    assert _posicoes_x_canaletas_verticais(355, 1, 30) == [0]
+    assert _posicoes_x_canaletas_verticais(355, 2, 30) == [0, 325]
+    assert _posicoes_x_canaletas_verticais(355, 3, 30) == [0, 162, 325]

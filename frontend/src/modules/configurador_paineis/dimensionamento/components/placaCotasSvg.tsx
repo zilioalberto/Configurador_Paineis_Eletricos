@@ -47,10 +47,7 @@ export function CotaLinear({
       <line x1={refX1} y1={refY1} x2={x1} y2={y1} strokeWidth={0.6} />
       <line x1={refX2} y1={refY2} x2={x2} y2={y2} strokeWidth={0.6} />
       <line x1={x1} y1={y1} x2={x2} y2={y2} />
-      <polygon
-        points={arrowHead(x1, y1, horizontal ? 0 : 90)}
-        transform={horizontal ? undefined : undefined}
-      />
+      <polygon points={arrowHead(x1, y1, horizontal ? 0 : 90)} />
       <polygon points={arrowHead(x2, y2, horizontal ? 180 : 270)} />
       <text
         x={midX}

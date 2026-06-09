@@ -1033,7 +1033,7 @@ def _posicoes_x_canaletas_verticais(
     if canaletas_verticais == 2:
         return [0, largura_placa_mm - largura_base_mm]
     espaco = largura_placa_mm - canaletas_verticais * largura_base_mm
-    passo = espaco / (canaletas_verticais - 1) if canaletas_verticais > 1 else 0
+    passo = espaco / (canaletas_verticais - 1)
     return [int(round(i * (largura_base_mm + passo))) for i in range(canaletas_verticais)]
 
 
