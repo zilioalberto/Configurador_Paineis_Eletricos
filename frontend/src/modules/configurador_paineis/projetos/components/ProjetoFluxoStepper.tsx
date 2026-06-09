@@ -21,6 +21,11 @@ const ETAPAS: {
     label: '4. Dim. mecânico',
     descricao: 'Placa e painel comercial',
   },
+  {
+    id: 'composicao_final',
+    label: '5. Composição final',
+    descricao: 'Cabos, trilhos e identificações',
+  },
 ]
 
 type Props = {

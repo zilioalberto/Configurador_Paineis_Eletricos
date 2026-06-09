@@ -59,6 +59,8 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
     
     TERMINAIS  = "TERMINAIS", "Terminais"
 
+    ACESSORIOS_GERAIS = "ACESSORIOS_GERAIS", "Acessórios Gerais"
+
     OUTROS = "OUTROS", "Outros"
 
     SEM_REGRA_SUGESTAO_AUTOMATICA = (
@@ -496,6 +498,19 @@ class TipoIdentificacaoChoices(models.TextChoices):
 class TamanhoPlaquetaIdentificacaoChoices(models.TextChoices):
     PEQUENA = "PEQUENA", "Pequena"
     GRANDE = "GRANDE", "Grande"
+
+
+class TipoAcessorioGeralChoices(models.TextChoices):
+    KIT_MONTAGEM = "KIT_MONTAGEM", "Kit de montagem"
+    CONSUMIVEIS = "CONSUMIVEIS", "Consumíveis de montagem"
+    DIVERSOS = "DIVERSOS", "Diversos de montagem"
+
+
+class PortePainelAcessoriosChoices(models.TextChoices):
+    PEQUENO = "PEQUENO", "Pequeno"
+    MEDIO = "MEDIO", "Médio"
+    GRANDE = "GRANDE", "Grande"
+    EXTRA_GRANDE = "EXTRA_GRANDE", "Extra grande"
 
 
 class TipoBotaoChoices(models.TextChoices):

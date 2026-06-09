@@ -121,6 +121,10 @@
       "label": "Climatização"
     },
     {
+      "value": "ACESSORIOS_GERAIS",
+      "label": "Acessórios Gerais"
+    },
+    {
       "value": "SEM_REGRA_SUGESTAO_AUTOMATICA",
       "label": "Sem regra de sugestão automática"
     }

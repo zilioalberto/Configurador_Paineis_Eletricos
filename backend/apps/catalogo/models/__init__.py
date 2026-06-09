@@ -1,6 +1,7 @@
 """Modelos do catálogo (Produto e especificações técnicas por categoria)."""
 
 from .base import Produto
+from .especificacao_acessorio_geral import EspecificacaoAcessorioGeral
 from .produto_acessorio import ProdutoAcessorioCompativel
 from .servico import Servico
 from .especificacao_barramento import EspecificacaoBarramento

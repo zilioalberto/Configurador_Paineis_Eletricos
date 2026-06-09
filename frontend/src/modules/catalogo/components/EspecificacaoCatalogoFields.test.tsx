@@ -122,7 +122,7 @@ describe('EspecificacaoCatalogoFields - BORNE (campos genéricos)', () => {
       />,
     )
     expect(screen.getByLabelText(/Tipo Borne/i)).toBeInTheDocument()
-    const secaoMin = screen.getByLabelText(/Secao Min Mm2/i)
+    const secaoMin = screen.getByLabelText(/Seção mín/i)
     expect(secaoMin).toHaveValue('1.5')
     fireEvent.change(secaoMin, { target: { value: '2.5' } })
     expect(onPatch).toHaveBeenCalledWith({ secao_min_mm2: '2.5' })

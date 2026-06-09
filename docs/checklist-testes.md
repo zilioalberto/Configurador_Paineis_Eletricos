@@ -42,6 +42,8 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] API projetos + histórico — `test_projetos_api_views.py`
 - [x] API cargas — `test_cargas_api.py`
 - [x] Dimensionamento recalcular/condutores — `test_dimensionamento_api_views.py`
+- [x] Dimensionamento mecânico + disposição na placa — `test_disposicao_componentes.py`, `test_dimensionamento_mecanico_service.py`, `disposicaoComponentes.test.ts`
+- [x] Layout responsivo (master-detail, NF-e, orçamento) — `AppMasterDetailLayout.test.tsx`, `NfeImportPage.test.tsx`, `OrcamentoDetailPage.test.tsx`, `RhPage.test.tsx`, `useMediaQuery.test.ts`
 - [x] Validações normativas — `test_validar_escolhas*.py`
 - [x] Composição + sugestões + alternativas — `test_composicao_api_views.py`
 - [x] UI composição — `ComposicaoPage.test.tsx`

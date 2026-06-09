@@ -34,6 +34,7 @@ export const CATEGORIA_PARA_ESPEC_KEY: Partial<Record<CategoriaProdutoNome, stri
   TRILHO_DIN: 'especificacao_trilho_din',
   TERMINAIS: 'especificacao_terminal',
   IDENTIFICACAO: 'especificacao_identificacao',
+  ACESSORIOS_GERAIS: 'especificacao_acessorio_geral',
   BARRAMENTO: 'especificacao_barramento',
   GATEWAY: 'especificacao_gateway',
 }

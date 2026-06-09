@@ -233,6 +233,9 @@ export default function Header({
             </div>
           </div>
         </div>
+        {pageToolbar?.fluxoSteps ? (
+          <div className="app-header-page-fluxo-mobile d-lg-none">{pageToolbar.fluxoSteps}</div>
+        ) : null}
       </div>
     </header>
   )

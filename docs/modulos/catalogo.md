@@ -25,7 +25,9 @@ Produtos, categorias, especificações técnicas e importação de XML de NF-e d
 ## Frontend
 
 - Listagem e formulário de produtos
-- Importação NF-e, comparação e helpers de spec (`specFormHelpers`, `produtoPayload`)
+- Importação NF-e (`NfeImportPage`) — comparação XML × catálogo, layout responsivo (`NfeImportPage.css`)
+- Modelos de carga reutilizáveis (`CargaModelosPage`) — parâmetros por tipo em blocos recolhíveis no mobile
+- Helpers de spec (`specFormHelpers`, `produtoPayload`)
 
 ## Integrações
 
@@ -42,4 +44,4 @@ cd frontend && npm test -- catalogo
 ## A documentar
 
 - [ ] Modelo de categorias e chaves de especificação
-- [ ] Fluxo completo de importação NF-e
+- [x] Fluxo completo de importação NF-e (wizard, comparação, aplicar) — ver `NfeImportPage` e testes `NfeImportPage.test.tsx`

@@ -131,6 +131,21 @@ export const tamanhoPlaquetaIdentificacaoOptions = [
   { value: 'GRANDE', label: 'Grande' },
 ] as const
 
+/** `TipoAcessorioGeralChoices`. */
+export const tipoAcessorioGeralOptions = [
+  { value: 'KIT_MONTAGEM', label: 'Kit de montagem' },
+  { value: 'CONSUMIVEIS', label: 'Consumíveis de montagem' },
+  { value: 'DIVERSOS', label: 'Diversos de montagem' },
+] as const
+
+/** `PortePainelAcessoriosChoices`. */
+export const portePainelAcessoriosOptions = [
+  { value: 'PEQUENO', label: 'Pequeno' },
+  { value: 'MEDIO', label: 'Médio' },
+  { value: 'GRANDE', label: 'Grande' },
+  { value: 'EXTRA_GRANDE', label: 'Extra grande' },
+] as const
+
 /** IHM (e equivalente a tensão botão/chave): 24, 110, 220 V. */
 export const tensaoAlimentacaoIhmOptions = [
   { value: 24, label: '24 V' },

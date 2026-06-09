@@ -112,10 +112,10 @@ export default function ProjetoWizardPage() {
         subtitle: projeto?.nome ? `${projeto.codigo} · ${projeto.nome}` : undefined,
         actions: (
           <Link
-            to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)}
-            className="btn btn-outline-light btn-sm"
+            to={withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)}
+            className="btn btn-success btn-sm"
           >
-            Voltar à composição
+            Ir para composição final
           </Link>
         ),
       }
@@ -189,6 +189,10 @@ export default function ProjetoWizardPage() {
 
   if (etapaAtual === 'composicao') {
     return <Navigate to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)} replace />
+  }
+
+  if (etapaAtual === 'composicao_final') {
+    return <Navigate to={withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)} replace />
   }
 
   if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {

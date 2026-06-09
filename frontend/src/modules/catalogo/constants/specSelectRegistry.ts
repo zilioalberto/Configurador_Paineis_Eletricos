@@ -21,6 +21,8 @@ import {
   furoTerminalOlhalOptions,
   tipoIdentificacaoCatalogoOptions,
   tamanhoPlaquetaIdentificacaoOptions,
+  tipoAcessorioGeralOptions,
+  portePainelAcessoriosOptions,
 } from './catalogoChoiceOptions'
 import categoriaFieldChoiceOptionsJson from '../data/categoriaFieldChoiceOptions.json'
 
@@ -180,6 +182,8 @@ reg('TERMINAIS', 'tipo_terminal', tipoTerminalCatalogoOptions)
 reg('TERMINAIS', 'furo_olhal', furoTerminalOlhalOptions)
 reg('IDENTIFICACAO', 'tipo_identificacao', tipoIdentificacaoCatalogoOptions)
 reg('IDENTIFICACAO', 'tamanho_plaqueta', tamanhoPlaquetaIdentificacaoOptions)
+reg('ACESSORIOS_GERAIS', 'tipo_acessorio', tipoAcessorioGeralOptions)
+reg('ACESSORIOS_GERAIS', 'porte_painel', portePainelAcessoriosOptions)
 reg('CANALETA', 'modo_montagem', modoMontagemPlacaPortaOptions)
 reg('PAINEL', 'placa_acabamento', acabamentoPlacaPainelOptions)
 reg('PAINEL', 'cor', corPainelOptions)

@@ -7,6 +7,7 @@ export type ProjetoFluxoEtapaId =
   | 'dimensionamento'
   | 'composicao'
   | 'dimensionamento_mecanico'
+  | 'composicao_final'
 
 /**
  * Pré-requisitos do fluxo linear: projeto → cargas → condutores → composição.
@@ -27,17 +28,23 @@ export function useProjetoFluxoGates(projetoId: string | null | undefined) {
     (todosCircuitosAprovados && agAprovado)
 
   const composicaoComItens = (composicao?.totais?.composicao_itens ?? 0) > 0
+  const dimensionamentoMecanicoCalculado = Boolean(
+    dimensionamento?.detalhe_dimensionamento_mecanico?.layout_placa
+  )
 
   return {
     loading: Boolean(projetoId) && (loadingCargas || loadingDim || loadingComp),
     temCargas,
     condutoresRevisaoOk,
     composicaoComItens,
+    dimensionamentoMecanicoCalculado,
     /** Etapa 2: exige ao menos uma carga. */
     podeAcessarDimensionamento: Boolean(projetoId) && temCargas,
     /** Etapa 3: exige revisão de condutores confirmada. */
     podeAcessarComposicao: Boolean(projetoId) && condutoresRevisaoOk,
     /** Etapa 4: exige itens aprovados na composição. */
     podeAcessarDimensionamentoMecanico: Boolean(projetoId) && composicaoComItens,
+    /** Etapa 5: exige layout mecânico salvo. */
+    podeAcessarComposicaoFinal: Boolean(projetoId) && dimensionamentoMecanicoCalculado,
   }
 }

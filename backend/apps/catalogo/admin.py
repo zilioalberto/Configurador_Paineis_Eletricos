@@ -3,6 +3,7 @@
 from django.contrib import admin
 
 from .models import (
+    EspecificacaoAcessorioGeral,
     EspecificacaoBarramento,
     EspecificacaoBorne,
     EspecificacaoBotao,
@@ -188,6 +189,13 @@ class EspecificacaoIdentificacaoInline(admin.StackedInline):
     can_delete = True
 
 
+class EspecificacaoAcessorioGeralInline(admin.StackedInline):
+    model = EspecificacaoAcessorioGeral
+    extra = 0
+    max_num = 1
+    can_delete = True
+
+
 class EspecificacaoSwitchRedeInline(admin.StackedInline):
     model = EspecificacaoSwitchRede
     extra = 0
@@ -296,6 +304,7 @@ INLINE_POR_CATEGORIA = {
     "TRILHO_DIN": EspecificacaoTrilhoDINInline,
     "TERMINAIS": EspecificacaoTerminalInline,
     "IDENTIFICACAO": EspecificacaoIdentificacaoInline,
+    "ACESSORIOS_GERAIS": EspecificacaoAcessorioGeralInline,
     "BARRAMENTO": EspecificacaoBarramentoInline,
     "GATEWAY": EspecificacaoGatewayInline,
 }
@@ -710,6 +719,22 @@ class EspecificacaoIdentificacaoAdmin(admin.ModelAdmin):
         "tensao_v",
     )
     list_filter = ("tipo_identificacao", "tamanho_plaqueta", "tensao_v")
+    search_fields = ("produto__codigo", "produto__descricao")
+
+
+@admin.register(EspecificacaoAcessorioGeral)
+class EspecificacaoAcessorioGeralAdmin(admin.ModelAdmin):
+    list_display = (
+        "produto",
+        "tipo_acessorio",
+        "porte_painel",
+        "quantidade_padrao",
+        "largura_min_mm",
+        "largura_max_mm",
+        "altura_min_mm",
+        "altura_max_mm",
+    )
+    list_filter = ("tipo_acessorio", "porte_painel")
     search_fields = ("produto__codigo", "produto__descricao")
 
 

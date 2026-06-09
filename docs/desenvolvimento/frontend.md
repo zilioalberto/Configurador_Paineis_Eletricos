@@ -61,7 +61,26 @@ frontend/src/
 ```bash
 cd frontend
 npm test
+npm run lint
 ```
+
+## Layout responsivo
+
+O shell (`MainLayout`, `Header`, `Sidebar`) e a maioria das páginas usam **Bootstrap 5** (`row`, `col-*`, `table-responsive`) e utilitários em `src/assets/styles/global.css`.
+
+| Padrão | Uso |
+|--------|-----|
+| `.app-page-header` | Título + ações que empilham no mobile |
+| `.app-table-scroll` / `.table-responsive` | Rolagem horizontal em tabelas largas |
+| `.app-diagram-scroll` | Diagrama da placa (dimensionamento mecânico) |
+| `AppMasterDetailLayout` | Lista + detalhe: lado a lado no desktop; lista **ou** detalhe no mobile (`Cadastros`, `RH`) |
+| `useMediaQuery` | Breakpoints em componentes (`hooks/useMediaQuery.ts`) |
+| `modal-fullscreen-sm-down` | Modais de orçamentos em telas estreitas |
+| `.orc-col-compact-hide` | Colunas secundárias da tabela de itens do orçamento ocultas em `< lg` (`OrcamentoDetailPage.css`) |
+
+Páginas com CSS dedicado: `OrcamentoDetailPage.css` (tabela de itens compacta), `NfeImportPage.css` (importação NF-e), módulo orçamentos (editor/proposta).
+
+Fluxo do projeto no header: passos do wizard visíveis também abaixo da barra em viewports `< lg` (`.app-header-page-fluxo-mobile`).
 
 ## Variáveis de ambiente
 

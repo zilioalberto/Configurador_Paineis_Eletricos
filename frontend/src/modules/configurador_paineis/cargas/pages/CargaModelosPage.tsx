@@ -25,6 +25,7 @@ import {
   unidadePotenciaCorrenteOptions,
 } from '../constants/cargaChoiceOptions'
 import { renderCargaSelectOptions } from '../components/renderCargaSelectOptions'
+import { CargaModeloTipoSection } from '../components/CargaModeloTipoSection'
 import {
   atualizarModeloCarga,
   criarModeloCarga,
@@ -202,7 +203,7 @@ export default function CargaModelosPage() {
   }
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid carga-modelos-page">
       <div className="card mb-3">
         <div className="card-body">
           <div className="carga-form carga-form--panel">
@@ -276,10 +277,7 @@ export default function CargaModelosPage() {
               />
             </div>
             {base.tipo === 'MOTOR' && base.motor && (
-              <>
-                <div className="col-12">
-                  <h3 className="carga-form-panel__title mt-2">Parâmetros do motor</h3>
-                </div>
+              <CargaModeloTipoSection title="Parâmetros do motor">
                 <div className="col-md-4">
                   <label className="form-label">Potência / corrente (valor)</label>
                   <input
@@ -410,14 +408,11 @@ export default function CargaModelosPage() {
                     </label>
                   </div>
                 </div>
-              </>
+              </CargaModeloTipoSection>
             )}
 
             {base.tipo === 'VALVULA' && base.valvula && (
-              <>
-                <div className="col-12">
-                  <h3 className="h6 mt-2">Parâmetros da válvula</h3>
-                </div>
+              <CargaModeloTipoSection title="Parâmetros da válvula">
                 <div className="col-md-4">
                   <label className="form-label">Tipo de válvula</label>
                   <select
@@ -544,14 +539,11 @@ export default function CargaModelosPage() {
                     </label>
                   </div>
                 </div>
-              </>
+              </CargaModeloTipoSection>
             )}
 
             {base.tipo === 'RESISTENCIA' && base.resistencia && (
-              <>
-                <div className="col-12">
-                  <h3 className="h6 mt-2">Parâmetros da resistência</h3>
-                </div>
+              <CargaModeloTipoSection title="Parâmetros da resistência">
                 <div className="col-md-4">
                   <label className="form-label">Número de fases</label>
                   <select
@@ -651,14 +643,11 @@ export default function CargaModelosPage() {
                     </select>
                   </div>
                 )}
-              </>
+              </CargaModeloTipoSection>
             )}
 
             {base.tipo === 'SENSOR' && base.sensor && (
-              <>
-                <div className="col-12">
-                  <h3 className="h6 mt-2">Parâmetros do sensor</h3>
-                </div>
+              <CargaModeloTipoSection title="Parâmetros do sensor">
                 <div className="col-md-4">
                   <label className="form-label">Tipo de sensor</label>
                   <select
@@ -816,14 +805,11 @@ export default function CargaModelosPage() {
                     </label>
                   </div>
                 </div>
-              </>
+              </CargaModeloTipoSection>
             )}
 
             {base.tipo === 'TRANSDUTOR' && base.transdutor && (
-              <>
-                <div className="col-12">
-                  <h3 className="h6 mt-2">Parâmetros do transdutor</h3>
-                </div>
+              <CargaModeloTipoSection title="Parâmetros do transdutor">
                 <div className="col-md-4">
                   <label className="form-label">Tipo</label>
                   <select
@@ -910,7 +896,7 @@ export default function CargaModelosPage() {
                     }
                   />
                 </div>
-              </>
+              </CargaModeloTipoSection>
             )}
 
             <div className="col-12">

@@ -32,7 +32,12 @@ type Props = {
   composicaoItens: ComposicaoItem[]
   gruposComposicaoAprovada: GrupoItensPorTag<ComposicaoItem>[]
   gruposSugestoes: GrupoItensPorTag<SugestaoItem>[]
+  sugestoesPrincipaisCount: number
+  sugestoesVisiveisCount: number
+  gruposAcessoriosBornes: GrupoItensPorTag<SugestaoItem>[]
+  acessoriosBornesCount: number
   gruposPendencias: GrupoItensPorTag<PendenciaItem>[]
+  pendenciasVisiveisCount: number
   gruposMemorialCalculos: GrupoItensPorTag<SugestaoItem>[]
   podeEditar: boolean
   canEditarCatalogo: boolean
@@ -178,7 +183,12 @@ export function ComposicaoSnapshotContent({
   composicaoItens,
   gruposComposicaoAprovada,
   gruposSugestoes,
+  sugestoesPrincipaisCount,
+  sugestoesVisiveisCount,
+  gruposAcessoriosBornes,
+  acessoriosBornesCount,
   gruposPendencias,
+  pendenciasVisiveisCount,
   gruposMemorialCalculos,
   podeEditar,
   canEditarCatalogo,
@@ -211,7 +221,7 @@ export function ComposicaoSnapshotContent({
       <div className="col-12">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <h2 className="h5 mb-0">Sugestões de itens</h2>
-          {podeEditar && snapshot.sugestoes.length > 0 ? (
+          {podeEditar && sugestoesVisiveisCount > 0 ? (
             <button
               type="button"
               className="btn btn-sm btn-success"
@@ -225,7 +235,7 @@ export function ComposicaoSnapshotContent({
         <ComposicaoGeracaoAvisos snapshot={snapshot} />
         <ComposicaoTabelaSugestoes
           grupos={gruposSugestoes}
-          vazio={snapshot.sugestoes.length === 0}
+          vazio={sugestoesPrincipaisCount === 0}
           podeEditar={podeEditar}
           dimensionamento={dimensionamento}
           projeto={projetoSelecionado}
@@ -236,6 +246,23 @@ export function ComposicaoSnapshotContent({
         />
       </div>
 
+      {acessoriosBornesCount > 0 ? (
+        <div className="col-12">
+          <h2 className="h5 mb-3">Acessórios de bornes</h2>
+          <ComposicaoTabelaSugestoes
+            grupos={gruposAcessoriosBornes}
+            vazio={false}
+            podeEditar={podeEditar}
+            dimensionamento={dimensionamento}
+            projeto={projetoSelecionado}
+            aprovarPending={aprovarPending}
+            aprovandoTodas={aprovandoTodas}
+            onAprovar={onAprovar}
+            onAlterar={onAlterar}
+          />
+        </div>
+      ) : null}
+
       <div className="col-12">
         <h2 className="h5 mb-3">Pendências (catálogo)</h2>
         <p className="small text-muted">
@@ -244,7 +271,7 @@ export function ComposicaoSnapshotContent({
         </p>
         <ComposicaoTabelaPendencias
           grupos={gruposPendencias}
-          vazio={snapshot.pendencias.length === 0}
+          vazio={pendenciasVisiveisCount === 0}
           dimensionamento={dimensionamento}
           projeto={projetoSelecionado}
         />

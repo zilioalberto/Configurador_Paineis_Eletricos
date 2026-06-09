@@ -319,7 +319,7 @@ export default function PlacaCanaletasDiagram({
   }
 
   return (
-    <div className={className}>
+    <div className={`app-diagram-scroll${className ? ` ${className}` : ''}`}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${svgW} ${svgH}`}

@@ -470,9 +470,35 @@
   font-weight: 700;
 }
 
+.orcamento-doc-itens-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .orcamento-doc-itens-table {
   margin-bottom: 0;
   font-size: 0.8125rem;
+  min-width: 72rem;
+}
+
+@media (max-width: 991.98px) {
+  .orcamento-doc-itens-table {
+    min-width: 0;
+  }
+
+  .orcamento-doc-itens-table .orc-col-compact-hide {
+    display: none !important;
+  }
+
+  .orcamento-doc-itens-table tfoot .orc-tfoot-desktop {
+    display: none;
+  }
+}
+
+@media (min-width: 992px) {
+  .orcamento-doc-itens-table tfoot .orc-tfoot-compact {
+    display: none;
+  }
 }
 
 .orcamento-doc-itens-table thead th {

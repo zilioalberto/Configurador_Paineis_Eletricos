@@ -34,6 +34,15 @@ const LABELS_ESPECIAIS: Record<string, string> = {
   comprimento_mm: 'Comprimento (mm)',
   tamanho_plaqueta: 'Tamanho da plaqueta',
   tensao_v: 'Tensão (V)',
+  tipo_acessorio: 'Tipo de acessório',
+  porte_painel: 'Porte do painel',
+  largura_min_mm: 'Largura mín. (mm)',
+  largura_max_mm: 'Largura máx. (mm)',
+  altura_min_mm: 'Altura mín. (mm)',
+  altura_max_mm: 'Altura máx. (mm)',
+  profundidade_min_mm: 'Profundidade mín. (mm)',
+  profundidade_max_mm: 'Profundidade máx. (mm)',
+  quantidade_padrao: 'Quantidade padrão',
 }
 
 export function labelCampoEspec(name: string): string {

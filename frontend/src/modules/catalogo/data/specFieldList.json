@@ -1123,6 +1123,44 @@
       "django": "PositiveIntegerField"
     }
   ],
+  "ACESSORIOS_GERAIS": [
+    {
+      "name": "tipo_acessorio",
+      "django": "CharField"
+    },
+    {
+      "name": "porte_painel",
+      "django": "CharField"
+    },
+    {
+      "name": "largura_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "largura_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "altura_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "altura_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "profundidade_min_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "profundidade_max_mm",
+      "django": "DecimalField"
+    },
+    {
+      "name": "quantidade_padrao",
+      "django": "DecimalField"
+    }
+  ],
   "PAINEL": [
     {
       "name": "tipo_painel",

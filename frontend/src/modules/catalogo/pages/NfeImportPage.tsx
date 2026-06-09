@@ -28,6 +28,8 @@ import {
   nfeItemLinhaDivergeDoCatalogo,
 } from '../utils/nfeImportCompare'
 
+import './NfeImportPage.css'
+
 const FORNECEDOR_EMITENTE = 'emitente'
 const FORNECEDOR_NENHUM = 'nenhum'
 
@@ -118,14 +120,14 @@ function NfeStatusCell({
 }>) {
   if (!existente) {
     return (
-      <td className="small" style={{ minWidth: '9rem' }}>
+      <td className="small nfe-col-situacao">
         <span className="badge bg-secondary">Novo</span>
       </td>
     )
   }
 
   return (
-    <td className="small" style={{ minWidth: '9rem' }}>
+    <td className="small nfe-col-situacao">
       {diverge ? (
         <>
           <span className="badge bg-warning text-dark">Divergente</span>
@@ -212,7 +214,7 @@ function NfeItemRow({
           />
         </td>
         <td>{item.n_item}</td>
-        <td style={{ minWidth: '8rem' }}>
+        <td className="nfe-col-codigo">
           <input
             className="form-control form-control-sm"
             maxLength={60}
@@ -222,7 +224,7 @@ function NfeItemRow({
             }
           />
         </td>
-        <td style={{ minWidth: '22rem', maxWidth: '28rem' }}>
+        <td className="nfe-col-fornecedor">
           <div className="d-grid gap-2">
             <div>
               <label className="form-label small text-muted mb-1" htmlFor={`nfe-fornecedor-${item.n_item}`}>
@@ -293,7 +295,7 @@ function NfeItemRow({
             </div>
           </div>
         </td>
-        <td style={{ minWidth: '14rem' }}>
+        <td className="nfe-col-categoria">
           <select
             className={`form-select form-select-sm ${
               selecao.importar && !selecao.categoria ? 'is-invalid' : ''
@@ -325,13 +327,13 @@ function NfeItemRow({
         <td>
           <span className="small">{item.x_prod}</span>
         </td>
-        <td>
+        <td className="nfe-col-compact-hide">
           <code>{item.ncm || '—'}</code>
         </td>
-        <td>
+        <td className="nfe-col-compact-hide">
           <code>{item.cfop || '—'}</code>
         </td>
-        <td className="small text-break" style={{ maxWidth: '14rem' }}>
+        <td className="small text-break nfe-col-compact-hide" style={{ maxWidth: '14rem' }}>
           <span className="d-block">{resumoImpostoIcms(item.imposto)}</span>
           {item.imposto?.cst_pis ? (
             <span className="text-muted">
@@ -340,17 +342,17 @@ function NfeItemRow({
             </span>
           ) : null}
         </td>
-        <td>{item.unidade_catalogo}</td>
-        <td>{item.u_trib_catalogo || '—'}</td>
-        <td className="text-end">{item.v_un_com}</td>
+        <td className="nfe-col-compact-hide">{item.unidade_catalogo}</td>
+        <td className="nfe-col-compact-hide">{item.u_trib_catalogo || '—'}</td>
+        <td className="text-end nfe-col-compact-hide">{item.v_un_com}</td>
       </tr>
       {aberto && existente ? (
         <tr className={trClass}>
           <td colSpan={13} className="p-0">
             <div className="px-3 py-2 border-top bg-white small">
               <strong className="d-block mb-2">XML × catálogo (código {existente.codigo})</strong>
-              <div className="table-responsive">
-                <table className="table table-sm table-bordered mb-0">
+              <div className="nfe-campos-comparacao-wrap">
+                <table className="table table-sm table-bordered mb-0 nfe-campos-comparacao-table">
                   <thead className="table-light">
                     <tr>
                       <th>Campo</th>
@@ -367,8 +369,8 @@ function NfeItemRow({
                     ).map((row) => (
                       <tr key={row.id} className={row.diverge ? 'table-warning' : ''}>
                         <td>{row.label}</td>
-                        <td>{row.xml || '—'}</td>
-                        <td>{row.catalogo || '—'}</td>
+                        <td data-label="XML / seleção">{row.xml || '—'}</td>
+                        <td data-label="Catálogo">{row.catalogo || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -911,7 +913,7 @@ export default function NfeImportPage() {
   ])
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid nfe-import-page">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <nav aria-label="breadcrumb">
@@ -1216,8 +1218,8 @@ export default function NfeImportPage() {
                   Informe o objetivo da entrada para liberar a importação.
                 </output>
               ) : null}
-              <div className="table-responsive">
-                <table className="table table-sm align-middle">
+              <div className="table-responsive nfe-itens-table-wrap">
+                <table className="table table-sm align-middle nfe-itens-table">
                   <thead>
                     <tr>
                       <th>Importar</th>
@@ -1227,12 +1229,12 @@ export default function NfeImportPage() {
                       <th>Categoria</th>
                       <th className="text-nowrap">Situação</th>
                       <th>Descrição (XML)</th>
-                      <th>NCM</th>
-                      <th>CFOP</th>
-                      <th className="text-nowrap">ICMS / PIS (resumo)</th>
-                      <th>uCom</th>
-                      <th>uTrib</th>
-                      <th className="text-end">v. unit.</th>
+                      <th className="nfe-col-compact-hide">NCM</th>
+                      <th className="nfe-col-compact-hide">CFOP</th>
+                      <th className="text-nowrap nfe-col-compact-hide">ICMS / PIS (resumo)</th>
+                      <th className="nfe-col-compact-hide">uCom</th>
+                      <th className="nfe-col-compact-hide">uTrib</th>
+                      <th className="text-end nfe-col-compact-hide">v. unit.</th>
                     </tr>
                   </thead>
                   <tbody>

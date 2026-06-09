@@ -89,4 +89,22 @@ describe('useProjetoFluxoGates', () => {
     expect(result.current.composicaoComItens).toBe(true)
     expect(result.current.podeAcessarDimensionamentoMecanico).toBe(true)
   })
+
+  it('libera composição final somente após layout mecânico salvo', () => {
+    useDimensionamentoQueryMock.mockReturnValue({
+      data: {
+        detalhe_dimensionamento_mecanico: {
+          layout_placa: { trilhos_din: [], canaletas_verticais: [], canaletas_horizontais: [] },
+        },
+      },
+      isPending: false,
+    })
+
+    const { result } = renderHook(() => useProjetoFluxoGates('p1'), {
+      wrapper: (props) => wrapper(createClient(), props.children),
+    })
+
+    expect(result.current.dimensionamentoMecanicoCalculado).toBe(true)
+    expect(result.current.podeAcessarComposicaoFinal).toBe(true)
+  })
 })

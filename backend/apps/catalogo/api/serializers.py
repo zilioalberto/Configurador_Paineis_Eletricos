@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.catalogo.models import (
+    EspecificacaoAcessorioGeral,
     EspecificacaoBarramento,
     EspecificacaoBorne,
     EspecificacaoBotao,
@@ -43,6 +44,7 @@ from apps.catalogo.models import (
 from apps.fiscal.models import ItemFiscalProduto
 from apps.fiscal.serializers import ItemFiscalProdutoSerializer, ItemFiscalProdutoWriteSerializer
 from apps.fiscal.services import aplicar_aliquota_ipi_referencia_produto
+from apps.catalogo.utils.cor_cabo import normalizar_cor_cabo
 from core.choices.fiscal import OrigemMercadoriaICMSChoices
 from core.choices.eletrica import (
     NumeroFasesChoices,
@@ -114,6 +116,8 @@ from core.choices.produtos import (
     TipoTerminalChoices,
     TipoIdentificacaoChoices,
     TamanhoPlaquetaIdentificacaoChoices,
+    PortePainelAcessoriosChoices,
+    TipoAcessorioGeralChoices,
     TipoTrilhoDINChoices,
     MaterialTrilhoDINChoices,
 )
@@ -149,6 +153,7 @@ NESTED_KEYS = (
     "especificacao_trilho_din",
     "especificacao_terminal",
     "especificacao_identificacao",
+    "especificacao_acessorio_geral",
     "especificacao_barramento",
     "especificacao_gateway",
 )
@@ -184,6 +189,7 @@ CATEGORIA_PARA_CAMPO = {
     CategoriaProdutoNomeChoices.TRILHO_DIN: "especificacao_trilho_din",
     CategoriaProdutoNomeChoices.TERMINAIS: "especificacao_terminal",
     CategoriaProdutoNomeChoices.IDENTIFICACAO: "especificacao_identificacao",
+    CategoriaProdutoNomeChoices.ACESSORIOS_GERAIS: "especificacao_acessorio_geral",
     CategoriaProdutoNomeChoices.BARRAMENTO: "especificacao_barramento",
     CategoriaProdutoNomeChoices.GATEWAY: "especificacao_gateway",
 }
@@ -219,6 +225,7 @@ MODEL_BY_CAMPO = {
     "especificacao_trilho_din": EspecificacaoTrilhoDIN,
     "especificacao_terminal": EspecificacaoTerminal,
     "especificacao_identificacao": EspecificacaoIdentificacao,
+    "especificacao_acessorio_geral": EspecificacaoAcessorioGeral,
     "especificacao_barramento": EspecificacaoBarramento,
     "especificacao_gateway": EspecificacaoGateway,
 }
@@ -482,6 +489,17 @@ DEFAULTS_POR_CATEGORIA = {
             "tamanho_plaqueta": "",
             "tensao_v": None,
     },
+    CategoriaProdutoNomeChoices.ACESSORIOS_GERAIS: {
+            "tipo_acessorio": TipoAcessorioGeralChoices.KIT_MONTAGEM,
+            "porte_painel": PortePainelAcessoriosChoices.MEDIO,
+            "largura_min_mm": None,
+            "largura_max_mm": None,
+            "altura_min_mm": None,
+            "altura_max_mm": None,
+            "profundidade_min_mm": None,
+            "profundidade_max_mm": None,
+            "quantidade_padrao": "1.00",
+    },
     CategoriaProdutoNomeChoices.BARRAMENTO: {
             "corrente_nominal_a": "100.00",
             "material": MaterialBarramentoChoices.COBRE,
@@ -607,6 +625,12 @@ def _ajustar_payload_soft_starter(merged: dict) -> None:
         merged["protocolo_comunicacao"] = ""
 
 
+def _ajustar_payload_cabo(merged: dict) -> None:
+    cor = merged.get("cor")
+    if cor:
+        merged["cor"] = normalizar_cor_cabo(cor) or cor
+
+
 AJUSTE_PAYLOAD_POR_CATEGORIA = {
     CategoriaProdutoNomeChoices.MINIDISJUNTOR: _ajustar_payload_minidisjuntor,
     CategoriaProdutoNomeChoices.FUSIVEL: _ajustar_payload_fusivel,
@@ -617,6 +641,7 @@ AJUSTE_PAYLOAD_POR_CATEGORIA = {
     CategoriaProdutoNomeChoices.PAINEL: _ajustar_payload_painel,
     CategoriaProdutoNomeChoices.CLIMATIZACAO: _ajustar_payload_climatizacao,
     CategoriaProdutoNomeChoices.SOFT_STARTER: _ajustar_payload_soft_starter,
+    CategoriaProdutoNomeChoices.CABO: _ajustar_payload_cabo,
 }
 
 
@@ -1289,6 +1314,21 @@ class EspecificacaoIdentificacaoSerializer(serializers.ModelSerializer):
         exclude = ("produto",)
 
 
+class EspecificacaoAcessorioGeralSerializer(serializers.ModelSerializer):
+    tipo_acessorio_display = serializers.CharField(
+        source="get_tipo_acessorio_display",
+        read_only=True,
+    )
+    porte_painel_display = serializers.CharField(
+        source="get_porte_painel_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = EspecificacaoAcessorioGeral
+        exclude = ("produto",)
+
+
 class EspecificacaoBarramentoSerializer(serializers.ModelSerializer):
     material_display = serializers.CharField(
         source="get_material_display",
@@ -1532,6 +1572,12 @@ class EspecificacaoIdentificacaoWriteSerializer(serializers.ModelSerializer):
         exclude = _WRITE_EXCLUDE
 
 
+class EspecificacaoAcessorioGeralWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EspecificacaoAcessorioGeral
+        exclude = _WRITE_EXCLUDE
+
+
 class ProdutoAcessorioCompativelSerializer(serializers.ModelSerializer):
     acessorio_codigo = serializers.CharField(source="acessorio.codigo", read_only=True)
     acessorio_descricao = serializers.CharField(source="acessorio.descricao", read_only=True)
@@ -1605,6 +1651,7 @@ _DETALHE_FIELDS = (
     ("especificacao_trilho_din", CategoriaProdutoNomeChoices.TRILHO_DIN, EspecificacaoTrilhoDIN, EspecificacaoTrilhoDINSerializer),
     ("especificacao_terminal", CategoriaProdutoNomeChoices.TERMINAIS, EspecificacaoTerminal, EspecificacaoTerminalSerializer),
     ("especificacao_identificacao", CategoriaProdutoNomeChoices.IDENTIFICACAO, EspecificacaoIdentificacao, EspecificacaoIdentificacaoSerializer),
+    ("especificacao_acessorio_geral", CategoriaProdutoNomeChoices.ACESSORIOS_GERAIS, EspecificacaoAcessorioGeral, EspecificacaoAcessorioGeralSerializer),
     ("especificacao_barramento", CategoriaProdutoNomeChoices.BARRAMENTO, EspecificacaoBarramento, EspecificacaoBarramentoSerializer),
     ("especificacao_gateway", CategoriaProdutoNomeChoices.GATEWAY, EspecificacaoGateway, EspecificacaoGatewaySerializer),
 )
@@ -1978,6 +2025,10 @@ class ProdutoWriteSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     especificacao_identificacao = EspecificacaoIdentificacaoWriteSerializer(
+        required=False,
+        allow_null=True,
+    )
+    especificacao_acessorio_geral = EspecificacaoAcessorioGeralWriteSerializer(
         required=False,
         allow_null=True,
     )

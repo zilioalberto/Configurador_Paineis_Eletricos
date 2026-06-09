@@ -116,12 +116,51 @@ Persistência: `ResumoDimensionamento.detalhe_dimensionamento_mecanico` (JSON).
 - `canaleta_produto_id` — modelo de canaleta do catálogo
 - `canaletas_verticais` — quantidade (padrão 2)
 - `faixas_horizontais` — quantidade (sugerida automaticamente, editável)
+- `canaletas_horizontais_intermediarias_y_mm` — posição Y (mm) das canaletas intermediárias arrastáveis
+- `disposicao_componentes` — posições dos componentes no diagrama (instância, x/y, trilho, `manual`)
+- `taxa_ocupacao_max_percentual` — limite de ocupação da placa (opcional na persistência)
+
+### Itens considerados na placa
+
+- Itens aprovados em `ComposicaoItem` (snapshot atual), **incluindo** `ComposicaoInclusaoManual` (origem manual catálogo, ex.: DCM `3VJ` em `PLACA`).
+- Cada linha da composição é expandida pela `quantidade` em instâncias (`composicao_item_id#0`, `#1`, …).
+- Dimensões e `modo_montagem` vêm do catálogo (`TRILHO_DIN` ou `PLACA`).
+
+### Disposição automática (`disposicao_componentes.py` / `disposicaoComponentes.ts`)
+
+Regras principais:
+
+| Regra | Comportamento |
+|-------|----------------|
+| Disjuntor geral / seccionamento | Trilho superior, canto esquerdo |
+| Bornes | Trilho inferior, adjacentes, alimentação primeiro |
+| Demais TRILHO_DIN | Distribuição por trilho sem sobreposição |
+| PLACA | Faixa horizontal com menor folga vertical; prefere faixa inferior |
+| Instância sem posição | `completar_disposicao_faltante` tenta todos os trilhos/faixas |
+| Trilho sob PLACA | Recorte visual ±10 mm (`segmentar_trilhos_din_com_disposicao`), não remove o trilho |
+
+Validação: nenhum componente pode sobrepor canaletas nem outro componente.
+
+### Comportamento da API e UI
+
+- `GET .../mecanico/` — recalcula itens da composição atual, mescla escolhas salvas (`mesclar_disposicao_salva`) e devolve layout + disposição sincronizada.
+- Arrastar canaleta intermediária — recalcula disposição completa no frontend (`sugerir_disposicao_componentes`); alterações locais não são sobrescritas por refetch enquanto `disposicaoDirty`.
+- Salvar escolhas — persiste layout (canaletas, painel) e `disposicao_componentes`.
 
 ### Resultado
 
 - Placa mínima (largura × altura), profundidade mínima e taxa de ocupação calculada.
 - Catálogo de canaletas ativas (`canaletas_catalogo`) e quantidades configuráveis.
 - Lista de painéis comerciais com placa útil ≥ mínimos; escolha persistida em `painel_escolhido`.
+
+## Testes
+
+```bash
+pytest backend/apps/configurador_paineis/dimensionamento/tests -q
+cd frontend && npx vitest run src/modules/configurador_paineis/dimensionamento
+```
+
+Cobertura relevante: `test_disposicao_componentes.py`, `test_dimensionamento_mecanico_service.py`, `test_dimensionamento_api_views.py`, `disposicaoComponentes.test.ts`, `WizardDimensionamentoMecanicoPanel` (via hooks/painéis).
 
 ## A documentar
 

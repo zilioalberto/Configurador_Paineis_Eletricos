@@ -13,7 +13,7 @@ import {
 import type { ComposicaoItem, ComposicaoSnapshot, SugestaoItem } from '../types/composicao'
 
 const COMPOSICAO_AUTO_GERAR_DEDUP_MS = 800
-let composicaoAutoGerarDedup: { projetoId: string; at: number } | null = null
+let composicaoAutoGerarDedup: { projetoId: string; key: string; at: number } | null = null
 
 type ToastFn = (input: {
   variant: 'success' | 'danger' | 'warning'
@@ -35,6 +35,8 @@ type Params = {
   setAprovandoTodas: (v: boolean) => void
   setItemReabrir: (v: ComposicaoItem | null) => void
   itemReabrir: ComposicaoItem | null
+  autoGerarKey?: string
+  filtrarSugestaoAprovar?: (sugestao: SugestaoItem) => boolean
 }
 
 /** Ações da página de composição (gerar, aprovar, exportar, reabrir). */
@@ -52,6 +54,8 @@ export function useComposicaoPageActions({
   setAprovandoTodas,
   setItemReabrir,
   itemReabrir,
+  autoGerarKey = 'default',
+  filtrarSugestaoAprovar,
 }: Params) {
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
   const gerarMutateAsyncRef = useRef(gerarMutation.mutateAsync)
@@ -103,7 +107,7 @@ export function useComposicaoPageActions({
   useEffect(() => {
     jaDisparouAutoGerarRef.current = false
     setAutoGerando(false)
-  }, [projetoId])
+  }, [projetoId, autoGerarKey])
 
   const snapshotCarregado = !loadingSnap && !isError && snapshot != null
 
@@ -114,12 +118,13 @@ export function useComposicaoPageActions({
     const now = Date.now()
     if (
       composicaoAutoGerarDedup?.projetoId === projetoId &&
+      composicaoAutoGerarDedup?.key === autoGerarKey &&
       now - composicaoAutoGerarDedup.at < COMPOSICAO_AUTO_GERAR_DEDUP_MS
     ) {
       jaDisparouAutoGerarRef.current = true
       return
     }
-    composicaoAutoGerarDedup = { projetoId, at: now }
+    composicaoAutoGerarDedup = { projetoId, key: autoGerarKey, at: now }
     jaDisparouAutoGerarRef.current = true
 
     let cancelled = false
@@ -149,7 +154,7 @@ export function useComposicaoPageActions({
     }
     // Usar flag booleana evita reexecutar/cancelar quando o snapshot é atualizado
     // após a geração (nova referência de objeto), o que deixava o botão em "Gerando…".
-  }, [projetoId, podeEditar, snapshotCarregado, notificarResultadoGeracao, showToast])
+  }, [projetoId, podeEditar, snapshotCarregado, notificarResultadoGeracao, showToast, autoGerarKey])
 
   const onReavaliarPendencias = useCallback(async () => {
     if (!projetoId || !podeEditar) return
@@ -225,10 +230,13 @@ export function useComposicaoPageActions({
   }, [itemReabrir, podeEditar, reabrirComposicaoItemMutation, showToast, setItemReabrir])
 
   const onAprovarTodas = useCallback(async () => {
-    if (!podeEditar || !snapshot || snapshot.sugestoes.length === 0) return
+    const sugestoesParaAprovar = snapshot?.sugestoes.filter(
+      filtrarSugestaoAprovar ?? (() => true)
+    ) ?? []
+    if (!podeEditar || sugestoesParaAprovar.length === 0) return
     try {
       setAprovandoTodas(true)
-      for (const sugestao of snapshot.sugestoes) {
+      for (const sugestao of sugestoesParaAprovar) {
         await aprovarMutation.mutateAsync({ sugestaoId: sugestao.id, produtoId: null })
       }
       showToast({ variant: 'success', message: 'Todas as sugestões foram aprovadas.' })
@@ -242,7 +250,14 @@ export function useComposicaoPageActions({
     } finally {
       setAprovandoTodas(false)
     }
-  }, [aprovarMutation, podeEditar, showToast, snapshot, setAprovandoTodas])
+  }, [
+    aprovarMutation,
+    filtrarSugestaoAprovar,
+    podeEditar,
+    showToast,
+    snapshot?.sugestoes,
+    setAprovandoTodas,
+  ])
 
   const executarExportacao = useCallback(
     async (fmt: 'pdf' | 'xlsx') => {

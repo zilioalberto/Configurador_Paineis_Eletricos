@@ -19,8 +19,19 @@ Consolidar os itens do painel (quantidades, referências de produto) para orçam
 - **Models:** itens de composição, vínculo com cargas/produtos
 - **Services:**
   - `services/sugestoes/` — execução por carga, minidisjuntor, etc.
+  - `acessorios_cabos` — cabos, terminais, suportes e etiquetas por condutor aprovado
   - `reprocessar_composicao_carga` — reprocessamento
   - Orquestrador de pendências (testes em `test_orquestrador_pendencias.py`)
+
+### Sugestão de cabos (PE)
+
+| Condutor | Tipo cabo | Cor |
+|----------|-----------|-----|
+| Fase / comando / sinal | conforme classificação do circuito | Preto (potência) |
+| Neutro | potência | Azul |
+| PE / terra | aterramento (fallback: potência) | **Verde/Amarelo** (`VERDE_AMARELO`) |
+
+O catálogo grava a cor canônica `VERDE_AMARELO` (rótulo **Verde/Amarelo**). Variantes legadas (`verde/amarelo`, `VERDE/AMARELO`) são normalizadas em `apps/catalogo/utils/cor_cabo.py` e aceitas na busca (`selecionar_cabos`).
 
 ## Frontend
 

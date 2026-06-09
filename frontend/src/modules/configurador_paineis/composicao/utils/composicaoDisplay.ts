@@ -19,6 +19,17 @@ export const LEGENDA_PAPEL_PAINEL_GERAL = '—'
 
 /** Itens de painel geral (ex.: seccionamento, disjuntor geral) sem `carga` associada. */
 export const CHAVE_AGRUPAMENTO_SEM_TAG = '__sem_tag__'
+const INDICE_ESCOPO_INICIAL_ACESSORIO_BORNE = 100
+const CATEGORIAS_COMPOSICAO_FINAL = new Set([
+  'CABO',
+  'TERMINAIS',
+  'IDENTIFICACAO',
+  'CANALETA',
+  'TRILHO_DIN',
+  'ACESSORIOS_GERAIS',
+])
+
+export type EtapaComposicaoPainel = 'composicao' | 'composicao_final'
 
 /** Descrição na coluna «Descrição» para itens GDBT sem carga vinculada. */
 export function textoDescricaoItemPainelSemCarga(
@@ -236,6 +247,39 @@ export type GrupoItensPorTag<T> = {
   tituloTag: string
   carga: CargaDetalhe | null
   itens: T[]
+}
+
+export function isAcessorioBorneComposicao(item: {
+  categoria_produto?: string | null
+  parte_painel?: string | null
+  indice_escopo?: number | null
+  memoria_calculo?: string | null
+}): boolean {
+  if (item.categoria_produto !== 'BORNE') return false
+  if (item.parte_painel !== 'BORNES') return false
+  if (typeof item.indice_escopo === 'number') {
+    return item.indice_escopo >= INDICE_ESCOPO_INICIAL_ACESSORIO_BORNE
+  }
+  return (item.memoria_calculo ?? '').startsWith('[ACESSORIO REGUA')
+}
+
+export function isItemComposicaoFinal(item: { categoria_produto?: string | null }): boolean {
+  return CATEGORIAS_COMPOSICAO_FINAL.has(item.categoria_produto ?? '')
+}
+
+export function itemPertenceEtapaComposicao(
+  item: { categoria_produto?: string | null },
+  etapa: EtapaComposicaoPainel
+): boolean {
+  const composicaoFinal = isItemComposicaoFinal(item)
+  return etapa === 'composicao_final' ? composicaoFinal : !composicaoFinal
+}
+
+export function filtrarItensPorEtapaComposicao<T extends { categoria_produto?: string | null }>(
+  itens: T[],
+  etapa: EtapaComposicaoPainel
+): T[] {
+  return itens.filter((item) => itemPertenceEtapaComposicao(item, etapa))
 }
 
 function tituloGrupoPainelGeral(opts?: AgruparPorTagCargaOpts): string {

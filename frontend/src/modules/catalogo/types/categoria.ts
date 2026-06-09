@@ -36,6 +36,7 @@ export type CategoriaProdutoNome =
   | 'CLIMATIZACAO'
   | 'IDENTIFICACAO'
   | 'TERMINAIS'
+  | 'ACESSORIOS_GERAIS'
   | 'OUTROS'
   | 'SEM_REGRA_SUGESTAO_AUTOMATICA'
 

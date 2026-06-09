@@ -42,6 +42,15 @@ from apps.configurador_paineis.composicao_painel.services.sugestoes.reles_interf
 from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes import (
     gerar_sugestoes_bornes,
 )
+from apps.configurador_paineis.composicao_painel.services.sugestoes.acessorios_cabos import (
+    gerar_sugestoes_acessorios_cabos,
+)
+from apps.configurador_paineis.composicao_painel.services.sugestoes.mecanica_estrutura import (
+    gerar_sugestoes_mecanica_estrutura,
+)
+from apps.configurador_paineis.composicao_painel.services.sugestoes.acessorios_gerais import (
+    gerar_sugestao_acessorios_gerais,
+)
 from apps.configurador_paineis.composicao_painel.services.sugestoes.pendencias_sem_regra import (
     sincronizar_pendencias_cargas_sem_regra_catalogo,
 )
@@ -309,6 +318,9 @@ def montar_etapas_geracao(projeto):
     # Bornes: motores (conexão a bornes), válvulas, sensores, etc. — a etapa aplica
     # regras por carga em ``gerar_sugestoes_bornes``; não depender só de válvula.
     etapas.append(("BORNES", gerar_sugestoes_bornes))
+    etapas.append(("ACESSORIOS_CABOS", gerar_sugestoes_acessorios_cabos))
+    etapas.append(("MECANICA_ESTRUTURA", gerar_sugestoes_mecanica_estrutura))
+    etapas.append(("ACESSORIOS_GERAIS", gerar_sugestao_acessorios_gerais))
 
     print("[ORQUESTRADOR] Etapas montadas:")
     for nome_etapa, _ in etapas:

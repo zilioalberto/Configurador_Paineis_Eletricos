@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   em,
+  filtrarItensPorEtapaComposicao,
   formatNumeroFasesCarga,
   formatPotenciaCarga,
+  isItemComposicaoFinal,
   LEGENDA_DESCR_PROTECAO_GERAL,
   LEGENDA_DESCR_SECCIONAMENTO,
   montarNomeArquivoProjeto,
@@ -49,5 +51,33 @@ describe('composicaoDisplay', () => {
     expect(textoDescricaoItemPainelSemCarga('PROTECAO_GERAL')).toBe(
       LEGENDA_DESCR_PROTECAO_GERAL
     )
+  })
+
+  it('separa itens da composição normal e da composição final por categoria', () => {
+    const itens = [
+      { id: 'contatora', categoria_produto: 'CONTATORA' },
+      { id: 'borne-tampa', categoria_produto: 'BORNE' },
+      { id: 'cabo', categoria_produto: 'CABO' },
+      { id: 'terminal', categoria_produto: 'TERMINAIS' },
+      { id: 'identificacao', categoria_produto: 'IDENTIFICACAO' },
+      { id: 'canaleta', categoria_produto: 'CANALETA' },
+      { id: 'trilho', categoria_produto: 'TRILHO_DIN' },
+      { id: 'kit', categoria_produto: 'ACESSORIOS_GERAIS' },
+    ]
+
+    expect(isItemComposicaoFinal({ categoria_produto: 'CABO' })).toBe(true)
+    expect(isItemComposicaoFinal({ categoria_produto: 'BORNE' })).toBe(false)
+    expect(filtrarItensPorEtapaComposicao(itens, 'composicao').map((i) => i.id)).toEqual([
+      'contatora',
+      'borne-tampa',
+    ])
+    expect(filtrarItensPorEtapaComposicao(itens, 'composicao_final').map((i) => i.id)).toEqual([
+      'cabo',
+      'terminal',
+      'identificacao',
+      'canaleta',
+      'trilho',
+      'kit',
+    ])
   })
 })
