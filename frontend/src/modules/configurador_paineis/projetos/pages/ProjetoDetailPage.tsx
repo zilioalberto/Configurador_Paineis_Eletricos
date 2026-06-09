@@ -228,6 +228,20 @@ function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
       </div>
 
       <div className="col-md-3">
+        <strong>Possui disjuntor geral</strong>
+        <div>{booleanLabel(projeto.possui_disjuntor_geral)}</div>
+      </div>
+
+      <div className="col-md-3">
+        <strong>Tipo de disjuntor geral</strong>
+        <div>
+          {projeto.tipo_disjuntor_geral_display ??
+            projeto.tipo_disjuntor_geral ??
+            '-'}
+        </div>
+      </div>
+
+      <div className="col-md-3">
         <strong>Criado em</strong>
         <div>{projeto.criado_em ?? '-'}</div>
       </div>

@@ -11,7 +11,9 @@ const ItensFiscaisListPage = lazy(() => import('./pages/ItensFiscaisListPage'))
 const NfesRecebidasListPage = lazy(() => import('./pages/NfesRecebidasListPage'))
 const NfeRecebidaDetailPage = lazy(() => import('./pages/NfeRecebidaDetailPage'))
 const NfeImportarManualPage = lazy(() => import('./pages/NfeImportarManualPage'))
+const NfeEmitidaImportarPage = lazy(() => import('./pages/NfeEmitidaImportarPage'))
 const ControleNsuPage = lazy(() => import('./pages/ControleNsuPage'))
+const RelatorioNfesPage = lazy(() => import('./pages/RelatorioNfesPage'))
 
 function withPermission(permission: string, element: ReactElement): ReactElement {
   return <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -40,8 +42,16 @@ export const fiscalRoutes: ModuleRouteConfig[] = [
     element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <NfesRecebidasListPage />),
   },
   {
+    path: '/fiscal/relatorios/nfes',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA, <RelatorioNfesPage />),
+  },
+  {
     path: '/fiscal/nfes/importar',
     element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <NfeImportarManualPage />),
+  },
+  {
+    path: '/fiscal/nfes-emitidas/importar',
+    element: withPermission(PERMISSION_KEYS.MATERIAL_EDITAR_LISTA, <NfeEmitidaImportarPage />),
   },
   {
     path: '/fiscal/nfes/:id',

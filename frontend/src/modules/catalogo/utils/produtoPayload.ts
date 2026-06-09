@@ -35,6 +35,7 @@ export function produtoFormToApiPayload(
   const codigo = data.codigo.trim()
   const refFab = data.referencia_fabricante.trim()
   const fabPar = data.fabricante_parceiro.trim()
+  const fornPar = data.fornecedor_parceiro.trim()
 
   const base: Record<string, unknown> = {
     codigo,
@@ -44,6 +45,7 @@ export function produtoFormToApiPayload(
     preco_base: num(data.preco_base),
     aliquota_ipi: decNullablePercent(data.aliquota_ipi),
     fabricante_parceiro: fabPar || null,
+    fornecedor_parceiro: fornPar || null,
     fabricante: data.fabricante.trim(),
     referencia_fabricante: refFab || codigo,
     largura_mm: dec(data.largura_mm),
@@ -58,6 +60,18 @@ export function produtoFormToApiPayload(
     base[specKey] = data.especificacao
       ? especFormParaPayload(data.especificacao, nome)
       : {}
+  }
+
+  if (nome === 'BORNE') {
+    base.acessorios_compativeis = data.acessorios_compativeis
+      .filter((row) => row.acessorio.trim() && row.tipo_acessorio.trim())
+      .map((row) => ({
+        acessorio: row.acessorio.trim(),
+        tipo_acessorio: row.tipo_acessorio.trim(),
+        quantidade_padrao: dec(row.quantidade_padrao) ?? '1.00',
+        prioridade: Number.isFinite(Number(row.prioridade)) ? Number(row.prioridade) : 0,
+        observacoes: row.observacoes.trim(),
+      }))
   }
 
   return base

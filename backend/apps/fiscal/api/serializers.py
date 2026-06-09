@@ -23,6 +23,7 @@ class ItemFiscalProdutoListSerializer(serializers.ModelSerializer):
             "ordem",
             "rotulo",
             "cfop",
+            "objetivo_entrada",
             "origem_mercadoria",
             "cst_icms",
             "csosn",

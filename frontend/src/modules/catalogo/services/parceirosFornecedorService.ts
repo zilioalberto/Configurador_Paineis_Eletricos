@@ -19,7 +19,7 @@ function normalizeList(data: unknown): ParceiroFornecedorOption[] {
   return []
 }
 
-/** Fornecedores ativos (mesmo universo do FK `fabricante_parceiro` no produto). */
+/** Fornecedores ativos usados nos vínculos de fabricante e fornecedor do produto. */
 export async function listarFornecedoresAtivos(): Promise<ParceiroFornecedorOption[]> {
   const response = await apiClient.get<unknown>('/cadastros/parceiros/', {
     params: { tipo: 'fornecedor', ativo: '1', page_size: 500 },

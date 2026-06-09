@@ -321,6 +321,7 @@ class TestNfeCatalogoApi:
                 "criar_fornecedor": True,
                 "categoria_padrao": CategoriaProdutoNomeChoices.OUTROS,
                 "fabricante_padrao": "",
+                "objetivo_entrada": "INDUSTRIALIZACAO",
                 "itens": [{"n_item": 1, "importar": True}],
             },
             format="json",
@@ -331,10 +332,12 @@ class TestNfeCatalogoApi:
         assert "FAB-001" in body["produtos_criados"]
         fornecedor = ParceiroComercial.objects.get(documento="12345678000199")
         produto = Produto.objects.get(codigo="FAB-001")
+        assert produto.fornecedor_parceiro == fornecedor
         assert produto.fabricante_parceiro == fornecedor
         assert produto.fabricante == fornecedor.razao_social.upper()
         assert produto.origem_mercadoria == "0"
         item = ItemFiscalProduto.objects.get(produto=produto)
+        assert item.objetivo_entrada == "INDUSTRIALIZACAO"
         assert item.cfop == "5102"
         assert item.cst_icms == "00"
         assert item.n_item_nfe == 1
@@ -398,6 +401,9 @@ class TestNfeCatalogoApi:
         assert body["fornecedor_criado"] is True
         produto = Produto.objects.get(codigo="FAB-001")
         assert produto.categoria == CategoriaProdutoNomeChoices.CABO
+        assert produto.fornecedor_parceiro == ParceiroComercial.objects.get(
+            documento="12345678000199"
+        )
         assert produto.fabricante_parceiro == ParceiroComercial.objects.get(
             documento="12345678000199"
         )
@@ -439,9 +445,53 @@ class TestNfeCatalogoApi:
         assert body["fornecedor_id"] == str(fornecedor.id)
         assert body["fornecedor_ids"] == [str(fornecedor.id)]
         produto = Produto.objects.get(codigo="FAB-001")
+        assert produto.fornecedor_parceiro == fornecedor
         assert produto.fabricante_parceiro == fornecedor
         assert produto.fabricante == fornecedor.razao_social.upper()
         assert not ParceiroComercial.objects.filter(documento="12345678000199").exists()
+
+    def test_aplicar_permitem_fabricante_diferente_por_item(self, admin_client):
+        client, _ = admin_client
+        fornecedor = ParceiroComercial.objects.create(
+            documento="11222333000144",
+            razao_social="Fornecedor Alternativo LTDA",
+            eh_fornecedor=True,
+        )
+        fabricante = ParceiroComercial.objects.create(
+            documento="55666777000188",
+            razao_social="Fabricante Dedicado LTDA",
+            eh_fornecedor=True,
+        )
+        prev = client.post(
+            reverse("catalogo-nfe-preview"),
+            {"arquivo": SimpleUploadedFile("nf.xml", XML_MINIMO, content_type="application/xml")},
+            format="multipart",
+        )
+        snapshot = prev.json()["snapshot"]
+
+        r = client.post(
+            reverse("catalogo-nfe-aplicar"),
+            {
+                "snapshot": snapshot,
+                "fabricante_padrao": "",
+                "itens": [
+                    {
+                        "n_item": 1,
+                        "importar": True,
+                        "fornecedor_id": str(fornecedor.id),
+                        "fabricante_id": str(fabricante.id),
+                        "categoria_catalogo": CategoriaProdutoNomeChoices.CABO,
+                    }
+                ],
+            },
+            format="json",
+        )
+
+        assert r.status_code == 200
+        produto = Produto.objects.get(codigo="FAB-001")
+        assert produto.fornecedor_parceiro == fornecedor
+        assert produto.fabricante_parceiro == fabricante
+        assert produto.fabricante == fabricante.razao_social.upper()
 
     def test_aplicar_exige_categoria_para_item_marcado(self, admin_client):
         client, _ = admin_client

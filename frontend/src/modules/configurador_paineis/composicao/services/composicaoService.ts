@@ -120,7 +120,7 @@ function dispararDownloadBlob(blob: Blob, nome: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** Lista completa: composição aprovada, inclusões manuais e pendências (.xlsx). */
+/** Lista completa: composição aprovada, sugestões finais, inclusões manuais e pendências (.xlsx). */
 export async function exportarComposicaoListaXlsx(
   projetoId: string,
   nomeProjeto?: string
@@ -136,7 +136,7 @@ export async function exportarComposicaoListaXlsx(
   dispararDownloadBlob(res.data, nome)
 }
 
-/** Mesma listagem em PDF (inclui pendências). */
+/** Mesma listagem em PDF: composição aprovada, sugestões finais, inclusões manuais e pendências. */
 export async function exportarComposicaoListaPdf(
   projetoId: string,
   nomeProjeto?: string

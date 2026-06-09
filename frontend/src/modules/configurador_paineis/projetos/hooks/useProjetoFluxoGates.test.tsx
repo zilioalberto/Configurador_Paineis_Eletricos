@@ -7,6 +7,7 @@ import { useProjetoFluxoGates } from './useProjetoFluxoGates'
 
 const useCargaListQueryMock = vi.hoisted(() => vi.fn())
 const useDimensionamentoQueryMock = vi.hoisted(() => vi.fn())
+const useComposicaoSnapshotQueryMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/modules/configurador_paineis/cargas/hooks/useCargaListQuery', () => ({
   useCargaListQuery: () => useCargaListQueryMock(),
@@ -14,6 +15,10 @@ vi.mock('@/modules/configurador_paineis/cargas/hooks/useCargaListQuery', () => (
 
 vi.mock('@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery', () => ({
   useDimensionamentoQuery: () => useDimensionamentoQueryMock(),
+}))
+
+vi.mock('@/modules/configurador_paineis/composicao/hooks/useComposicaoSnapshotQuery', () => ({
+  useComposicaoSnapshotQuery: () => useComposicaoSnapshotQueryMock(),
 }))
 
 function createClient() {
@@ -28,6 +33,11 @@ describe('useProjetoFluxoGates', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useCargaListQueryMock.mockReturnValue({ data: [{ id: 'c1' }], isPending: false })
+    useComposicaoSnapshotQueryMock.mockReturnValue({
+      data: { totais: { composicao_itens: 0 } },
+      isPending: false,
+    })
+    useDimensionamentoQueryMock.mockReturnValue({ data: null, isPending: false })
   })
 
   it('libera composição quando todos os condutores foram aprovados linha a linha', () => {
@@ -64,5 +74,37 @@ describe('useProjetoFluxoGates', () => {
 
     expect(result.current.condutoresRevisaoOk).toBe(false)
     expect(result.current.podeAcessarComposicao).toBe(false)
+  })
+
+  it('libera dimensionamento mecânico quando há itens aprovados na composição', () => {
+    useComposicaoSnapshotQueryMock.mockReturnValue({
+      data: { totais: { composicao_itens: 2 } },
+      isPending: false,
+    })
+
+    const { result } = renderHook(() => useProjetoFluxoGates('p1'), {
+      wrapper: (props) => wrapper(createClient(), props.children),
+    })
+
+    expect(result.current.composicaoComItens).toBe(true)
+    expect(result.current.podeAcessarDimensionamentoMecanico).toBe(true)
+  })
+
+  it('libera composição final somente após layout mecânico salvo', () => {
+    useDimensionamentoQueryMock.mockReturnValue({
+      data: {
+        detalhe_dimensionamento_mecanico: {
+          layout_placa: { trilhos_din: [], canaletas_verticais: [], canaletas_horizontais: [] },
+        },
+      },
+      isPending: false,
+    })
+
+    const { result } = renderHook(() => useProjetoFluxoGates('p1'), {
+      wrapper: (props) => wrapper(createClient(), props.children),
+    })
+
+    expect(result.current.dimensionamentoMecanicoCalculado).toBe(true)
+    expect(result.current.podeAcessarComposicaoFinal).toBe(true)
   })
 })

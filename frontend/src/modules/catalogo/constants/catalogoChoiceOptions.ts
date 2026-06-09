@@ -93,6 +93,57 @@ export const tipoBorneCatalogoOptions = [
   { value: 'SECCIONAVEL', label: 'Seccionável' },
   { value: 'SENSOR', label: 'Sensor' },
   { value: 'AFERICAO', label: 'Borne de aferição' },
+  { value: 'TAMPA', label: 'Tampa' },
+  { value: 'POSTE', label: 'Poste' },
+  { value: 'JUMPER', label: 'Jumper' },
+] as const
+
+/** `TipoTerminalChoices` — catálogo de terminais. */
+export const tipoTerminalCatalogoOptions = [
+  { value: 'TUBULAR', label: 'Tubular' },
+  { value: 'OLHAL_PRE_ISOLADO', label: 'Olhal pré-isolado' },
+  { value: 'OLHAL_NAO_ISOLADO', label: 'Olhal não isolado' },
+] as const
+
+/** `FuroTerminalOlhalChoices` — furos de terminais olhal. */
+export const furoTerminalOlhalOptions = [
+  { value: 'M4', label: 'M4' },
+  { value: 'M5', label: 'M5' },
+  { value: 'M6', label: 'M6' },
+  { value: 'M8', label: 'M8' },
+  { value: 'M10', label: 'M10' },
+  { value: 'M12', label: 'M12' },
+] as const
+
+/** `TipoIdentificacaoChoices` — catálogo de identificação. */
+export const tipoIdentificacaoCatalogoOptions = [
+  { value: 'SUPORTE_LUVA_CABO', label: 'Suporte/luva para cabo' },
+  { value: 'ETIQUETA_CABO', label: 'Etiqueta de identificação de cabo' },
+  { value: 'ADESIVO_ALERTA', label: 'Adesivo de alerta' },
+  { value: 'ADESIVO_TENSAO', label: 'Adesivo de tensão' },
+  { value: 'FAIXA_IDENTIFICACAO', label: 'Faixa de identificação' },
+  { value: 'PLAQUETA_IDENTIFICACAO', label: 'Plaqueta de identificação' },
+] as const
+
+/** `TamanhoPlaquetaIdentificacaoChoices`. */
+export const tamanhoPlaquetaIdentificacaoOptions = [
+  { value: 'PEQUENA', label: 'Pequena' },
+  { value: 'GRANDE', label: 'Grande' },
+] as const
+
+/** `TipoAcessorioGeralChoices`. */
+export const tipoAcessorioGeralOptions = [
+  { value: 'KIT_MONTAGEM', label: 'Kit de montagem' },
+  { value: 'CONSUMIVEIS', label: 'Consumíveis de montagem' },
+  { value: 'DIVERSOS', label: 'Diversos de montagem' },
+] as const
+
+/** `PortePainelAcessoriosChoices`. */
+export const portePainelAcessoriosOptions = [
+  { value: 'PEQUENO', label: 'Pequeno' },
+  { value: 'MEDIO', label: 'Médio' },
+  { value: 'GRANDE', label: 'Grande' },
+  { value: 'EXTRA_GRANDE', label: 'Extra grande' },
 ] as const
 
 /** IHM (e equivalente a tensão botão/chave): 24, 110, 220 V. */

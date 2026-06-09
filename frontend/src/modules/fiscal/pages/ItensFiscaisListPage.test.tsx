@@ -24,6 +24,7 @@ function fiscalRow(overrides: Partial<ItemFiscalProdutoListRow> = {}): ItemFisca
     ordem: 1,
     rotulo: '',
     cfop: '',
+    objetivo_entrada: 'OUTRAS_ENTRADAS',
     origem_mercadoria: null,
     cst_icms: '',
     csosn: '',

@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('projetos', '0001_initial'),
+        ('projetos', '0003_rename_projeto_configurador'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 ('quantidade_saidas_digitais', models.PositiveIntegerField(default=0)),
                 ('quantidade_saidas_analogicas', models.PositiveIntegerField(default=0)),
                 ('quantidade_entradas_rapidas', models.PositiveIntegerField(default=0)),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cargas', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cargas', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Carga',

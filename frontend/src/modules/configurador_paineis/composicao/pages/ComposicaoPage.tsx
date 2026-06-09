@@ -7,6 +7,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { projetoPermiteEdicaoCargas } from '@/modules/configurador_paineis/cargas/utils/projetoEdicaoCargas'
 import { useDimensionamentoQuery } from '@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamentoQuery'
+import { ProjetoFluxoStepper } from '@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper'
 import { useProjetoFluxoGates } from '@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates'
 import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hooks/useProjetoListQuery'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
@@ -20,7 +21,12 @@ import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQu
 import { useComposicaoPageActions, useComposicaoProjetoChange } from '../hooks/useComposicaoPageActions'
 import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
 import type { ComposicaoItem, SugestaoItem } from '../types/composicao'
-import { agruparPorTagCarga } from '../utils/composicaoDisplay'
+import {
+  agruparPorTagCarga,
+  filtrarItensPorEtapaComposicao,
+  isAcessorioBorneComposicao,
+  itemPertenceEtapaComposicao,
+} from '../utils/composicaoDisplay'
 
 type ComposicaoExportFormat = 'pdf' | 'xlsx'
 
@@ -105,25 +111,25 @@ function ComposicaoRetornoOrcamentoMonitor({
           </label>
           <input id="comp-monitor-vinculo" className="form-control form-control-sm" value={vinculoId} readOnly />
         </div>
-        <div className="col-6 col-lg-2">
+        <div className="col-12 col-sm-6 col-lg-2">
           <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-snapshot">
             Snapshot carregado
           </label>
           <input id="comp-monitor-snapshot" className="form-control form-control-sm" value={statusSimNao(snapshotCarregado)} readOnly />
         </div>
-        <div className="col-6 col-lg-2">
+        <div className="col-12 col-sm-6 col-lg-2">
           <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-pendencias">
             Pendências
           </label>
           <input id="comp-monitor-pendencias" className="form-control form-control-sm" value={pendenciasAbertas} readOnly />
         </div>
-        <div className="col-6 col-lg-2">
+        <div className="col-12 col-sm-6 col-lg-2">
           <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-sugestoes">
             Sugestões pendentes
           </label>
           <input id="comp-monitor-sugestoes" className="form-control form-control-sm" value={sugestoesPendentes} readOnly />
         </div>
-        <div className="col-6 col-lg-2">
+        <div className="col-12 col-sm-6 col-lg-2">
           <label className="form-label small text-muted mb-1" htmlFor="comp-monitor-sincronizando">
             Sincronizando
           </label>
@@ -159,6 +165,8 @@ export default function ComposicaoPage() {
   const projetoId = searchParams.get('projeto') ?? ''
   const orcamentoId = searchParams.get('orcamento') ?? ''
   const vinculoId = searchParams.get('vinculo') ?? ''
+  const etapaFluxo = searchParams.get('etapa') === 'composicao_final' ? 'composicao_final' : 'composicao'
+  const composicaoFinal = etapaFluxo === 'composicao_final'
   const { showToast } = useToast()
 
   const [alterarSugestao, setAlterarSugestao] = useState<SugestaoItem | null>(null)
@@ -189,6 +197,10 @@ export default function ComposicaoPage() {
   const canViewCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA)
   const canViewDimensionamento = hasPermission(user, PERMISSION_KEYS.PROJETO_VISUALIZAR)
   const podeEditar = projetoPermiteEdicaoCargas(projetoSelecionado) && canSepararMaterial
+  const filtrarSugestaoEtapaAtual = useCallback(
+    (sugestao: SugestaoItem) => itemPertenceEtapaComposicao(sugestao, etapaFluxo),
+    [etapaFluxo]
+  )
 
   const actions = useComposicaoPageActions({
     projetoId,
@@ -204,6 +216,8 @@ export default function ComposicaoPage() {
     setAprovandoTodas,
     setItemReabrir,
     itemReabrir,
+    autoGerarKey: etapaFluxo,
+    filtrarSugestaoAprovar: filtrarSugestaoEtapaAtual,
   })
 
   const {
@@ -233,7 +247,18 @@ export default function ComposicaoPage() {
 
   const onProjetoChange = useComposicaoProjetoChange(setSearchParams)
 
-  const composicaoItens = useMemo(() => snapshot?.composicao_itens ?? [], [snapshot?.composicao_itens])
+  const composicaoItens = useMemo(
+    () => filtrarItensPorEtapaComposicao(snapshot?.composicao_itens ?? [], etapaFluxo),
+    [etapaFluxo, snapshot?.composicao_itens]
+  )
+  const sugestoesEtapa = useMemo(
+    () => filtrarItensPorEtapaComposicao(snapshot?.sugestoes ?? [], etapaFluxo),
+    [etapaFluxo, snapshot?.sugestoes]
+  )
+  const pendenciasEtapa = useMemo(
+    () => filtrarItensPorEtapaComposicao(snapshot?.pendencias ?? [], etapaFluxo),
+    [etapaFluxo, snapshot?.pendencias]
+  )
   const optsAgrupamento = useMemo(
     () => ({ correnteTotalPainelA: dimensionamento?.corrente_total_painel_a ?? null }),
     [dimensionamento?.corrente_total_painel_a]
@@ -242,22 +267,37 @@ export default function ComposicaoPage() {
     () => agruparPorTagCarga(composicaoItens, optsAgrupamento),
     [composicaoItens, optsAgrupamento]
   )
+  const sugestoesPrincipais = useMemo(
+    () => sugestoesEtapa.filter((s) => !isAcessorioBorneComposicao(s)),
+    [sugestoesEtapa]
+  )
+  const sugestoesAcessoriosBornes = useMemo(
+    () => sugestoesEtapa.filter(isAcessorioBorneComposicao),
+    [sugestoesEtapa]
+  )
   const gruposSugestoes = useMemo(
-    () => agruparPorTagCarga(snapshot?.sugestoes ?? [], optsAgrupamento),
-    [snapshot?.sugestoes, optsAgrupamento]
+    () => agruparPorTagCarga(sugestoesPrincipais, optsAgrupamento),
+    [sugestoesPrincipais, optsAgrupamento]
+  )
+  const gruposAcessoriosBornes = useMemo(
+    () => agruparPorTagCarga(sugestoesAcessoriosBornes, optsAgrupamento),
+    [sugestoesAcessoriosBornes, optsAgrupamento]
   )
   const gruposPendencias = useMemo(
-    () => agruparPorTagCarga(snapshot?.pendencias ?? [], optsAgrupamento),
-    [snapshot?.pendencias, optsAgrupamento]
+    () => agruparPorTagCarga(pendenciasEtapa, optsAgrupamento),
+    [pendenciasEtapa, optsAgrupamento]
   )
   const gruposMemorialCalculos = useMemo(() => {
     const comMemoria =
-      snapshot?.sugestoes.filter((s) => (s.memoria_calculo ?? '').trim() !== '') ?? []
+      sugestoesEtapa.filter((s) => (s.memoria_calculo ?? '').trim() !== '')
     return agruparPorTagCarga(comMemoria, optsAgrupamento)
-  }, [snapshot?.sugestoes, optsAgrupamento])
-  const pendenciasAbertas = snapshot?.pendencias.length ?? snapshot?.totais.pendencias ?? 0
-  const sugestoesPendentes = snapshot?.sugestoes.length ?? snapshot?.totais.sugestoes ?? 0
+  }, [sugestoesEtapa, optsAgrupamento])
+  const pendenciasAbertas = pendenciasEtapa.length
+  const sugestoesPendentes = sugestoesEtapa.length
   const fluxoVinculadoOrcamento = Boolean(orcamentoId && vinculoId)
+  const composicaoAtualPath = composicaoFinal
+    ? configuradorPaths.composicaoFinal(projetoId)
+    : configuradorPaths.composicao(projetoId)
   const podeRetornarOrcamento = Boolean(
     orcamentoId && vinculoId && snapshot && pendenciasAbertas === 0 && sugestoesPendentes === 0
   )
@@ -322,7 +362,7 @@ export default function ComposicaoPage() {
           <>
             <Link
               to={`${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(
-                withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)
+                withFluxoOrigem(composicaoAtualPath, searchParams)
               )}`}
               className="btn btn-outline-light btn-sm"
             >
@@ -343,6 +383,17 @@ export default function ComposicaoPage() {
             >
               Editar condutores
             </Link>
+            {fluxoGates.podeAcessarDimensionamentoMecanico ? (
+              <Link
+                to={withFluxoOrigem(
+                  configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico'),
+                  searchParams
+                )}
+                className="btn btn-success btn-sm"
+              >
+                {composicaoFinal ? 'Revisar mecânico' : 'Dimensionamento mecânico'}
+              </Link>
+            ) : null}
           </>
         ) : null}
         {fluxoVinculadoOrcamento ? (
@@ -360,7 +411,7 @@ export default function ComposicaoPage() {
           type="button"
           className="btn btn-outline-light btn-sm"
           disabled={!projetoId || exportando !== null}
-          title="Composição aprovada, inclusões manuais e pendências de catálogo"
+          title="Lista completa do painel, incluindo composição final, inclusões manuais e pendências"
           onClick={() => onExportLista('xlsx')}
         >
           {exportando === 'xlsx' ? 'Excel…' : 'Excel'}
@@ -369,7 +420,7 @@ export default function ComposicaoPage() {
           type="button"
           className="btn btn-outline-light btn-sm"
           disabled={!projetoId || exportando !== null}
-          title="Composição aprovada, inclusões manuais e pendências de catálogo"
+          title="Lista completa do painel, incluindo composição final, inclusões manuais e pendências"
           onClick={() => onExportLista('pdf')}
         >
           {exportando === 'pdf' ? 'PDF…' : 'PDF'}
@@ -377,7 +428,10 @@ export default function ComposicaoPage() {
       </>
     ),
     [
+      composicaoAtualPath,
+      composicaoFinal,
       exportando,
+      fluxoGates.podeAcessarDimensionamentoMecanico,
       onExportLista,
       onRetornarOrcamento,
       fluxoVinculadoOrcamento,
@@ -391,14 +445,17 @@ export default function ComposicaoPage() {
 
   const toolbarConfig = useMemo(
     () => ({
-      title: 'Composição do painel',
+      title: composicaoFinal ? 'Composição final do painel' : 'Composição do painel',
       subtitle: projetoSelecionado
         ? `${projetoSelecionado.codigo} · ${projetoSelecionado.nome}`
-        : 'Sugestões, aprovações e pendências de materiais',
+        : composicaoFinal
+          ? 'Cabos, terminais, identificações, trilhos DIN, canaletas e acessórios'
+          : 'Sugestões, aprovações e pendências de materiais',
       badges: undefined,
       actions: toolbarActions,
       actionsKey: [
         projetoId,
+        etapaFluxo,
         fluxoVinculadoOrcamento ? 'proposta' : 'fluxo',
         botaoExportarPropostaHabilitado ? 'retorno-ok' : 'retorno-bloqueado',
         sincronizandoOrcamento ? 'sync' : 'idle',
@@ -408,6 +465,8 @@ export default function ComposicaoPage() {
     [
       botaoExportarPropostaHabilitado,
       composicaoItens.length,
+      composicaoFinal,
+      etapaFluxo,
       exportando,
       fluxoVinculadoOrcamento,
       pendenciasAbertas,
@@ -430,9 +489,19 @@ export default function ComposicaoPage() {
       <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'), searchParams)} replace />
     )
   }
+  if (projetoId && composicaoFinal && !fluxoGates.loading && !fluxoGates.podeAcessarComposicaoFinal) {
+    const destino = fluxoGates.podeAcessarDimensionamentoMecanico
+      ? configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico')
+      : configuradorPaths.composicao(projetoId)
+    return <Navigate to={withFluxoOrigem(destino, searchParams)} replace />
+  }
 
   return (
     <div className="container-fluid">
+      {projetoId ? (
+        <ProjetoFluxoStepper projetoId={projetoId} etapaAtual={etapaFluxo} compact />
+      ) : null}
+
       <ConfirmModal
         show={modalComposicao !== null}
         title={modalComposicao?.title ?? ''}
@@ -526,7 +595,12 @@ export default function ComposicaoPage() {
           composicaoItens={composicaoItens}
           gruposComposicaoAprovada={gruposComposicaoAprovada}
           gruposSugestoes={gruposSugestoes}
+          sugestoesPrincipaisCount={sugestoesPrincipais.length}
+          sugestoesVisiveisCount={sugestoesEtapa.length}
+          gruposAcessoriosBornes={gruposAcessoriosBornes}
+          acessoriosBornesCount={sugestoesAcessoriosBornes.length}
           gruposPendencias={gruposPendencias}
+          pendenciasVisiveisCount={pendenciasEtapa.length}
           gruposMemorialCalculos={gruposMemorialCalculos}
           podeEditar={podeEditar}
           canEditarCatalogo={canEditarCatalogo}

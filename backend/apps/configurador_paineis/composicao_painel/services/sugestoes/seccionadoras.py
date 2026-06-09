@@ -1,12 +1,9 @@
-"""Sugestões de seccionamento geral do painel (seccionadora ou disjuntor caixa moldada)."""
+"""Sugestões de seccionamento geral do painel (seccionadora)."""
 
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem, PendenciaItem
 
 from apps.catalogo.selectors.seccionadoras import selecionar_seccionadoras
-from apps.catalogo.selectors.disjuntores_caixa_moldada import (
-    selecionar_disjuntores_caixa_moldada,
-)
 
 from core.choices import (
     PartesPainelChoices,
@@ -160,57 +157,6 @@ def _nucleo_gerar_seccionamento(projeto):
                     "corrente_referencia_a": corrente_total,
                     "memoria_calculo": memoria_calculo,
                     "observacoes": "Tipo de seccionamento selecionado: SECCIONADORA",
-                    "status": StatusPendenciaChoices.ABERTA,
-                    "ordem": 10,
-                },
-            )
-
-            print(
-                f"[SECCIONAMENTO] Pendência criada: id={pendencia.id} | created={created}"
-            )
-            print("=" * 100 + "\n")
-            return None
-
-        produto_selecionado = opcoes_lista[0]
-
-    elif projeto.tipo_seccionamento == "DISJUNTOR_CAIXA_MOLDADA":
-        categoria_produto = CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA
-
-        print("[SECCIONAMENTO] Tipo: DISJUNTOR_CAIXA_MOLDADA")
-        print(f"[SECCIONAMENTO] Corrente total para seleção: {corrente_total} A")
-
-        opcoes = selecionar_disjuntores_caixa_moldada(
-            corrente_nominal=corrente_total,
-        )
-        opcoes_lista = list(opcoes)
-
-        print(
-            f"[SECCIONAMENTO] Quantidade de opções retornadas: {len(opcoes_lista)}"
-        )
-
-        memoria_calculo = (
-            f"[SECCIONAMENTO]\n"
-            f"Tipo: DISJUNTOR CAIXA MOLDADA\n"
-            f"Corrente total do painel: {corrente_total} A\n"
-            f"Critério: menor corrente nominal >= corrente do painel\n"
-            f"Quantidade de opções encontradas: {len(opcoes_lista)}"
-        )
-
-        if not opcoes_lista:
-            descricao = (
-                f"Nenhum disjuntor caixa moldada encontrado para {corrente_total} A."
-            )
-
-            pendencia, created = PendenciaItem.objects.update_or_create(
-                projeto=projeto,
-                parte_painel=PartesPainelChoices.SECCIONAMENTO,
-                categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
-                carga=None,
-                defaults={
-                    "descricao": descricao,
-                    "corrente_referencia_a": corrente_total,
-                    "memoria_calculo": memoria_calculo,
-                    "observacoes": "Tipo de seccionamento selecionado: DISJUNTOR_CAIXA_MOLDADA",
                     "status": StatusPendenciaChoices.ABERTA,
                     "ordem": 10,
                 },

@@ -48,12 +48,15 @@ vi.mock('@/modules/catalogo/components/ProdutoForm', () => ({
   default: ({
     onSubmit,
     loading,
+    lockCategoria,
   }: {
     onSubmit: (data: { codigo: string }) => Promise<void>
     loading?: boolean
+    lockCategoria?: boolean
   }) => (
     <div>
       <span>Form mock {loading ? 'busy' : 'idle'}</span>
+      <span>{lockCategoria ? 'categoria bloqueada' : 'categoria editável'}</span>
       <button type="button" onClick={() => void onSubmit({ codigo: 'X' } as never)}>
         Submeter mock
       </button>
@@ -167,6 +170,7 @@ describe('ProdutoEditPage', () => {
     mutateAsyncMock.mockResolvedValue(undefined)
     renderEdit('/catalogo/produtos/pr1/editar')
     expect(await screen.findByText(/Form mock idle/i)).toBeInTheDocument()
+    expect(screen.getByText(/categoria editável/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Submeter mock/i }))
     await waitFor(() => {
       expect(mutateAsyncMock).toHaveBeenCalled()

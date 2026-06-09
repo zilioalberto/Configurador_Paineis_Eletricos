@@ -9,7 +9,9 @@ import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
 import { fiscalPaths } from '../fiscalPaths'
 import { fiscalQueryKeys } from '../fiscalQueryKeys'
+import { objetivoEntradaOptions } from '../constants/objetivoEntradaOptions'
 import { importarNfeXmlManual } from '../services/fiscalNfeService'
+import type { ObjetivoEntradaFiscal } from '../types/documentoFiscalRecebido'
 
 /** Envio de XML para o armazenamento fiscal (NF-e recebida no servidor). */
 export default function NfeImportarManualPage() {
@@ -21,6 +23,7 @@ export default function NfeImportarManualPage() {
   const [cnpjDest, setCnpjDest] = useState('')
   const [nsu, setNsu] = useState('')
   const [nomeArquivo, setNomeArquivo] = useState('')
+  const [objetivoEntrada, setObjetivoEntrada] = useState<ObjetivoEntradaFiscal | ''>('')
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -28,6 +31,7 @@ export default function NfeImportarManualPage() {
         xml,
         cnpj_destinatario: cnpjDest.replace(/\D/g, '') || undefined,
         nsu: nsu.replace(/\D/g, '') || undefined,
+        objetivo_entrada: objetivoEntrada || undefined,
       }),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all })
@@ -61,9 +65,13 @@ export default function NfeImportarManualPage() {
         showToast({ variant: 'danger', message: 'Selecione ou cole o conteúdo do XML da NF-e.' })
         return
       }
+      if (!objetivoEntrada) {
+        showToast({ variant: 'danger', message: 'Informe o objetivo da entrada da NF-e.' })
+        return
+      }
       mutation.mutate()
     },
-    [xml, mutation, showToast],
+    [xml, objetivoEntrada, mutation, showToast],
   )
 
   return (
@@ -128,6 +136,28 @@ export default function NfeImportarManualPage() {
           </div>
 
           <div className="row g-3">
+            <div className="col-12">
+              <label className="form-label" htmlFor="nfe-objetivo-entrada">
+                Objetivo da entrada
+              </label>
+              <select
+                id="nfe-objetivo-entrada"
+                className="form-select"
+                value={objetivoEntrada}
+                onChange={(e) => setObjetivoEntrada(e.target.value as ObjetivoEntradaFiscal | '')}
+                required
+              >
+                <option value="">Selecione...</option>
+                {objetivoEntradaOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="form-text">
+                Classifica a finalidade fiscal da entrada para consultas e conferência posterior.
+              </div>
+            </div>
             <div className="col-md-6">
               <label className="form-label" htmlFor="nfe-cnpj-dest">
                 CNPJ destinatário (opcional)
@@ -162,7 +192,7 @@ export default function NfeImportarManualPage() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={mutation.isPending || !xml.trim()}
+              disabled={mutation.isPending || !xml.trim() || !objetivoEntrada}
             >
               {mutation.isPending ? 'A importar…' : 'Importar'}
             </button>

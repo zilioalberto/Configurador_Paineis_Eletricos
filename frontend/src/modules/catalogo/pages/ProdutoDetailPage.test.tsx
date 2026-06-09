@@ -146,6 +146,7 @@ describe('ProdutoDetailPage', () => {
             ordem: 0,
             rotulo: 'NF-e',
             cfop: '5102',
+            objetivo_entrada: 'OUTRAS_ENTRADAS',
             origem_mercadoria: '0',
             cst_icms: '00',
             csosn: '',

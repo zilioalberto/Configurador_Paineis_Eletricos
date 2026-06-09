@@ -61,6 +61,10 @@ describe('FiscalHomePage', () => {
   it('atalho para NF-es recebidas', () => {
     renderPage()
     expect(screen.getByRole('link', { name: /Ver documentos/i })).toHaveAttribute('href', '/fiscal/nfes')
+    expect(screen.getByRole('link', { name: /Gerar relatório/i })).toHaveAttribute(
+      'href',
+      '/fiscal/relatorios/nfes'
+    )
   })
 
   it('apos debounce lista resultados e link de edicao com permissao', async () => {

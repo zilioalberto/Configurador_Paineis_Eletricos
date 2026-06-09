@@ -21,7 +21,8 @@ Modelar cada circuito ou equipamento alimentado para alimentar o dimensionamento
 
 ## Frontend
 
-- **Páginas:** `CargaListPage`, `CargaDetailPage`, `CargaEditPage`
+- **Páginas:** `CargaListPage`, `CargaDetailPage`, `CargaEditPage`, `CargaModelosPage` (templates reutilizáveis)
+- **Componentes:** `CargaModeloTipoSection` — parâmetros por tipo recolhíveis em viewports `< 768px`
 - **Utilitários:** `cargaPayload`, `cargaModelos`, mappers de detalhe
 
 ## Fluxos do usuário

@@ -1,4 +1,6 @@
 /** Linha da API `GET /fiscal/itens-fiscais/` (lista paginada). */
+import type { ObjetivoEntradaFiscal } from './documentoFiscalRecebido'
+
 export type ItemFiscalProdutoListRow = {
   id: string
   criado_em: string
@@ -9,6 +11,7 @@ export type ItemFiscalProdutoListRow = {
   ordem: number
   rotulo: string
   cfop: string
+  objetivo_entrada: ObjetivoEntradaFiscal
   origem_mercadoria: string | null
   cst_icms: string
   csosn: string

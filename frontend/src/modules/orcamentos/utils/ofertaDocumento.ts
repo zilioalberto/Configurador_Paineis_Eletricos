@@ -227,7 +227,7 @@ function parseDocumentoParaMapa(
     extras.push(`## ${secao.titulo}\n\n${conteudo}`)
   }
 
-  let extrasObservacoes = extras.join('\n\n')
+  const extrasObservacoes = extras.join('\n\n')
   if (extrasObservacoes) {
     const baseObs = metadados.get('OBSERVACOES')
     const obsExistente = porTipo.get('OBSERVACOES')

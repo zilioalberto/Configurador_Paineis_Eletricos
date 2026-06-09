@@ -81,6 +81,14 @@ class Produto(
         blank=True,
         limit_choices_to={"eh_fornecedor": True, "ativo": True},
     )
+    fornecedor_parceiro = models.ForeignKey(
+        ParceiroComercial,
+        on_delete=models.PROTECT,
+        related_name="produtos_fornecidos_catalogo",
+        null=True,
+        blank=True,
+        limit_choices_to={"eh_fornecedor": True, "ativo": True},
+    )
 
     # Referência NF-e / orçamento (CFOP, CST e alíquotas ficam no contexto da operação)
     gtin = models.CharField(

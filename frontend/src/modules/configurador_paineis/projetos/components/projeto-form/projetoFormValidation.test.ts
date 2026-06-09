@@ -35,6 +35,15 @@ describe('validarProjetoFormulario', () => {
     })
     expect(erros.familia_plc).toBeUndefined()
   })
+
+  it('exige tipo de disjuntor geral quando possui_disjuntor_geral', () => {
+    const erros = validarProjetoFormulario({
+      ...projetoFormInitialState,
+      possui_disjuntor_geral: true,
+      tipo_disjuntor_geral: null,
+    })
+    expect(erros.tipo_disjuntor_geral).toMatch(/disjuntor geral/i)
+  })
 })
 
 describe('mapearErrosValidacaoApi', () => {

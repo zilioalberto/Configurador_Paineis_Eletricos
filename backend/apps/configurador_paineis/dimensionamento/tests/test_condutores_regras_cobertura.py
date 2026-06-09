@@ -206,6 +206,21 @@ def test_dimensionar_resistencia_monofasica_registra_margem_de_bitola(monkeypatc
     assert "Margem de bitola" in dados["memoria_calculo"]
 
 
+def test_dimensionar_motor_ignora_fator_demanda_no_circuito(monkeypatch):
+    _patch_margem_global(monkeypatch, 0)
+    espec = SimpleNamespace(
+        corrente_calculada_a=Decimal("10.00"),
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+    )
+    projeto = _projeto_stub(fator_demanda=Decimal("0.50"))
+    carga = SimpleNamespace(quantidade=2)
+
+    dados = dimensionar_motor(espec, projeto, carga)
+
+    assert dados["corrente_projeto_a"] == Decimal("20.00")
+    assert "Fator de demanda não aplicado" in dados["memoria_calculo"]
+
+
 def test_dimensionar_comando_sensores_transdutor_e_transmissor():
     projeto = _projeto_stub()
     carga = SimpleNamespace(quantidade=1)

@@ -1,6 +1,8 @@
 """Modelos do catálogo (Produto e especificações técnicas por categoria)."""
 
 from .base import Produto
+from .especificacao_acessorio_geral import EspecificacaoAcessorioGeral
+from .produto_acessorio import ProdutoAcessorioCompativel
 from .servico import Servico
 from .especificacao_barramento import EspecificacaoBarramento
 from .especificacao_borne import EspecificacaoBorne
@@ -18,6 +20,7 @@ from .especificacao_fonte import EspecificacaoFonte
 from .especificacao_fusivel import EspecificacaoFusivel
 from .especificacao_gateway import EspecificacaoGateway
 from .especificacao_ihm import EspecificacaoIHM
+from .especificacao_identificacao import EspecificacaoIdentificacao
 from .especificacao_inversor_frequencia import EspecificacaoInversorFrequencia
 from .especificacao_minidisjuntor import EspecificacaoMiniDisjuntor
 from .especificacao_modulo_comunicacao import EspecificacaoModuloComunicacao
@@ -31,4 +34,5 @@ from .especificacao_sinalizador import EspecificacaoSinalizador
 from .especificacao_soft_starter import EspecificacaoSoftStarter
 from .especificacao_switch_rede import EspecificacaoSwitchRede
 from .especificacao_temporizador import EspecificacaoTemporizador
+from .especificacao_terminal import EspecificacaoTerminal
 from .especificacao_trilho_din import EspecificacaoTrilhoDIN

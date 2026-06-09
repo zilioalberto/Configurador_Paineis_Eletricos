@@ -10,6 +10,7 @@ from apps.configurador_paineis.cargas.models import (
     CargaValvula,
 )
 from apps.configurador_paineis.dimensionamento.models import ResumoDimensionamento
+from core.choices import TipoPainelChoices
 
 
 MODELOS_COM_CORRENTE = [
@@ -19,6 +20,21 @@ MODELOS_COM_CORRENTE = [
     CargaSensor,
     CargaTransdutor,
 ]
+
+
+def painel_aplica_fator_demanda(projeto) -> bool:
+    """Fator de demanda só entra no seccionamento de entrada (painel distribuição)."""
+    return getattr(projeto, "tipo_painel", None) == TipoPainelChoices.DISTRIBUICAO
+
+
+def fator_demanda_efetivo(projeto) -> Decimal:
+    if not painel_aplica_fator_demanda(projeto):
+        return Decimal("1.00")
+
+    fd = getattr(projeto, "fator_demanda", None)
+    if fd is None:
+        return Decimal("1.00")
+    return Decimal(fd)
 
 
 def _corrente_por_especificacao(espec) -> Decimal | None:
@@ -57,6 +73,12 @@ def _distribuir_corrente_carga(
     quantidade: int,
     fases_carga: int,
 ) -> None:
+    """
+    Para cada unidade da carga, soma a corrente nas fases menos carregadas.
+
+    Monofásica: 1 fase; trifásica: 3 fases; bifásica: 2 fases (quando informado).
+    A corrente por unidade já é a de linha/fase (ver core/calculos/eletrica.py).
+    """
     fases_projeto = len(fase_correntes)
     for _ in range(quantidade):
         fases_ordenadas = sorted(
@@ -93,22 +115,71 @@ def _acumular_correntes_por_fase(projeto, fase_correntes: list[Decimal]) -> None
             )
 
 
-def calcular_corrente_total_painel(projeto) -> Decimal:
+def calcular_correntes_por_fase_painel(projeto) -> list[Decimal]:
     """
-    Soma a corrente calculada (por unidade) das cargas ativas, multiplicada
-    pela quantidade de cada carga, aplicando o fator de demanda do projeto.
+    Acumula a corrente das cargas ativas em cada fase do painel (sem fator de demanda).
+
+    Regras de distribuição por unidade de carga:
+    - Monofásica (1 fase): aloca na fase menos carregada (balanceamento).
+    - Trifásica (3 fases): soma I em todas as fases do painel (corrente de linha).
+    - Bifásica (2 fases): soma I nas duas fases menos carregadas.
+    - Sem ``numero_fases`` (válvulas, sensores, transdutores): trata como monofásica.
+
+    Se a carga tiver mais fases que o painel, limita às fases disponíveis no projeto.
     """
     fases_projeto = int(getattr(projeto, "numero_fases", 1) or 1)
     fase_correntes = [Decimal("0.00") for _ in range(max(1, fases_projeto))]
-
     _acumular_correntes_por_fase(projeto, fase_correntes)
+    return fase_correntes
 
-    corrente_total = max(fase_correntes) if fase_correntes else Decimal("0.00")
 
-    fd = projeto.fator_demanda
-    if fd is None:
-        fd = Decimal("1.00")
-    return (corrente_total * fd).quantize(Decimal("0.01"))
+def calcular_corrente_total_painel(projeto) -> Decimal:
+    """
+    Corrente de referência do painel para alimentação geral e seccionamento.
+
+    Usa a fase mais carregada após distribuir as cargas ativas (ver
+    ``calcular_correntes_por_fase_painel``). O fator de demanda do projeto só
+    é aplicado em painéis do tipo distribuição.
+    """
+    return calcular_corrente_referencia_entrada_painel(projeto).corrente_referencia_a
+
+
+def calcular_corrente_referencia_entrada_painel(projeto):
+    """
+    Corrente de entrada do painel para disjuntor geral / seccionamento.
+
+    Retorna um namespace simples com:
+    - correntes_por_fase_a: distribuição por fase (sem fator de demanda)
+    - indice_fase_mais_carregada: índice 0-based da fase de maior corrente
+    - corrente_fase_mais_carregada_a: valor dessa fase (sem fator de demanda)
+    - fator_demanda: multiplicador aplicado (1.00 em automação)
+    - corrente_referencia_a: corrente_fase_mais_carregada × fator_demanda
+    """
+    from types import SimpleNamespace
+
+    fase_correntes = calcular_correntes_por_fase_painel(projeto)
+    if not fase_correntes:
+        fd = fator_demanda_efetivo(projeto)
+        return SimpleNamespace(
+            correntes_por_fase_a=[],
+            indice_fase_mais_carregada=None,
+            corrente_fase_mais_carregada_a=Decimal("0.00"),
+            fator_demanda=fd,
+            corrente_referencia_a=Decimal("0.00"),
+        )
+
+    indice_max = max(range(len(fase_correntes)), key=lambda idx: fase_correntes[idx])
+    corrente_fase_max = fase_correntes[indice_max]
+    fd = fator_demanda_efetivo(projeto)
+    corrente_ref = (corrente_fase_max * fd).quantize(Decimal("0.01"))
+
+    return SimpleNamespace(
+        correntes_por_fase_a=fase_correntes,
+        indice_fase_mais_carregada=indice_max,
+        corrente_fase_mais_carregada_a=corrente_fase_max,
+        fator_demanda=fd,
+        corrente_referencia_a=corrente_ref,
+    )
 
 
 def calcular_e_salvar_corrente_total_painel(projeto) -> ResumoDimensionamento:

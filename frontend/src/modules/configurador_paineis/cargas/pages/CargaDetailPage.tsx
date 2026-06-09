@@ -48,7 +48,7 @@ export default function CargaDetailPage() {
   const editarHref = useMemo(() => {
     if (!id || !c?.projeto) return configuradorPaths.cargas()
     return configuradorPaths.cargasEditar(c.projeto, id)
-  }, [c?.projeto, id])
+  }, [c, id])
 
   return (
     <div className="container-fluid">

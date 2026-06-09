@@ -6,6 +6,13 @@ function withProjeto(path: string, projetoId?: string | null): string {
   return `${path}?${qs.toString()}`
 }
 
+function withProjetoEtapa(path: string, projetoId: string | null | undefined, etapa: string): string {
+  const qs = new URLSearchParams()
+  if (projetoId) qs.set('projeto', projetoId)
+  qs.set('etapa', etapa)
+  return `${path}?${qs.toString()}`
+}
+
 export const configuradorPaths = {
   configuracoes: '/configurador/configuracoes',
   novaConfiguracao: '/configurador/configuracoes/novo',
@@ -27,6 +34,8 @@ export const configuradorPaths = {
   modelosCargas: '/configurador/cargas/modelos',
 
   composicao: (projetoId?: string | null) => withProjeto('/configurador/composicao', projetoId),
+  composicaoFinal: (projetoId?: string | null) =>
+    withProjetoEtapa('/configurador/composicao', projetoId, 'composicao_final'),
   dimensionamento: (projetoId?: string | null) =>
     withProjeto('/configurador/dimensionamento', projetoId),
 }

@@ -23,6 +23,10 @@ class ProjetoSerializer(serializers.ModelSerializer):
         source="get_tipo_seccionamento_display",
         read_only=True,
     )
+    tipo_disjuntor_geral_display = serializers.CharField(
+        source="get_tipo_disjuntor_geral_display",
+        read_only=True,
+    )
     tipo_conexao_alimentacao_potencia_display = serializers.CharField(
         source="get_tipo_conexao_alimentacao_potencia_display",
         read_only=True,
@@ -60,6 +64,7 @@ class ProjetoSerializer(serializers.ModelSerializer):
             "familia_plc": {"allow_null": True, "required": False},
             "tipo_climatizacao": {"allow_null": True, "required": False},
             "tipo_seccionamento": {"allow_null": True, "required": False},
+            "tipo_disjuntor_geral": {"allow_null": True, "required": False},
         }
 
     def validate_codigo(self, value):
@@ -100,6 +105,12 @@ class ProjetoSerializer(serializers.ModelSerializer):
             and attrs.get("tipo_seccionamento") is None
         ):
             attrs["tipo_seccionamento"] = ""
+
+        if (
+            attrs.get("possui_disjuntor_geral") is False
+            and attrs.get("tipo_disjuntor_geral") is None
+        ):
+            attrs["tipo_disjuntor_geral"] = ""
 
         return attrs
 

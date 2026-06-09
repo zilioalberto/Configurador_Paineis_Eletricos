@@ -17,6 +17,12 @@ import {
   tensaoAlimentacaoClimatizacaoOptions,
   tensaoAlimentacaoIhmOptions,
   tipoTrilhoDINOptions,
+  tipoTerminalCatalogoOptions,
+  furoTerminalOlhalOptions,
+  tipoIdentificacaoCatalogoOptions,
+  tamanhoPlaquetaIdentificacaoOptions,
+  tipoAcessorioGeralOptions,
+  portePainelAcessoriosOptions,
 } from './catalogoChoiceOptions'
 import categoriaFieldChoiceOptionsJson from '../data/categoriaFieldChoiceOptions.json'
 
@@ -172,6 +178,12 @@ reg('GATEWAY', 'modo_montagem', modoMontagemTrilhoPlacaOptions)
 reg('FONTE_CHAVEADA', 'modo_montagem', modoMontagemTrilhoPlacaOptions)
 reg('BORNE', 'tipo_borne', tipoBorneCatalogoOptions)
 reg('BORNE', 'modo_montagem', modoMontagemTrilhoPlacaOptions)
+reg('TERMINAIS', 'tipo_terminal', tipoTerminalCatalogoOptions)
+reg('TERMINAIS', 'furo_olhal', furoTerminalOlhalOptions)
+reg('IDENTIFICACAO', 'tipo_identificacao', tipoIdentificacaoCatalogoOptions)
+reg('IDENTIFICACAO', 'tamanho_plaqueta', tamanhoPlaquetaIdentificacaoOptions)
+reg('ACESSORIOS_GERAIS', 'tipo_acessorio', tipoAcessorioGeralOptions)
+reg('ACESSORIOS_GERAIS', 'porte_painel', portePainelAcessoriosOptions)
 reg('CANALETA', 'modo_montagem', modoMontagemPlacaPortaOptions)
 reg('PAINEL', 'placa_acabamento', acabamentoPlacaPainelOptions)
 reg('PAINEL', 'cor', corPainelOptions)

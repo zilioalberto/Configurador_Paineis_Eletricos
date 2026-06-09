@@ -6,6 +6,7 @@ import type {
   TipoClimatizacaoPainel,
   TipoConexaoAlimentacao,
   TipoCorrente,
+  TipoDisjuntorGeral,
   TipoPainel,
   TipoSeccionamento,
 } from '../../types/projeto'
@@ -59,6 +60,10 @@ export const tipoClimatizacaoOptions: FormOption<TipoClimatizacaoPainel>[] = [
 export const tipoSeccionamentoOptions: FormOption<TipoSeccionamento>[] = [
   { value: 'NENHUM', label: 'Sem seccionamento' },
   { value: 'SECCIONADORA', label: 'Seccionadora' },
+]
+
+export const tipoDisjuntorGeralOptions: FormOption<TipoDisjuntorGeral>[] = [
+  { value: 'MINIDISJUNTOR', label: 'Minidisjuntor' },
   { value: 'DISJUNTOR_CAIXA_MOLDADA', label: 'Disjuntor caixa moldada' },
 ]
 
@@ -105,5 +110,7 @@ export const projetoFormInitialState: ProjetoFormData = {
 
   possui_seccionamento: false,
   tipo_seccionamento: null,
+  possui_disjuntor_geral: false,
+  tipo_disjuntor_geral: null,
   responsavel: null,
 }

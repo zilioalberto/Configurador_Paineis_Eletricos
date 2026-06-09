@@ -63,6 +63,8 @@ def test_serializer_aceita_campos_condicionais_nulos_quando_recursos_desmarcados
         "tipo_climatizacao": None,
         "possui_seccionamento": False,
         "tipo_seccionamento": None,
+        "possui_disjuntor_geral": False,
+        "tipo_disjuntor_geral": None,
     }
     ser = ProjetoSerializer(data=payload)
 
@@ -70,6 +72,7 @@ def test_serializer_aceita_campos_condicionais_nulos_quando_recursos_desmarcados
     assert ser.validated_data["familia_plc"] == ""
     assert ser.validated_data["tipo_climatizacao"] == ""
     assert ser.validated_data["tipo_seccionamento"] == ""
+    assert ser.validated_data["tipo_disjuntor_geral"] == ""
 
 
 @pytest.mark.django_db

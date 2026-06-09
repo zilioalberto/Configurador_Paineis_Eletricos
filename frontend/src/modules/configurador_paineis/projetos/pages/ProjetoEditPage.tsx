@@ -65,6 +65,10 @@ function projetoParaFormData(projeto: Projeto): ProjetoFormData {
       projeto.possui_seccionamento && projeto.tipo_seccionamento === 'NENHUM'
         ? null
         : projeto.tipo_seccionamento,
+    possui_disjuntor_geral: projeto.possui_disjuntor_geral ?? false,
+    tipo_disjuntor_geral: projeto.possui_disjuntor_geral
+      ? projeto.tipo_disjuntor_geral
+      : null,
     responsavel: projeto.responsavel ?? null,
   }
 }

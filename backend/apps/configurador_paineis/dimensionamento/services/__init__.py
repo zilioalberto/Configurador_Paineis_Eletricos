@@ -1,8 +1,12 @@
 """Serviços de cálculo do dimensionamento (corrente, I/O, condutores, automação)."""
 
 from .corrente_total import (
+    calcular_corrente_referencia_entrada_painel,
     calcular_corrente_total_painel,
+    calcular_correntes_por_fase_painel,
     calcular_e_salvar_corrente_total_painel,
+    fator_demanda_efetivo,
+    painel_aplica_fator_demanda,
 )
 from .comando import (
     calcular_necessita_fonte_24vcc,
@@ -20,8 +24,12 @@ from .io_plc import calcular_totais_io_plc
 
 __all__ = [
     "calcular_e_salvar_circuitos_cargas",
+    "calcular_corrente_referencia_entrada_painel",
     "calcular_corrente_total_painel",
+    "calcular_correntes_por_fase_painel",
     "calcular_e_salvar_corrente_total_painel",
+    "fator_demanda_efetivo",
+    "painel_aplica_fator_demanda",
     "calcular_necessita_fonte_24vcc",
     "calcular_e_salvar_necessita_fonte_24vcc",
     "calcular_necessita_plc",

@@ -150,6 +150,57 @@ def test_montar_linhas_sugestao_pendencia_e_inclusao(criar_projeto):
 
 
 @pytest.mark.django_db
+def test_montar_linhas_export_inclui_itens_da_composicao_final(criar_projeto):
+    projeto = criar_projeto(nome="Final", codigo="09913-26", tensao_nominal=TensaoChoices.V380)
+    categorias_finais = [
+        (CategoriaProdutoNomeChoices.CABO, "Cabo unipolar preto"),
+        (CategoriaProdutoNomeChoices.TERMINAIS, "Terminal tubular"),
+        (CategoriaProdutoNomeChoices.IDENTIFICACAO, "Identificação de cabo"),
+        (CategoriaProdutoNomeChoices.CANALETA, "Canaleta recortada"),
+        (CategoriaProdutoNomeChoices.TRILHO_DIN, "Trilho DIN"),
+        (CategoriaProdutoNomeChoices.ACESSORIOS_GERAIS, "Kit acessórios gerais"),
+    ]
+    for ordem, (categoria, descricao) in enumerate(categorias_finais, start=1):
+        produto = Produto.objects.create(
+            codigo=f"FINAL-{ordem}",
+            descricao=descricao,
+            categoria=categoria,
+            unidade_medida=UnidadeMedidaChoices.UN,
+        )
+        ComposicaoItem.objects.create(
+            projeto=projeto,
+            carga=None,
+            produto=produto,
+            parte_painel=PartesPainelChoices.ACESSORIOS,
+            categoria_produto=categoria,
+            quantidade=Decimal("1"),
+            ordem=ordem,
+        )
+
+    header, linhas = montar_linhas_export(projeto)
+    descricoes_produtos = {row[header.index("Descrição produto")] for row in linhas}
+    categorias = {row[header.index("Categoria")] for row in linhas}
+
+    assert len(linhas) == len(categorias_finais)
+    assert {
+        "CABO UNIPOLAR PRETO",
+        "TERMINAL TUBULAR",
+        "IDENTIFICAÇÃO DE CABO",
+        "CANALETA RECORTADA",
+        "TRILHO DIN",
+        "KIT ACESSÓRIOS GERAIS",
+    }.issubset(descricoes_produtos)
+    assert {
+        "Cabo",
+        "Terminais",
+        "Identificação",
+        "Canaleta",
+        "Trilho DIN",
+        "Acessórios Gerais",
+    }.issubset(categorias)
+
+
+@pytest.mark.django_db
 def test_render_xlsx_e_pdf_bytes(criar_projeto):
     projeto = criar_projeto(nome="R", codigo="09911-26", tensao_nominal=TensaoChoices.V380)
     header, linhas = montar_linhas_export(projeto)

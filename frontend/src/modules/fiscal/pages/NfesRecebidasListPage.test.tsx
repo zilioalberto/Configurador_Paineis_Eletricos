@@ -43,6 +43,7 @@ describe('NfesRecebidasListPage', () => {
             natureza_operacao: 'Venda',
             status_importacao: 'PROCESSADA',
             origem_importacao: 'MANUAL',
+            objetivo_entrada: 'INDUSTRIALIZACAO',
             manifestacao_status: 'NAO_SOLICITADA',
             manifestacao_tipo: '',
             manifestacao_justificativa: '',
@@ -73,6 +74,7 @@ describe('NfesRecebidasListPage', () => {
     renderPage()
     expect(screen.getByRole('heading', { name: /nf-es recebidas/i })).toBeInTheDocument()
     expect(screen.getByText('Fornecedor SA')).toBeInTheDocument()
+    expect(screen.getAllByText('Industrialização').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('link', { name: /abrir/i })).toHaveAttribute('href', '/fiscal/nfes/1')
   })
 

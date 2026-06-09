@@ -35,6 +35,9 @@ from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes impor
 from apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras import (
     reprocessar_seccionamento_para_pendencia,
 )
+from apps.configurador_paineis.composicao_painel.services.sugestoes.disjuntor_geral import (
+    reprocessar_disjuntor_geral_para_pendencia,
+)
 
 from core.choices import (
     CategoriaProdutoNomeChoices,
@@ -95,6 +98,10 @@ def _reprocessar_pendencia(projeto, pendencia, resultado) -> bool:
 
     if pendencia.parte_painel == PartesPainelChoices.SECCIONAMENTO:
         reprocessar_seccionamento_para_pendencia(projeto, pendencia)
+        return True
+
+    if pendencia.parte_painel == PartesPainelChoices.PROTECAO_GERAL and pendencia.carga_id is None:
+        reprocessar_disjuntor_geral_para_pendencia(projeto, pendencia)
         return True
 
     resultado["categorias_nao_mapeadas"].append(

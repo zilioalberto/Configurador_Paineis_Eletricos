@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom'
 import { aplicarMascaraCnpj } from '@/modules/cadastros/utils/cnpjMask'
 
 import { fiscalPaths } from '../fiscalPaths'
+import { objetivoEntradaOptions, labelObjetivoEntrada } from '../constants/objetivoEntradaOptions'
 import { useNfesRecebidasListQuery } from '../hooks/useNfesRecebidasListQuery'
 import type {
   NfesRecebidasFiltros,
+  ObjetivoEntradaFiscal,
   OrigemImportacaoFiscal,
   StatusImportacaoFiscal,
 } from '../types/documentoFiscalRecebido'
@@ -27,6 +29,7 @@ const FILTROS_VAZIOS: NfesRecebidasFiltros = {
   serie: '',
   status_importacao: '',
   origem_importacao: '',
+  objetivo_entrada: '',
 }
 
 function badgeStatusClass(status: StatusImportacaoFiscal): string {
@@ -216,6 +219,24 @@ export default function NfesRecebidasListPage() {
                 <option value="OUTRO">Outro</option>
               </select>
             </div>
+            <div className="col-md-6 col-lg-3">
+              <label className="form-label" htmlFor="nfe-filtro-objetivo">
+                Objetivo da entrada
+              </label>
+              <select
+                id="nfe-filtro-objetivo"
+                className="form-select"
+                value={filtrosInput.objetivo_entrada ?? ''}
+                onChange={onFiltroChange('objetivo_entrada')}
+              >
+                <option value="">Todos</option>
+                {objetivoEntradaOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -244,6 +265,7 @@ export default function NfesRecebidasListPage() {
                     </th>
                     <th scope="col">Status</th>
                     <th scope="col">Origem</th>
+                    <th scope="col">Objetivo</th>
                     <th scope="col" />
                   </tr>
                 </thead>
@@ -272,6 +294,9 @@ export default function NfesRecebidasListPage() {
                       </td>
                       <td className="small">
                         {labelOrigemImportacao(row.origem_importacao as OrigemImportacaoFiscal)}
+                      </td>
+                      <td className="small">
+                        {labelObjetivoEntrada(row.objetivo_entrada as ObjetivoEntradaFiscal)}
                       </td>
                       <td className="text-end">
                         <Link

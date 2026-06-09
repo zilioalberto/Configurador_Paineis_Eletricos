@@ -3,7 +3,7 @@ import { ProjetoFormCheckboxField } from './ProjetoFormCheckboxField'
 import type { ProjetoFormSectionProps } from './projetoFormSectionProps'
 import { renderSelectOptions } from './renderSelectOptions'
 
-/** Seção: seccionamento geral e tipo (seccionadora ou disjuntor caixa moldada). */
+/** Seção: seccionamento geral (seccionadora). */
 export function ProjetoFormSeccionamentoSection({
   formData,
   onFieldChange,
