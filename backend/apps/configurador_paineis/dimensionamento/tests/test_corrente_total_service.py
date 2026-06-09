@@ -2,6 +2,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from apps.configurador_paineis.dimensionamento.services import corrente_total as corrente_total_service
+from core.choices import TipoPainelChoices
 
 
 class _FakeQuerySet(list):
@@ -44,13 +45,27 @@ def test_corrente_total_balanceia_monofasicas_em_projeto_trifasico():
     assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("22.00")
 
 
-def test_corrente_total_aplica_fator_demanda_apos_balanceamento():
-    projeto = SimpleNamespace(numero_fases=3, fator_demanda=Decimal("0.80"))
+def test_corrente_total_automacao_ignora_fator_demanda():
+    projeto = SimpleNamespace(
+        numero_fases=3,
+        fator_demanda=Decimal("0.80"),
+        tipo_painel=TipoPainelChoices.AUTOMACAO,
+    )
     modelos = [_FakeModel([_spec("15.00", 3, 1)])]
     corrente_total_service.MODELOS_COM_CORRENTE = modelos
 
-    # Base balanceada = (15 * 3) / 3 = 15 A
-    # Com FD 0.80 => 12.00 A
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("15.00")
+
+
+def test_corrente_total_distribuicao_aplica_fator_demanda():
+    projeto = SimpleNamespace(
+        numero_fases=3,
+        fator_demanda=Decimal("0.80"),
+        tipo_painel=TipoPainelChoices.DISTRIBUICAO,
+    )
+    modelos = [_FakeModel([_spec("15.00", 3, 1)])]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+
     assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("12.00")
 
 
@@ -116,3 +131,58 @@ def test_corrente_total_numero_fases_espec_invalido_trata_como_monofasico():
     )
     corrente_total_service.MODELOS_COM_CORRENTE = [_FakeModel([espec])]
     assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("9.00")
+
+
+def test_corrente_total_carga_trifasica_em_painel_monofasico():
+    projeto = SimpleNamespace(numero_fases=1, fator_demanda=Decimal("1.00"))
+    modelos = [_FakeModel([_spec("6.00", 2, 3)])]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+
+    # Painel mono limita carga tri a 1 fase: 2 × 6 A = 12 A
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("12.00")
+
+
+def test_corrente_total_carga_bifasica_distribui_em_duas_fases():
+    projeto = SimpleNamespace(numero_fases=3, fator_demanda=Decimal("1.00"))
+    modelos = [_FakeModel([_spec("10.00", 1, 2)])]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+
+    # Uma unidade bifásica: [10, 10, 0] A — referência = fase mais carregada
+    assert corrente_total_service.calcular_correntes_por_fase_painel(projeto) == [
+        Decimal("10.00"),
+        Decimal("10.00"),
+        Decimal("0.00"),
+    ]
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("10.00")
+
+
+def test_correntes_por_fase_painel_retorna_vetor_balanceado():
+    projeto = SimpleNamespace(numero_fases=3, fator_demanda=Decimal("1.00"))
+    modelos = [
+        _FakeModel([_spec("10.00", 3, 1)]),
+        _FakeModel([_spec("6.00", 2, 3)]),
+    ]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+
+    fases = corrente_total_service.calcular_correntes_por_fase_painel(projeto)
+    assert fases == [Decimal("22.00"), Decimal("22.00"), Decimal("22.00")]
+    assert corrente_total_service.calcular_corrente_total_painel(projeto) == Decimal("22.00")
+
+
+def test_corrente_referencia_entrada_identifica_fase_mais_carregada():
+    projeto = SimpleNamespace(
+        numero_fases=3,
+        fator_demanda=Decimal("1.00"),
+        tipo_painel="AUTOMACAO",
+    )
+    modelos = [
+        _FakeModel([_spec("30.00", 1, 1)]),
+        _FakeModel([_spec("42.00", 1, 1)]),
+        _FakeModel([_spec("38.00", 1, 1)]),
+    ]
+    corrente_total_service.MODELOS_COM_CORRENTE = modelos
+
+    ref = corrente_total_service.calcular_corrente_referencia_entrada_painel(projeto)
+    assert ref.corrente_referencia_a == Decimal("42.00")
+    assert ref.corrente_fase_mais_carregada_a == Decimal("42.00")
+    assert ref.indice_fase_mais_carregada == 1

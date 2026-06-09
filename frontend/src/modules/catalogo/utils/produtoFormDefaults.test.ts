@@ -9,6 +9,7 @@ describe('produtoFormDefaults', () => {
     expect(f.unidade_medida).toBe('UN')
     expect(f.especificacao).toBeNull()
     expect(f.fabricante_parceiro).toBe('')
+    expect(f.fornecedor_parceiro).toBe('')
     expect(f.aliquota_ipi).toBe('')
     expect(f.codigo).toBe('')
   })

@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom'
 
 import { ConfirmModal, useToast } from '@/components/feedback'
+import AppMasterDetailLayout from '@/components/layout/AppMasterDetailLayout'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -577,12 +578,12 @@ export default function CadastrosPage() {
         </ol>
       </nav>
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div className="app-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 className="h3 mb-1">Cadastros</h1>
           <p className="text-muted mb-0">Clientes, fornecedores, contatos e endereços.</p>
         </div>
-        <div className="d-flex gap-2 flex-wrap">
+        <div className="app-page-header__actions d-flex gap-2 flex-wrap">
           <button
             type="button"
             className="btn btn-outline-secondary"
@@ -611,8 +612,13 @@ export default function CadastrosPage() {
         onSalvo={onParceiroSalvoPorCnpj}
       />
 
-      <div className="row g-4 align-items-start">
-        <div className="col-xl-5">
+      <AppMasterDetailLayout
+        showDetail={modoNovo || selecionado !== null}
+        onBackToList={() => {
+          setModoNovo(false)
+          setSelecionado(null)
+        }}
+        list={
           <div className="card shadow-sm">
             <div className="card-body">
               <CadastrosListaPanel
@@ -632,9 +638,8 @@ export default function CadastrosPage() {
               />
             </div>
           </div>
-        </div>
-
-        <div className="col-xl-7">
+        }
+        detail={
           <div className="card shadow-sm">
             <div className="card-body">
               <CadastroDetalhePanel
@@ -668,8 +673,8 @@ export default function CadastrosPage() {
               />
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
     </div>
   )
 }

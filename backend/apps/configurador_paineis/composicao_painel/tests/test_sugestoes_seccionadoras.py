@@ -147,59 +147,6 @@ def test_nucleo_seccionadora_com_produto_cria_sugestao(criar_projeto):
 
 
 @pytest.mark.django_db
-def test_nucleo_disjuntor_cm_sem_produto_cria_pendencia(criar_projeto):
-    projeto = criar_projeto(
-        nome="Sec6",
-        codigo="15006-26",
-        tensao_nominal=TensaoChoices.V380,
-        possui_seccionamento=True,
-        tipo_seccionamento=TipoSeccionamentoChoices.DISJUNTOR_CAIXA_MOLDADA,
-    )
-    ResumoDimensionamento.objects.create(
-        projeto=projeto,
-        corrente_total_painel_a=Decimal("120"),
-    )
-    with patch(
-        "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
-        return_value=Produto.objects.none(),
-    ):
-        assert _nucleo_gerar_seccionamento(projeto) is None
-    p = PendenciaItem.objects.get(
-        projeto=projeto,
-        categoria_produto=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
-    )
-    assert "caixa moldada" in p.descricao.lower()
-
-
-@pytest.mark.django_db
-def test_nucleo_disjuntor_cm_com_produto_cria_sugestao(criar_projeto):
-    projeto = criar_projeto(
-        nome="Sec7",
-        codigo="15007-26",
-        tensao_nominal=TensaoChoices.V380,
-        possui_seccionamento=True,
-        tipo_seccionamento=TipoSeccionamentoChoices.DISJUNTOR_CAIXA_MOLDADA,
-    )
-    ResumoDimensionamento.objects.create(
-        projeto=projeto,
-        corrente_total_painel_a=Decimal("30"),
-    )
-    produto = Produto.objects.create(
-        codigo="SEC-P2",
-        descricao="DCM",
-        categoria=CategoriaProdutoNomeChoices.DISJUNTOR_CAIXA_MOLDADA,
-        unidade_medida=UnidadeMedidaChoices.UN,
-    )
-    with patch(
-        "apps.configurador_paineis.composicao_painel.services.sugestoes.seccionadoras.selecionar_disjuntores_caixa_moldada",
-        return_value=Produto.objects.filter(pk=produto.pk),
-    ):
-        sug = _nucleo_gerar_seccionamento(projeto)
-    assert sug is not None
-    assert sug.produto_id == produto.id
-
-
-@pytest.mark.django_db
 def test_nucleo_tipo_seccionamento_invalido_cria_pendencia_outros(criar_projeto):
     projeto = criar_projeto(
         nome="Sec8",

@@ -207,6 +207,47 @@ describe('WizardCondutoresPanel', () => {
     expect(screen.getByText(/Nenhum circuito de carga dimensionado/i)).toBeInTheDocument()
   })
 
+  it('exibe correntes por fase do painel', () => {
+    mockDimensionamentoQuery(
+      dimensionamento({
+        correntes_por_fase_painel_a: ['22.00', '25.00', '22.00'],
+        corrente_total_painel_a: '25.00',
+        aplica_fator_demanda_seccionamento: false,
+      })
+    )
+    renderPanel()
+
+    expect(screen.getByRole('heading', { name: /corrente por fase do painel/i })).toBeInTheDocument()
+    expect(screen.getByText('L1')).toBeInTheDocument()
+    expect(screen.getByText('L2')).toBeInTheDocument()
+    expect(screen.getByText('L3')).toBeInTheDocument()
+    expect(screen.getByText('25.00')).toBeInTheDocument()
+    expect(screen.getByText('referência')).toBeInTheDocument()
+    expect(screen.getByText(/fator de demanda não aplicado/i)).toBeInTheDocument()
+  })
+
+  it('exibe legenda com fator de demanda em painel distribuição', () => {
+    mockDimensionamentoQuery(
+      dimensionamento({
+        correntes_por_fase_painel_a: ['20.00', '20.00', '20.00'],
+        corrente_total_painel_a: '16.00',
+        aplica_fator_demanda_seccionamento: true,
+        tipo_painel: 'DISTRIBUICAO',
+      })
+    )
+    renderPanel()
+
+    expect(screen.getByText(/fator de demanda — painel distribuição/i)).toBeInTheDocument()
+  })
+
+  it('informa que I ref dos circuitos não inclui fator de demanda', () => {
+    renderPanel({ embedded: false })
+
+    expect(screen.getByText(/sem fator de demanda/i)).toBeInTheDocument()
+    expect(screen.getAllByText('sem FD').length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle(/Não inclui fator de demanda/i).length).toBeGreaterThan(0)
+  })
+
   it('aprova circuito pendente respeitando overrides de bitola', async () => {
     renderPanel()
 

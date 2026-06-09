@@ -13,9 +13,12 @@ vi.mock('@/services/apiClient', () => ({
 }))
 
 import {
+  calcularDimensionamentoMecanico,
+  obterDimensionamentoMecanico,
   obterDimensionamentoPorProjeto,
   patchCondutoresDimensionamento,
   recalcularDimensionamento,
+  salvarEscolhasDimensionamentoMecanico,
 } from './dimensionamentoService'
 
 describe('dimensionamentoService', () => {
@@ -49,5 +52,45 @@ describe('dimensionamentoService', () => {
     await expect(patchCondutoresDimensionamento('proj-3', payload)).resolves.toEqual({ id: 'dim-3' })
 
     expect(patchMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-3/condutores/', payload)
+  })
+
+  it('obtem dimensionamento mecânico por projeto', async () => {
+    getMock.mockResolvedValueOnce({ data: { area_componentes_mm2: '1000' } })
+
+    await expect(obterDimensionamentoMecanico('proj-m1')).resolves.toEqual({
+      area_componentes_mm2: '1000',
+    })
+
+    expect(getMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-m1/mecanico/')
+  })
+
+  it('recalcula dimensionamento mecânico do projeto', async () => {
+    postMock.mockResolvedValueOnce({ data: { canaletas_verticais: 2 } })
+
+    await expect(calcularDimensionamentoMecanico('proj-m2')).resolves.toEqual({
+      canaletas_verticais: 2,
+    })
+
+    expect(postMock).toHaveBeenCalledWith('/configurador/dimensionamento/projeto/proj-m2/mecanico/')
+  })
+
+  it('salva escolhas do dimensionamento mecânico', async () => {
+    const payload = {
+      painel_produto_id: 'painel-1',
+      canaleta_produto_id: 'can-1',
+      canaletas_verticais: 2,
+      faixas_horizontais: 3,
+      taxa_ocupacao_max_percentual: 75,
+    }
+    patchMock.mockResolvedValueOnce({ data: { canaletas_verticais: 2 } })
+
+    await expect(salvarEscolhasDimensionamentoMecanico('proj-m3', payload)).resolves.toEqual({
+      canaletas_verticais: 2,
+    })
+
+    expect(patchMock).toHaveBeenCalledWith(
+      '/configurador/dimensionamento/projeto/proj-m3/mecanico/',
+      payload
+    )
   })
 })

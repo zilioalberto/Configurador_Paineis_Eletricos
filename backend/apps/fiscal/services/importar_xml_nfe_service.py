@@ -7,7 +7,11 @@ from typing import Any, TypedDict
 
 from django.db import transaction
 
-from apps.fiscal.choices import OrigemImportacaoFiscalChoices, StatusImportacaoFiscalChoices
+from apps.fiscal.choices import (
+    ObjetivoEntradaFiscalChoices,
+    OrigemImportacaoFiscalChoices,
+    StatusImportacaoFiscalChoices,
+)
 from apps.fiscal.models import DocumentoFiscalRecebido, ItemDocumentoFiscal
 from apps.fiscal.services.nfe_parser import NFeParserError, parse_nfe_xml
 from apps.fiscal.utils import normalizar_cnpj, normalizar_nsu
@@ -25,6 +29,7 @@ def importar_xml_nfe(
     nsu: str | None = None,
     cnpj_destinatario: str | None = None,
     origem_importacao: str = OrigemImportacaoFiscalChoices.MANUAL,
+    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
 ) -> ResultadoImportacaoNFe:
     """
     Importa NF-e a partir do XML. Evita duplicidade pela chave de acesso.
@@ -65,6 +70,7 @@ def importar_xml_nfe(
             natureza_operacao=dados.get("natureza_operacao") or "",
             status_importacao=StatusImportacaoFiscalChoices.RECEBIDA,
             origem_importacao=origem_importacao,
+            objetivo_entrada=objetivo_entrada or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
             xml_original=xml,
         )
         itens_payload: list[dict[str, Any]] = dados.get("itens") or []

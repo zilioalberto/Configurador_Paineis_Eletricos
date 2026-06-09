@@ -56,6 +56,9 @@ def produto_resumo_para_preview(produto: Produto) -> dict[str, Any]:
         "fabricante_parceiro_id": (
             str(produto.fabricante_parceiro_id) if produto.fabricante_parceiro_id else ""
         ),
+        "fornecedor_parceiro_id": (
+            str(produto.fornecedor_parceiro_id) if produto.fornecedor_parceiro_id else ""
+        ),
     }
 
 
@@ -162,7 +165,7 @@ def enrich_snapshot_itens_com_produto_existente(snapshot: dict[str, Any]) -> Non
             continue
         produto = (
             Produto.objects.filter(codigo__iexact=cod)
-            .select_related("fabricante_parceiro")
+            .select_related("fabricante_parceiro", "fornecedor_parceiro")
             .prefetch_related(_ITENS_PREFETCH)
             .first()
         )
@@ -177,7 +180,7 @@ def lookup_produto_resumo_por_codigo(codigo: str) -> dict[str, Any] | None:
         return None
     produto = (
         Produto.objects.filter(codigo__iexact=cod)
-        .select_related("fabricante_parceiro")
+        .select_related("fabricante_parceiro", "fornecedor_parceiro")
         .prefetch_related(_ITENS_PREFETCH)
         .first()
     )

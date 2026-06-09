@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 
 import NfeManifestacaoDestinatarioPanel from '../components/NfeManifestacaoDestinatarioPanel'
+import { labelObjetivoEntrada } from '../constants/objetivoEntradaOptions'
 import { fiscalPaths } from '../fiscalPaths'
 import { useNfeRecebidaDetailQuery } from '../hooks/useNfeRecebidaDetailQuery'
 import {
@@ -86,6 +87,9 @@ export default function NfeRecebidaDetailPage() {
                 <span className="badge bg-light text-dark border">
                   {labelOrigemImportacao(data.origem_importacao)}
                 </span>
+                <span className="badge bg-info text-dark">
+                  {labelObjetivoEntrada(data.objetivo_entrada)}
+                </span>
                 {data.nsu ? (
                   <span className="badge bg-light text-dark border">NSU {data.nsu}</span>
                 ) : null}
@@ -94,6 +98,12 @@ export default function NfeRecebidaDetailPage() {
             <div className="d-flex flex-wrap gap-2">
               {data.xml_original ? (
                 <>
+                  <Link
+                    to={`${catalogoPaths.produtoImportarNfe}?documentoFiscalId=${data.id}`}
+                    className="btn btn-primary"
+                  >
+                    Importar itens no catálogo
+                  </Link>
                   <button type="button" className="btn btn-outline-secondary" onClick={onDownloadXml}>
                     Descarregar XML
                   </button>
@@ -142,6 +152,10 @@ export default function NfeRecebidaDetailPage() {
                   <div className="col-sm-4">
                     <div className="small text-muted">Natureza da operação</div>
                     <div>{data.natureza_operacao || '—'}</div>
+                  </div>
+                  <div className="col-sm-4">
+                    <div className="small text-muted">Objetivo da entrada</div>
+                    <div>{labelObjetivoEntrada(data.objetivo_entrada)}</div>
                   </div>
                   <div className="col-sm-6">
                     <div className="small text-muted">Registada em</div>
@@ -222,9 +236,9 @@ export default function NfeRecebidaDetailPage() {
           ) : null}
 
           <p className="small text-muted">
-            Para criar ou atualizar produtos a partir desta nota, use a{' '}
-            <Link to={catalogoPaths.produtoImportarNfe}>importação NF-e do catálogo</Link> (fluxo com
-            pré-visualização e seleção de itens).
+            Para criar ou atualizar produtos a partir desta nota, use o botão{' '}
+            <strong>Importar itens no catálogo</strong>. O XML já salvo no Fiscal será reaproveitado
+            no fluxo com pré-visualização e seleção de itens.
           </p>
         </>
       )}

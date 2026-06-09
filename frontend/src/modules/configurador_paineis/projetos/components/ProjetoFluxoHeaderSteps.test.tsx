@@ -11,6 +11,7 @@ const useProjetoFluxoGatesMock = vi.hoisted(() =>
     condutoresRevisaoOk: false,
     podeAcessarDimensionamento: true,
     podeAcessarComposicao: false,
+    podeAcessarDimensionamentoMecanico: false,
   }))
 )
 
@@ -38,6 +39,7 @@ describe('ProjetoFluxoHeaderSteps', () => {
       condutoresRevisaoOk: false,
       podeAcessarDimensionamento: false,
       podeAcessarComposicao: false,
+      podeAcessarDimensionamentoMecanico: false,
     })
 
     render(

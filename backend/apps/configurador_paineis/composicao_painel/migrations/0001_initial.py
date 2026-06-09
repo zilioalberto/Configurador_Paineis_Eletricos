@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('cargas', '0001_initial'),
         ('catalogo', '0001_initial'),
-        ('projetos', '0001_initial'),
+        ('projetos', '0003_rename_projeto_configurador'),
     ]
 
     operations = [
@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('observacoes', models.TextField(blank=True)),
                 ('ordem', models.PositiveIntegerField(default=0)),
                 ('produto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='inclusoes_manuais_composicao', to='catalogo.produto')),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='composicao_inclusoes_manuais', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='composicao_inclusoes_manuais', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Inclusão manual (catálogo)',
@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                 ('indice_escopo', models.PositiveSmallIntegerField(default=0, help_text='Índice para vários itens da mesma categoria por carga (ex.: K1/K2/K3).')),
                 ('carga', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='composicao_itens', to='cargas.carga')),
                 ('produto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='composicao_itens', to='catalogo.produto')),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='composicao_itens', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='composicao_itens', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Item da Composição',
@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 ('ordem', models.PositiveIntegerField(default=0)),
                 ('indice_escopo', models.PositiveSmallIntegerField(default=0, help_text='Índice para múltiplas pendências do mesmo escopo (ex.: contatoras Y-Δ).')),
                 ('carga', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='pendencias_itens', to='cargas.carga')),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pendencias_itens', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='pendencias_itens', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Pendência de Item',
@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
                 ('indice_escopo', models.PositiveSmallIntegerField(default=0, help_text='Diferencia várias sugestões da mesma categoria para a mesma carga (ex.: K1/K2/K3 em estrela-triângulo). Padrão 0.')),
                 ('carga', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='sugestoes_itens', to='cargas.carga')),
                 ('produto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sugestoes_itens', to='catalogo.produto')),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sugestoes_itens', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sugestoes_itens', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Sugestão de Item',

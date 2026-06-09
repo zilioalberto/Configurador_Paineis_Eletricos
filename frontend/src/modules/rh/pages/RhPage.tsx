@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom'
 
 import { ConfirmModal, useToast } from '@/components/feedback'
+import AppMasterDetailLayout from '@/components/layout/AppMasterDetailLayout'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
@@ -37,6 +38,18 @@ type DeleteTarget = {
   tipo: AbaRh
   id: string
   label: string
+}
+
+type ItemComNome = { id: string; nome: string }
+
+function deleteTargetPorLista<T extends ItemComNome>(
+  tipo: AbaRh,
+  id: string | null,
+  lista: T[]
+): DeleteTarget | null {
+  if (!id) return null
+  const item = lista.find((row) => row.id === id)
+  return item ? { tipo, id: item.id, label: item.nome } : null
 }
 
 type ColaboradorForm = {
@@ -307,6 +320,11 @@ export default function RhPage() {
   const [jornadaForm, setJornadaForm] = useState<JornadaForm>(jornadaVazia)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [usuariosVinculo, setUsuariosVinculo] = useState<UsuarioVinculoDto[]>([])
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileDetailOpen(false)
+  }, [aba])
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -371,6 +389,36 @@ export default function RhPage() {
     [aba, cargos, colaboradores, departamentos, equipes, jornadas]
   )
 
+  const exclusaoAlvoAtual = useMemo((): DeleteTarget | null => {
+    const ids = {
+      colaboradores: colaboradorId,
+      departamentos: departamentoId,
+      cargos: cargoId,
+      equipes: equipeId,
+      jornadas: jornadaId,
+    }
+    const listas: Record<AbaRh, ItemComNome[]> = {
+      colaboradores,
+      departamentos,
+      cargos,
+      equipes,
+      jornadas,
+    }
+    return deleteTargetPorLista(aba, ids[aba], listas[aba])
+  }, [
+    aba,
+    cargoId,
+    cargos,
+    colaboradorId,
+    colaboradores,
+    departamentoId,
+    departamentos,
+    equipeId,
+    equipes,
+    jornadaId,
+    jornadas,
+  ])
+
   const aplicarBusca: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
@@ -400,36 +448,42 @@ export default function RhPage() {
       },
     }
     resets[tab]()
+    setMobileDetailOpen(true)
   }
 
   function selecionarColaborador(item: ColaboradorDto) {
     setAba('colaboradores')
     setColaboradorId(item.id)
     setColaboradorForm(colaboradorParaForm(item))
+    setMobileDetailOpen(true)
   }
 
   function selecionarDepartamento(item: DepartamentoDto) {
     setAba('departamentos')
     setDepartamentoId(item.id)
     setDepartamentoForm(departamentoParaForm(item))
+    setMobileDetailOpen(true)
   }
 
   function selecionarCargo(item: CargoDto) {
     setAba('cargos')
     setCargoId(item.id)
     setCargoForm(cargoParaForm(item))
+    setMobileDetailOpen(true)
   }
 
   function selecionarEquipe(item: EquipeDto) {
     setAba('equipes')
     setEquipeId(item.id)
     setEquipeForm(equipeParaForm(item))
+    setMobileDetailOpen(true)
   }
 
   function selecionarJornada(item: JornadaTrabalhoDto) {
     setAba('jornadas')
     setJornadaId(item.id)
     setJornadaForm(jornadaParaForm(item))
+    setMobileDetailOpen(true)
   }
 
   const salvarColaborador: FormEventHandler<HTMLFormElement> = (event) => {
@@ -660,14 +714,14 @@ export default function RhPage() {
         </ol>
       </nav>
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div className="app-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 className="h3 mb-1">RH</h1>
           <p className="text-muted mb-0">
             Colaboradores, cargos, departamentos, equipes e jornadas.
           </p>
         </div>
-        <div className="d-flex gap-2 flex-wrap">
+        <div className="app-page-header__actions d-flex gap-2 flex-wrap">
           <button
             type="button"
             className="btn btn-outline-secondary"
@@ -749,8 +803,10 @@ export default function RhPage() {
         ))}
       </ul>
 
-      <div className="row g-4 align-items-start">
-        <div className="col-xl-5">
+      <AppMasterDetailLayout
+        showDetail={mobileDetailOpen}
+        onBackToList={() => setMobileDetailOpen(false)}
+        list={
           <div className="card shadow-sm">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
@@ -781,11 +837,21 @@ export default function RhPage() {
               />
             </div>
           </div>
-        </div>
-
-        <div className="col-xl-7">
+        }
+        detail={
           <div className="card shadow-sm">
             <div className="card-body">
+              {exclusaoAlvoAtual && canEdit ? (
+                <div className="d-flex justify-content-end mb-3">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={() => setDeleteTarget(exclusaoAlvoAtual)}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              ) : null}
               <RhFormularioAtual
                 aba={aba}
                 canEdit={canEdit}
@@ -820,8 +886,8 @@ export default function RhPage() {
               />
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
     </div>
   )
 }

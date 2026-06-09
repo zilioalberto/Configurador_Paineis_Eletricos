@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('cargas', '0001_initial'),
-        ('projetos', '0001_initial'),
+        ('projetos', '0003_rename_projeto_configurador'),
     ]
 
     operations = [
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('atualizado_em', models.DateTimeField(auto_now=True)),
                 ('corrente_total_painel_a', models.DecimalField(decimal_places=2, help_text='Referência: ResumoDimensionamento.corrente_total_painel_a no momento do cálculo.', max_digits=12)),
                 ('tipo_corrente', models.CharField(choices=[('CA', 'Corrente Alternada'), ('CC', 'Corrente Contínua')], max_length=2)),
-                ('numero_fases', models.IntegerField(blank=True, help_text='Cópia de projetos_projeto.numero_fases (CA).', null=True)),
+                ('numero_fases', models.IntegerField(blank=True, help_text='Cópia de configurador_projeto.numero_fases (CA).', null=True)),
                 ('possui_neutro', models.BooleanField()),
                 ('possui_terra', models.BooleanField(help_text='Alimentação com condutor de proteção (PE/terra).')),
                 ('quantidade_condutores_fase', models.PositiveSmallIntegerField(default=0, help_text='Condutores de fase (ou pólos ativos em CC: ex. 2).')),
@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
                 ('condutores_aprovado', models.BooleanField(default=False, help_text='Bitolas da alimentação geral aprovadas na revisão (lista de aprovados).')),
                 ('observacoes', models.TextField(blank=True)),
                 ('memoria_calculo', models.TextField(blank=True)),
-                ('projeto', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='dimensionamento_alimentacao_geral', to='projetos.projeto')),
+                ('projeto', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='dimensionamento_alimentacao_geral', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Dimensionamento — alimentação geral do painel',
@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                 ('observacoes', models.TextField(blank=True)),
                 ('memoria_calculo', models.TextField(blank=True)),
                 ('carga', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='dimensionamento_circuito', to='cargas.carga')),
-                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='dimensionamentos_circuito_carga', to='projetos.projeto')),
+                ('projeto', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='dimensionamentos_circuito_carga', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Dimensionamento de circuito (carga)',
@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                 ('horas_montagem', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
                 ('observacoes', models.TextField(blank=True)),
                 ('condutores_revisao_confirmada', models.BooleanField(default=False, help_text='Utilizador confirmou revisão/aprovação das bitolas de condutores no wizard.')),
-                ('projeto', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='resumo_dimensionamento', to='projetos.projeto')),
+                ('projeto', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='resumo_dimensionamento', to='projetos.projetoconfigurador')),
             ],
             options={
                 'verbose_name': 'Resumo de Dimensionamento',

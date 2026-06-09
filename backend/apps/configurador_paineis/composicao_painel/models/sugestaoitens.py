@@ -82,7 +82,12 @@ class SugestaoItem(BaseModel):
         ordering = ["ordem", "id"]
         constraints = [
             models.UniqueConstraint(
-                fields=["projeto", "parte_painel", "categoria_produto"],
+                fields=[
+                    "projeto",
+                    "parte_painel",
+                    "categoria_produto",
+                    "indice_escopo",
+                ],
                 condition=Q(carga__isnull=True),
                 name="uq_sugestao_item_proj_parte_categoria_sem_carga",
             ),

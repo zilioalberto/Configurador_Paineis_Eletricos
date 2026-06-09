@@ -23,8 +23,9 @@ services:
     image: prom/alertmanager:v0.27.0
     container_name: configurador_painel_alertmanager
     restart: unless-stopped
-    env_file:
-      - /opt/zfw/shared/.env
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
     entrypoint:
       - /bin/sh
       - -ec

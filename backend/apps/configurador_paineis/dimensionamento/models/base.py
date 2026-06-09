@@ -52,6 +52,12 @@ class ResumoDimensionamento(BaseModel):
 
     observacoes = models.TextField(blank=True)
 
+    detalhe_dimensionamento_mecanico = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Memória de cálculo, itens considerados e sugestões de painéis comerciais.",
+    )
+
     condutores_revisao_confirmada = models.BooleanField(
         default=False,
         help_text="Utilizador confirmou revisão/aprovação das bitolas de condutores no wizard.",

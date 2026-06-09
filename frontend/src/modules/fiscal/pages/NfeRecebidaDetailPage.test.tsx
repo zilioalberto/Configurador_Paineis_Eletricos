@@ -51,6 +51,7 @@ describe('NfeRecebidaDetailPage', () => {
         natureza_operacao: 'Venda',
         status_importacao: 'PROCESSADA',
         origem_importacao: 'MANUAL',
+        objetivo_entrada: 'INDUSTRIALIZACAO',
         manifestacao_status: 'NAO_SOLICITADA',
         manifestacao_tipo: '',
         manifestacao_justificativa: '',
@@ -80,6 +81,11 @@ describe('NfeRecebidaDetailPage', () => {
     )
 
     expect(screen.getByRole('heading', { name: /nf-e 500/i })).toBeInTheDocument()
+    expect(screen.getAllByText(/Industrialização/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: /importar itens no catálogo/i })).toHaveAttribute(
+      'href',
+      '/catalogo/produtos/importar-nfe?documentoFiscalId=5'
+    )
     expect(useNfeRecebidaDetailQueryMock).toHaveBeenCalledWith(5, true)
   })
 
@@ -128,9 +134,15 @@ describe('NfeImportarManualPage', () => {
     fireEvent.change(screen.getByLabelText(/ou cole o xml/i), {
       target: { value: '<nfeProc/>' },
     })
+    fireEvent.change(screen.getByLabelText(/objetivo da entrada/i), {
+      target: { value: 'USO_CONSUMO' },
+    })
     fireEvent.click(screen.getByRole('button', { name: /^importar$/i }))
 
     await waitFor(() => expect(importarNfeXmlManualMock).toHaveBeenCalled())
+    expect(importarNfeXmlManualMock).toHaveBeenCalledWith(
+      expect.objectContaining({ objetivo_entrada: 'USO_CONSUMO' })
+    )
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/fiscal/nfes/9'))
   })
 })

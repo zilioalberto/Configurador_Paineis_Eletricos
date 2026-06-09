@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -69,14 +68,13 @@ export function useAppPageToolbarContext() {
 export function useAppPageToolbar(config: AppPageToolbarConfig | null) {
   const ctx = useContext(AppPageToolbarContext)
   const setToolbar = ctx?.setToolbar
-  const configRef = useRef(config)
-  configRef.current = config
 
   const badgeKey = config?.badges?.map((b) => `${b.key}:${b.text}:${b.variant ?? ''}`).join('|') ?? ''
 
   useEffect(() => {
     if (!setToolbar) return undefined
-    setToolbar(configRef.current)
+    setToolbar(config)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `config` muda a cada render; incluí-lo causa loop infinito
   }, [
     setToolbar,
     config?.title,

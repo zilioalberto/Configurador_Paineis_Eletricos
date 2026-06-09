@@ -13,7 +13,10 @@ from apps.configurador_paineis.cargas.models import (
     CargaTransdutor,
     CargaValvula,
 )
-from apps.catalogo.selectors.bornes import selecionar_bornes
+from apps.catalogo.selectors.bornes import (
+    selecionar_acessorios_borne_compativeis,
+    selecionar_bornes,
+)
 from apps.configurador_paineis.dimensionamento.models import DimensionamentoCircuitoCarga
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem, SugestaoItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.executar_por_carga import (
@@ -42,6 +45,32 @@ _INDICE_ESCOPO_BORNE_SENSOR_TERRA = 1
 # Motores e resistências (potência): mesmos índices (carga tem um único tipo).
 _INDICE_ESCOPO_BORNE_MOTOR_PASSAGEM = 2
 _INDICE_ESCOPO_BORNE_MOTOR_TERRA = 3
+_INDICE_ESCOPO_ACESSORIO_COMANDO_POSTE = 100
+_INDICE_ESCOPO_ACESSORIO_COMANDO_TAMPA = 101
+_INDICE_ESCOPO_ACESSORIO_SENSOR_POSTE = 102
+_INDICE_ESCOPO_ACESSORIO_SENSOR_TAMPA = 103
+_INDICE_ESCOPO_ACESSORIO_FUSIVEL_POSTE = 104
+_INDICE_ESCOPO_ACESSORIO_FUSIVEL_TAMPA = 105
+_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_BITOLA = 106
+_INDICE_ESCOPO_ACESSORIO_MOTOR_BORNE_EXTRA = 107
+_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_LONGA = 108
+_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_POSTE = 109
+_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_TAMPA = 110
+
+_TIPOS_BORNE_ACESSORIO = frozenset({
+    TipoBorneChoices.TAMPA,
+    TipoBorneChoices.POSTE,
+})
+_TIPOS_BORNE_COMANDO = frozenset({
+    TipoBorneChoices.PASSAGEM,
+    TipoBorneChoices.TERRA,
+})
+_PARTES_BORNE_ALIMENTACAO = frozenset({
+    PartesPainelChoices.ENTRADA_PRINCIPAL,
+    PartesPainelChoices.SECCIONAMENTO,
+    PartesPainelChoices.PROTECAO_GERAL,
+})
+_LIMITE_MOTORES_REGUA_LONGA = 10
 
 # Pendências criadas quando não existia circuito (memória em ``update_or_create``).
 _MARCADOR_MEMORIA_DIM_CIRCUITO_AUSENTE = "Sem DimensionamentoCircuitoCarga."
@@ -1320,6 +1349,408 @@ def _processar_bornes_valvula(projeto, carga) -> Optional[SugestaoItem]:
     return sugestao
 
 
+def _spec_borne(produto):
+    try:
+        return produto.especificacao_borne
+    except Exception:
+        return None
+
+
+def _tipo_borne_sugestao(sugestao: SugestaoItem) -> str | None:
+    spec = _spec_borne(sugestao.produto)
+    return spec.tipo_borne if spec is not None else None
+
+
+def _secao_borne_sugestao(sugestao: SugestaoItem) -> Decimal:
+    spec = _spec_borne(sugestao.produto)
+    if spec is None or spec.secao_max_mm2 is None:
+        return Decimal("0")
+    return Decimal(spec.secao_max_mm2)
+
+
+def _selecionar_primeiro_borne(tipo_borne: str):
+    return selecionar_bornes(tipo_borne=tipo_borne).first()
+
+
+def _selecionar_acessorio_borne_compativel(
+    tipo_borne: str,
+    sugestoes_base: list[SugestaoItem] | None = None,
+):
+    if tipo_borne == TipoBorneChoices.POSTE:
+        return _selecionar_primeiro_borne(tipo_borne), None
+
+    for sugestao in sugestoes_base or []:
+        rel = selecionar_acessorios_borne_compativeis(
+            sugestao.produto,
+            tipo_borne,
+        ).first()
+        if rel is not None:
+            return rel.acessorio, sugestao.produto
+    return _selecionar_primeiro_borne(tipo_borne), None
+
+
+def _limpar_acessorio_regua(
+    projeto,
+    *,
+    indice_escopo: int,
+    carga=None,
+    parte_painel=PartesPainelChoices.BORNES,
+) -> None:
+    filtro = {
+        "projeto": projeto,
+        "parte_painel": parte_painel,
+        "categoria_produto": CategoriaProdutoNomeChoices.BORNE,
+        "indice_escopo": indice_escopo,
+    }
+    if carga is None:
+        filtro["carga__isnull"] = True
+    else:
+        filtro["carga"] = carga
+    SugestaoItem.objects.filter(**filtro).delete()
+    PendenciaItem.objects.filter(**filtro).delete()
+
+
+def _salvar_ou_pendenciar_acessorio_regua(
+    projeto,
+    *,
+    tipo_borne: str,
+    quantidade: Decimal,
+    indice_escopo: int,
+    titulo: str,
+    motivo: str,
+    carga=None,
+    parte_painel=PartesPainelChoices.BORNES,
+    ordem: int = 44,
+    sugestoes_base: list[SugestaoItem] | None = None,
+) -> SugestaoItem | None:
+    produto, produto_base = _selecionar_acessorio_borne_compativel(
+        tipo_borne,
+        sugestoes_base,
+    )
+    origem_compatibilidade = (
+        f"Produto base compativel: {produto_base}\n"
+        if produto_base is not None
+        else "Produto selecionado por fallback de tipo de acessorio.\n"
+    )
+    memoria = (
+        f"[{titulo}]\n"
+        f"Tipo borne/acessório: {tipo_borne}\n"
+        f"Quantidade sugerida: {quantidade}\n"
+        f"Motivo: {motivo}\n"
+        f"{origem_compatibilidade}"
+        f"Categoria: {CategoriaProdutoNomeChoices.BORNE}\n"
+    )
+    filtro = {
+        "projeto": projeto,
+        "parte_painel": parte_painel,
+        "categoria_produto": CategoriaProdutoNomeChoices.BORNE,
+        "indice_escopo": indice_escopo,
+    }
+    if carga is None:
+        filtro["carga"] = None
+    else:
+        filtro["carga"] = carga
+
+    if produto is None:
+        SugestaoItem.objects.filter(**filtro).delete()
+        pendencia_filtro = dict(filtro)
+        if carga is None:
+            pendencia_filtro["carga"] = None
+        PendenciaItem.objects.update_or_create(
+            **pendencia_filtro,
+            defaults={
+                "descricao": (
+                    f"Nenhum produto do tipo {tipo_borne} cadastrado para {titulo.lower()}."
+                ),
+                "corrente_referencia_a": None,
+                "memoria_calculo": memoria,
+                "status": StatusPendenciaChoices.ABERTA,
+                "ordem": ordem,
+            },
+        )
+        return None
+
+    PendenciaItem.objects.filter(**filtro).delete()
+    sugestao, _ = SugestaoItem.objects.update_or_create(
+        **filtro,
+        defaults={
+            "produto": produto,
+            "quantidade": quantidade,
+            "corrente_referencia_a": None,
+            "memoria_calculo": memoria,
+            "status": StatusSugestaoChoices.PENDENTE,
+            "ordem": ordem,
+        },
+    )
+    return sugestao
+
+
+def _sugestoes_bornes_principais(projeto) -> list[SugestaoItem]:
+    return list(
+        SugestaoItem.objects.filter(
+            projeto=projeto,
+            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+            status=StatusSugestaoChoices.PENDENTE,
+        )
+        .select_related("produto", "produto__especificacao_borne", "carga")
+        .order_by("ordem", "id")
+    )
+
+
+def _gerar_acessorios_regua_alimentacao(
+    projeto,
+    sugestoes: list[SugestaoItem],
+) -> list[SugestaoItem]:
+    bornes_alimentacao = [
+        s
+        for s in sugestoes
+        if s.parte_painel in _PARTES_BORNE_ALIMENTACAO
+        and _tipo_borne_sugestao(s) not in _TIPOS_BORNE_ACESSORIO
+    ]
+    if not bornes_alimentacao:
+        _limpar_acessorio_regua(
+            projeto,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_POSTE,
+            carga=None,
+        )
+        _limpar_acessorio_regua(
+            projeto,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_TAMPA,
+            carga=None,
+        )
+        return []
+
+    out: list[SugestaoItem] = []
+    poste = _salvar_ou_pendenciar_acessorio_regua(
+        projeto,
+        tipo_borne=TipoBorneChoices.POSTE,
+        quantidade=Decimal("2"),
+        indice_escopo=_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_POSTE,
+        titulo="ACESSORIO REGUA ALIMENTACAO - POSTES",
+        motivo="Bornes de alimentacao recebem 2 postes.",
+        carga=None,
+        sugestoes_base=bornes_alimentacao,
+    )
+    tampa = _salvar_ou_pendenciar_acessorio_regua(
+        projeto,
+        tipo_borne=TipoBorneChoices.TAMPA,
+        quantidade=Decimal("1"),
+        indice_escopo=_INDICE_ESCOPO_ACESSORIO_ALIMENTACAO_TAMPA,
+        titulo="ACESSORIO REGUA ALIMENTACAO - TAMPA",
+        motivo="Bornes de alimentacao recebem 1 tampa no final.",
+        carga=None,
+        sugestoes_base=bornes_alimentacao,
+    )
+    if poste is not None:
+        out.append(poste)
+    if tampa is not None:
+        out.append(tampa)
+    return out
+
+
+def _gerar_acessorios_regua_motores(
+    projeto,
+    sugestoes: list[SugestaoItem],
+) -> list[SugestaoItem]:
+    bornes_motores = [
+        s
+        for s in sugestoes
+        if s.carga_id
+        and s.carga.tipo == TipoCargaChoices.MOTOR
+        and _tipo_borne_sugestao(s) not in _TIPOS_BORNE_ACESSORIO
+    ]
+    if not bornes_motores:
+        for indice in (
+            _INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_BITOLA,
+            _INDICE_ESCOPO_ACESSORIO_MOTOR_BORNE_EXTRA,
+            _INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_LONGA,
+        ):
+            _limpar_acessorio_regua(projeto, indice_escopo=indice)
+        return []
+
+    motores = {s.carga_id for s in bornes_motores}
+    representante = min(bornes_motores, key=lambda s: str(s.carga_id)).carga
+    secoes = sorted({_secao_borne_sugestao(s) for s in bornes_motores}, reverse=True)
+    mudancas_bitola = max(0, len(secoes) - 1)
+    out: list[SugestaoItem] = []
+
+    if mudancas_bitola:
+        tampa_bitola = _salvar_ou_pendenciar_acessorio_regua(
+            projeto,
+            tipo_borne=TipoBorneChoices.TAMPA,
+            quantidade=Decimal(mudancas_bitola),
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_BITOLA,
+            titulo="ACESSORIO REGUA MOTORES - TAMPA POR BITOLA",
+            motivo=(
+                "Bornes de motores receberam tampa porque ha mudanca de bitola "
+                f"na regua ({', '.join(str(s) for s in secoes)} mm2)."
+            ),
+            carga=representante,
+            sugestoes_base=bornes_motores,
+        )
+        if tampa_bitola is not None:
+            out.append(tampa_bitola)
+    else:
+        _limpar_acessorio_regua(
+            projeto,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_BITOLA,
+            carga=representante,
+        )
+
+    if len(motores) > _LIMITE_MOTORES_REGUA_LONGA:
+        maior_borne = max(
+            bornes_motores,
+            key=lambda s: (_secao_borne_sugestao(s), s.produto.codigo),
+        )
+        memoria_borne_extra = (
+            "[ACESSORIO REGUA MOTORES - BORNE EXTRA]\n"
+            f"Quantidade de motores na regua: {len(motores)}\n"
+            f"Limite: {_LIMITE_MOTORES_REGUA_LONGA}\n"
+            "Motivo: regua de motores ultrapassou 10 motores; acrescenta 1 borne.\n"
+            f"Produto base: {maior_borne.produto}\n"
+        )
+        extra, _ = SugestaoItem.objects.update_or_create(
+            projeto=projeto,
+            parte_painel=PartesPainelChoices.BORNES,
+            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+            carga=representante,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_BORNE_EXTRA,
+            defaults={
+                "produto": maior_borne.produto,
+                "quantidade": Decimal("1"),
+                "corrente_referencia_a": maior_borne.corrente_referencia_a,
+                "memoria_calculo": memoria_borne_extra,
+                "status": StatusSugestaoChoices.PENDENTE,
+                "ordem": 44,
+            },
+        )
+        PendenciaItem.objects.filter(
+            projeto=projeto,
+            parte_painel=PartesPainelChoices.BORNES,
+            categoria_produto=CategoriaProdutoNomeChoices.BORNE,
+            carga=representante,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_BORNE_EXTRA,
+        ).delete()
+        out.append(extra)
+        tampa_longa = _salvar_ou_pendenciar_acessorio_regua(
+            projeto,
+            tipo_borne=TipoBorneChoices.TAMPA,
+            quantidade=Decimal("1"),
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_LONGA,
+            titulo="ACESSORIO REGUA MOTORES - TAMPA REGUA LONGA",
+            motivo="Regua de motores ultrapassou 10 motores; acrescenta 1 tampa.",
+            carga=representante,
+            sugestoes_base=bornes_motores,
+        )
+        if tampa_longa is not None:
+            out.append(tampa_longa)
+    else:
+        _limpar_acessorio_regua(
+            projeto,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_BORNE_EXTRA,
+            carga=representante,
+        )
+        _limpar_acessorio_regua(
+            projeto,
+            indice_escopo=_INDICE_ESCOPO_ACESSORIO_MOTOR_TAMPA_LONGA,
+            carga=representante,
+        )
+    return out
+
+
+def _gerar_acessorios_regua_por_cargas(
+    projeto,
+    sugestoes: list[SugestaoItem],
+    *,
+    tipos_carga: frozenset[str],
+    tipos_borne: frozenset[str],
+    indice_poste: int,
+    indice_tampa: int,
+    titulo: str,
+) -> list[SugestaoItem]:
+    bornes = [
+        s
+        for s in sugestoes
+        if s.carga_id
+        and s.carga.tipo in tipos_carga
+        and _tipo_borne_sugestao(s) in tipos_borne
+    ]
+    if not bornes:
+        for indice in (indice_poste, indice_tampa):
+            _limpar_acessorio_regua(projeto, indice_escopo=indice)
+        return []
+
+    representante = min(bornes, key=lambda s: str(s.carga_id)).carga
+    out: list[SugestaoItem] = []
+    poste = _salvar_ou_pendenciar_acessorio_regua(
+        projeto,
+        tipo_borne=TipoBorneChoices.POSTE,
+        quantidade=Decimal("2"),
+        indice_escopo=indice_poste,
+        titulo=f"{titulo} - POSTES",
+        motivo="Regua separada recebe postes de fechamento nas extremidades.",
+        carga=representante,
+        sugestoes_base=bornes,
+    )
+    tampa = _salvar_ou_pendenciar_acessorio_regua(
+        projeto,
+        tipo_borne=TipoBorneChoices.TAMPA,
+        quantidade=Decimal("1"),
+        indice_escopo=indice_tampa,
+        titulo=f"{titulo} - TAMPA",
+        motivo="Regua separada recebe tampa de fechamento.",
+        carga=representante,
+        sugestoes_base=bornes,
+    )
+    if poste is not None:
+        out.append(poste)
+    if tampa is not None:
+        out.append(tampa)
+    return out
+
+
+def gerar_acessorios_reguas_bornes(projeto) -> list[SugestaoItem]:
+    """Acrescenta postes, tampas e borne extra conforme agrupamento das reguas."""
+    sugestoes = _sugestoes_bornes_principais(projeto)
+    acessorios: list[SugestaoItem] = []
+    acessorios.extend(_gerar_acessorios_regua_alimentacao(projeto, sugestoes))
+    acessorios.extend(_gerar_acessorios_regua_motores(projeto, sugestoes))
+    acessorios.extend(
+        _gerar_acessorios_regua_por_cargas(
+            projeto,
+            sugestoes,
+            tipos_carga=frozenset({TipoCargaChoices.SENSOR, TipoCargaChoices.TRANSDUTOR}),
+            tipos_borne=_TIPOS_BORNE_COMANDO,
+            indice_poste=_INDICE_ESCOPO_ACESSORIO_SENSOR_POSTE,
+            indice_tampa=_INDICE_ESCOPO_ACESSORIO_SENSOR_TAMPA,
+            titulo="ACESSORIO REGUA SENSORES E TRANSDUTORES",
+        )
+    )
+    acessorios.extend(
+        _gerar_acessorios_regua_por_cargas(
+            projeto,
+            sugestoes,
+            tipos_carga=frozenset({TipoCargaChoices.VALVULA}),
+            tipos_borne=frozenset({TipoBorneChoices.FUSIVEL}),
+            indice_poste=_INDICE_ESCOPO_ACESSORIO_FUSIVEL_POSTE,
+            indice_tampa=_INDICE_ESCOPO_ACESSORIO_FUSIVEL_TAMPA,
+            titulo="ACESSORIO REGUA BORNES FUSIVEIS",
+        )
+    )
+    acessorios.extend(
+        _gerar_acessorios_regua_por_cargas(
+            projeto,
+            sugestoes,
+            tipos_carga=frozenset({TipoCargaChoices.VALVULA}),
+            tipos_borne=frozenset({TipoBorneChoices.PASSAGEM}),
+            indice_poste=_INDICE_ESCOPO_ACESSORIO_COMANDO_POSTE,
+            indice_tampa=_INDICE_ESCOPO_ACESSORIO_COMANDO_TAMPA,
+            titulo="ACESSORIO REGUA COMANDO",
+        )
+    )
+    return acessorios
+
+
 def processar_sugestao_bornes_para_carga(
     projeto, carga
 ) -> Optional[SugestaoItem]:
@@ -1402,6 +1833,7 @@ def gerar_sugestoes_bornes(projeto):
         "[BORNE]",
         processar_sugestao_bornes_para_carga,
     )
+    sugestoes.extend(gerar_acessorios_reguas_bornes(projeto))
 
     print(
         f"[BORNE] Total sugestões: {len(sugestoes)} | projeto={projeto.id}"

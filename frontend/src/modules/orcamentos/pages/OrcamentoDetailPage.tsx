@@ -2305,24 +2305,38 @@ function OrcamentoItensTable({
   }
 
   return (
-    <div className="table-responsive" style={{ overflow: 'visible' }}>
+    <div className="table-responsive orcamento-doc-itens-table-wrap">
       <table className="table table-sm table-hover align-middle orcamento-doc-itens-table">
         <thead>
           <tr>
             <th style={{ width: '2.5rem' }}>#</th>
-            <th style={{ width: '7rem' }}>Origem</th>
-            {!tabelaServicos ? <th style={{ width: '3.5rem' }}>Painel</th> : null}
-            <th style={{ width: '8rem' }}>Tipo</th>
+            <th className="orc-col-compact-hide" style={{ width: '7rem' }}>
+              Origem
+            </th>
+            {!tabelaServicos ? (
+              <th className="orc-col-compact-hide" style={{ width: '3.5rem' }}>
+                Painel
+              </th>
+            ) : null}
+            <th className="orc-col-compact-hide" style={{ width: '8rem' }}>
+              Tipo
+            </th>
             <th style={{ width: '7.5rem' }}>Código</th>
             <th>Descrição</th>
-            <th style={{ width: '6.5rem' }}>{tabelaServicos ? 'Unid.' : 'NCM'}</th>
+            <th className="orc-col-compact-hide" style={{ width: '6.5rem' }}>
+              {tabelaServicos ? 'Unid.' : 'NCM'}
+            </th>
             <th className="text-end" style={{ width: '7rem' }}>
               Qtd
             </th>
-            <th className="text-end" style={{ width: '8rem' }}>
+            <th className="text-end orc-col-compact-hide" style={{ width: '8rem' }}>
               Custo
             </th>
-            <th className="text-end" style={{ width: '5rem' }} title="Referência do catálogo">
+            <th
+              className="text-end orc-col-compact-hide"
+              style={{ width: '5rem' }}
+              title="Referência do catálogo"
+            >
               {tabelaServicos ? 'Categoria' : 'IPI %'}
             </th>
             <th className="text-end" style={{ width: '8rem' }}>
@@ -2359,8 +2373,17 @@ function OrcamentoItensTable({
           })}
         </tbody>
         <tfoot>
-          <tr>
+          <tr className="orc-tfoot-desktop">
             <td colSpan={tabelaServicos ? 10 : 11} className="text-end">
+              Total {titulo.toLowerCase()}
+            </td>
+            <td className="text-end orcamento-doc__total-valor">
+              R$ {valorMonetarioTabela(totalOrcamento)}
+            </td>
+            {podeEditar ? <td /> : null}
+          </tr>
+          <tr className="orc-tfoot-compact">
+            <td colSpan={tabelaServicos ? 4 : 5} className="text-end">
               Total {titulo.toLowerCase()}
             </td>
             <td className="text-end orcamento-doc__total-valor">
@@ -2416,7 +2439,7 @@ function OrcamentoItemRow({
   return (
     <tr className={rowClass}>
       <td className="text-muted">{numeroLinha}</td>
-      <td className="small text-muted">
+      <td className="small text-muted orc-col-compact-hide">
         {rotuloOrigemLinhaOrcamento(linha.origem)}
         {precoCatalogoDesatualizado ? (
           <>
@@ -2441,13 +2464,13 @@ function OrcamentoItemRow({
       </td>
       {tabelaServicos ? null : (
         <td
-          className="small text-center fw-semibold text-primary"
+          className="small text-center fw-semibold text-primary orc-col-compact-hide"
           title={tituloPainelRef(linha.painelRef) || undefined}
         >
           {linha.painelRef?.trim() || '—'}
         </td>
       )}
-      <td>
+      <td className="orc-col-compact-hide">
         {linhaEditavel ? (
           <select
             className="form-select form-select-sm"
@@ -2505,7 +2528,7 @@ function OrcamentoItemRow({
           placeholder="Descrição do item"
         />
       )}
-      <td className="small text-muted" title={linha.tipo === 'SERVICO' ? 'Unidade do serviço' : 'NCM do produto no catálogo fiscal'}>
+      <td className="small text-muted orc-col-compact-hide" title={linha.tipo === 'SERVICO' ? 'Unidade do serviço' : 'NCM do produto no catálogo fiscal'}>
         {linha.tipo === 'SERVICO'
           ? linha.servicoUnidadeMedida?.trim() || '—'
           : exibirNcmLinhaOrcamento(linha.tipo, linha.produtoNcm)}
@@ -2518,13 +2541,14 @@ function OrcamentoItemRow({
         podeEditar={custoEditavel}
         salvando={salvando}
         atualizarLinha={atualizarLinha}
+        cellClassName="orc-col-compact-hide"
         title={
           custoEditavel
             ? undefined
             : 'Custo definido pela origem da linha. Use Atualizar oferta para buscar os valores atuais do catálogo.'
         }
       />
-      <td className="text-end text-muted small" title={linha.tipo === 'SERVICO' ? 'Categoria do serviço' : 'Definido no catálogo fiscal'}>
+      <td className="text-end text-muted small orc-col-compact-hide" title={linha.tipo === 'SERVICO' ? 'Categoria do serviço' : 'Definido no catálogo fiscal'}>
         {linha.tipo === 'SERVICO'
           ? linha.servicoCategoria?.trim() || '—'
           : formatIpiExibicao(linha.aliquota_ipi)}
@@ -2561,6 +2585,7 @@ function OrcamentoCampoLinha({
   atualizarLinha,
   tituloMargemMinima,
   title,
+  cellClassName,
 }: Readonly<{
   alinhadoDireita?: boolean
   campo: keyof Pick<
@@ -2576,10 +2601,11 @@ function OrcamentoCampoLinha({
   atualizarLinha: (index: number, patch: Partial<LinhaEditavelOrcamento>) => void
   tituloMargemMinima?: string
   title?: string
+  cellClassName?: string
 }>) {
   if (podeEditar) {
     return (
-      <td>
+      <td className={cellClassName}>
         <input
           type="text"
           className={`form-control form-control-sm${alinhadoDireita ? ' text-end' : ''}`}
@@ -2596,7 +2622,7 @@ function OrcamentoCampoLinha({
   }
 
   return (
-    <td>
+    <td className={cellClassName}>
       <span className={alinhadoDireita ? 'd-block text-end' : ''} title={title}>
         {linha[campo]}
       </span>

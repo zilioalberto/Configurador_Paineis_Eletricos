@@ -32,6 +32,9 @@ export const CATEGORIA_PARA_ESPEC_KEY: Partial<Record<CategoriaProdutoNome, stri
   TEMPORIZADOR: 'especificacao_temporizador',
   CONTROLADOR_TEMPERATURA: 'especificacao_controlador_temperatura',
   TRILHO_DIN: 'especificacao_trilho_din',
+  TERMINAIS: 'especificacao_terminal',
+  IDENTIFICACAO: 'especificacao_identificacao',
+  ACESSORIOS_GERAIS: 'especificacao_acessorio_geral',
   BARRAMENTO: 'especificacao_barramento',
   GATEWAY: 'especificacao_gateway',
 }

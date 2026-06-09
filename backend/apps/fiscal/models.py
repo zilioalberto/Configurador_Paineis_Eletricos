@@ -8,10 +8,13 @@ from django.db import models
 
 from apps.catalogo.models import Produto
 from apps.fiscal.choices import (
+    ObjetivoEntradaFiscalChoices,
+    ObjetivoSaidaFiscalChoices,
     OrigemImportacaoFiscalChoices,
     StatusImportacaoFiscalChoices,
     StatusManifestacaoDestinatarioChoices,
     TipoManifestacaoDestinatarioChoices,
+    TipoDocumentoFiscalEmitidoChoices,
 )
 from apps.fiscal.utils import normalizar_cnpj, normalizar_nsu
 from core.choices.fiscal import OrigemMercadoriaICMSChoices
@@ -150,6 +153,13 @@ class ItemFiscalProduto(BaseModel):
         null=True,
         blank=True,
     )
+    objetivo_entrada = models.CharField(
+        "Objetivo da entrada",
+        max_length=40,
+        choices=ObjetivoEntradaFiscalChoices.choices,
+        default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+        db_index=True,
+    )
 
     class Meta:
         ordering = ["ordem", "criado_em"]
@@ -223,6 +233,12 @@ class DocumentoFiscalRecebido(models.Model):
         max_length=30,
         choices=OrigemImportacaoFiscalChoices.choices,
         default=OrigemImportacaoFiscalChoices.MANUAL,
+    )
+    objetivo_entrada = models.CharField(
+        max_length=40,
+        choices=ObjetivoEntradaFiscalChoices.choices,
+        default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+        db_index=True,
     )
 
     xml_original = models.TextField(blank=True)
@@ -299,6 +315,100 @@ class ItemDocumentoFiscal(models.Model):
             models.UniqueConstraint(
                 fields=["documento", "numero_item"],
                 name="fiscal_item_doc_numero_unico",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Item {self.numero_item}: {self.descricao[:60]}"
+
+
+class DocumentoFiscalEmitido(models.Model):
+    """NF-e/NFS-e emitida pela ZFW para relatórios de saídas."""
+
+    identificador = models.CharField(
+        max_length=120,
+        unique=True,
+        help_text="Chave interna de deduplicação (chave NF-e ou identificador NFS-e).",
+    )
+    tipo_documento = models.CharField(
+        max_length=20,
+        choices=TipoDocumentoFiscalEmitidoChoices.choices,
+        db_index=True,
+    )
+    chave_acesso = models.CharField(max_length=44, blank=True, db_index=True)
+
+    cnpj_emitente = models.CharField(max_length=14)
+    nome_emitente = models.CharField(max_length=255, blank=True)
+
+    cnpj_destinatario = models.CharField(max_length=14, blank=True)
+    nome_destinatario = models.CharField(max_length=255, blank=True)
+
+    numero = models.CharField(max_length=20)
+    serie = models.CharField(max_length=10, blank=True)
+
+    data_emissao = models.DateTimeField(null=True, blank=True)
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    natureza_operacao = models.CharField(max_length=255, blank=True)
+    objetivo_saida = models.CharField(
+        max_length=40,
+        choices=ObjetivoSaidaFiscalChoices.choices,
+        default=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
+        db_index=True,
+    )
+    origem_importacao = models.CharField(
+        max_length=30,
+        choices=OrigemImportacaoFiscalChoices.choices,
+        default=OrigemImportacaoFiscalChoices.MANUAL,
+    )
+
+    xml_original = models.TextField(blank=True)
+    criada_em = models.DateTimeField(auto_now_add=True)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-data_emissao", "-criada_em"]
+        verbose_name = "Documento fiscal emitido"
+        verbose_name_plural = "Documentos fiscais emitidos"
+
+    def __str__(self) -> str:
+        dest = self.nome_destinatario or self.cnpj_destinatario or "Destinatário"
+        return f"{self.get_tipo_documento_display()} {self.numero} — {dest}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj_emitente = normalizar_cnpj(self.cnpj_emitente)
+        self.cnpj_destinatario = normalizar_cnpj(self.cnpj_destinatario)
+        super().save(*args, **kwargs)
+
+
+class ItemDocumentoFiscalEmitido(models.Model):
+    """Item/serviço de uma NF-e/NFS-e emitida."""
+
+    documento = models.ForeignKey(
+        DocumentoFiscalEmitido,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    numero_item = models.PositiveIntegerField(default=1)
+    codigo = models.CharField(max_length=100, blank=True)
+    descricao = models.CharField(max_length=500)
+    ncm = models.CharField(max_length=20, blank=True)
+    cfop = models.CharField(max_length=10, blank=True)
+    unidade = models.CharField(max_length=20, blank=True)
+    quantidade = models.DecimalField(max_digits=14, decimal_places=4)
+    valor_unitario = models.DecimalField(max_digits=14, decimal_places=4)
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["numero_item"]
+        verbose_name = "Item do documento fiscal emitido"
+        verbose_name_plural = "Itens dos documentos fiscais emitidos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["documento", "numero_item"],
+                name="fiscal_item_emitido_doc_numero_unico",
             ),
         ]
 

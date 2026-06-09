@@ -3557,3 +3557,217 @@ a.app-header-fluxo-steps__pill:hover {
 .carga-form--compact hr {
   opacity: 0.35;
 }
+
+/* -----------------------------------------------------------------------------
+   Responsividade — utilitários globais e ajustes transversais
+----------------------------------------------------------------------------- */
+
+@media (max-width: 575.98px) {
+  :root {
+    --cp-page-pt: 1rem;
+    --cp-page-pb: 1.25rem;
+  }
+
+  .app-page-header {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .app-page-header__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .app-page-header__actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+.app-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-master-detail__back {
+  text-decoration: none;
+}
+
+@media (max-width: 1199.98px) {
+  .app-master-detail--stacked .card + .card {
+    margin-top: 0;
+  }
+}
+
+.app-header-page-fluxo-mobile {
+  padding: 0 0.75rem 0.55rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.app-header-page-fluxo-mobile .app-header-fluxo-steps__list {
+  flex-wrap: nowrap;
+  padding-bottom: 0.1rem;
+}
+
+@media (max-width: 767.98px) {
+  .app-header-page-toolbar {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .app-header-page-toolbar__text {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .app-header-page-back {
+    order: 0;
+  }
+
+  .app-header-page-badges {
+    display: flex;
+    flex-wrap: wrap;
+    order: 2;
+    max-width: 100%;
+  }
+
+  .app-header-page-actions {
+    order: 3;
+    margin-left: auto;
+  }
+
+  .app-header-bar-center {
+    padding-left: 0.35rem;
+    padding-right: 0.25rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .app-header-page-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .app-header-page-badge {
+    font-size: 0.65rem;
+  }
+}
+
+.app-table-scroll,
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.app-diagram-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.app-diagram-scroll svg {
+  display: block;
+  min-width: min(100%, 280px);
+}
+
+@media (max-width: 767.98px) {
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .nav-tabs .nav-item {
+    flex-shrink: 0;
+  }
+
+  .nav-tabs .nav-link {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .modal-dialog {
+    margin: 0.5rem auto;
+    max-width: calc(100vw - 1rem);
+  }
+
+  .modal-dialog.modal-sm,
+  .modal-dialog.modal-lg,
+  .modal-dialog.modal-xl {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .modal-fullscreen-sm-down {
+    width: 100vw;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+.modal-dialog-scrollable .modal-body {
+  max-height: min(70vh, calc(100dvh - 10rem));
+}
+
+@media (max-width: 575.98px) {
+  .card-body > .row > .col-6:not([class*='col-sm']):not([class*='col-md']):not([class*='col-lg']) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .container-fluid.py-4 > .d-flex.flex-wrap.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .container-fluid.py-4
+    > .d-flex.flex-wrap.justify-content-between.align-items-center
+    > .d-flex.gap-2 {
+    width: 100%;
+  }
+
+  .container-fluid.py-4
+    > .d-flex.flex-wrap.justify-content-between.align-items-center
+    > .d-flex.gap-2
+    .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .projeto-config-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .projeto-config-aside {
+    position: static;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .projeto-config-actionbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .projeto-config-actionbar .btn {
+    width: 100%;
+  }
+}

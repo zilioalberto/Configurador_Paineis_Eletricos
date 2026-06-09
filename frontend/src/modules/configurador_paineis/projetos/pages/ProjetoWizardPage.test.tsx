@@ -233,6 +233,12 @@ describe('ProjetoWizardPage', () => {
     expect(screen.getByText('Página de composição')).toBeInTheDocument()
   })
 
+  it('redireciona fluxo/composicao_final para a rota de composição final', () => {
+    mockWizardData({})
+    renderWizard('/projetos/p1/fluxo/composicao_final')
+    expect(screen.getByText('Página de composição')).toBeInTheDocument()
+  })
+
   it('redireciona fluxo/dimensionamento sem cargas para a lista de cargas', () => {
     mockWizardData({ cargas: [] })
     renderWizard('/projetos/p1/fluxo/dimensionamento')
@@ -293,8 +299,11 @@ describe('ProjetoWizardPage', () => {
         corrente_total_painel_a: '33.1',
         atualizado_em: '2026-04-10T11:00:00.000Z',
         condutores_revisao_confirmada: true,
+        detalhe_dimensionamento_mecanico: {
+          layout_placa: { trilhos_din: [], canaletas_verticais: [], canaletas_horizontais: [] },
+        },
       },
-      composicao: { totais: { sugestoes: 1, pendencias: 0, composicao_itens: 1 } },
+      composicao: { totais: { sugestoes: 0, pendencias: 0, composicao_itens: 1 } },
     })
     renderWizard('/projetos/p1/fluxo/cargas')
 

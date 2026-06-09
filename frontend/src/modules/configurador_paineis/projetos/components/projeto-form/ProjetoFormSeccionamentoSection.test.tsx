@@ -23,7 +23,7 @@ describe('ProjetoFormSeccionamentoSection', () => {
     const tipo = document.querySelector(
       'select[name="tipo_seccionamento"]'
     ) as HTMLSelectElement
-    fireEvent.change(tipo, { target: { value: 'DISJUNTOR_CAIXA_MOLDADA' } })
+    fireEvent.change(tipo, { target: { value: 'SECCIONADORA' } })
     expect(onFieldChange).toHaveBeenCalled()
   })
 })

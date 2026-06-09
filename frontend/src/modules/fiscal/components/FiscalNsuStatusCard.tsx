@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { fiscalPaths } from '../fiscalPaths'
@@ -16,6 +17,21 @@ export default function FiscalNsuStatusCard() {
     error,
   } = useControleNsuQuery(cnpj, cnpj.length === 14)
 
+  const [bloqueado, setBloqueado] = useState(false)
+
+  useEffect(() => {
+    if (!nsu?.bloqueado_ate) {
+      setBloqueado(false)
+      return
+    }
+    const atualizar = () => {
+      setBloqueado(new Date(nsu.bloqueado_ate!).getTime() > Date.now())
+    }
+    atualizar()
+    const timer = window.setInterval(atualizar, 60_000)
+    return () => window.clearInterval(timer)
+  }, [nsu?.bloqueado_ate])
+
   if (configPending) {
     return null
   }
@@ -28,9 +44,6 @@ export default function FiscalNsuStatusCard() {
       </div>
     )
   }
-
-  const bloqueado =
-    nsu?.bloqueado_ate && new Date(nsu.bloqueado_ate).getTime() > Date.now()
 
   return (
     <div className={`card mb-4 ${bloqueado ? 'border-warning' : 'border-0 shadow-sm'}`}>

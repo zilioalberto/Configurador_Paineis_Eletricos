@@ -32,8 +32,138 @@ Aplicar regras normativas e de engenharia para dimensionar circuitos a partir do
 3. Ajustar escolhas manuais quando permitido.
 4. Validar antes de gerar/atualizar composição.
 
+## Corrente total do painel
+
+Serviço: `dimensionamento/services/corrente_total.py`
+
+A corrente gravada em `ResumoDimensionamento.corrente_total_painel_a` alimenta o circuito de **alimentação geral** e as sugestões de seccionadoras/disjuntores. **Não** é a soma direta de todas as correntes das cargas.
+
+### Entrada
+
+- Cargas ativas com corrente por unidade: `corrente_calculada_a` (motores, resistências) ou `corrente_consumida_ma / 1000` (válvulas, sensores, transdutores).
+- `numero_fases` da especificação da carga (ausente → monofásica).
+- `quantidade` da carga.
+- `numero_fases` e `fator_demanda` do projeto.
+- `tipo_painel` do projeto (`AUTOMACAO` ou `DISTRIBUICAO`).
+
+### Fator de demanda
+
+| Contexto | Aplica FD? |
+|----------|------------|
+| Corrente de referência dos **circuitos de carga** (motores, resistências) | Não — `Ib_projeto = Ib_unidade × quantidade` |
+| **Alimentação geral** e **seccionamento de entrada** | Sim, apenas se `tipo_painel = DISTRIBUICAO` |
+
+### Distribuição por fase
+
+Para cada unidade de cada carga, a corrente é alocada nas fases **menos carregadas** do painel:
+
+| Tipo da carga | Fases usadas | Efeito |
+|---------------|--------------|--------|
+| Monofásica (1) | 1 fase | Balanceamento entre as fases do painel |
+| Bifásica (2) | 2 fases | Soma I nas duas fases menos carregadas |
+| Trifásica (3) | 3 fases | Soma I em todas as fases (corrente de linha, ver `core/calculos/eletrica.py`) |
+
+Se a carga tiver mais fases que o painel, limita-se ao `numero_fases` do projeto (ex.: carga trifásica em painel monofásico → trata como 1 fase).
+
+### Resultado
+
+1. `calcular_correntes_por_fase_painel(projeto)` — vetor de corrente por fase (sem FD).
+2. `calcular_corrente_total_painel(projeto)` — `max(fases) × fator_demanda` quando painel distribuição; caso contrário `max(fases)`.
+
+A API expõe `correntes_por_fase_painel_a`, `aplica_fator_demanda_seccionamento` e `tipo_painel`.
+
+### Exemplo (painel 3φ, FD = 1)
+
+- 3 cargas monofásicas de 10 A → `[10, 10, 10]` A por fase.
+- 2 cargas trifásicas de 6 A → +12 A em cada fase → `[22, 22, 22]` A.
+- Corrente total de referência: **22 A**.
+
+## Dimensionamento mecânico (etapa 4)
+
+Após a composição aprovada, o fluxo do projeto inclui a etapa **Dim. mecânico** (`/configurador/configuracoes/:id/fluxo/dimensionamento_mecanico`).
+
+Serviço: `dimensionamento/services/dimensionamento_mecanico.py`  
+API: `GET/POST /configurador/dimensionamento/projeto/:id/mecanico/`  
+Persistência: `ResumoDimensionamento.detalhe_dimensionamento_mecanico` (JSON).
+
+### Entrada
+
+- Itens aprovados em `ComposicaoItem`, exceto canaletas, botoeiras, identificação e categorias de porta.
+- **Ocupação da placa:** somente produtos cuja especificação no catálogo indique `modo_montagem` ou `tipo_montagem` igual a **`TRILHO_DIN`** ou **`PLACA`** (ex.: `EspecificacaoDisjuntorMotor.modo_montagem`, `EspecificacaoReleInterface.tipo_montagem`). Itens em porta, acoplados ao contator, sem especificação ou com outro modo ficam de fora.
+- Dimensões do produto (`largura_mm`, `altura_mm`, `profundidade_mm`) via `DimensoesMixin`.
+- Catálogo de canaletas e painéis comerciais (`PAINEL`).
+
+### Parâmetros ERP (`configuracao_global.py`)
+
+| Chave | Padrão | Uso |
+|-------|--------|-----|
+| `configurador.taxa_ocupacao_max_placa_percentual` | 80 % | Área mínima da zona útil da placa |
+| `configurador.folga_profundidade_painel_mm` | 30 mm | Folga sobre a maior profundidade de componente |
+| `configurador.margem_placa_mm` | 20 mm | Margem nas bordas da placa calculada |
+| `configurador.espacamento_max_canaletas_horizontal_mm` | 160 mm | Faixa vertical máxima entre canaletas horizontais |
+
+### Canaletas horizontais (regra)
+
+- Mínimo **2** faixas (superior e inferior).
+- Enquanto a maior faixa livre vertical entre as peças exceder o parâmetro ERP (160 mm), adiciona-se mais uma canaleta horizontal.
+- Exemplo: placa 450 mm, canaleta com 50 mm de altura → 2 peças deixam 350 mm livres → sugere **3** faixas.
+
+### Escolhas do utilizador
+
+`PATCH /configurador/dimensionamento/projeto/:id/mecanico/`:
+
+- `painel_produto_id` — painel comercial escolhido
+- `canaleta_produto_id` — modelo de canaleta do catálogo
+- `canaletas_verticais` — quantidade (padrão 2)
+- `faixas_horizontais` — quantidade (sugerida automaticamente, editável)
+- `canaletas_horizontais_intermediarias_y_mm` — posição Y (mm) das canaletas intermediárias arrastáveis
+- `disposicao_componentes` — posições dos componentes no diagrama (instância, x/y, trilho, `manual`)
+- `taxa_ocupacao_max_percentual` — limite de ocupação da placa (opcional na persistência)
+
+### Itens considerados na placa
+
+- Itens aprovados em `ComposicaoItem` (snapshot atual), **incluindo** `ComposicaoInclusaoManual` (origem manual catálogo, ex.: DCM `3VJ` em `PLACA`).
+- Cada linha da composição é expandida pela `quantidade` em instâncias (`composicao_item_id#0`, `#1`, …).
+- Dimensões e `modo_montagem` vêm do catálogo (`TRILHO_DIN` ou `PLACA`).
+
+### Disposição automática (`disposicao_componentes.py` / `disposicaoComponentes.ts`)
+
+Regras principais:
+
+| Regra | Comportamento |
+|-------|----------------|
+| Disjuntor geral / seccionamento | Trilho superior, canto esquerdo |
+| Bornes | Trilho inferior, adjacentes, alimentação primeiro |
+| Demais TRILHO_DIN | Distribuição por trilho sem sobreposição |
+| PLACA | Faixa horizontal com menor folga vertical; prefere faixa inferior |
+| Instância sem posição | `completar_disposicao_faltante` tenta todos os trilhos/faixas |
+| Trilho sob PLACA | Recorte visual ±10 mm (`segmentar_trilhos_din_com_disposicao`), não remove o trilho |
+
+Validação: nenhum componente pode sobrepor canaletas nem outro componente.
+
+### Comportamento da API e UI
+
+- `GET .../mecanico/` — recalcula itens da composição atual, mescla escolhas salvas (`mesclar_disposicao_salva`) e devolve layout + disposição sincronizada.
+- Arrastar canaleta intermediária — recalcula disposição completa no frontend (`sugerir_disposicao_componentes`); alterações locais não são sobrescritas por refetch enquanto `disposicaoDirty`.
+- Salvar escolhas — persiste layout (canaletas, painel) e `disposicao_componentes`.
+
+### Resultado
+
+- Placa mínima (largura × altura), profundidade mínima e taxa de ocupação calculada.
+- Catálogo de canaletas ativas (`canaletas_catalogo`) e quantidades configuráveis.
+- Lista de painéis comerciais com placa útil ≥ mínimos; escolha persistida em `painel_escolhido`.
+
+## Testes
+
+```bash
+pytest backend/apps/configurador_paineis/dimensionamento/tests -q
+cd frontend && npx vitest run src/modules/configurador_paineis/dimensionamento
+```
+
+Cobertura relevante: `test_disposicao_componentes.py`, `test_dimensionamento_mecanico_service.py`, `test_dimensionamento_api_views.py`, `disposicaoComponentes.test.ts`, `WizardDimensionamentoMecanicoPanel` (via hooks/painéis).
+
 ## A documentar
 
-- [ ] Mapa serviço ↔ tipo de carga
+- [ ] Mapa serviço ↔ tipo de carga (demais circuitos)
 - [ ] Normas e fórmulas (referência no glossário)
 - [ ] API de patch de condutores e estados de erro

@@ -502,7 +502,7 @@ export default function OrcamentoRevisoesPainel({
 
         >
 
-          <div className="modal-dialog">
+          <div className="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
 
             <div className="modal-content">
 

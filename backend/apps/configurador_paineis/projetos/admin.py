@@ -216,6 +216,15 @@ class ProjetoAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Disjuntor geral",
+            {
+                "fields": (
+                    "possui_disjuntor_geral",
+                    "tipo_disjuntor_geral",
+                )
+            },
+        ),
+        (
             "Controle",
             {
                 "fields": (

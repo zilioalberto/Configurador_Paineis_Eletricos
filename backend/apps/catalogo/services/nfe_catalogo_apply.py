@@ -14,6 +14,7 @@ from apps.catalogo.services.nfe_catalogo_preview_enrich import (
     produto_resumo_para_preview,
 )
 from apps.fiscal.models import ItemFiscalProduto
+from apps.fiscal.choices import ObjetivoEntradaFiscalChoices
 from apps.fiscal.services import criar_item_fiscal_importacao_nfe
 from apps.cadastros.models import (
     EnderecoParceiro,
@@ -40,14 +41,19 @@ def _decimal_or_zero(s: str) -> Decimal:
         return Decimal("0")
 
 
-def _regravar_item_fiscal_nfe(prod: Produto, snap: dict[str, Any]) -> None:
+def _regravar_item_fiscal_nfe(
+    prod: Produto,
+    snap: dict[str, Any],
+    *,
+    objetivo_entrada: str,
+) -> None:
     n_item = int(snap.get("n_item") or 0)
     if n_item > 0:
         ItemFiscalProduto.objects.filter(
             produto=prod,
             n_item_nfe=n_item,
         ).delete()
-    criar_item_fiscal_importacao_nfe(prod, snap)
+    criar_item_fiscal_importacao_nfe(prod, snap, objetivo_entrada=objetivo_entrada)
 
 
 @dataclass
@@ -69,6 +75,7 @@ FornecedorConfig = tuple[str, str | None]
 class _AplicarContexto:
     by_nitem: dict[int, dict[str, Any]]
     fornecedor_config_por_item: dict[int, FornecedorConfig]
+    fabricante_config_por_item: dict[int, FornecedorConfig]
     fornecedores_existentes: dict[str, ParceiroComercial]
     fornecedor_emitente: ParceiroComercial | None
     unidades_validas: set[str]
@@ -81,6 +88,7 @@ class _AplicarContexto:
     produtos_atualizados: list[str]
     produtos_ignorados: list[dict]
     fiscal_apenas_alinhados: list[str]
+    objetivo_entrada: str
 
 
 def _validar_categoria_padrao(categoria_padrao: str) -> set[str]:
@@ -131,6 +139,25 @@ def _montar_config_fornecedor_por_item(
     }
 
 
+def _config_fabricante_item(sel: dict, fornecedor_config: FornecedorConfig) -> FornecedorConfig:
+    item_fabricante_id = str(sel.get("fabricante_id") or "")
+    if item_fabricante_id:
+        return ("existente", item_fabricante_id)
+    if "criar_fabricante" in sel:
+        return ("emitente" if bool(sel.get("criar_fabricante")) else "nenhum", None)
+    return fornecedor_config
+
+
+def _montar_config_fabricante_por_item(
+    selecao_por_item: dict[int, dict],
+    fornecedor_config_por_item: dict[int, FornecedorConfig],
+) -> dict[int, FornecedorConfig]:
+    return {
+        n_item: _config_fabricante_item(sel, fornecedor_config_por_item[n_item])
+        for n_item, sel in selecao_por_item.items()
+    }
+
+
 def _validar_categorias_itens(
     selecao_por_item: dict[int, dict],
     *,
@@ -145,11 +172,14 @@ def _validar_categorias_itens(
             raise ValueError(f"Categoria inválida para o item {n_item}.")
 
 
-def _buscar_fornecedores_existentes(
-    fornecedor_config_por_item: dict[int, FornecedorConfig],
+def _buscar_parceiros_existentes(
+    *configs: dict[int, FornecedorConfig],
 ) -> dict[str, ParceiroComercial]:
     fornecedor_ids = {
-        fid for tipo, fid in fornecedor_config_por_item.values() if tipo == "existente" and fid
+        fid
+        for config in configs
+        for tipo, fid in config.values()
+        if tipo == "existente" and fid
     }
     fornecedores = {
         str(fornecedor.id): fornecedor
@@ -160,7 +190,7 @@ def _buscar_fornecedores_existentes(
         )
     }
     if fornecedor_ids - set(fornecedores):
-        raise ValueError("Fornecedor selecionado não encontrado.")
+        raise ValueError("Fornecedor/fabricante selecionado não encontrado.")
     return fornecedores
 
 
@@ -240,6 +270,15 @@ def _fornecedor_produto(ctx: _AplicarContexto, n_item: int) -> ParceiroComercial
     return None
 
 
+def _fabricante_parceiro_produto(ctx: _AplicarContexto, n_item: int) -> ParceiroComercial | None:
+    tipo_fabricante, fabricante_existente_id = ctx.fabricante_config_por_item[n_item]
+    if tipo_fabricante == "emitente":
+        return ctx.fornecedor_emitente
+    if tipo_fabricante == "existente" and fabricante_existente_id:
+        return ctx.fornecedores_existentes[fabricante_existente_id]
+    return None
+
+
 def _registrar_fornecedor_uso(
     ctx: _AplicarContexto,
     fornecedor: ParceiroComercial | None,
@@ -253,11 +292,11 @@ def _registrar_fornecedor_uso(
 
 def _fabricante_produto(
     ctx: _AplicarContexto,
-    fornecedor_produto: ParceiroComercial | None,
+    fabricante_parceiro: ParceiroComercial | None,
 ) -> str:
     return (
         ctx.fabricante_padrao_limpo
-        or getattr(fornecedor_produto, "razao_social", "")
+        or getattr(fabricante_parceiro, "razao_social", "")
         or ctx.fabricante_emitente
     )[:100]
 
@@ -268,6 +307,7 @@ def _produto_payload(
     snap: dict[str, Any],
     categoria_item: str,
     fornecedor_produto: ParceiroComercial | None,
+    fabricante_parceiro: ParceiroComercial | None,
     fabricante_produto: str,
     unidade: str,
     preco: Decimal,
@@ -281,7 +321,8 @@ def _produto_payload(
         "categoria": categoria_item,
         "unidade_medida": unidade,
         "preco_base": preco,
-        "fabricante_parceiro": fornecedor_produto,
+        "fabricante_parceiro": fabricante_parceiro,
+        "fornecedor_parceiro": fornecedor_produto,
         "fabricante": fabricante_produto,
         "gtin": (snap.get("c_ean") or "")[:14],
         "ncm": ncm,
@@ -330,7 +371,7 @@ def _processar_produto_existente(
         ctx.produtos_atualizados.append(codigo)
     else:
         ctx.fiscal_apenas_alinhados.append(codigo)
-    _regravar_item_fiscal_nfe(produto, snap)
+    _regravar_item_fiscal_nfe(produto, snap, objetivo_entrada=ctx.objetivo_entrada)
 
 
 def _aplicar_item_importacao(ctx: _AplicarContexto, n_item: int, sel: dict) -> None:
@@ -342,13 +383,15 @@ def _aplicar_item_importacao(ctx: _AplicarContexto, n_item: int, sel: dict) -> N
     codigo = _codigo_catalogo(snap, sel.get("codigo_catalogo"))
     categoria_item = (sel.get("categoria_catalogo") or ctx.categoria_padrao or "").strip()
     fornecedor_produto = _fornecedor_produto(ctx, n_item)
+    fabricante_parceiro = _fabricante_parceiro_produto(ctx, n_item)
     _registrar_fornecedor_uso(ctx, fornecedor_produto)
     payload = _produto_payload(
         codigo=codigo,
         snap=snap,
         categoria_item=categoria_item,
         fornecedor_produto=fornecedor_produto,
-        fabricante_produto=_fabricante_produto(ctx, fornecedor_produto),
+        fabricante_parceiro=fabricante_parceiro,
+        fabricante_produto=_fabricante_produto(ctx, fabricante_parceiro),
         unidade=_unidade_item(snap, ctx.unidades_validas),
         preco=_preco_item(snap),
         ncm=_ncm_item(snap),
@@ -373,7 +416,7 @@ def _aplicar_item_importacao(ctx: _AplicarContexto, n_item: int, sel: dict) -> N
     produto = Produto(**payload)
     produto.full_clean()
     produto.save()
-    _regravar_item_fiscal_nfe(produto, snap)
+    _regravar_item_fiscal_nfe(produto, snap, objetivo_entrada=ctx.objetivo_entrada)
     ctx.produtos_criados.append(codigo)
 
 
@@ -385,6 +428,7 @@ def aplicar_importacao_nfe(
     fabricante_padrao: str,
     itens: list[dict],
     fornecedor_id: str | None = None,
+    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
 ) -> AplicarResultado:
     categorias_validas = _validar_categoria_padrao(categoria_padrao)
     emit = snapshot.get("emitente") or {}
@@ -402,15 +446,26 @@ def aplicar_importacao_nfe(
         fornecedor_id_global=fornecedor_id_global,
         criar_fornecedor=criar_fornecedor,
     )
+    fabricante_config_por_item = _montar_config_fabricante_por_item(
+        selecao_por_item,
+        fornecedor_config_por_item,
+    )
 
-    usar_emitente = any(tipo == "emitente" for tipo, _ in fornecedor_config_por_item.values())
+    usar_emitente = any(
+        tipo == "emitente"
+        for config in (fornecedor_config_por_item, fabricante_config_por_item)
+        for tipo, _ in config.values()
+    )
     _validar_categorias_itens(
         selecao_por_item,
         categoria_padrao=categoria_padrao,
         categorias_validas=categorias_validas,
     )
 
-    fornecedores_existentes = _buscar_fornecedores_existentes(fornecedor_config_por_item)
+    fornecedores_existentes = _buscar_parceiros_existentes(
+        fornecedor_config_por_item,
+        fabricante_config_por_item,
+    )
 
     produtos_criados: list[str] = []
     produtos_atualizados: list[str] = []
@@ -423,6 +478,7 @@ def aplicar_importacao_nfe(
     fabricante_padrao_limpo = (fabricante_padrao or "").strip()[:100]
     fabricante_emitente = (emit.get("razao_social") or "").strip()[:100]
     fiscal_apenas_alinhados: list[str] = []
+    objetivo_entrada_limpo = objetivo_entrada or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS
 
     with transaction.atomic():
         if usar_emitente:
@@ -433,6 +489,7 @@ def aplicar_importacao_nfe(
         ctx = _AplicarContexto(
             by_nitem=by_nitem,
             fornecedor_config_por_item=fornecedor_config_por_item,
+            fabricante_config_por_item=fabricante_config_por_item,
             fornecedores_existentes=fornecedores_existentes,
             fornecedor_emitente=fornecedor_emitente,
             unidades_validas={c for c, _ in UnidadeMedidaChoices.choices},
@@ -445,6 +502,7 @@ def aplicar_importacao_nfe(
             produtos_atualizados=produtos_atualizados,
             produtos_ignorados=ignorados,
             fiscal_apenas_alinhados=fiscal_apenas_alinhados,
+            objetivo_entrada=objetivo_entrada_limpo,
         )
         for n_item, sel in sorted(selecao_por_item.items()):
             _aplicar_item_importacao(ctx, n_item, sel)

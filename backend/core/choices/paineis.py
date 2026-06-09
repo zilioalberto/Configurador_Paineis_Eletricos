@@ -45,9 +45,13 @@ class CorPainelChoices(models.TextChoices):
 class TipoSeccionamentoChoices(models.TextChoices):
     NENHUM = "NENHUM", "Sem seccionamento"
     SECCIONADORA = "SECCIONADORA", "Seccionadora"
-    DISJUNTOR_CAIXA_MOLDADA = "DISJUNTOR_CAIXA_MOLDADA", "Disjuntor Caixa Moldada"
-    
-    
+
+
+class TipoDisjuntorGeralChoices(models.TextChoices):
+    MINIDISJUNTOR = "MINIDISJUNTOR", "Minidisjuntor"
+    DISJUNTOR_CAIXA_MOLDADA = "DISJUNTOR_CAIXA_MOLDADA", "Disjuntor caixa moldada"
+
+
 class TipoConexaoAlimetacaoChoices(models.TextChoices):
     BARRAMENTO = "BARRAMENTO", "Barramento"
     BORNE = "BORNE", "Borne"

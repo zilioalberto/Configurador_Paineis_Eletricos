@@ -10,9 +10,12 @@ from apps.fiscal.api.manifestacao_views import (
 )
 from apps.fiscal.api.nfe_views import (
     ControleNSUView,
+    DocumentoFiscalEmitidoViewSet,
     DocumentoFiscalRecebidoViewSet,
+    ImportarXMLDocumentoEmitidoPortalView,
     ImportarXMLNFePortalView,
     ImportarXMLNFeView,
+    RelatorioNFeView,
 )
 from apps.fiscal.api.views import ItemFiscalProdutoViewSet
 
@@ -26,6 +29,11 @@ router.register(
     r"fiscal/nfes",
     DocumentoFiscalRecebidoViewSet,
     basename="fiscal-nfes",
+)
+router.register(
+    r"fiscal/nfes-emitidas",
+    DocumentoFiscalEmitidoViewSet,
+    basename="fiscal-nfes-emitidas",
 )
 
 urlpatterns = [
@@ -58,6 +66,16 @@ urlpatterns = [
         "fiscal/nfes/importar-manual/",
         ImportarXMLNFePortalView.as_view(),
         name="fiscal-nfes-importar-manual",
+    ),
+    path(
+        "fiscal/nfes-emitidas/importar-manual/",
+        ImportarXMLDocumentoEmitidoPortalView.as_view(),
+        name="fiscal-nfes-emitidas-importar-manual",
+    ),
+    path(
+        "fiscal/relatorios/nfes/",
+        RelatorioNFeView.as_view(),
+        name="fiscal-relatorio-nfes",
     ),
     path(
         "fiscal/nsu/<str:cnpj>/",

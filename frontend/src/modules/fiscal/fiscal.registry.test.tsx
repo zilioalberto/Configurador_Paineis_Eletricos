@@ -17,7 +17,9 @@ describe('fiscal.registry', () => {
       '/fiscal',
       '/fiscal/itens-fiscais',
       '/fiscal/nfes',
+      '/fiscal/relatorios/nfes',
       '/fiscal/nfes/importar',
+      '/fiscal/nfes-emitidas/importar',
       '/fiscal/nfes/:id',
       '/fiscal/nsu',
     ])

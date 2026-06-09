@@ -43,6 +43,12 @@ export function produtoDetailToForm(
     preco_base: String(p.preco_base ?? '0'),
     aliquota_ipi: strDecApi(p.aliquota_ipi),
     fabricante_parceiro: p.fabricante_parceiro ?? '',
+    fabricante_parceiro_nome: p.fabricante_parceiro_nome ?? '',
+    fabricante_parceiro_documento: p.fabricante_parceiro_documento ?? '',
+    fornecedor_parceiro: p.fornecedor_parceiro ?? p.fabricante_parceiro ?? '',
+    fornecedor_parceiro_nome: p.fornecedor_parceiro_nome ?? p.fabricante_parceiro_nome ?? '',
+    fornecedor_parceiro_documento:
+      p.fornecedor_parceiro_documento ?? p.fabricante_parceiro_documento ?? '',
     fabricante: String(p.fabricante ?? ''),
     referencia_fabricante: String(p.referencia_fabricante ?? ''),
     largura_mm: p.largura_mm != null ? String(p.largura_mm) : '',
@@ -51,6 +57,15 @@ export function produtoDetailToForm(
     observacoes_tecnicas: String(p.observacoes_tecnicas ?? ''),
     ativo: p.ativo !== false,
     especificacao: null,
+    acessorios_compativeis: (p.acessorios_compativeis ?? []).map((row) => ({
+      acessorio: row.acessorio ?? '',
+      acessorio_codigo: row.acessorio_codigo ?? '',
+      acessorio_descricao: row.acessorio_descricao ?? '',
+      tipo_acessorio: row.tipo_acessorio ?? '',
+      quantidade_padrao: String(row.quantidade_padrao ?? '1.00'),
+      prioridade: Number(row.prioridade ?? 0),
+      observacoes: row.observacoes ?? '',
+    })),
   }
 
   form = applyCategoriaChange(form, form.categoria, categorias)

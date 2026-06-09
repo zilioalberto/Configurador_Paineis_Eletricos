@@ -148,8 +148,8 @@ export default function FiscalHomePage() {
             <div className="card-body d-flex flex-column">
               <h3 className="h5 card-title">NF-es recebidas</h3>
               <p className="card-text text-muted small flex-grow-1">
-                Lista de notas importadas da SEFAZ (ponte A3) ou manualmente, com XML e itens no
-                servidor.
+                Lista de notas importadas da SEFAZ (ponte A3) ou manualmente, com XML, itens e
+                objetivo fiscal da entrada.
               </p>
               <Link to={fiscalPaths.nfes} className="btn btn-primary">
                 Ver documentos
@@ -160,9 +160,42 @@ export default function FiscalHomePage() {
         <div className="col-md-6 col-lg-4">
           <div className="card h-100 shadow-sm">
             <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Relatório de NF-es</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Fechamento por período e finalidade, com fornecedor, chave, valores e visualização
+                rápida dos itens para contabilidade e gestão.
+              </p>
+              <Link to={fiscalPaths.relatorioNfes} className="btn btn-primary">
+                Gerar relatório
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Importar XML emitido</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Registra NF-e de produto ou NFS-e de serviço emitida pela ZFW para relatórios de
+                saídas e indicadores gerenciais.
+              </p>
+              {podeEditar ? (
+                <Link to={fiscalPaths.nfeEmitidaImportar} className="btn btn-outline-primary">
+                  Importar saída
+                </Link>
+              ) : (
+                <span className="small text-muted">Requer permissão de edição de materiais.</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
               <h3 className="h5 card-title">Importar XML (fiscal)</h3>
               <p className="card-text text-muted small flex-grow-1">
-                Grava a NF-e no armazenamento fiscal sem alterar o catálogo de produtos.
+                Grava a NF-e no armazenamento fiscal sem alterar produtos; informe se a entrada é
+                industrialização, revenda, uso/consumo, ativo etc.
               </p>
               {podeEditar ? (
                 <Link to={fiscalPaths.nfeImportarManual} className="btn btn-outline-primary">
@@ -179,7 +212,8 @@ export default function FiscalHomePage() {
             <div className="card-body d-flex flex-column">
               <h3 className="h5 card-title">Importar NF-e (catálogo)</h3>
               <p className="card-text text-muted small flex-grow-1">
-                Cria ou atualiza produtos a partir do XML, com pré-visualização e seleção de itens.
+                Cria ou atualiza produtos a partir do XML e grava tributação de referência com o
+                objetivo fiscal da entrada selecionado.
               </p>
               <Link to={catalogoPaths.produtoImportarNfe} className="btn btn-outline-primary">
                 Ir para catálogo

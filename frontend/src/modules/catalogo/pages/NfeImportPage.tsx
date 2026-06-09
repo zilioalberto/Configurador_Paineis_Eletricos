@@ -1,7 +1,10 @@
-import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { type ChangeEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
+import { objetivoEntradaOptions } from '@/modules/fiscal/constants/objetivoEntradaOptions'
+import { importarNfeXmlManual, obterNfeRecebida } from '@/modules/fiscal/services/fiscalNfeService'
+import type { ObjetivoEntradaFiscal } from '@/modules/fiscal/types/documentoFiscalRecebido'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { useCategoriaListQuery } from '../hooks/useCategoriaListQuery'
 import { catalogoPaths } from '../catalogoPaths'
@@ -25,6 +28,8 @@ import {
   nfeItemLinhaDivergeDoCatalogo,
 } from '../utils/nfeImportCompare'
 
+import './NfeImportPage.css'
+
 const FORNECEDOR_EMITENTE = 'emitente'
 const FORNECEDOR_NENHUM = 'nenhum'
 
@@ -34,6 +39,7 @@ type ItemSelecaoImportacao = {
   importar: boolean
   codigo: string
   fornecedor: FornecedorSelecao
+  fabricante: FornecedorSelecao
   categoria: string
   atualizar_se_existir: boolean
 }
@@ -52,6 +58,15 @@ function payloadFornecedor(fornecedor: FornecedorSelecao) {
   return {
     criar_fornecedor: false,
     fornecedor_id: fornecedor.replace('fornecedor:', ''),
+  }
+}
+
+function payloadFabricante(fabricante: FornecedorSelecao) {
+  if (fabricante === FORNECEDOR_EMITENTE) return { criar_fabricante: true }
+  if (fabricante === FORNECEDOR_NENHUM) return { criar_fabricante: false }
+  return {
+    criar_fabricante: false,
+    fabricante_id: fabricante.replace('fornecedor:', ''),
   }
 }
 
@@ -75,9 +90,78 @@ function selecaoPadraoItem(item: NfeItemSnapshot, snapshot: NfeSnapshot): ItemSe
     importar: true,
     codigo: item.c_prod,
     fornecedor: fornecedorPadraoSnapshot(snapshot),
+    fabricante: fornecedorPadraoSnapshot(snapshot),
     categoria: item.produto_existente?.categoria ?? '',
     atualizar_se_existir: false,
   }
+}
+
+function selecaoFallbackPayload(item: NfeItemSnapshot): ItemSelecaoImportacao {
+  return {
+    importar: false,
+    codigo: item.c_prod,
+    fornecedor: FORNECEDOR_NENHUM,
+    fabricante: FORNECEDOR_NENHUM,
+    categoria: '',
+    atualizar_se_existir: false,
+  }
+}
+
+function itemPayloadAplicacao(
+  item: NfeItemSnapshot,
+  selecao: ItemSelecaoImportacao
+): NfeAplicarItem {
+  return {
+    n_item: item.n_item,
+    importar: selecao.importar,
+    ...payloadFornecedor(selecao.fornecedor),
+    ...payloadFabricante(selecao.fabricante),
+    categoria_catalogo: selecao.categoria || undefined,
+    codigo_catalogo: selecao.codigo.trim() || undefined,
+    ...(selecao.atualizar_se_existir ? { atualizar_se_existir: true } : {}),
+  }
+}
+
+async function carregarPreviewDocumentoFiscal(documentoId: number) {
+  const documento = await obterNfeRecebida(documentoId)
+  if (!documento.xml_original?.trim()) {
+    throw new Error('Esta NF-e fiscal não possui XML original armazenado.')
+  }
+  const file = new File([documento.xml_original], `nfe-fiscal-${documento.id}.xml`, {
+    type: 'text/xml',
+  })
+  return {
+    dados: await previewNfeXml(file),
+    origem: { id: documento.id, numero: documento.numero },
+    objetivoEntrada: documento.objetivo_entrada,
+    xml: documento.xml_original,
+  }
+}
+
+function deveRegistrarNfeFiscal(
+  registrarNoFiscal: boolean,
+  origemFiscal: { id: number; numero: string } | null,
+  xmlFonte: string
+) {
+  return registrarNoFiscal && !origemFiscal && Boolean(xmlFonte.trim())
+}
+
+function mensagemResultadoImportacao(
+  resultado: NfeAplicarResponse,
+  resFiscal: Awaited<ReturnType<typeof importarNfeXmlManual>> | null
+) {
+  return [
+    resFiscal ? (resFiscal.created ? 'NF-e registrada no fiscal.' : 'NF-e já existia no fiscal.') : '',
+    resultado.fornecedor_criado ? 'Fornecedor criado.' : '',
+    resultado.produtos_criados.length
+      ? `${resultado.produtos_criados.length} produto(s) criado(s).`
+      : '',
+    resultado.produtos_ignorados.length
+      ? `${resultado.produtos_ignorados.length} linha(s) ignorada(s).`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 function linhaCatalogoClass(existente: NfeProdutoExistenteResumo | null, diverge: boolean): string {
@@ -104,14 +188,14 @@ function NfeStatusCell({
 }>) {
   if (!existente) {
     return (
-      <td className="small" style={{ minWidth: '9rem' }}>
+      <td className="small nfe-col-situacao">
         <span className="badge bg-secondary">Novo</span>
       </td>
     )
   }
 
   return (
-    <td className="small" style={{ minWidth: '9rem' }}>
+    <td className="small nfe-col-situacao">
       {diverge ? (
         <>
           <span className="badge bg-warning text-dark">Divergente</span>
@@ -198,7 +282,7 @@ function NfeItemRow({
           />
         </td>
         <td>{item.n_item}</td>
-        <td style={{ minWidth: '8rem' }}>
+        <td className="nfe-col-codigo">
           <input
             className="form-control form-control-sm"
             maxLength={60}
@@ -208,35 +292,78 @@ function NfeItemRow({
             }
           />
         </td>
-        <td style={{ minWidth: '18rem' }}>
-          <select
-            className="form-select form-select-sm"
-            value={selecao.fornecedor}
-            disabled={!selecao.importar || carregandoFornecedores}
-            onChange={(e) =>
-              onSelecaoChange(item.n_item, {
-                ...selecao,
-                fornecedor: e.target.value as FornecedorSelecao,
-              })
-            }
-            aria-label={`Fornecedor do item ${item.n_item}`}
-          >
-            <option value={FORNECEDOR_EMITENTE} disabled={!emitenteCadastroDisponivel}>
-              {fornecedorEmitenteLabel}
-            </option>
-            <option value={FORNECEDOR_NENHUM}>Nenhum fornecedor</option>
-            {fornecedoresCombo.length ? (
-              <optgroup label="Fornecedores cadastrados">
-                {fornecedoresCombo.map((fornecedor) => (
-                  <option key={fornecedor.id} value={fornecedorExistenteValue(fornecedor.id)}>
-                    {fornecedor.razao_social} ({fornecedor.cnpj})
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-          </select>
+        <td className="nfe-col-fornecedor">
+          <div className="d-grid gap-2">
+            <div>
+              <label className="form-label small text-muted mb-1" htmlFor={`nfe-fornecedor-${item.n_item}`}>
+                Fornecedor
+              </label>
+              <select
+                id={`nfe-fornecedor-${item.n_item}`}
+                className="form-select form-select-sm"
+                value={selecao.fornecedor}
+                disabled={!selecao.importar || carregandoFornecedores}
+                onChange={(e) => {
+                  const fornecedor = e.target.value as FornecedorSelecao
+                  onSelecaoChange(item.n_item, {
+                    ...selecao,
+                    fornecedor,
+                    fabricante:
+                      selecao.fabricante === selecao.fornecedor ? fornecedor : selecao.fabricante,
+                  })
+                }}
+                aria-label={`Fornecedor do item ${item.n_item}`}
+              >
+                <option value={FORNECEDOR_EMITENTE} disabled={!emitenteCadastroDisponivel}>
+                  {fornecedorEmitenteLabel}
+                </option>
+                <option value={FORNECEDOR_NENHUM}>Nenhum fornecedor</option>
+                {fornecedoresCombo.length ? (
+                  <optgroup label="Fornecedores cadastrados">
+                    {fornecedoresCombo.map((fornecedor) => (
+                      <option key={fornecedor.id} value={fornecedorExistenteValue(fornecedor.id)}>
+                        {fornecedor.razao_social} ({fornecedor.cnpj})
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+            </div>
+            <div>
+              <label className="form-label small text-muted mb-1" htmlFor={`nfe-fabricante-${item.n_item}`}>
+                Fabricante
+              </label>
+              <select
+                id={`nfe-fabricante-${item.n_item}`}
+                className="form-select form-select-sm"
+                value={selecao.fabricante}
+                disabled={!selecao.importar || carregandoFornecedores}
+                onChange={(e) =>
+                  onSelecaoChange(item.n_item, {
+                    ...selecao,
+                    fabricante: e.target.value as FornecedorSelecao,
+                  })
+                }
+                aria-label={`Fabricante do item ${item.n_item}`}
+              >
+                <option value={FORNECEDOR_EMITENTE} disabled={!emitenteCadastroDisponivel}>
+                  {fornecedorEmitenteLabel}
+                </option>
+                <option value={FORNECEDOR_NENHUM}>Nenhum fabricante</option>
+                {fornecedoresCombo.length ? (
+                  <optgroup label="Fabricantes cadastrados">
+                    {fornecedoresCombo.map((fornecedor) => (
+                      <option key={fornecedor.id} value={fornecedorExistenteValue(fornecedor.id)}>
+                        {fornecedor.razao_social} ({fornecedor.cnpj})
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+            </div>
+          </div>
         </td>
-        <td style={{ minWidth: '14rem' }}>
+        <td className="nfe-col-categoria">
           <select
             className={`form-select form-select-sm ${
               selecao.importar && !selecao.categoria ? 'is-invalid' : ''
@@ -268,13 +395,13 @@ function NfeItemRow({
         <td>
           <span className="small">{item.x_prod}</span>
         </td>
-        <td>
+        <td className="nfe-col-compact-hide">
           <code>{item.ncm || '—'}</code>
         </td>
-        <td>
+        <td className="nfe-col-compact-hide">
           <code>{item.cfop || '—'}</code>
         </td>
-        <td className="small text-break" style={{ maxWidth: '14rem' }}>
+        <td className="small text-break nfe-col-compact-hide" style={{ maxWidth: '14rem' }}>
           <span className="d-block">{resumoImpostoIcms(item.imposto)}</span>
           {item.imposto?.cst_pis ? (
             <span className="text-muted">
@@ -283,17 +410,17 @@ function NfeItemRow({
             </span>
           ) : null}
         </td>
-        <td>{item.unidade_catalogo}</td>
-        <td>{item.u_trib_catalogo || '—'}</td>
-        <td className="text-end">{item.v_un_com}</td>
+        <td className="nfe-col-compact-hide">{item.unidade_catalogo}</td>
+        <td className="nfe-col-compact-hide">{item.u_trib_catalogo || '—'}</td>
+        <td className="text-end nfe-col-compact-hide">{item.v_un_com}</td>
       </tr>
       {aberto && existente ? (
         <tr className={trClass}>
           <td colSpan={13} className="p-0">
             <div className="px-3 py-2 border-top bg-white small">
               <strong className="d-block mb-2">XML × catálogo (código {existente.codigo})</strong>
-              <div className="table-responsive">
-                <table className="table table-sm table-bordered mb-0">
+              <div className="nfe-campos-comparacao-wrap">
+                <table className="table table-sm table-bordered mb-0 nfe-campos-comparacao-table">
                   <thead className="table-light">
                     <tr>
                       <th>Campo</th>
@@ -310,8 +437,8 @@ function NfeItemRow({
                     ).map((row) => (
                       <tr key={row.id} className={row.diverge ? 'table-warning' : ''}>
                         <td>{row.label}</td>
-                        <td>{row.xml || '—'}</td>
-                        <td>{row.catalogo || '—'}</td>
+                        <td data-label="XML / seleção">{row.xml || '—'}</td>
+                        <td data-label="Catálogo">{row.catalogo || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -465,20 +592,30 @@ function NfeResultadoImportacao({
 /** Wizard de importação de produtos a partir de XML de NF-e. */
 export default function NfeImportPage() {
   const { showToast } = useToast()
+  const [searchParams] = useSearchParams()
+  const documentoFiscalIdParam = searchParams.get('documentoFiscalId')
   const { data: categorias = [], isPending: catPending } = useCategoriaListQuery()
   const [arquivo, setArquivo] = useState<File | null>(null)
+  const [xmlFonte, setXmlFonte] = useState('')
   const [preview, setPreview] = useState<NfePreviewResponse | null>(null)
   const [carregandoPreview, setCarregandoPreview] = useState(false)
   const [aplicando, setAplicando] = useState(false)
+  const [registrandoFiscal, setRegistrandoFiscal] = useState(false)
   const [fabricantePadrao, setFabricantePadrao] = useState('')
+  const [objetivoEntrada, setObjetivoEntrada] = useState<ObjetivoEntradaFiscal | ''>('')
+  const [registrarNoFiscal, setRegistrarNoFiscal] = useState(false)
+  const [origemFiscal, setOrigemFiscal] = useState<{ id: number; numero: string } | null>(null)
   const [fornecedores, setFornecedores] = useState<NfeFornecedorOption[]>([])
   const [carregandoFornecedores, setCarregandoFornecedores] = useState(false)
   const [categoriaGlobal, setCategoriaGlobal] = useState('')
   const [fornecedorGlobal, setFornecedorGlobal] =
     useState<FornecedorSelecao>(FORNECEDOR_NENHUM)
+  const [fabricanteGlobal, setFabricanteGlobal] =
+    useState<FornecedorSelecao>(FORNECEDOR_NENHUM)
   const [selecoes, setSelecoes] = useState<Record<number, ItemSelecaoImportacao>>({})
   const [resultadoImportacao, setResultadoImportacao] = useState<NfeAplicarResponse | null>(null)
   const [detalheAberto, setDetalheAberto] = useState<Record<number, boolean>>({})
+  const documentoFiscalCarregadoRef = useRef<string | null>(null)
 
   const snapshot = preview?.snapshot ?? null
   const existentePorNItem = useNfeExistentePorItem(snapshot, selecoes)
@@ -515,12 +652,14 @@ export default function NfeImportPage() {
         importar: true,
         codigo: it.c_prod,
         fornecedor: fornecedorPadrao,
+        fabricante: fornecedorPadrao,
         categoria: it.produto_existente?.categoria ?? '',
         atualizar_se_existir: false,
       }
     }
     setSelecoes(next)
     setFornecedorGlobal(fornecedorPadrao)
+    setFabricanteGlobal(fornecedorPadrao)
     setCategoriaGlobal('')
   }, [])
 
@@ -528,11 +667,16 @@ export default function NfeImportPage() {
     (event: ChangeEvent<HTMLInputElement>) => {
       const f = event.target.files?.[0] ?? null
       setArquivo(f)
+      setXmlFonte('')
+      setOrigemFiscal(null)
+      setRegistrarNoFiscal(false)
       setPreview(null)
       setSelecoes({})
       setDetalheAberto({})
       setCategoriaGlobal('')
       setFornecedorGlobal(FORNECEDOR_NENHUM)
+      setFabricanteGlobal(FORNECEDOR_NENHUM)
+      setObjetivoEntrada('')
       setResultadoImportacao(null)
     },
     []
@@ -545,16 +689,13 @@ export default function NfeImportPage() {
     }
     setCarregandoPreview(true)
     try {
+      const xml = await arquivo.text()
       const dados = await previewNfeXml(arquivo)
+      setXmlFonte(xml)
+      setOrigemFiscal(null)
       setPreview(dados)
       setResultadoImportacao(null)
       sincronizarSelecoes(dados.snapshot)
-      const emit = dados.snapshot.emitente
-      if (emit.razao_social) {
-        setFabricantePadrao((prev) =>
-          prev.trim() ? prev : emit.razao_social.slice(0, 100)
-        )
-      }
       showToast({ variant: 'success', message: 'XML lido. Confira os dados abaixo.' })
     } catch (err) {
       showToast({
@@ -567,23 +708,61 @@ export default function NfeImportPage() {
     }
   }, [arquivo, showToast, sincronizarSelecoes])
 
+  useEffect(() => {
+    if (!documentoFiscalIdParam || documentoFiscalCarregadoRef.current === documentoFiscalIdParam) {
+      return
+    }
+    const documentoId = Number(documentoFiscalIdParam)
+    if (!Number.isFinite(documentoId) || documentoId <= 0) {
+      showToast({
+        variant: 'warning',
+        title: 'NF-e fiscal',
+        message: 'Identificador da NF-e fiscal inválido.',
+      })
+      documentoFiscalCarregadoRef.current = documentoFiscalIdParam
+      return
+    }
+
+    let ativo = true
+    documentoFiscalCarregadoRef.current = documentoFiscalIdParam
+    setCarregandoPreview(true)
+    carregarPreviewDocumentoFiscal(documentoId)
+      .then(({ dados, origem, objetivoEntrada: objetivo, xml }) => {
+        if (!ativo) return
+        setArquivo(null)
+        setXmlFonte(xml)
+        setOrigemFiscal(origem)
+        setRegistrarNoFiscal(false)
+        setPreview(dados)
+        setResultadoImportacao(null)
+        setObjetivoEntrada(objetivo)
+        sincronizarSelecoes(dados.snapshot)
+        showToast({
+          variant: 'success',
+          message: 'NF-e fiscal carregada para importação no catálogo.',
+        })
+      })
+      .catch((err) => {
+        if (!ativo) return
+        showToast({
+          variant: 'danger',
+          title: 'NF-e fiscal',
+          message: extrairMensagemErroApi(err) || 'Não foi possível carregar a NF-e fiscal.',
+        })
+      })
+      .finally(() => {
+        if (ativo) setCarregandoPreview(false)
+      })
+
+    return () => {
+      ativo = false
+    }
+  }, [documentoFiscalIdParam, showToast, sincronizarSelecoes])
+
   const itensPayload = useMemo((): NfeAplicarItem[] => {
     if (!snapshot) return []
     return snapshot.itens.map((it) => {
-      const s = selecoes[it.n_item] ?? {
-        importar: false,
-        codigo: it.c_prod,
-        fornecedor: FORNECEDOR_NENHUM,
-        categoria: '',
-      }
-      return {
-        n_item: it.n_item,
-        importar: s.importar,
-        ...payloadFornecedor(s.fornecedor),
-        categoria_catalogo: s.categoria || undefined,
-        codigo_catalogo: s.codigo.trim() || undefined,
-        ...(s.atualizar_se_existir ? { atualizar_se_existir: true } : {}),
-      }
+      return itemPayloadAplicacao(it, selecoes[it.n_item] ?? selecaoFallbackPayload(it))
     })
   }, [snapshot, selecoes])
 
@@ -596,7 +775,12 @@ export default function NfeImportPage() {
     [itensSelecionados]
   )
   const podeAplicar =
-    !aplicando && itensSelecionados.length > 0 && itensSemCategoria.length === 0 && !catPending
+    !aplicando &&
+    !registrandoFiscal &&
+    itensSelecionados.length > 0 &&
+    itensSemCategoria.length === 0 &&
+    Boolean(objetivoEntrada) &&
+    !catPending
   const todosItensMarcados = useMemo(() => {
     if (!snapshot?.itens.length) return false
     return snapshot.itens.every((it) => selecoes[it.n_item]?.importar)
@@ -631,6 +815,7 @@ export default function NfeImportPage() {
             importar: false,
             codigo: it.c_prod,
             fornecedor: fornecedorPadraoSnapshot(snapshot),
+            fabricante: fornecedorPadraoSnapshot(snapshot),
             categoria: it.produto_existente?.categoria ?? '',
             atualizar_se_existir: false,
           }
@@ -667,12 +852,31 @@ export default function NfeImportPage() {
       for (const it of snapshot.itens) {
         const atual = next[it.n_item]
         if (atual?.importar) {
-          next[it.n_item] = { ...atual, fornecedor: fornecedorGlobal }
+          next[it.n_item] = {
+            ...atual,
+            fornecedor: fornecedorGlobal,
+            fabricante:
+              atual.fabricante === atual.fornecedor ? fornecedorGlobal : atual.fabricante,
+          }
         }
       }
       return next
     })
   }, [fornecedorGlobal, snapshot])
+
+  const aplicarFabricanteGlobal = useCallback(() => {
+    if (!snapshot) return
+    setSelecoes((prev) => {
+      const next = { ...prev }
+      for (const it of snapshot.itens) {
+        const atual = next[it.n_item]
+        if (atual?.importar) {
+          next[it.n_item] = { ...atual, fabricante: fabricanteGlobal }
+        }
+      }
+      return next
+    })
+  }, [fabricanteGlobal, snapshot])
 
   const alterarSelecao = useCallback((nItem: number, selecao: ItemSelecaoImportacao) => {
     setSelecoes((prev) => ({ ...prev, [nItem]: selecao }))
@@ -691,28 +895,31 @@ export default function NfeImportPage() {
       })
       return
     }
+    if (!objetivoEntrada) {
+      showToast({
+        variant: 'warning',
+        message: 'Informe o objetivo da entrada antes de importar.',
+      })
+      return
+    }
     setAplicando(true)
+    const registrarFiscal = deveRegistrarNfeFiscal(registrarNoFiscal, origemFiscal, xmlFonte)
+    setRegistrandoFiscal(registrarFiscal)
     try {
+      const resFiscal = registrarFiscal
+        ? await importarNfeXmlManual({ xml: xmlFonte, objetivo_entrada: objetivoEntrada })
+        : null
       const res = await aplicarImportacaoNfe({
         snapshot: preview.snapshot,
         fabricante_padrao: fabricantePadrao.trim(),
+        objetivo_entrada: objetivoEntrada,
         itens: itensPayload,
       })
       setResultadoImportacao(res)
-      const partes = [
-        res.fornecedor_criado ? 'Fornecedor criado.' : '',
-        res.produtos_criados.length
-          ? `${res.produtos_criados.length} produto(s) criado(s).`
-          : '',
-        res.produtos_ignorados.length
-          ? `${res.produtos_ignorados.length} linha(s) ignorada(s).`
-          : '',
-      ]
-        .filter(Boolean)
-        .join(' ')
+      const mensagem = mensagemResultadoImportacao(res, resFiscal)
       showToast({
         variant: res.produtos_criados.length ? 'success' : 'warning',
-        message: partes || 'Nenhuma alteração.',
+        message: mensagem || 'Nenhuma alteração.',
       })
     } catch (err) {
       showToast({
@@ -722,11 +929,22 @@ export default function NfeImportPage() {
       })
     } finally {
       setAplicando(false)
+      setRegistrandoFiscal(false)
     }
-  }, [preview, fabricantePadrao, itensPayload, itensSemCategoria.length, showToast])
+  }, [
+    preview,
+    fabricantePadrao,
+    objetivoEntrada,
+    itensPayload,
+    itensSemCategoria.length,
+    registrarNoFiscal,
+    origemFiscal,
+    xmlFonte,
+    showToast,
+  ])
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid nfe-import-page">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <nav aria-label="breadcrumb">
@@ -781,6 +999,13 @@ export default function NfeImportPage() {
               </button>
             </div>
           </div>
+          {origemFiscal ? (
+            <div className="alert alert-info py-2 small mt-3 mb-0">
+              XML carregado da NF-e fiscal #{origemFiscal.id}
+              {origemFiscal.numero ? ` (número ${origemFiscal.numero})` : ''}. Você pode seguir
+              direto para o catálogo sem reenviar o arquivo.
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -819,7 +1044,7 @@ export default function NfeImportPage() {
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label" htmlFor="fab-padrao">
-                    Fabricante nos produtos (opcional)
+                    Fabricante em texto padrão (opcional)
                   </label>
                   <input
                     id="fab-padrao"
@@ -828,6 +1053,58 @@ export default function NfeImportPage() {
                     value={fabricantePadrao}
                     onChange={(e) => setFabricantePadrao(e.target.value)}
                   />
+                  <p className="form-text mb-0">
+                    Usado apenas como texto do fabricante quando preenchido; a seleção por item
+                    continua gravando o vínculo do fabricante.
+                  </p>
+                </div>
+                <div className="col-lg-6">
+                  <label className="form-label" htmlFor="nfe-catalogo-objetivo-entrada">
+                    Objetivo da entrada
+                  </label>
+                  <select
+                    id="nfe-catalogo-objetivo-entrada"
+                    className="form-select form-select-sm"
+                    value={objetivoEntrada}
+                    onChange={(e) => setObjetivoEntrada(e.target.value as ObjetivoEntradaFiscal | '')}
+                    required
+                  >
+                    <option value="">Selecione...</option>
+                    {objetivoEntradaOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="form-text mb-0">
+                    Será gravado nos itens fiscais de referência criados a partir desta NF-e.
+                  </p>
+                </div>
+                <div className="col-lg-6">
+                  {origemFiscal ? (
+                    <div className="alert alert-success py-2 small mb-0">
+                      Esta NF-e já está registrada no Fiscal. Ao aplicar a importação, os itens serão
+                      adicionados ao catálogo sem duplicar o XML fiscal.
+                    </div>
+                  ) : (
+                    <div className="form-check mt-lg-4">
+                      <input
+                        id="nfe-registrar-fiscal"
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={registrarNoFiscal}
+                        disabled={!xmlFonte.trim()}
+                        onChange={(e) => setRegistrarNoFiscal(e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor="nfe-registrar-fiscal">
+                        Registrar também no Fiscal
+                      </label>
+                      <div className="form-text">
+                        Use quando quiser importar uma única vez e aproveitar a mesma NF-e nos
+                        módulos Fiscal e Catálogo.
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -867,7 +1144,7 @@ export default function NfeImportPage() {
                       Aplicar categoria
                     </button>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <label className="form-label" htmlFor="fornecedor-global-nfe">
                       Fornecedor para itens marcados
                     </label>
@@ -909,6 +1186,48 @@ export default function NfeImportPage() {
                       Aplicar fornecedor
                     </button>
                   </div>
+                  <div className="col-md-3">
+                    <label className="form-label" htmlFor="fabricante-global-nfe">
+                      Fabricante para itens marcados
+                    </label>
+                    <select
+                      id="fabricante-global-nfe"
+                      className="form-select form-select-sm"
+                      value={fabricanteGlobal}
+                      disabled={carregandoFornecedores}
+                      onChange={(e) => setFabricanteGlobal(e.target.value as FornecedorSelecao)}
+                    >
+                      <option
+                        value={FORNECEDOR_EMITENTE}
+                        disabled={!preview.snapshot.emitente.cadastro_fornecedor_disponivel}
+                      >
+                        {fornecedorEmitenteLabel}
+                      </option>
+                      <option value={FORNECEDOR_NENHUM}>Nenhum fabricante</option>
+                      {fornecedoresCombo.length ? (
+                        <optgroup label="Fabricantes cadastrados">
+                          {fornecedoresCombo.map((fornecedor) => (
+                            <option
+                              key={fornecedor.id}
+                              value={fornecedorExistenteValue(fornecedor.id)}
+                            >
+                              {fornecedor.razao_social} ({fornecedor.cnpj})
+                            </option>
+                          ))}
+                        </optgroup>
+                      ) : null}
+                    </select>
+                  </div>
+                  <div className="col-md-auto">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm"
+                      disabled={!itensSelecionados.length}
+                      onClick={aplicarFabricanteGlobal}
+                    >
+                      Aplicar fabricante
+                    </button>
+                  </div>
                   <div className="col-md-auto ms-md-auto d-flex gap-2">
                     <button
                       type="button"
@@ -925,23 +1244,28 @@ export default function NfeImportPage() {
                   Categorize todos os produtos marcados para liberar a importação.
                 </output>
               ) : null}
-              <div className="table-responsive">
-                <table className="table table-sm align-middle">
+              {!objetivoEntrada ? (
+                <output className="alert alert-warning py-2 small d-block">
+                  Informe o objetivo da entrada para liberar a importação.
+                </output>
+              ) : null}
+              <div className="table-responsive nfe-itens-table-wrap">
+                <table className="table table-sm align-middle nfe-itens-table">
                   <thead>
                     <tr>
                       <th>Importar</th>
                       <th>#</th>
                       <th>Código catálogo</th>
-                      <th>Fornecedor</th>
+                      <th>Fornecedor / Fabricante</th>
                       <th>Categoria</th>
                       <th className="text-nowrap">Situação</th>
                       <th>Descrição (XML)</th>
-                      <th>NCM</th>
-                      <th>CFOP</th>
-                      <th className="text-nowrap">ICMS / PIS (resumo)</th>
-                      <th>uCom</th>
-                      <th>uTrib</th>
-                      <th className="text-end">v. unit.</th>
+                      <th className="nfe-col-compact-hide">NCM</th>
+                      <th className="nfe-col-compact-hide">CFOP</th>
+                      <th className="text-nowrap nfe-col-compact-hide">ICMS / PIS (resumo)</th>
+                      <th className="nfe-col-compact-hide">uCom</th>
+                      <th className="nfe-col-compact-hide">uTrib</th>
+                      <th className="text-end nfe-col-compact-hide">v. unit.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -971,7 +1295,7 @@ export default function NfeImportPage() {
                 disabled={!podeAplicar}
                 onClick={() => void aplicar()}
               >
-                {aplicando ? 'A importar…' : 'Aplicar importação'}
+                {registrandoFiscal ? 'Registrando fiscal…' : aplicando ? 'A importar…' : 'Aplicar importação'}
               </button>
 
               <NfeResultadoImportacao resultado={resultadoImportacao} />

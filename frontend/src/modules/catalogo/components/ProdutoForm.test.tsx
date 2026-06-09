@@ -141,4 +141,32 @@ describe('ProdutoForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Salvar$/i }))
     expect(onSubmit).not.toHaveBeenCalled()
   })
+
+  it('mostra fabricante e fornecedor vinculados vindos do detalhe do produto', () => {
+    const onSubmit = vi.fn()
+    const categorias: CategoriaProduto[] = [
+      { id: 'BORNE', nome: 'BORNE', nome_display: 'Borne' },
+    ]
+    const initialData = {
+      ...produtoFormEmpty(),
+      categoria: 'BORNE',
+      codigo: 'BR-1',
+      descricao: 'Borne',
+      fabricante_parceiro: 'forn-1',
+      fabricante_parceiro_nome: 'Fabricante ZFW',
+      fabricante_parceiro_documento: '12.345.678/0001-90',
+      fornecedor_parceiro: 'forn-2',
+      fornecedor_parceiro_nome: 'Fornecedor XML',
+      fornecedor_parceiro_documento: '98.765.432/0001-10',
+    }
+
+    render(<ProdutoForm categorias={categorias} initialData={initialData} onSubmit={onSubmit} />)
+
+    expect(screen.getByText(/Fabricante vinculado/i)).toBeInTheDocument()
+    expect(screen.getByText(/Fornecedor vinculado/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Fabricante ZFW/)).toHaveLength(2)
+    expect(screen.getAllByText(/Fornecedor XML/)).toHaveLength(2)
+    expect(screen.getAllByText(/12\.345\.678\/0001-90/)).toHaveLength(2)
+    expect(screen.getAllByText(/98\.765\.432\/0001-10/)).toHaveLength(2)
+  })
 })

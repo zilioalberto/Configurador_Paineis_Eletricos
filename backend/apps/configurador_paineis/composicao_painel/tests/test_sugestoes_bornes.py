@@ -11,7 +11,7 @@ from apps.configurador_paineis.cargas.models import (
     CargaTransdutor,
     CargaValvula,
 )
-from apps.catalogo.models import EspecificacaoBorne, Produto
+from apps.catalogo.models import EspecificacaoBorne, Produto, ProdutoAcessorioCompativel
 from apps.configurador_paineis.composicao_painel.models import SugestaoItem
 from apps.configurador_paineis.composicao_painel.models import PendenciaItem
 from apps.configurador_paineis.composicao_painel.services.sugestoes.bornes import (
@@ -25,6 +25,7 @@ from core.choices import (
     PartesPainelChoices,
     StatusPendenciaChoices,
     TensaoChoices,
+    UnidadePotenciaCorrenteChoices,
 )
 from core.choices.cargas import (
     TipoAcionamentoResistenciaChoices,
@@ -1030,3 +1031,209 @@ def test_borne_transdutor_passagem_e_terra_por_dim(criar_projeto):
     assert sugs[0].indice_escopo == 0
     assert sugs[1].indice_escopo == 1
     assert "TRANSDUTOR" in (sugs[0].memoria_calculo or "")
+
+
+def _criar_produto_borne_teste(codigo, tipo_borne, secao="4.00", corrente="10.00", niveis=1):
+    produto = Produto.objects.create(
+        codigo=codigo,
+        descricao=f"{tipo_borne} {codigo}",
+        categoria=CategoriaProdutoNomeChoices.BORNE,
+        unidade_medida=UnidadeMedidaChoices.UN,
+    )
+    EspecificacaoBorne.objects.create(
+        produto=produto,
+        tipo_borne=tipo_borne,
+        secao_max_mm2=Decimal(secao),
+        corrente_nominal_a=Decimal(corrente) if corrente is not None else None,
+        numero_niveis=niveis,
+        possui_fusivel=tipo_borne == TipoBorneChoices.FUSIVEL,
+        modo_montagem=ModoMontagemChoices.TRILHO_DIN,
+    )
+    return produto
+
+
+def _criar_motor_com_dimensionamento(
+    projeto,
+    *,
+    tag,
+    secao_fase="2.50",
+    corrente="5.00",
+):
+    carga = Carga.objects.create(
+        projeto=projeto,
+        tag=tag,
+        descricao=tag,
+        tipo=TipoCargaChoices.MOTOR,
+    )
+    CargaMotor.objects.create(
+        carga=carga,
+        potencia_corrente_valor=Decimal("1.00"),
+        potencia_corrente_unidade=UnidadePotenciaCorrenteChoices.KW,
+        numero_fases=NumeroFasesChoices.TRIFASICO,
+        tensao_motor=TensaoChoices.V380,
+        tipo_conexao_painel=TipoConexaoCargaPainelChoices.CONEXAO_BORNES_SEM_PE,
+    )
+    DimensionamentoCircuitoCarga.objects.create(
+        projeto=projeto,
+        carga=carga,
+        tipo_carga=TipoCargaChoices.MOTOR,
+        classificacao_circuito=ClassificacaoCircuitoChoices.POTENCIA,
+        corrente_calculada_a=Decimal(corrente),
+        secao_condutor_fase_mm2=Decimal(secao_fase),
+    )
+    return carga
+
+
+@pytest.mark.django_db
+def test_acessorios_motores_tampa_quando_muda_bitola(criar_projeto):
+    projeto = criar_projeto(nome="BRAC1", codigo="31501-26", tensao_nominal=TensaoChoices.V380)
+    _criar_produto_borne_teste("BR-P4", TipoBorneChoices.PASSAGEM, secao="4.00", corrente="10.00")
+    _criar_produto_borne_teste("BR-P10", TipoBorneChoices.PASSAGEM, secao="10.00", corrente="20.00")
+    tampa = _criar_produto_borne_teste("BR-TAM", TipoBorneChoices.TAMPA, secao="0.00", corrente=None)
+    _criar_motor_com_dimensionamento(projeto, tag="M1", secao_fase="2.50", corrente="5.00")
+    _criar_motor_com_dimensionamento(projeto, tag="M2", secao_fase="6.00", corrente="12.00")
+
+    gerar_sugestoes_bornes(projeto)
+
+    sugestao_tampa = SugestaoItem.objects.get(projeto=projeto, produto=tampa)
+    assert sugestao_tampa.quantidade == Decimal("1")
+    assert "TAMPA POR BITOLA" in sugestao_tampa.memoria_calculo
+
+
+@pytest.mark.django_db
+def test_acessorio_tampa_usa_produto_compativel_do_borne_sugerido(criar_projeto):
+    projeto = criar_projeto(nome="BRAC1B", codigo="31501b-26", tensao_nominal=TensaoChoices.V380)
+    borne_menor = _criar_produto_borne_teste(
+        "1521850000",
+        TipoBorneChoices.PASSAGEM,
+        secao="4.00",
+        corrente="10.00",
+    )
+    _criar_produto_borne_teste(
+        "BR-P10C",
+        TipoBorneChoices.PASSAGEM,
+        secao="10.00",
+        corrente="20.00",
+    )
+    _criar_produto_borne_teste("BR-TAM-GEN", TipoBorneChoices.TAMPA, secao="0.00", corrente=None)
+    tampa_compativel = _criar_produto_borne_teste(
+        "1514400000",
+        TipoBorneChoices.TAMPA,
+        secao="0.00",
+        corrente=None,
+    )
+    ProdutoAcessorioCompativel.objects.create(
+        produto_base=borne_menor,
+        acessorio=tampa_compativel,
+        tipo_acessorio=TipoBorneChoices.TAMPA,
+    )
+    _criar_motor_com_dimensionamento(projeto, tag="M1", secao_fase="2.50", corrente="5.00")
+    _criar_motor_com_dimensionamento(projeto, tag="M2", secao_fase="6.00", corrente="12.00")
+
+    gerar_sugestoes_bornes(projeto)
+
+    sugestao_tampa = SugestaoItem.objects.get(
+        projeto=projeto,
+        indice_escopo=106,
+    )
+    assert sugestao_tampa.produto_id == tampa_compativel.id
+    assert "1521850000" in sugestao_tampa.memoria_calculo
+
+
+@pytest.mark.django_db
+def test_acessorios_motores_regua_com_mais_de_dez_motores_adiciona_borne_e_tampa(
+    criar_projeto,
+):
+    projeto = criar_projeto(nome="BRAC2", codigo="31502-26", tensao_nominal=TensaoChoices.V380)
+    passagem = _criar_produto_borne_teste("BR-PM", TipoBorneChoices.PASSAGEM, secao="4.00", corrente="10.00")
+    tampa = _criar_produto_borne_teste("BR-TM", TipoBorneChoices.TAMPA, secao="0.00", corrente=None)
+    for idx in range(11):
+        _criar_motor_com_dimensionamento(projeto, tag=f"M{idx + 1:02d}")
+
+    gerar_sugestoes_bornes(projeto)
+
+    extra = SugestaoItem.objects.get(
+        projeto=projeto,
+        produto=passagem,
+        indice_escopo=107,
+    )
+    tampa_longa = SugestaoItem.objects.get(
+        projeto=projeto,
+        produto=tampa,
+        indice_escopo=108,
+    )
+    assert extra.quantidade == Decimal("1")
+    assert tampa_longa.quantidade == Decimal("1")
+    assert "ultrapassou 10 motores" in tampa_longa.memoria_calculo
+
+
+@pytest.mark.django_db
+def test_acessorios_separam_reguas_comando_sensores_e_fusiveis(criar_projeto):
+    projeto = criar_projeto(nome="BRAC3", codigo="31503-26", tensao_nominal=TensaoChoices.V380)
+    _criar_produto_borne_teste("BR-COM", TipoBorneChoices.PASSAGEM, secao="4.00", corrente="10.00", niveis=2)
+    _criar_produto_borne_teste("BR-SEN", TipoBorneChoices.PASSAGEM, secao="4.00", corrente="10.00", niveis=3)
+    _criar_produto_borne_teste("BR-FUS", TipoBorneChoices.FUSIVEL, secao="4.00", corrente="10.00", niveis=2)
+    poste = _criar_produto_borne_teste("BR-POS", TipoBorneChoices.POSTE, secao="0.00", corrente=None)
+    tampa = _criar_produto_borne_teste("BR-TAP", TipoBorneChoices.TAMPA, secao="0.00", corrente=None)
+
+    sensor = Carga.objects.create(
+        projeto=projeto,
+        tag="S1",
+        descricao="Sensor",
+        tipo=TipoCargaChoices.SENSOR,
+    )
+    CargaSensor.objects.create(
+        carga=sensor,
+        tipo_sensor=TipoSensorChoices.INDUTIVO,
+        tipo_sinal=TipoSinalChoices.DIGITAL,
+        quantidade_fios=3,
+        corrente_consumida_ma=Decimal("20.00"),
+        tensao_alimentacao=TensaoChoices.V24,
+        tipo_corrente=TipoCorrenteChoices.CC,
+    )
+    DimensionamentoCircuitoCarga.objects.create(
+        projeto=projeto,
+        carga=sensor,
+        tipo_carga=TipoCargaChoices.SENSOR,
+        classificacao_circuito=ClassificacaoCircuitoChoices.SINAL,
+        corrente_calculada_a=Decimal("0.02"),
+        secao_condutor_fase_mm2=Decimal("1.00"),
+    )
+
+    for tag, protecao in (
+        ("VF", TipoProtecaoValvulaChoices.BORNE_FUSIVEL),
+        ("VC", TipoProtecaoValvulaChoices.SEM_PROTECAO),
+    ):
+        carga = Carga.objects.create(
+            projeto=projeto,
+            tag=tag,
+            descricao=tag,
+            tipo=TipoCargaChoices.VALVULA,
+        )
+        CargaValvula.objects.create(
+            carga=carga,
+            tensao_alimentacao=TensaoChoices.V24,
+            tipo_corrente=TipoCorrenteChoices.CC,
+            corrente_consumida_ma=Decimal("100.00"),
+            quantidade_solenoides=1,
+            tipo_acionamento=TipoAcionamentoValvulaChoices.SOLENOIDE_DIRETO,
+            tipo_protecao=protecao,
+        )
+        DimensionamentoCircuitoCarga.objects.create(
+            projeto=projeto,
+            carga=carga,
+            tipo_carga=TipoCargaChoices.VALVULA,
+            classificacao_circuito=ClassificacaoCircuitoChoices.COMANDO,
+            corrente_calculada_a=Decimal("0.10"),
+            secao_condutor_fase_mm2=Decimal("1.00"),
+        )
+
+    gerar_sugestoes_bornes(projeto)
+
+    assert SugestaoItem.objects.filter(projeto=projeto, produto=poste).count() == 3
+    assert SugestaoItem.objects.filter(projeto=projeto, produto=tampa).count() == 3
+    assert set(
+        SugestaoItem.objects.filter(projeto=projeto, produto=poste).values_list(
+            "quantidade", flat=True
+        )
+    ) == {Decimal("2")}

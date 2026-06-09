@@ -26,7 +26,7 @@ export default function AppPageToolbar({ toolbar }: Props) {
         <div className="app-header-page-fluxo d-none d-lg-flex min-w-0">{fluxoSteps}</div>
       ) : null}
       {badges && badges.length > 0 ? (
-        <div className="app-header-page-badges d-none d-md-flex">
+        <div className="app-header-page-badges">
           {badges.map((badge) => (
             <span
               key={badge.key}

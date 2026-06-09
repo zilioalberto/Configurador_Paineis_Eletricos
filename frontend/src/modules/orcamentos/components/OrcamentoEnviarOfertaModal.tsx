@@ -131,7 +131,7 @@ export default function OrcamentoEnviarOfertaModal({
       role="dialog"
       style={{ background: 'rgba(0,0,0,.45)' }}
     >
-      <div className="modal-dialog modal-lg">
+      <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
         <div className="modal-content">
           <div className="modal-header">
             <h2 className="modal-title h5">Enviar oferta ao cliente</h2>

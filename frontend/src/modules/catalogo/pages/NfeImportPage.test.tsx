@@ -8,6 +8,8 @@ const buscarProdutoResumoImportacaoNfe = vi.hoisted(() => vi.fn())
 const listarFornecedoresNfe = vi.hoisted(() => vi.fn())
 const previewNfeXml = vi.hoisted(() => vi.fn())
 const useCategoriaListQuery = vi.hoisted(() => vi.fn())
+const obterNfeRecebida = vi.hoisted(() => vi.fn())
+const importarNfeXmlManual = vi.hoisted(() => vi.fn())
 
 vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast }),
@@ -23,6 +25,11 @@ vi.mock('../services/nfeImportService', () => ({
     buscarProdutoResumoImportacaoNfe(...args),
   listarFornecedoresNfe: (...args: unknown[]) => listarFornecedoresNfe(...args),
   previewNfeXml: (...args: unknown[]) => previewNfeXml(...args),
+}))
+
+vi.mock('@/modules/fiscal/services/fiscalNfeService', () => ({
+  obterNfeRecebida: (...args: unknown[]) => obterNfeRecebida(...args),
+  importarNfeXmlManual: (...args: unknown[]) => importarNfeXmlManual(...args),
 }))
 
 import NfeImportPage from './NfeImportPage'
@@ -41,6 +48,13 @@ const produtoExistente = {
   gtin: '',
   unidade_medida: 'UN',
   preco_base: '10.00',
+  unidade_tributavel: '',
+  origem_mercadoria: '0',
+  fabricante: '',
+  referencia_fabricante: '',
+  aliquota_ipi: '',
+  fabricante_parceiro_id: '',
+  fornecedor_parceiro_id: '',
   item_fiscal: {
     cfop_padrao: '5102',
     cst_icms: '00',
@@ -110,9 +124,9 @@ const snapshot = {
   ],
 }
 
-function renderPage() {
+function renderPage(initialEntries = ['/catalogo/produtos/importar-nfe']) {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <NfeImportPage />
     </MemoryRouter>
   )
@@ -144,6 +158,18 @@ describe('NfeImportPage', () => {
       produtos_ignorados: [{ n_item: 3, codigo: 'P-IGN', motivo: 'Duplicado' }],
       avisos: ['Revise o NCM'],
     })
+    obterNfeRecebida.mockResolvedValue({
+      id: 7,
+      numero: '777',
+      objetivo_entrada: 'REVENDA',
+      xml_original: '<nfeProc/>',
+    })
+    importarNfeXmlManual.mockResolvedValue({
+      created: true,
+      message: 'Importado',
+      documento_id: 7,
+      chave_acesso: 'NFE123',
+    })
   })
 
   it('mantém leitura bloqueada sem arquivo selecionado', async () => {
@@ -165,6 +191,9 @@ describe('NfeImportPage', () => {
     expect(screen.getByText('Divergente')).toBeInTheDocument()
     expect(screen.getByText('Novo')).toBeInTheDocument()
 
+    fireEvent.change(screen.getByLabelText('Objetivo da entrada'), {
+      target: { value: 'INDUSTRIALIZACAO' },
+    })
     fireEvent.change(screen.getByLabelText('Categoria para itens marcados'), {
       target: { value: 'cat-contatora' },
     })
@@ -173,6 +202,10 @@ describe('NfeImportPage', () => {
       target: { value: 'fornecedor:forn-1' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar fornecedor' }))
+    fireEvent.change(screen.getByLabelText('Fabricante para itens marcados'), {
+      target: { value: 'fornecedor:forn-1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar fabricante' }))
 
     const primeiraLinha = screen.getByDisplayValue('P-EXISTE').closest('tr')
     expect(primeiraLinha).not.toBeNull()
@@ -180,7 +213,7 @@ describe('NfeImportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Marcar todos' }))
     fireEvent.click(screen.getByRole('button', { name: /Ver campos/i }))
 
-    fireEvent.change(screen.getByLabelText('Fabricante nos produtos (opcional)'), {
+    fireEvent.change(screen.getByLabelText('Fabricante em texto padrão (opcional)'), {
       target: { value: 'Fabricante manual' },
     })
     fireEvent.click(screen.getByRole('button', { name: /Aplicar importação/i }))
@@ -191,11 +224,13 @@ describe('NfeImportPage', () => {
     expect(aplicarImportacaoNfe.mock.calls[0][0]).toEqual(
       expect.objectContaining({
         fabricante_padrao: 'Fabricante manual',
+        objetivo_entrada: 'INDUSTRIALIZACAO',
         itens: expect.arrayContaining([
           expect.objectContaining({
             n_item: 1,
             importar: true,
             fornecedor_id: 'forn-1',
+            fabricante_id: 'forn-1',
             categoria_catalogo: 'cat-contatora',
           }),
         ]),
@@ -204,6 +239,52 @@ describe('NfeImportPage', () => {
     expect(await screen.findByText(/Produtos criados/i)).toBeInTheDocument()
     expect(screen.getByText('Revise o NCM')).toBeInTheDocument()
     expect(screen.getByText('Duplicado')).toBeInTheDocument()
+  })
+
+  it('registra a mesma NF-e no Fiscal ao importar pelo catálogo quando marcado', async () => {
+    renderPage()
+
+    const file = new File(['<nfeProc/>'], 'nfe.xml', { type: 'text/xml' })
+    fireEvent.change(screen.getByLabelText(/XML da NF-e/i), {
+      target: { files: [file] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Ler XML/i }))
+    await screen.findByText('Produto sem cadastro')
+
+    fireEvent.change(screen.getByLabelText('Objetivo da entrada'), {
+      target: { value: 'REVENDA' },
+    })
+    fireEvent.change(screen.getByLabelText('Categoria para itens marcados'), {
+      target: { value: 'cat-contatora' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar categoria' }))
+    fireEvent.click(screen.getByLabelText(/Registrar também no Fiscal/i))
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar importação/i }))
+
+    await waitFor(() => expect(importarNfeXmlManual).toHaveBeenCalled())
+    expect(importarNfeXmlManual).toHaveBeenCalledWith({
+      xml: '<nfeProc/>',
+      objetivo_entrada: 'REVENDA',
+    })
+    expect(aplicarImportacaoNfe).toHaveBeenCalled()
+  })
+
+  it('carrega XML de uma NF-e fiscal existente para importar no catálogo', async () => {
+    renderPage(['/catalogo/produtos/importar-nfe?documentoFiscalId=7'])
+
+    expect(await screen.findByText(/XML carregado da NF-e fiscal #7/i)).toBeInTheDocument()
+    expect(obterNfeRecebida).toHaveBeenCalledWith(7)
+    expect(previewNfeXml).toHaveBeenCalledWith(expect.any(File))
+    expect(screen.getByLabelText('Objetivo da entrada')).toHaveValue('REVENDA')
+
+    fireEvent.change(screen.getByLabelText('Categoria para itens marcados'), {
+      target: { value: 'cat-contatora' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar categoria' }))
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar importação/i }))
+
+    await waitFor(() => expect(aplicarImportacaoNfe).toHaveBeenCalled())
+    expect(importarNfeXmlManual).not.toHaveBeenCalled()
   })
 
   it('trata falhas de fornecedores, preview e importação', async () => {
@@ -236,6 +317,9 @@ describe('NfeImportPage', () => {
     previewNfeXml.mockResolvedValueOnce({ snapshot, fornecedor_catalogo: null })
     fireEvent.click(screen.getByRole('button', { name: /Ler XML/i }))
     expect(await screen.findByText('Produto sem cadastro')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Objetivo da entrada'), {
+      target: { value: 'USO_CONSUMO' },
+    })
     fireEvent.change(screen.getByLabelText('Categoria para itens marcados'), {
       target: { value: 'cat-plc' },
     })
@@ -313,6 +397,7 @@ describe('NfeImportPage', () => {
       referencia_fabricante: '',
       aliquota_ipi: '',
       fabricante_parceiro_id: '',
+      fornecedor_parceiro_id: '',
     }
     const snapshotAlinhado = {
       ...snapshot,

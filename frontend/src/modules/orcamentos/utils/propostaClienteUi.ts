@@ -114,6 +114,12 @@ export function formatarNomeEmpresaExibicao(nome: string | null | undefined): st
   return palavras.join(' ')
 }
 
+function removerCaracteresControle(texto: string): string {
+  return Array.from(texto)
+    .filter((char) => char.charCodeAt(0) >= 32)
+    .join('')
+}
+
 /** Nome sugerido ao salvar PDF (número + revisão, ex.: Prop-06001-26 Rev. C). */
 export function nomeArquivoImpressaoPropostaCliente(
   codigo: string,
@@ -123,11 +129,9 @@ export function nomeArquivoImpressaoPropostaCliente(
   const numero = numeroPropostaExibicao(codigo, revisao, codigoBase)
   if (!numero || numero === '—') return 'proposta'
   const bruto = `${numero} ${rotuloRevisao(revisao)}`.trim()
-  const sanitizado = bruto
-    .replace(/[<>:"/\\|?*]/g, '-')
-    .replace(/[\u0000-\u001f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const sanitizado = removerCaracteresControle(
+    bruto.replace(/[<>:"/\\|?*]/g, '-').replace(/\s+/g, ' ').trim()
+  )
   return sanitizado || 'proposta'
 }
 

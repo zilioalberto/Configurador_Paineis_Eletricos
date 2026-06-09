@@ -3,7 +3,7 @@ import { listarFornecedoresAtivos } from '../services/parceirosFornecedorService
 
 export const fornecedoresAtivosQueryKey = ['cadastros', 'parceiros', 'fornecedores', 'ativos'] as const
 
-/** Query de fornecedores ativos para o campo fabricante_parceiro. */
+/** Query de fornecedores ativos para os campos de fabricante/fornecedor do produto. */
 export function useFornecedoresAtivosQuery(enabled: boolean) {
   return useQuery({
     queryKey: fornecedoresAtivosQueryKey,

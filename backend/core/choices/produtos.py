@@ -54,6 +54,12 @@ class CategoriaProdutoNomeChoices(models.TextChoices):
 
     PAINEL = "PAINEL", "Painel"
     CLIMATIZACAO = "CLIMATIZACAO", "Climatização"
+    
+    IDENTIFICACAO = "IDENTIFICACAO", "Identificação"
+    
+    TERMINAIS  = "TERMINAIS", "Terminais"
+
+    ACESSORIOS_GERAIS = "ACESSORIOS_GERAIS", "Acessórios Gerais"
 
     OUTROS = "OUTROS", "Outros"
 
@@ -454,6 +460,7 @@ class TipoBorneChoices(models.TextChoices):
     SENSOR = "SENSOR", "Sensor"
     AFERICAO = "AFERICAO", "Borne de aferição"
     TAMPA = "TAMPA", "Tampa"
+    POSTE = "POSTE", "Poste"
     JUMPER = "JUMPER", "Jumper"
 
 
@@ -462,6 +469,48 @@ class TipoConexaoBorneChoices(models.TextChoices):
     PARAFUSO = "PARAFUSO", "Parafuso"
     MOLA = "MOLA", "Mola"
     PUSH_IN = "PUSH_IN", "Push-in"
+
+
+class TipoTerminalChoices(models.TextChoices):
+    TUBULAR = "TUBULAR", "Tubular"
+    OLHAL_PRE_ISOLADO = "OLHAL_PRE_ISOLADO", "Olhal pré-isolado"
+    OLHAL_NAO_ISOLADO = "OLHAL_NAO_ISOLADO", "Olhal não isolado"
+
+
+class FuroTerminalOlhalChoices(models.TextChoices):
+    M4 = "M4", "M4"
+    M5 = "M5", "M5"
+    M6 = "M6", "M6"
+    M8 = "M8", "M8"
+    M10 = "M10", "M10"
+    M12 = "M12", "M12"
+
+
+class TipoIdentificacaoChoices(models.TextChoices):
+    SUPORTE_LUVA_CABO = "SUPORTE_LUVA_CABO", "Suporte/luva para cabo"
+    ETIQUETA_CABO = "ETIQUETA_CABO", "Etiqueta de identificação de cabo"
+    ADESIVO_ALERTA = "ADESIVO_ALERTA", "Adesivo de alerta"
+    ADESIVO_TENSAO = "ADESIVO_TENSAO", "Adesivo de tensão"
+    FAIXA_IDENTIFICACAO = "FAIXA_IDENTIFICACAO", "Faixa de identificação"
+    PLAQUETA_IDENTIFICACAO = "PLAQUETA_IDENTIFICACAO", "Plaqueta de identificação"
+
+
+class TamanhoPlaquetaIdentificacaoChoices(models.TextChoices):
+    PEQUENA = "PEQUENA", "Pequena"
+    GRANDE = "GRANDE", "Grande"
+
+
+class TipoAcessorioGeralChoices(models.TextChoices):
+    KIT_MONTAGEM = "KIT_MONTAGEM", "Kit de montagem"
+    CONSUMIVEIS = "CONSUMIVEIS", "Consumíveis de montagem"
+    DIVERSOS = "DIVERSOS", "Diversos de montagem"
+
+
+class PortePainelAcessoriosChoices(models.TextChoices):
+    PEQUENO = "PEQUENO", "Pequeno"
+    MEDIO = "MEDIO", "Médio"
+    GRANDE = "GRANDE", "Grande"
+    EXTRA_GRANDE = "EXTRA_GRANDE", "Extra grande"
 
 
 class TipoBotaoChoices(models.TextChoices):
@@ -487,6 +536,7 @@ class TipoCaboChoices(models.TextChoices):
     POTENCIA = "POTENCIA", "Potência"
     COMANDO = "COMANDO", "Comando"
     SINAL = "SINAL", "Sinal"
+    SENSOR = "SENSOR", "Sensor"
     REDE = "REDE", "Rede / Comunicação"
     ATERRAMENTO = "ATERRAMENTO", "Aterramento"
 

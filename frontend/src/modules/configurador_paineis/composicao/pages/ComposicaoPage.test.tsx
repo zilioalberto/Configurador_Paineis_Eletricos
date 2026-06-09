@@ -70,14 +70,26 @@ vi.mock('@/modules/configurador_paineis/dimensionamento/hooks/useDimensionamento
   }),
 }))
 
-vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates', () => ({
-  useProjetoFluxoGates: () => ({
+const useProjetoFluxoGatesMock = vi.hoisted(() =>
+  vi.fn(() => ({
     loading: false,
     temCargas: true,
     condutoresRevisaoOk: true,
+    composicaoComItens: false,
+    dimensionamentoMecanicoCalculado: false,
     podeAcessarDimensionamento: true,
     podeAcessarComposicao: true,
-  }),
+    podeAcessarDimensionamentoMecanico: false,
+    podeAcessarComposicaoFinal: false,
+  }))
+)
+
+vi.mock('@/modules/configurador_paineis/projetos/hooks/useProjetoFluxoGates', () => ({
+  useProjetoFluxoGates: () => useProjetoFluxoGatesMock(),
+}))
+
+vi.mock('@/modules/configurador_paineis/projetos/components/ProjetoFluxoStepper', () => ({
+  ProjetoFluxoStepper: () => <nav aria-label="Etapas do fluxo do painel">Fluxo do painel</nav>,
 }))
 
 vi.mock('@/modules/configurador_paineis/composicao/hooks/useGerarSugestoesMutation', () => ({
@@ -148,6 +160,18 @@ function LocationProbe() {
 
 describe('ComposicaoPage', () => {
   beforeEach(() => {
+    useProjetoFluxoGatesMock.mockReset()
+    useProjetoFluxoGatesMock.mockImplementation(() => ({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: false,
+      dimensionamentoMecanicoCalculado: false,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: false,
+      podeAcessarComposicaoFinal: false,
+    }))
     exportarComposicaoListaPdfMock.mockClear()
     exportarComposicaoListaXlsxMock.mockClear()
     sincronizarComposicaoPainelMock.mockClear()
@@ -351,7 +375,7 @@ describe('ComposicaoPage', () => {
     expect(document.querySelector('#comp-projeto')).toBeNull()
     expect(screen.queryByRole('button', { name: /Gerar sugestões/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/Antes de gerar, confira as/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/Fluxo do painel/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /etapas do fluxo/i })).toBeInTheDocument()
     expect(screen.queryByText(/^Projeto$/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^Dimensionamento$/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Editar condutores/i })).toHaveAttribute(
@@ -359,6 +383,52 @@ describe('ComposicaoPage', () => {
       '/configurador/configuracoes/p1/fluxo/dimensionamento'
     )
     expect(document.body.textContent).not.toMatch(/sugestão\(ões\).*pendência\(s\).*item\(ns\)/)
+    await waitFor(() => {
+      expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
+    })
+  })
+
+  it('exibe atalho para dimensionamento mecânico quando composição tem itens aprovados', async () => {
+    useProjetoFluxoGatesMock.mockReturnValue({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: true,
+      dimensionamentoMecanicoCalculado: false,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: true,
+      podeAcessarComposicaoFinal: false,
+    })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    renderPage(['/composicao?projeto=p1'])
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /Dimensionamento mecânico/i })).toHaveAttribute(
+        'href',
+        '/configurador/configuracoes/p1/fluxo/dimensionamento_mecanico'
+      )
+    })
+  })
+
+  it('exibe composição final quando o dimensionamento mecânico está salvo', async () => {
+    useProjetoFluxoGatesMock.mockReturnValue({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: true,
+      dimensionamentoMecanicoCalculado: true,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: true,
+      podeAcessarComposicaoFinal: true,
+    })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    renderPage(['/composicao?projeto=p1&etapa=composicao_final'])
+
+    expect(await screen.findByText(/Composição final do painel/i)).toBeInTheDocument()
     await waitFor(() => {
       expect(gerarMutateAsyncMock).toHaveBeenCalledWith(true)
     })
@@ -405,6 +475,52 @@ describe('ComposicaoPage', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: /^PDF$/i })).toBeEnabled())
     fireEvent.click(screen.getByRole('button', { name: /^PDF$/i }))
+    await waitFor(() => {
+      expect(exportarComposicaoListaPdfMock).toHaveBeenCalledWith(
+        'p1',
+        'PRJ-01 - Cliente X - Projeto 1'
+      )
+    })
+  })
+
+  it('mantém exportação Excel e PDF disponível na composição final', async () => {
+    useProjetoFluxoGatesMock.mockReturnValue({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: true,
+      dimensionamentoMecanicoCalculado: true,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: true,
+      podeAcessarComposicaoFinal: true,
+    })
+    setupComposicaoPage({ user: userComPermissaoSeparar(), projetos: baseProjetos, snapshot: snapshotBase })
+
+    renderPage(['/composicao?projeto=p1&etapa=composicao_final'])
+
+    expect(await screen.findByText(/Composição final do painel/i)).toBeInTheDocument()
+    const excel = screen.getByRole('button', { name: /^Excel$/i })
+    const pdf = screen.getByRole('button', { name: /^PDF$/i })
+    expect(excel).toHaveAttribute(
+      'title',
+      'Lista completa do painel, incluindo composição final, inclusões manuais e pendências'
+    )
+    expect(pdf).toHaveAttribute(
+      'title',
+      'Lista completa do painel, incluindo composição final, inclusões manuais e pendências'
+    )
+
+    fireEvent.click(excel)
+    await waitFor(() => {
+      expect(exportarComposicaoListaXlsxMock).toHaveBeenCalledWith(
+        'p1',
+        'PRJ-01 - Cliente X - Projeto 1'
+      )
+    })
+
+    await waitFor(() => expect(pdf).toBeEnabled())
+    fireEvent.click(pdf)
     await waitFor(() => {
       expect(exportarComposicaoListaPdfMock).toHaveBeenCalledWith(
         'p1',
@@ -565,7 +681,7 @@ describe('ComposicaoPage', () => {
 
     expect(await screen.findByText('Contator 9A')).toBeInTheDocument()
     expect(screen.getByText(/Catálogo incompleto/)).toBeInTheDocument()
-    expect(screen.getByText('Sem cabo compatível')).toBeInTheDocument()
+    expect(screen.queryByText('Sem cabo compatível')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Aprovar' })[0])
     await waitFor(() => {
@@ -598,6 +714,211 @@ describe('ComposicaoPage', () => {
         sugestaoId: 'sug-1',
         produtoId: 'prod-alt',
       })
+    })
+  })
+
+  it('move cabos, terminais, identificações e acessórios gerais para a composição final', async () => {
+    useProjetoFluxoGatesMock.mockReturnValue({
+      loading: false,
+      temCargas: true,
+      condutoresRevisaoOk: true,
+      composicaoComItens: true,
+      dimensionamentoMecanicoCalculado: true,
+      podeAcessarDimensionamento: true,
+      podeAcessarComposicao: true,
+      podeAcessarDimensionamentoMecanico: true,
+      podeAcessarComposicaoFinal: true,
+    })
+    setupComposicaoPage({
+      user: userComPermissoesCompletas(),
+      projetos: baseProjetos,
+      snapshot: {
+        ...snapshotBase,
+        sugestoes: [
+          {
+            id: 'sug-contatora',
+            carga: cargaMotor,
+            quantidade: '1',
+            categoria_produto: 'CONTATORA',
+            categoria_produto_display: 'Contatora',
+            produto: { id: 'prod-k1', codigo: 'K1', descricao: 'Contator K1' },
+            produto_codigo: 'K1',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 10,
+          },
+          {
+            id: 'sug-cabo',
+            carga: cargaMotor,
+            quantidade: '6',
+            categoria_produto: 'CABO',
+            categoria_produto_display: 'Cabo',
+            produto: { id: 'prod-cabo', codigo: 'CABO-1', descricao: 'Cabo preto' },
+            produto_codigo: 'CABO-1',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 50,
+          },
+          {
+            id: 'sug-terminal',
+            carga: cargaMotor,
+            quantidade: '6',
+            categoria_produto: 'TERMINAIS',
+            categoria_produto_display: 'Terminais',
+            produto: { id: 'prod-terminal', codigo: 'TUB-1', descricao: 'Terminal tubular' },
+            produto_codigo: 'TUB-1',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 51,
+          },
+          {
+            id: 'sug-identificacao',
+            carga: cargaMotor,
+            quantidade: '6',
+            categoria_produto: 'IDENTIFICACAO',
+            categoria_produto_display: 'Identificação',
+            produto: { id: 'prod-id', codigo: 'ID-1', descricao: 'Identificação de cabo' },
+            produto_codigo: 'ID-1',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 52,
+          },
+          {
+            id: 'sug-kit',
+            carga: null,
+            quantidade: '1',
+            categoria_produto: 'ACESSORIOS_GERAIS',
+            categoria_produto_display: 'Acessórios Gerais',
+            produto: { id: 'prod-kit', codigo: 'KIT-1', descricao: 'Kit de acessórios gerais' },
+            produto_codigo: 'KIT-1',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 53,
+          },
+        ],
+        pendencias: [
+          {
+            id: 'pen-terminal',
+            carga: cargaMotor,
+            categoria_produto: 'TERMINAIS',
+            categoria_produto_display: 'Terminais',
+            descricao: 'Sem terminal compatível',
+            status: 'ABERTA',
+            status_display: 'Aberta',
+            parte_painel: 'ACESSORIOS',
+            parte_painel_display: 'Acessórios',
+            ordem: 51,
+          },
+        ],
+        totais: { ...snapshotBase.totais, sugestoes: 5, pendencias: 1 },
+      },
+    })
+
+    const { unmount } = renderPage(['/composicao?projeto=p1'])
+
+    expect(await screen.findByText('Contator K1')).toBeInTheDocument()
+    expect(screen.queryByText('Cabo preto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Terminal tubular')).not.toBeInTheDocument()
+    expect(screen.queryByText('Identificação de cabo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Kit de acessórios gerais')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sem terminal compatível')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aprovar todas' }))
+    await waitFor(() => expect(aprovarMutateAsyncMock).toHaveBeenCalledTimes(1))
+    expect(aprovarMutateAsyncMock).toHaveBeenCalledWith({
+      sugestaoId: 'sug-contatora',
+      produtoId: null,
+    })
+
+    aprovarMutateAsyncMock.mockClear()
+    unmount()
+    renderPage(['/composicao?projeto=p1&etapa=composicao_final'])
+
+    expect(await screen.findByText('Cabo preto')).toBeInTheDocument()
+    expect(screen.getByText('Terminal tubular')).toBeInTheDocument()
+    expect(screen.getByText('Identificação de cabo')).toBeInTheDocument()
+    expect(screen.getByText('Kit de acessórios gerais')).toBeInTheDocument()
+    expect(screen.getByText('Sem terminal compatível')).toBeInTheDocument()
+    expect(screen.queryByText('Contator K1')).not.toBeInTheDocument()
+  })
+
+  it('exibe acessórios de bornes em seção própria', async () => {
+    setupComposicaoPage({
+      user: userComPermissoesCompletas(),
+      projetos: baseProjetos,
+      snapshot: {
+        ...snapshotBase,
+        sugestoes: [
+          {
+            id: 'sug-borne',
+            carga: cargaMotor,
+            quantidade: '3',
+            parte_painel: 'BORNES',
+            parte_painel_display: 'Bornes',
+            categoria_produto: 'BORNE',
+            categoria_produto_display: 'Borne',
+            produto: { id: 'prod-borne', codigo: '1521850000', descricao: 'Borne passagem' },
+            produto_codigo: '1521850000',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 43,
+            indice_escopo: 2,
+            memoria_calculo: '[BORNE PASSAGEM — MOTOR]',
+          },
+          {
+            id: 'sug-tampa',
+            carga: cargaMotor,
+            quantidade: '1',
+            parte_painel: 'BORNES',
+            parte_painel_display: 'Bornes',
+            categoria_produto: 'BORNE',
+            categoria_produto_display: 'Borne',
+            produto: { id: 'prod-tampa', codigo: '1514400000', descricao: 'Tampa compatível' },
+            produto_codigo: '1514400000',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 44,
+            indice_escopo: 101,
+            memoria_calculo: '[ACESSORIO REGUA COMANDO - TAMPA]',
+          },
+          {
+            id: 'sug-poste',
+            carga: cargaMotor,
+            quantidade: '2',
+            parte_painel: 'BORNES',
+            parte_painel_display: 'Bornes',
+            categoria_produto: 'BORNE',
+            categoria_produto_display: 'Borne',
+            produto: { id: 'prod-poste', codigo: 'POSTE-01', descricao: 'Poste de régua' },
+            produto_codigo: 'POSTE-01',
+            status: 'PENDENTE',
+            status_display: 'Pendente',
+            ordem: 44,
+            indice_escopo: 100,
+            memoria_calculo: '[ACESSORIO REGUA COMANDO - POSTES]',
+          },
+        ],
+        totais: { ...snapshotBase.totais, sugestoes: 3 },
+      },
+    })
+
+    renderPage(['/composicao?projeto=p1'])
+
+    expect(await screen.findByRole('heading', { name: 'Sugestões de itens' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Acessórios de bornes' })).toBeInTheDocument()
+    expect(screen.getByText('Borne passagem')).toBeInTheDocument()
+    expect(screen.getByText('Tampa compatível')).toBeInTheDocument()
+    expect(screen.getByText('Poste de régua')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aprovar todas' }))
+    await waitFor(() => expect(aprovarMutateAsyncMock).toHaveBeenCalledTimes(3))
+    expect(aprovarMutateAsyncMock).toHaveBeenNthCalledWith(2, {
+      sugestaoId: 'sug-tampa',
+      produtoId: null,
+    })
+    expect(aprovarMutateAsyncMock).toHaveBeenNthCalledWith(3, {
+      sugestaoId: 'sug-poste',
+      produtoId: null,
     })
   })
 

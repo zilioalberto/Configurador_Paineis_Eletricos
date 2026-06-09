@@ -2,6 +2,7 @@
 
 from django.db import models
 
+from apps.catalogo.utils.cor_cabo import normalizar_cor_cabo
 from core.models import BaseModel
 from core.choices.produtos import (
     CorCaboChoices,
@@ -58,6 +59,11 @@ class EspecificacaoCabo(BaseModel):
     class Meta:
         verbose_name = "Especificação de Cabo"
         verbose_name_plural = "Especificações de Cabos"
+
+    def save(self, *args, **kwargs):
+        if self.cor:
+            self.cor = normalizar_cor_cabo(self.cor) or self.cor
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.produto} - {self.tipo_cabo} - {self.secao_mm2} mm²"

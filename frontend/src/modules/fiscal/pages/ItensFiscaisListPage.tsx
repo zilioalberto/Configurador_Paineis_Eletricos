@@ -1,6 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
+import { labelObjetivoEntrada } from '../constants/objetivoEntradaOptions'
 import { useItensFiscaisListQuery } from '../hooks/useItensFiscaisListQuery'
 
 /** Tabela paginada de todos os itens fiscais registrados. */
@@ -101,6 +102,7 @@ export default function ItensFiscaisListPage() {
                     <th scope="col">Produto</th>
                     <th scope="col">Rótulo</th>
                     <th scope="col">CFOP</th>
+                    <th scope="col">Objetivo</th>
                     <th scope="col">Orig.</th>
                     <th scope="col">CST ICMS</th>
                     <th scope="col" className="text-end">
@@ -122,6 +124,7 @@ export default function ItensFiscaisListPage() {
                       </td>
                       <td className="text-break">{row.rotulo || '—'}</td>
                       <td>{row.cfop || '—'}</td>
+                      <td className="small">{labelObjetivoEntrada(row.objetivo_entrada)}</td>
                       <td>{row.origem_mercadoria ?? '—'}</td>
                       <td>{row.cst_icms || '—'}</td>
                       <td className="text-end">{row.p_ipi != null && row.p_ipi !== '' ? row.p_ipi : '—'}</td>

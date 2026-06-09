@@ -69,4 +69,16 @@ describe('produtoFormToApiPayload', () => {
     const payload = produtoFormToApiPayload(data, categorias)
     expect(payload.fabricante_parceiro).toBeNull()
   })
+
+  it('fornecedor_parceiro vazio vira null e preenchido vai no payload', () => {
+    const data = produtoFormEmpty()
+    data.categoria = 'x'
+    data.fornecedor_parceiro = 'forn-1'
+    const categorias: CategoriaProduto[] = [{ id: 'x', nome: 'BOTAO', descricao: '', ativo: true }]
+    const payload = produtoFormToApiPayload(data, categorias)
+    expect(payload.fornecedor_parceiro).toBe('forn-1')
+
+    data.fornecedor_parceiro = ''
+    expect(produtoFormToApiPayload(data, categorias).fornecedor_parceiro).toBeNull()
+  })
 })

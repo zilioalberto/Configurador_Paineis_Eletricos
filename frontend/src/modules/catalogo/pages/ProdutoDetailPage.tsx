@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
+import { labelObjetivoEntrada } from '@/modules/fiscal/constants/objetivoEntradaOptions'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { CATEGORIA_PARA_ESPEC_KEY } from '../constants/categoriaEspecKey'
@@ -32,6 +33,7 @@ function ItemFiscalTable({ itens }: Readonly<{ itens: ItemFiscalProduto[] }>) {
           <tr>
             <th>Rótulo</th>
             <th>CFOP</th>
+            <th>Objetivo</th>
             <th>Orig.</th>
             <th>CST ICMS</th>
             <th>CSOSN</th>
@@ -49,6 +51,7 @@ function ItemFiscalTable({ itens }: Readonly<{ itens: ItemFiscalProduto[] }>) {
               <td>
                 <code>{cell(it.cfop)}</code>
               </td>
+              <td className="small">{labelObjetivoEntrada(it.objetivo_entrada)}</td>
               <td>{cell(it.origem_mercadoria)}</td>
               <td>
                 <code>{cell(it.cst_icms)}</code>
