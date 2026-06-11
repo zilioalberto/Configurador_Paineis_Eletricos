@@ -152,7 +152,7 @@ describe('ProdutoListPage', () => {
             codigo: 'COD-1',
             descricao: 'Item um',
             categoria_display: 'PLC',
-            fabricante: 'Fab',
+            fabricante_parceiro_nome: 'Fab',
             preco_base: '9,99',
             ativo: true,
           },
@@ -177,6 +177,37 @@ describe('ProdutoListPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
     expect(screen.getByRole('button', { name: /Página 2/i })).toBeInTheDocument()
+  })
+
+  it('filtra por busca rápida de código e reinicia paginação', () => {
+    useProdutoListQueryMock.mockReturnValue(
+      pageVazio({
+        items: [
+          {
+            id: 'p1',
+            codigo: '000000000015220827',
+            descricao: 'Item encontrado',
+            categoria_display: 'Minidisjuntor',
+            fabricante_parceiro_nome: 'Fabricante',
+            preco_base: '6.98',
+            ativo: true,
+          },
+        ],
+        total: 1,
+        hasNext: true,
+      })
+    )
+
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+    expect(screen.getByRole('button', { name: /Página 2/i })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Busca rápida por código'), {
+      target: { value: '1522' },
+    })
+
+    expect(useProdutoListQueryMock).toHaveBeenLastCalledWith(null, 1, 50, '1522')
+    expect(screen.getByRole('button', { name: /Página 1/i })).toBeInTheDocument()
   })
 
   it('lista vazia com link de cadastro para quem pode gerir', () => {

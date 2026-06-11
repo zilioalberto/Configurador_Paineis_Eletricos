@@ -64,7 +64,7 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     queryset = DocumentoFiscalRecebido.objects.prefetch_related("itens").order_by(
         "-data_emissao",
@@ -126,7 +126,7 @@ class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     queryset = DocumentoFiscalEmitido.objects.prefetch_related("itens").order_by(
         "-data_emissao",
@@ -159,6 +159,20 @@ class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
         if cliente:
             qs = qs.filter(nome_destinatario__icontains=cliente)
 
+        cfop = (params.get("cfop") or "").strip()
+        if cfop:
+            qs = qs.filter(cfop_predominante=cfop)
+
+        anexo = (params.get("anexo_simples") or "").strip()
+        if anexo:
+            qs = qs.filter(anexo_simples=anexo)
+
+        incluir = (params.get("incluir_faturamento") or "").strip().lower()
+        if incluir in {"true", "1", "sim"}:
+            qs = qs.filter(incluir_faturamento=True)
+        elif incluir in {"false", "0", "nao", "não"}:
+            qs = qs.filter(incluir_faturamento=False)
+
         return qs
 
 
@@ -168,7 +182,7 @@ class RelatorioNFeView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def _queryset_entradas(self, params):
         qs = DocumentoFiscalRecebido.objects.prefetch_related("itens").order_by(
@@ -351,7 +365,7 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request):
         serializer = ImportarXMLDocumentoEmitidoSerializer(data=request.data)
@@ -361,9 +375,10 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
         try:
             resultado = importar_xml_documento_emitido(
                 xml=data["xml"],
-                tipo_documento=data["tipo_documento"],
+                tipo_documento=data.get("tipo_documento"),
                 objetivo_saida=data.get("objetivo_saida"),
                 origem_importacao="MANUAL",
+                classificar_automaticamente=data.get("classificar_automaticamente", True),
             )
         except DocumentoEmitidoParserError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -412,7 +427,7 @@ class ImportarXMLNFePortalView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request):
         serializer = ImportarXMLNFeSerializer(data=request.data)
@@ -462,7 +477,7 @@ class ControleNSUView(ControleNSUBaseView):
         return [FiscalAgentTokenConfigured(), IsFiscalAgentAuthenticated()]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def get(self, request, cnpj: str):
         controle = self._get_or_create(cnpj)

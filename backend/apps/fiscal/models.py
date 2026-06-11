@@ -8,6 +8,8 @@ from django.db import models
 
 from apps.catalogo.models import Produto
 from apps.fiscal.choices import (
+    AnexoSimplesNacionalChoices,
+    ClassificacaoFiscalOrigemChoices,
     ObjetivoEntradaFiscalChoices,
     ObjetivoSaidaFiscalChoices,
     OrigemImportacaoFiscalChoices,
@@ -361,6 +363,23 @@ class DocumentoFiscalEmitido(models.Model):
         choices=OrigemImportacaoFiscalChoices.choices,
         default=OrigemImportacaoFiscalChoices.MANUAL,
     )
+    cfop_predominante = models.CharField(max_length=10, blank=True, db_index=True)
+    anexo_simples = models.CharField(
+        max_length=10,
+        choices=AnexoSimplesNacionalChoices.choices,
+        blank=True,
+        db_index=True,
+        help_text="Vazio em serviços: resolvido pelo Fator R na projeção de DAS.",
+    )
+    incluir_faturamento = models.BooleanField(
+        default=True,
+        help_text="Se falso, a nota não entra na RBT12 (devolução, remessa etc.).",
+    )
+    classificacao_origem = models.CharField(
+        max_length=20,
+        choices=ClassificacaoFiscalOrigemChoices.choices,
+        default=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
+    )
 
     xml_original = models.TextField(blank=True)
     criada_em = models.DateTimeField(auto_now_add=True)
@@ -414,3 +433,77 @@ class ItemDocumentoFiscalEmitido(models.Model):
 
     def __str__(self) -> str:
         return f"Item {self.numero_item}: {self.descricao[:60]}"
+
+
+class PerfilTributarioSimples(models.Model):
+    """Parâmetros da empresa para projeção de DAS no Simples Nacional."""
+
+    cnpj = models.CharField(max_length=14, unique=True)
+    folha_salarios_12m = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+        help_text="Folha de salários dos últimos 12 meses (Fator R).",
+    )
+    encargos_folha_12m = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+        help_text="INSS patronal, FGTS e contribuições sobre folha (12 meses).",
+    )
+    anexo_servicos_override = models.CharField(
+        max_length=10,
+        choices=AnexoSimplesNacionalChoices.choices,
+        blank=True,
+        help_text="Força Anexo III ou V para serviços; vazio = calcular pelo Fator R.",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Perfil tributário Simples Nacional"
+        verbose_name_plural = "Perfis tributários Simples Nacional"
+
+    def __str__(self) -> str:
+        return f"Simples — CNPJ {self.cnpj}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj = normalizar_cnpj(self.cnpj)
+        super().save(*args, **kwargs)
+
+
+class FaturamentoMensalAjuste(models.Model):
+    """Ajuste manual de faturamento por competência (receita sem NF, correções)."""
+
+    cnpj = models.CharField(max_length=14, db_index=True)
+    competencia = models.CharField(
+        max_length=7,
+        help_text="Formato AAAA-MM.",
+        db_index=True,
+    )
+    valor_ajuste = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+        help_text="Valor somado ao faturamento importado das NF-es do mês.",
+    )
+    observacao = models.CharField(max_length=255, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ajuste de faturamento mensal"
+        verbose_name_plural = "Ajustes de faturamento mensal"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cnpj", "competencia"],
+                name="fiscal_faturamento_ajuste_cnpj_competencia_unico",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.competencia} — {self.cnpj}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj = normalizar_cnpj(self.cnpj)
+        super().save(*args, **kwargs)

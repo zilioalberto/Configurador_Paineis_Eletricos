@@ -174,7 +174,6 @@ class TestNfeCatalogoApi:
             categoria=CategoriaProdutoNomeChoices.PLC,
             unidade_medida=UnidadeMedidaChoices.UN,
             fabricante_parceiro=fornecedor,
-            fabricante=fornecedor.razao_social.upper(),
         )
         url = reverse("catalogo-nfe-preview")
         f = SimpleUploadedFile("nf.xml", XML_MINIMO, content_type="application/xml")
@@ -210,7 +209,6 @@ class TestNfeCatalogoApi:
             categoria=CategoriaProdutoNomeChoices.PLC,
             unidade_medida=UnidadeMedidaChoices.UN,
             fabricante_parceiro=fornecedor,
-            fabricante=fornecedor.razao_social.upper(),
         )
         prev = client.post(
             reverse("catalogo-nfe-preview"),
@@ -222,7 +220,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,
@@ -254,7 +251,6 @@ class TestNfeCatalogoApi:
             categoria=CategoriaProdutoNomeChoices.PLC,
             unidade_medida=UnidadeMedidaChoices.UN,
             fabricante_parceiro=fornecedor,
-            fabricante=fornecedor.razao_social.upper(),
         )
         prev = client.post(
             reverse("catalogo-nfe-preview"),
@@ -266,7 +262,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,
@@ -320,7 +315,6 @@ class TestNfeCatalogoApi:
                 "snapshot": snapshot,
                 "criar_fornecedor": True,
                 "categoria_padrao": CategoriaProdutoNomeChoices.OUTROS,
-                "fabricante_padrao": "",
                 "objetivo_entrada": "INDUSTRIALIZACAO",
                 "itens": [{"n_item": 1, "importar": True}],
             },
@@ -334,7 +328,6 @@ class TestNfeCatalogoApi:
         produto = Produto.objects.get(codigo="FAB-001")
         assert produto.fornecedor_parceiro == fornecedor
         assert produto.fabricante_parceiro == fornecedor
-        assert produto.fabricante == fornecedor.razao_social.upper()
         assert produto.origem_mercadoria == "0"
         item = ItemFiscalProduto.objects.get(produto=produto)
         assert item.objetivo_entrada == "INDUSTRIALIZACAO"
@@ -361,7 +354,6 @@ class TestNfeCatalogoApi:
                 "snapshot": snapshot,
                 "criar_fornecedor": True,
                 "categoria_padrao": CategoriaProdutoNomeChoices.OUTROS,
-                "fabricante_padrao": "",
                 "itens": [{"n_item": 1, "importar": True}],
             },
             format="json",
@@ -383,7 +375,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,
@@ -426,7 +417,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,
@@ -447,7 +437,6 @@ class TestNfeCatalogoApi:
         produto = Produto.objects.get(codigo="FAB-001")
         assert produto.fornecedor_parceiro == fornecedor
         assert produto.fabricante_parceiro == fornecedor
-        assert produto.fabricante == fornecedor.razao_social.upper()
         assert not ParceiroComercial.objects.filter(documento="12345678000199").exists()
 
     def test_aplicar_permitem_fabricante_diferente_por_item(self, admin_client):
@@ -473,7 +462,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,
@@ -491,7 +479,6 @@ class TestNfeCatalogoApi:
         produto = Produto.objects.get(codigo="FAB-001")
         assert produto.fornecedor_parceiro == fornecedor
         assert produto.fabricante_parceiro == fabricante
-        assert produto.fabricante == fabricante.razao_social.upper()
 
     def test_aplicar_exige_categoria_para_item_marcado(self, admin_client):
         client, _ = admin_client
@@ -506,7 +493,6 @@ class TestNfeCatalogoApi:
             reverse("catalogo-nfe-aplicar"),
             {
                 "snapshot": snapshot,
-                "fabricante_padrao": "",
                 "itens": [
                     {
                         "n_item": 1,

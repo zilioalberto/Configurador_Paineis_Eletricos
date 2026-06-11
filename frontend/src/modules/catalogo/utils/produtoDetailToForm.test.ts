@@ -20,7 +20,6 @@ describe('produtoDetailToForm', () => {
       descricao: 'Gw',
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
-      fabricante: 'F',
       unidade_medida: 'UN',
       preco_base: '12',
       ativo: true,
@@ -35,7 +34,7 @@ describe('produtoDetailToForm', () => {
     expect(form.aliquota_ipi).toBe('')
   })
 
-  it('usa fabricante como fornecedor padrão quando API antiga não traz fornecedor', () => {
+  it('usa parceiro fabricante como fornecedor padrão quando API antiga não traz fornecedor', () => {
     const categorias: CategoriaProduto[] = [
       { id: 'c1', nome: 'GATEWAY', descricao: '', ativo: true },
     ]
@@ -45,7 +44,6 @@ describe('produtoDetailToForm', () => {
       descricao: 'Gw',
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
-      fabricante: 'Fabricante',
       fabricante_parceiro: 'fab-1',
       fabricante_parceiro_nome: 'Fabricante LTDA',
       fabricante_parceiro_documento: '123',
@@ -69,7 +67,6 @@ describe('produtoDetailToForm', () => {
       descricao: 'Gw',
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
-      fabricante: 'F',
       unidade_medida: 'kg',
       preco_base: '12',
       ativo: true,
@@ -88,7 +85,6 @@ describe('produtoDetailToForm', () => {
       descricao: 'Gw',
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
-      fabricante: 'F',
       unidade_medida: 'UN',
       preco_base: '12',
       ativo: true,

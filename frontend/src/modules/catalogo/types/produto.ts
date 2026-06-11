@@ -80,7 +80,6 @@ export type ProdutoFormData = {
   fornecedor_parceiro: string
   fornecedor_parceiro_nome: string
   fornecedor_parceiro_documento: string
-  fabricante: string
   referencia_fabricante: string
   largura_mm: string
   altura_mm: string
@@ -100,7 +99,6 @@ export type ProdutoListItem = {
   categoria: string
   categoria_nome?: CategoriaProdutoNome
   categoria_display?: string
-  fabricante: string
   unidade_medida: string
   unidade_medida_display?: string
   preco_base: string

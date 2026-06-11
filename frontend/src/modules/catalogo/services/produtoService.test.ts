@@ -55,6 +55,14 @@ describe('produtoService', () => {
     })
   })
 
+  it('listarProdutos envia busca rápida quando informada', async () => {
+    getMock.mockResolvedValueOnce({ data: [] })
+    await listarProdutos('cat1', 1, 50, '  1522  ')
+    expect(getMock).toHaveBeenCalledWith('/catalogo/produtos/', {
+      params: { page: 1, page_size: 50, categoria: 'cat1', search: '1522' },
+    })
+  })
+
   it('listarProdutos com payload não paginado usa tamanho da lista', async () => {
     getMock.mockResolvedValueOnce({ data: [{ id: 'a' }, { id: 'b' }] })
     const page = await listarProdutos(undefined, 1, 50)

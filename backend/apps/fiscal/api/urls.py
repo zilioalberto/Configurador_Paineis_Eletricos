@@ -8,6 +8,17 @@ from apps.fiscal.api.manifestacao_views import (
     RegistrarManifestacaoAgentView,
     SolicitarManifestacaoView,
 )
+from apps.fiscal.api.relatorio_faturamento_views import RelatorioFaturamentoView
+from apps.fiscal.api.sefaz_sync_views import SincronizarNfesSefazView
+from apps.fiscal.api.simples_views import (
+    ClassificacaoDocumentoEmitidoView,
+    FaturamentoMensalAjusteView,
+    FaturamentoSimplesView,
+    ImportarLoteDocumentosEmitidosView,
+    PerfilTributarioSimplesView,
+    ProjecaoDasSimplesView,
+    ReclassificarDocumentosEmitidosView,
+)
 from apps.fiscal.api.nfe_views import (
     ControleNSUView,
     DocumentoFiscalEmitidoViewSet,
@@ -78,9 +89,54 @@ urlpatterns = [
         name="fiscal-relatorio-nfes",
     ),
     path(
+        "fiscal/relatorios/faturamento/",
+        RelatorioFaturamentoView.as_view(),
+        name="fiscal-relatorio-faturamento",
+    ),
+    path(
         "fiscal/nsu/<str:cnpj>/",
         ControleNSUView.as_view(),
         name="fiscal-nsu",
+    ),
+    path(
+        "fiscal/nfes/sincronizar-sefaz/",
+        SincronizarNfesSefazView.as_view(),
+        name="fiscal-nfes-sincronizar-sefaz",
+    ),
+    path(
+        "fiscal/nfes-emitidas/importar-lote/",
+        ImportarLoteDocumentosEmitidosView.as_view(),
+        name="fiscal-nfes-emitidas-importar-lote",
+    ),
+    path(
+        "fiscal/nfes-emitidas/reclassificar/",
+        ReclassificarDocumentosEmitidosView.as_view(),
+        name="fiscal-nfes-emitidas-reclassificar",
+    ),
+    path(
+        "fiscal/nfes-emitidas/<int:documento_id>/classificacao/",
+        ClassificacaoDocumentoEmitidoView.as_view(),
+        name="fiscal-nfe-emitida-classificacao",
+    ),
+    path(
+        "fiscal/simples/perfil/",
+        PerfilTributarioSimplesView.as_view(),
+        name="fiscal-simples-perfil",
+    ),
+    path(
+        "fiscal/simples/faturamento/",
+        FaturamentoSimplesView.as_view(),
+        name="fiscal-simples-faturamento",
+    ),
+    path(
+        "fiscal/simples/projecao-das/",
+        ProjecaoDasSimplesView.as_view(),
+        name="fiscal-simples-projecao-das",
+    ),
+    path(
+        "fiscal/simples/faturamento-ajuste/",
+        FaturamentoMensalAjusteView.as_view(),
+        name="fiscal-simples-faturamento-ajuste",
     ),
     path("", include(router.urls)),
 ]

@@ -49,7 +49,6 @@ export function produtoDetailToForm(
     fornecedor_parceiro_nome: p.fornecedor_parceiro_nome ?? p.fabricante_parceiro_nome ?? '',
     fornecedor_parceiro_documento:
       p.fornecedor_parceiro_documento ?? p.fabricante_parceiro_documento ?? '',
-    fabricante: String(p.fabricante ?? ''),
     referencia_fabricante: String(p.referencia_fabricante ?? ''),
     largura_mm: p.largura_mm != null ? String(p.largura_mm) : '',
     altura_mm: p.altura_mm != null ? String(p.altura_mm) : '',

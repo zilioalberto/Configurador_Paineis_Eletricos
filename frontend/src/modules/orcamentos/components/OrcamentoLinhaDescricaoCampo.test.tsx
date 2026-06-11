@@ -20,7 +20,7 @@ const produtos: ProdutoListItem[] = [
     codigo: '3TS29100BB4',
     descricao: 'CONTATOR A',
     categoria: 'CONTATOR',
-    fabricante: 'Siemens',
+    fabricante_parceiro_nome: 'Siemens',
     unidade_medida: 'UN',
     preco_base: '10',
     aliquota_ipi: '5',

@@ -14,7 +14,7 @@ export default function FiscalHomePage() {
   const [buscaInput, setBuscaInput] = useState('')
   const [buscaDebounced, setBuscaDebounced] = useState('')
 
-  const podeEditar = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
+  const podeEditar = hasPermission(user, PERMISSION_KEYS.FISCAL_EDITAR)
 
   useEffect(() => {
     const t = window.setTimeout(() => setBuscaDebounced(buscaInput.trim()), 350)
@@ -110,8 +110,10 @@ export default function FiscalHomePage() {
                   <div className="min-w-0 flex-grow-1">
                     <div className="fw-semibold text-break">{p.codigo}</div>
                     <div className="small text-muted text-break">{p.descricao}</div>
-                    {p.fabricante ? (
-                      <div className="small text-secondary text-break">{p.fabricante}</div>
+                    {p.fabricante_parceiro_nome ? (
+                      <div className="small text-secondary text-break">
+                        {p.fabricante_parceiro_nome}
+                      </div>
                     ) : null}
                   </div>
                   <div className="d-flex flex-wrap gap-2 flex-shrink-0">
@@ -174,17 +176,58 @@ export default function FiscalHomePage() {
         <div className="col-md-6 col-lg-4">
           <div className="card h-100 shadow-sm">
             <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Importar XML emitido</h3>
+              <h3 className="h5 card-title">Faturamento por clientes</h3>
               <p className="card-text text-muted small flex-grow-1">
-                Registra NF-e de produto ou NFS-e de serviço emitida pela ZFW para relatórios de
-                saídas e indicadores gerenciais.
+                Dashboard e relatório de faturamento por mês e por cliente, com base nas NF-es
+                emitidas importadas.
+              </p>
+              <Link to={fiscalPaths.relatorioFaturamento} className="btn btn-primary">
+                Ver dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">NF-es emitidas</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Saídas importadas por XML, classificadas por CFOP (revenda, industrialização,
+                serviços) para compor a RBT12.
+              </p>
+              <Link to={fiscalPaths.nfesEmitidas} className="btn btn-outline-primary">
+                Ver emitidas
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Projeção DAS — Simples</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Estimativa do DAS com base no faturamento dos últimos 12 meses e nas notas emitidas
+                importadas.
+              </p>
+              <Link to={fiscalPaths.projecaoDas} className="btn btn-outline-primary">
+                Calcular projeção
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-4">
+          <div className="card h-100 shadow-sm">
+            <div className="card-body d-flex flex-column">
+              <h3 className="h5 card-title">Importar XMLs emitidos</h3>
+              <p className="card-text text-muted small flex-grow-1">
+                Envie um ou vários XMLs de NF-e/NFS-e; a classificação por CFOP é automática.
               </p>
               {podeEditar ? (
                 <Link to={fiscalPaths.nfeEmitidaImportar} className="btn btn-outline-primary">
-                  Importar saída
+                  Importar lote
                 </Link>
               ) : (
-                <span className="small text-muted">Requer permissão de edição de materiais.</span>
+                <span className="small text-muted">Requer permissão de edição fiscal.</span>
               )}
             </div>
           </div>
@@ -202,7 +245,7 @@ export default function FiscalHomePage() {
                   Enviar XML
                 </Link>
               ) : (
-                <span className="small text-muted">Requer permissão de edição de materiais.</span>
+                <span className="small text-muted">Requer permissão de edição fiscal.</span>
               )}
             </div>
           </div>

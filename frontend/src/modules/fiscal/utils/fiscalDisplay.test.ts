@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatChaveAcesso, formatCnpjExibicao, labelOrigemImportacao } from './fiscalDisplay'
+import {
+  dataLocalIso,
+  formatChaveAcesso,
+  formatCnpjExibicao,
+  labelAnexoSimples,
+  labelOrigemImportacao,
+  periodoUltimos12MesesLocal,
+} from './fiscalDisplay'
 
 describe('fiscalDisplay', () => {
   it('formata CNPJ de 14 dígitos', () => {
@@ -14,6 +21,18 @@ describe('fiscalDisplay', () => {
   })
 
   it('rotula origem PONTE_A3', () => {
-    expect(labelOrigemImportacao('PONTE_A3')).toContain('SEFAZ')
+    expect(labelOrigemImportacao('PONTE_A3')).toContain('Ponte A3')
+  })
+
+  it('rotula anexo SERVICO e vazio como serviço Fator R', () => {
+    expect(labelAnexoSimples('SERVICO')).toBe('Serviço (Fator R)')
+    expect(labelAnexoSimples('')).toBe('Serviço (Fator R)')
+    expect(labelAnexoSimples('I')).toContain('Anexo I')
+  })
+
+  it('dataLocalIso usa componentes locais da data', () => {
+    const data = new Date(2026, 5, 15, 23, 30)
+    expect(dataLocalIso(data)).toBe('2026-06-15')
+    expect(periodoUltimos12MesesLocal().data_fim).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

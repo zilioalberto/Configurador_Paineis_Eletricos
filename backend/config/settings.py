@@ -201,10 +201,20 @@ REST_FRAMEWORK = {
 }
 
 # Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
-# Token Bearer para agente fiscal local (ponte A3). Não commitar valor real.
+# Token Bearer para agente fiscal legado (ponte local). Opcional com sincronização nativa A1.
 FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
-# CNPJ da ZFW (14 dígitos) — pré-preenche NSU no portal e deve coincidir com FISCAL_PONTE_CNPJ na máquina local.
+# CNPJ da ZFW (14 dígitos) — DistDFe e portal fiscal.
 FISCAL_EMPRESA_CNPJ = os.getenv("FISCAL_EMPRESA_CNPJ", "")
+# Certificado A1 (.pfx) no servidor — sincronização SEFAZ nativa (sem ACBr).
+FISCAL_CERT_PATH = os.getenv("FISCAL_CERT_PATH", "")
+FISCAL_CERT_PASSWORD = os.getenv("FISCAL_CERT_PASSWORD", "")
+# Código UF IBGE do autor (ex.: 35=SP, 42=SC). Usado em distDFeInt cUFAutor.
+FISCAL_SEFAZ_UF = os.getenv("FISCAL_SEFAZ_UF", "42")
+# 1=produção, 2=homologação
+FISCAL_SEFAZ_AMBIENTE = os.getenv("FISCAL_SEFAZ_AMBIENTE", "2")
+# native | stub (stub = sem certificado, para testes)
+FISCAL_SEFAZ_PROVIDER = os.getenv("FISCAL_SEFAZ_PROVIDER", "native")
+FISCAL_SYNC_MAX_CICLOS = int(os.getenv("FISCAL_SYNC_MAX_CICLOS", "20"))
 
 CNPJ_CONSULTA = {
     "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),

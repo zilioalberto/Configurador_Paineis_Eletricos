@@ -8,6 +8,7 @@ const showToastMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../services/fiscalNfeService', () => ({
   importarDocumentoEmitidoManual: (...args: unknown[]) => importarDocumentoEmitidoManualMock(...args),
+  importarLoteDocumentosEmitidos: vi.fn(),
 }))
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -32,27 +33,22 @@ describe('NfeEmitidaImportarPage', () => {
     })
   })
 
-  it('importa XML emitido como NFS-e de serviço', async () => {
+  it('importa XML com classificação automática', async () => {
     render(
       <MemoryRouter>
         <NfeEmitidaImportarPage />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
 
-    fireEvent.change(screen.getByLabelText(/tipo de documento/i), {
-      target: { value: 'NFSE_SERVICO' },
-    })
     fireEvent.change(screen.getByLabelText(/ou cole o xml/i), {
       target: { value: '<CompNfse />' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /importar saída/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^importar$/i }))
 
     await waitFor(() => expect(importarDocumentoEmitidoManualMock).toHaveBeenCalled())
     expect(importarDocumentoEmitidoManualMock).toHaveBeenCalledWith({
       xml: '<CompNfse />',
-      tipo_documento: 'NFSE_SERVICO',
-      objetivo_saida: 'PRESTACAO_SERVICO',
     })
-    expect(navigateMock).toHaveBeenCalledWith('/fiscal/relatorios/nfes')
+    expect(navigateMock).toHaveBeenCalledWith('/fiscal/nfes-emitidas')
   })
 })

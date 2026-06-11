@@ -5,9 +5,9 @@
 O módulo fiscal cobre duas frentes no servidor central (VPS / Django):
 
 1. **Tributação por produto do catálogo** — `ItemFiscalProduto` (referência de ICMS/IPI/PIS/COFINS, alimentado pela importação NF-e do catálogo).
-2. **NF-e recebidas contra o CNPJ da ZFW** — armazenamento do XML, itens da nota, controle de NSU e API para consulta/importação (preparado para a futura **ponte A3** local).
+2. **NF-e recebidas contra o CNPJ da ZFW** — armazenamento do XML, itens da nota, controle de NSU, sincronização **SEFAZ nativa** (certificado A1 no servidor) e importação manual pelo portal.
 
-A máquina local **não** possui banco, parser, NSU nem regras de negócio: apenas o certificado A3 e, no futuro, chamadas técnicas que devolvem retorno bruto ao servidor.
+A sincronização automática roda no **próprio servidor Django** via `python manage.py fiscal_sync_nsu` (sem ACBr, sem máquina local). O certificado A1 (`.pfx`) fica em volume/secrets no VPS.
 
 ## Arquitetura
 
@@ -49,11 +49,51 @@ flowchart LR
 |--------|--------|
 | Backend — catálogo fiscal | **Parcial** — `ItemFiscalProduto` |
 | Backend — NF-e recebidas | **Implementado (servidor)** — modelos, parser, importação, API, NSU |
-| Backend — SEFAZ / ponte A3 | **Parcial** — API agente pronta; agente local em `tools/fiscal_ponte` |
+| Backend — SEFAZ (A1 nativo) | **Implementado** — `apps/fiscal/services/sefaz/` + `fiscal_sync_nsu` |
+| Backend — ponte A3 legada | **Opcional** — `tools/fiscal_ponte` (ACBr); substituída pelo sync nativo |
 | Frontend — itens fiscais | **Parcial** — `src/modules/fiscal` |
 | Frontend — NF-e recebidas | **Implementado** — `src/modules/fiscal` (lista, detalhe, importação manual, NSU leitura) |
 
 **ID ERP:** `fiscal` · **Área:** Suprimentos
+
+### Permissões
+
+| Chave | Uso |
+|-------|-----|
+| `fiscal.visualizar` | Menu, rotas de leitura, listagens, detalhe, NSU (GET), relatórios |
+| `fiscal.editar` | Importação manual, manifestação, sync SEFAZ pelo portal |
+
+Perfis padrão: **Engenharia** e **Almoxarifado** recebem `fiscal.visualizar`; **Orçamentista** recebe visualizar + editar; **Colaborador (geral)** não recebe fiscal por padrão. Administradores têm todas as permissões.
+
+O catálogo de produtos continua usando `material.visualizar_lista` / `material.editar_lista` (importação NF-e para cadastro de produtos).
+
+#### Configurar acessos no portal
+
+1. Acesse **Administração → Utilizadores** (`/administracao/utilizadores`) com conta administradora.
+2. Ao criar ou editar um utilizador, marque na seção **Fiscal**:
+   - **Ver módulo fiscal** (`fiscal.visualizar`) — menu Fiscal, listagens, relatórios, faturamento e projeção DAS.
+   - **Editar módulo fiscal** (`fiscal.editar`) — importação de XMLs, manifestação e sincronização SEFAZ.
+3. O tipo de utilizador pré-seleciona permissões padrão (Engenharia e Almoxarifado já recebem visualizar; Orçamentista recebe visualizar + editar).
+4. O módulo **Fiscal** na central de módulos (`/`) só aparece para quem tem `fiscal.visualizar` (não basta permissão de catálogo).
+
+Backend: chaves em `core/permissions.py` e `PermissaoUsuarioChoices`; API valida com `HasEffectivePermission` em cada view.
+
+### Simples Nacional — projeção de DAS (estimativa)
+
+| Recurso | Descrição |
+|---------|-----------|
+| Importação emitidas (lote) | `POST /api/v1/fiscal/nfes-emitidas/importar-lote/` — detecta NF-e/NFS-e, classifica CFOP |
+| Classificação CFOP | Revenda (5102 etc.) → Anexo I; industrialização → II; serviços → Fator R (III/V) |
+| Faturamento 12 meses | `GET /api/v1/fiscal/simples/faturamento/` — soma NF-es emitidas + ajustes manuais |
+| Relatório faturamento | `GET /api/v1/fiscal/relatorios/faturamento/` — dashboard por mês, cliente, anexo e finalidade |
+| Projeção DAS | `GET /api/v1/fiscal/simples/projecao-das/?competencia=AAAA-MM` |
+| Perfil | `GET/PATCH /api/v1/fiscal/simples/perfil/` — folha e encargos para Fator R |
+
+Parâmetros do relatório de faturamento: `data_inicio`, `data_fim`, `cliente` (nome ou CNPJ), `objetivo_saida`, `anexo_simples` (use `SERVICO` para notas sem anexo definido), `tipo_documento`, `top_clientes` (padrão 25), `incluir_documentos`, `limite_documentos`.
+
+**Frontend:** `/fiscal/nfes-emitidas`, `/fiscal/nfes-emitidas/importar`, `/fiscal/relatorios/faturamento`, `/fiscal/simples/projecao-das`.
+
+Requer `FISCAL_EMPRESA_CNPJ` no `.env` (CNPJ da ZFW). Resultado é **estimativa** — conferir com PGDAS-D.
 
 ## Backend
 
@@ -122,7 +162,7 @@ Prefixo do projeto: **`/api/v1/fiscal/`** (registrado em `config/urls.py` → `a
 | `GET` | `/api/v1/fiscal/nfes/{id}/` | Detalhe com itens e `xml_original` |
 | `POST` | `/api/v1/fiscal/nfes/importar-manual/` | Importação manual pelo portal (origem `MANUAL`) |
 
-Permissão listagem/detalhe/NSU (GET): `MATERIAL_VISUALIZAR_LISTA`. Importação manual: `MATERIAL_EDITAR_LISTA`.
+Permissão listagem/detalhe/NSU (GET): `fiscal.visualizar`. Importação manual: `fiscal.editar`.
 
 **Filtros (query):** `chave_acesso`, `cnpj_emitente`, `cnpj_destinatario`, `numero`, `serie`, `status_importacao`, `origem_importacao`.
 
@@ -187,7 +227,7 @@ Permissão listagem/detalhe/NSU (GET): `MATERIAL_VISUALIZAR_LISTA`. Importação
 
 | Método | URL | Auth | Descrição |
 |--------|-----|------|-----------|
-| `POST` | `/api/v1/fiscal/nfes/{id}/solicitar-manifestacao/` | JWT | Enfileira evento (portal); requer `MATERIAL_EDITAR_LISTA` |
+| `POST` | `/api/v1/fiscal/nfes/{id}/solicitar-manifestacao/` | JWT | Enfileira evento (portal); requer `fiscal.editar` |
 | `GET` | `/api/v1/fiscal/nfes/manifestacoes-pendentes/` | Agente | Lista pendentes para a ponte A3 |
 | `POST` | `/api/v1/fiscal/nfes/{id}/registrar-manifestacao/` | Agente | Registra sucesso/erro após `NFe.EnviarEvento` no ACBr |
 
@@ -228,7 +268,7 @@ A ponte processa pendentes no fim de cada `fiscal-ponte sync` ou via `fiscal-pon
 | `GET` | `/api/v1/fiscal/itens-fiscais/` |
 | `GET` | `/api/v1/fiscal/config/` | `cnpj_empresa`, `agente_ponte_configurado` (portal) |
 
-Permissão: `MATERIAL_VISUALIZAR_LISTA`.
+Permissão: `fiscal.visualizar`.
 
 Variáveis servidor (`.env`):
 
@@ -237,7 +277,60 @@ FISCAL_AGENT_TOKEN=...
 FISCAL_EMPRESA_CNPJ=12345678000199
 ```
 
-## Ponte A3 local (`tools/fiscal_ponte`)
+## Sincronização SEFAZ nativa (certificado A1)
+
+Código: `backend/apps/fiscal/services/sefaz/`
+
+| Componente | Função |
+|------------|--------|
+| `certificado.py` | Carrega `.pfx` (PKCS12) para mTLS e assinatura XML |
+| `distribuicao_dfe.py` | `NFeDistribuicaoDFe` — DistDFe por `ultNSU` |
+| `manifestacao.py` | Manifestação do destinatário (`NFeRecepcaoEvento4`) |
+| `nsu_sync.py` | Orquestra DistDFe → `importar_xml_nfe` → manifestações pendentes |
+
+### Variáveis (`.env` do servidor)
+
+```env
+FISCAL_EMPRESA_CNPJ=07284171000139
+FISCAL_CERT_PATH=/opt/zfw/secrets/certificado-a1.pfx
+FISCAL_CERT_PASSWORD=...
+FISCAL_SEFAZ_UF=42
+FISCAL_SEFAZ_AMBIENTE=1
+FISCAL_SEFAZ_PROVIDER=native
+FISCAL_SYNC_MAX_CICLOS=20
+```
+
+- `FISCAL_SEFAZ_AMBIENTE`: `1` produção, `2` homologação.
+- `FISCAL_SEFAZ_PROVIDER=stub` — testes sem certificado (cStat 137).
+- **Não** commitar o `.pfx` nem a senha.
+
+### Portal (manual)
+
+Botão **Buscar NF-es na SEFAZ** na home fiscal e em **Controle NSU** — chama `POST /api/v1/fiscal/nfes/sincronizar-sefaz/` (JWT, permissão `fiscal.editar`).
+
+### Comando (opcional / agendamento futuro)
+
+```bash
+python manage.py fiscal_sync_nsu
+python manage.py fiscal_sync_nsu --dry-run
+python manage.py fiscal_sync_nsu --sem-manifestacao
+```
+
+### Agendamento (cron no VPS)
+
+```cron
+*/15 * * * * cd /opt/zfw/app/backend && /opt/zfw/venv/bin/python manage.py fiscal_sync_nsu >> /var/log/zfw/fiscal_sync.log 2>&1
+```
+
+No Docker, monte o certificado como volume read-only e passe as variáveis via `.env`.
+
+### Origem de importação
+
+NF-es obtidas pelo job usam `origem_importacao=SEFAZ_SYNC` (distinto de `PONTE_A3` legado e `MANUAL`).
+
+---
+
+## Ponte A3 local (`tools/fiscal_ponte`) — legado
 
 Agente Python na máquina com certificado. Código: [tools/fiscal_ponte/README.md](../../tools/fiscal_ponte/README.md).
 
@@ -383,14 +476,19 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 | Rota | Página | Permissão |
 |------|--------|-----------|
-| `/fiscal` | `FiscalHomePage` — busca de produtos e atalhos | `material.visualizar_lista` |
-| `/fiscal/nfes` | `NfesRecebidasListPage` — lista filtrada | visualizar |
-| `/fiscal/nfes/:id` | `NfeRecebidaDetailPage` — itens + XML | visualizar |
-| `/fiscal/nfes/importar` | `NfeImportarManualPage` — POST `importar-manual` | editar |
-| `/fiscal/nsu` | `ControleNsuPage` — leitura NSU (JWT) | visualizar |
-| `/fiscal/itens-fiscais` | `ItensFiscaisListPage` | visualizar |
+| `/fiscal` | `FiscalHomePage` — busca de produtos e atalhos | `fiscal.visualizar` |
+| `/fiscal/nfes` | `NfesRecebidasListPage` — lista filtrada | `fiscal.visualizar` |
+| `/fiscal/nfes/:id` | `NfeRecebidaDetailPage` — itens + XML | `fiscal.visualizar` |
+| `/fiscal/nfes/importar` | `NfeImportarManualPage` — POST `importar-manual` | `fiscal.editar` |
+| `/fiscal/nsu` | `ControleNsuPage` — leitura NSU (JWT) | `fiscal.visualizar` |
+| `/fiscal/itens-fiscais` | `ItensFiscaisListPage` | `fiscal.visualizar` |
+| `/fiscal/relatorios/nfes` | `RelatorioNfesPage` — NF-es recebidas por período | `fiscal.visualizar` |
+| `/fiscal/relatorios/faturamento` | `RelatorioFaturamentoPage` — dashboard por cliente | `fiscal.visualizar` |
+| `/fiscal/nfes-emitidas` | `NfesEmitidasListPage` | `fiscal.visualizar` |
+| `/fiscal/nfes-emitidas/importar` | `NfeEmitidaImportarPage` | `fiscal.editar` |
+| `/fiscal/simples/projecao-das` | `ProjecaoDasSimplesPage` | `fiscal.visualizar` |
 
-Serviço HTTP: `services/fiscalNfeService.ts`. Importação de **produtos** continua em `/catalogo/produtos/importar-nfe`.
+Serviços HTTP: `fiscalNfeService.ts`, `fiscalSimplesService.ts`. Importação de **produtos** continua em `/catalogo/produtos/importar-nfe`.
 
 ## Integrações
 

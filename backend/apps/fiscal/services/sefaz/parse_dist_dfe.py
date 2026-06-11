@@ -1,0 +1,126 @@
+"""Parser da resposta SOAP da Distribuição DFe."""
+from __future__ import annotations
+
+import base64
+import gzip
+import re
+from dataclasses import dataclass, field
+from xml.etree import ElementTree as ET
+
+from apps.fiscal.utils import normalizar_nsu
+
+NS = {"nfe": "http://www.portalfiscal.inf.br/nfe"}
+
+
+@dataclass
+class DistDfeDocumento:
+    xml: str
+    nsu: str | None = None
+    schema: str | None = None
+
+
+@dataclass
+class DistDfeResultado:
+    cstat: str
+    xmotivo: str
+    ultimo_nsu: str
+    max_nsu: str
+    documentos: list[DistDfeDocumento] = field(default_factory=list)
+    resposta_bruta: str = ""
+
+
+def _texto(elem: ET.Element | None) -> str:
+    return (elem.text or "").strip() if elem is not None else ""
+
+
+def _local(tag: str) -> str:
+    return tag.split("}")[-1] if "}" in tag else tag
+
+
+def _buscar_filho_por_nome(pai: ET.Element, nome: str) -> ET.Element | None:
+    for filho in pai:
+        if _local(filho.tag) == nome:
+            return filho
+    return None
+
+
+def _extrair_corpo_ret_dist_dfe(soap_xml: str) -> ET.Element | None:
+    try:
+        raiz = ET.fromstring(soap_xml)
+    except ET.ParseError:
+        return None
+
+    for elem in raiz.iter():
+        if _local(elem.tag) == "retDistDFeInt":
+            return elem
+    return None
+
+
+def _descompactar_doc_zip(conteudo_b64: str) -> str:
+    raw = base64.b64decode(conteudo_b64.strip())
+    try:
+        xml_bytes = gzip.decompress(raw)
+    except OSError:
+        xml_bytes = raw
+    return xml_bytes.decode("utf-8", errors="replace").strip()
+
+
+def xml_importavel_como_nfe(xml: str) -> bool:
+    """Aceita nfeProc ou NFe completa; ignora resNFe (resumo)."""
+    texto = (xml or "").strip()
+    if not texto:
+        return False
+    if re.search(r"<(nfeProc|NFe)\b", texto, re.IGNORECASE):
+        return True
+    return "infNFe" in texto and "resNFe" not in texto[:200]
+
+
+def parse_resposta_distribuicao_dfe(soap_xml: str, *, ultimo_nsu_consulta: str) -> DistDfeResultado:
+    ret = _extrair_corpo_ret_dist_dfe(soap_xml)
+    if ret is None:
+        return DistDfeResultado(
+            cstat="",
+            xmotivo="Resposta SEFAZ sem retDistDFeInt",
+            ultimo_nsu=normalizar_nsu(ultimo_nsu_consulta) or "000000000000000",
+            max_nsu=normalizar_nsu(ultimo_nsu_consulta) or "000000000000000",
+            resposta_bruta=soap_xml[:2000],
+        )
+
+    cstat = _texto(_buscar_filho_por_nome(ret, "cStat"))
+    xmotivo = _texto(_buscar_filho_por_nome(ret, "xMotivo"))
+    ultimo = normalizar_nsu(_texto(_buscar_filho_por_nome(ret, "ultNSU"))) or normalizar_nsu(
+        ultimo_nsu_consulta
+    )
+    maximo = normalizar_nsu(_texto(_buscar_filho_por_nome(ret, "maxNSU"))) or ultimo
+
+    documentos: list[DistDfeDocumento] = []
+    for elem in ret.iter():
+        if _local(elem.tag) != "docZip":
+            continue
+        nsu_attr = elem.attrib.get("NSU") or elem.attrib.get("nsu")
+        schema = elem.attrib.get("schema") or ""
+        conteudo = (elem.text or "").strip()
+        if not conteudo:
+            continue
+        try:
+            xml = _descompactar_doc_zip(conteudo)
+        except Exception:
+            continue
+        if not xml_importavel_como_nfe(xml):
+            continue
+        documentos.append(
+            DistDfeDocumento(
+                xml=xml,
+                nsu=normalizar_nsu(nsu_attr) if nsu_attr else None,
+                schema=schema,
+            )
+        )
+
+    return DistDfeResultado(
+        cstat=cstat,
+        xmotivo=xmotivo,
+        ultimo_nsu=ultimo or "000000000000000",
+        max_nsu=maximo or ultimo or "000000000000000",
+        documentos=documentos,
+        resposta_bruta=soap_xml,
+    )

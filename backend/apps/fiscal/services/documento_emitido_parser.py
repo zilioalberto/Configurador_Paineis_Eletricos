@@ -16,6 +16,22 @@ class DocumentoEmitidoParserError(ValueError):
     """Erro de validação ou estrutura do XML emitido."""
 
 
+def detectar_tipo_documento_emitido(xml: str) -> str:
+    """Infere NF-e de produto ou NFS-e a partir do conteúdo do XML."""
+    from apps.fiscal.choices import TipoDocumentoFiscalEmitidoChoices
+
+    texto = (xml or "").strip().lower()
+    if not texto:
+        raise DocumentoEmitidoParserError("XML não informado.")
+    if "compnfse" in texto or "<nfse" in texto or "nfse:" in texto:
+        return TipoDocumentoFiscalEmitidoChoices.NFSE_SERVICO
+    if "nfeproc" in texto or "<nfe" in texto or "portalfiscal.inf.br/nfe" in texto:
+        return TipoDocumentoFiscalEmitidoChoices.NFE_PRODUTO
+    raise DocumentoEmitidoParserError(
+        "Não foi possível identificar o tipo do XML (NF-e ou NFS-e)."
+    )
+
+
 def _local(tag: str) -> str:
     return tag.split("}", 1)[-1] if tag else ""
 

@@ -6,7 +6,7 @@ export type StatusImportacaoFiscal =
   | 'IGNORADA'
 
 /** Origem da importação da NF-e. */
-export type OrigemImportacaoFiscal = 'MANUAL' | 'PONTE_A3' | 'API' | 'OUTRO'
+export type OrigemImportacaoFiscal = 'MANUAL' | 'PONTE_A3' | 'SEFAZ_SYNC' | 'API' | 'OUTRO'
 
 export type ObjetivoEntradaFiscal =
   | 'INDUSTRIALIZACAO'
@@ -25,6 +25,10 @@ export type ObjetivoEntradaFiscal =
   | 'OUTRAS_ENTRADAS'
 
 export type TipoDocumentoFiscalEmitido = 'NFE_PRODUTO' | 'NFSE_SERVICO'
+
+export type AnexoSimplesNacional = 'I' | 'II' | 'III' | 'V' | 'NENHUM' | ''
+
+export type ClassificacaoFiscalOrigem = 'AUTOMATICA' | 'MANUAL'
 
 export type ObjetivoSaidaFiscal =
   | 'VENDA_PRODUTO'
@@ -202,4 +206,68 @@ export type ImportarDocumentoEmitidoResponse = {
   readonly message: string
   readonly documento_id: number
   readonly identificador: string
+}
+
+export type ItemDocumentoFiscalEmitidoRow = {
+  readonly id: number
+  readonly numero_item: number
+  readonly codigo: string
+  readonly descricao: string
+  readonly ncm: string
+  readonly cfop: string
+  readonly unidade: string
+  readonly quantidade: string
+  readonly valor_unitario: string
+  readonly valor_total: string
+}
+
+export type DocumentoFiscalEmitidoListRow = {
+  readonly id: number
+  readonly identificador: string
+  readonly tipo_documento: TipoDocumentoFiscalEmitido
+  readonly chave_acesso: string
+  readonly cnpj_emitente: string
+  readonly nome_emitente: string
+  readonly cnpj_destinatario: string
+  readonly nome_destinatario: string
+  readonly numero: string
+  readonly serie: string
+  readonly data_emissao: string | null
+  readonly valor_total: string
+  readonly natureza_operacao: string
+  readonly objetivo_saida: ObjetivoSaidaFiscal
+  readonly origem_importacao: OrigemImportacaoFiscal
+  readonly cfop_predominante: string
+  readonly anexo_simples: AnexoSimplesNacional
+  readonly incluir_faturamento: boolean
+  readonly classificacao_origem: ClassificacaoFiscalOrigem
+  readonly itens: ItemDocumentoFiscalEmitidoRow[]
+  readonly criada_em: string
+  readonly atualizada_em: string
+}
+
+export type NfesEmitidasFiltros = {
+  readonly tipo_documento?: TipoDocumentoFiscalEmitido | ''
+  readonly objetivo_saida?: ObjetivoSaidaFiscal | ''
+  readonly cfop?: string
+  readonly anexo_simples?: AnexoSimplesNacional
+  readonly incluir_faturamento?: 'true' | 'false' | ''
+  readonly cnpj_destinatario?: string
+  readonly cliente?: string
+  readonly numero?: string
+}
+
+export type ImportarLoteDocumentosEmitidosResponse = {
+  readonly total: number
+  readonly criados: number
+  readonly duplicados: number
+  readonly erros: number
+  readonly itens: ReadonlyArray<{
+    readonly indice: number
+    readonly sucesso: boolean
+    readonly created: boolean
+    readonly documento_id: number | null
+    readonly identificador: string
+    readonly mensagem: string
+  }>
 }

@@ -5,9 +5,12 @@ import apiClient from '@/services/apiClient'
 
 import type {
   ControleNsuDto,
+  DocumentoFiscalEmitidoListRow,
   DocumentoFiscalRecebidoDetail,
   DocumentoFiscalRecebidoListRow,
   ImportarDocumentoEmitidoResponse,
+  ImportarLoteDocumentosEmitidosResponse,
+  NfesEmitidasFiltros,
   ImportarNfeXmlResponse,
   NfesRecebidasFiltros,
   ObjetivoEntradaFiscal,
@@ -20,7 +23,9 @@ import type {
 
 const NFES_URL = '/fiscal/nfes/'
 const IMPORT_MANUAL_URL = '/fiscal/nfes/importar-manual/'
+const NFES_EMITIDAS_URL = '/fiscal/nfes-emitidas/'
 const IMPORT_EMITIDA_MANUAL_URL = '/fiscal/nfes-emitidas/importar-manual/'
+const IMPORT_EMITIDA_LOTE_URL = '/fiscal/nfes-emitidas/importar-lote/'
 const RELATORIO_NFES_URL = '/fiscal/relatorios/nfes/'
 
 type ListResponse<T> = { results?: T[] }
@@ -179,8 +184,51 @@ export async function importarNfeXmlManual(
 
 export type ImportarDocumentoEmitidoPayload = {
   readonly xml: string
-  readonly tipo_documento: TipoDocumentoFiscalEmitido
+  readonly tipo_documento?: TipoDocumentoFiscalEmitido
   readonly objetivo_saida?: ObjetivoSaidaFiscal
+  readonly classificar_automaticamente?: boolean
+}
+
+function filtrosEmitidasParaParams(filtros: NfesEmitidasFiltros): Record<string, string> {
+  const params: Record<string, string> = {}
+  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
+    const v = (raw ?? '').trim()
+    if (!v) return
+    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
+  }
+  add('tipo_documento', filtros.tipo_documento)
+  add('objetivo_saida', filtros.objetivo_saida)
+  add('cfop', filtros.cfop)
+  add('anexo_simples', filtros.anexo_simples)
+  add('incluir_faturamento', filtros.incluir_faturamento)
+  add('cnpj_destinatario', filtros.cnpj_destinatario, true)
+  add('cliente', filtros.cliente)
+  add('numero', filtros.numero)
+  return params
+}
+
+export type NfesEmitidasListPage = {
+  readonly items: DocumentoFiscalEmitidoListRow[]
+  readonly total: number
+  readonly page: number
+  readonly pageSize: number
+  readonly hasNext: boolean
+  readonly hasPrevious: boolean
+}
+
+/** Lista NF-es/NFS-es emitidas pela ZFW. */
+export async function listarNfesEmitidas(
+  filtros: NfesEmitidasFiltros,
+  page = 1,
+  pageSize = 50,
+): Promise<NfesEmitidasListPage> {
+  const params: Record<string, string | number> = {
+    page,
+    page_size: pageSize,
+    ...filtrosEmitidasParaParams(filtros),
+  }
+  const response = await apiClient.get<unknown>(NFES_EMITIDAS_URL, { params })
+  return normalizeListPage(response.data, page, pageSize) as NfesEmitidasListPage
 }
 
 /** Importa XML emitido pela ZFW (NF-e de produto ou NFS-e de serviço). */
@@ -189,13 +237,51 @@ export async function importarDocumentoEmitidoManual(
 ): Promise<ImportarDocumentoEmitidoResponse> {
   const response = await apiClient.post<ImportarDocumentoEmitidoResponse>(
     IMPORT_EMITIDA_MANUAL_URL,
-    payload,
+    {
+      xml: payload.xml,
+      classificar_automaticamente: payload.classificar_automaticamente ?? true,
+      ...(payload.tipo_documento ? { tipo_documento: payload.tipo_documento } : {}),
+      ...(payload.objetivo_saida ? { objetivo_saida: payload.objetivo_saida } : {}),
+    },
   )
   return response.data
 }
 
-/** Consulta controle NSU (leitura; sincronização SEFAZ via agente). */
-/** Enfileira manifestação do destinatário (processada pela ponte A3). */
+/** Importa vários XMLs de uma vez (detecção automática NF-e / NFS-e). */
+export async function importarLoteDocumentosEmitidos(
+  xmls: string[],
+  classificarAutomaticamente = true,
+): Promise<ImportarLoteDocumentosEmitidosResponse> {
+  const response = await apiClient.post<ImportarLoteDocumentosEmitidosResponse>(
+    IMPORT_EMITIDA_LOTE_URL,
+    { xmls, classificar_automaticamente: classificarAutomaticamente },
+  )
+  return response.data
+}
+
+export type SincronizarNfesSefazResponse = {
+  readonly sucesso: boolean
+  readonly mensagem: string
+  readonly ciclos_executados: number
+  readonly documentos_importados: number
+  readonly documentos_novos: number
+  readonly documentos_duplicados: number
+  readonly erros_importacao: readonly string[]
+  readonly ultimo_cstat: string
+  readonly ultimo_nsu: string
+  readonly max_nsu: string
+  readonly manifestacoes_processadas: number
+}
+
+/** Consulta a SEFAZ e importa NF-es recebidas (certificado A1 no servidor). */
+export async function sincronizarNfesSefaz(): Promise<SincronizarNfesSefazResponse> {
+  const response = await apiClient.post<SincronizarNfesSefazResponse>(
+    '/fiscal/nfes/sincronizar-sefaz/',
+  )
+  return response.data
+}
+
+/** Enfileira manifestação do destinatário (processada na próxima sincronização SEFAZ). */
 export async function solicitarManifestacaoDestinatario(
   documentoId: number,
   payload: SolicitarManifestacaoPayload,

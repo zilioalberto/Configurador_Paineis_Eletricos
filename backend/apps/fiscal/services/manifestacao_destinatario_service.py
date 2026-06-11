@@ -40,7 +40,7 @@ def _tipo_ja_manifestado(documento: DocumentoFiscalRecebido, tipo: str) -> bool:
 def _validar_transicao(documento: DocumentoFiscalRecebido, tipo: str) -> None:
     if documento.manifestacao_status == StatusManifestacaoDestinatarioChoices.PENDENTE:
         raise ManifestacaoDestinatarioError(
-            "Já existe manifestação pendente. Aguarde a ponte A3 ou verifique o serviço local."
+            "Já existe manifestação pendente. Aguarde a sincronização SEFAZ (fiscal_sync_nsu)."
         )
     if _tipo_ja_manifestado(documento, tipo):
         raise ManifestacaoDestinatarioError(f"Tipo {tipo} já registrado para esta NF-e.")

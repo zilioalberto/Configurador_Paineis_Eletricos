@@ -43,12 +43,12 @@ type Props = {
   readonly documento: DocumentoFiscalRecebidoDetail
 }
 
-/** Painel de manifestação do destinatário (envio via ponte A3). */
+/** Painel de manifestação do destinatário (envio via job fiscal_sync_nsu). */
 export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
   const { user } = useAuth()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
-  const podeEditar = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
+  const podeEditar = hasPermission(user, PERMISSION_KEYS.FISCAL_EDITAR)
 
   const [justificativa, setJustificativa] = useState('')
   const [tipoJustificativa, setTipoJustificativa] = useState<TipoManifestacaoDestinatario | null>(
@@ -109,7 +109,7 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
       </div>
       <div className="card-body">
         <p className="small text-muted">
-          Eventos enviados à SEFAZ pelo agente local (<code>fiscal-ponte</code>) com certificado A3.
+          Eventos enviados à SEFAZ pelo job no servidor (<code>fiscal_sync_nsu</code>) com certificado A1.
           Após solicitar, aguarde o próximo ciclo de sincronização ou execute{' '}
           <code>manifestar-pendentes</code> na máquina da ponte.
         </p>
@@ -152,7 +152,7 @@ export default function NfeManifestacaoDestinatarioPanel({ documento }: Props) {
 
         {pendente ? (
           <div className="alert alert-warning small mb-0" role="status">
-            Manifestação pendente na fila da ponte A3. Novas solicitações ficam bloqueadas até concluir
+            Manifestação pendente na fila SEFAZ. Novas solicitações ficam bloqueadas até concluir
             ou falhar.
           </div>
         ) : (

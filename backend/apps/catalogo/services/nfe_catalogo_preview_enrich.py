@@ -46,8 +46,10 @@ def produto_resumo_para_preview(produto: Produto) -> dict[str, Any]:
         "cest": (produto.cest or "").strip(),
         "gtin": (produto.gtin or "").strip(),
         "origem_mercadoria": (produto.origem_mercadoria or "").strip(),
-        "fabricante": (produto.fabricante or "").strip(),
         "referencia_fabricante": (produto.referencia_fabricante or "").strip(),
+        "fabricante_parceiro_nome": (
+            produto.fabricante_parceiro.razao_social if produto.fabricante_parceiro_id else ""
+        ),
         "aliquota_ipi": (
             str(ipi_ref.quantize(Decimal("0.0001")))
             if ipi_ref is not None

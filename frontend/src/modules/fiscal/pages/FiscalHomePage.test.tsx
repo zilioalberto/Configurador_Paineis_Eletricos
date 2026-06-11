@@ -26,7 +26,6 @@ function produtoStub(overrides: Partial<ProdutoListItem> = {}): ProdutoListItem 
     codigo: 'C0',
     descricao: 'D0',
     categoria: '',
-    fabricante: '',
     unidade_medida: 'UN',
     preco_base: '0',
     ativo: true,
@@ -68,9 +67,14 @@ describe('FiscalHomePage', () => {
   })
 
   it('apos debounce lista resultados e link de edicao com permissao', async () => {
-    useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.MATERIAL_EDITAR_LISTA]) })
+    useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.FISCAL_EDITAR]) })
     buscarProdutosAutocomplete.mockResolvedValue([
-      produtoStub({ id: 'p1', codigo: 'FAB-1', descricao: 'Item A', fabricante: 'ACME' }),
+      produtoStub({
+        id: 'p1',
+        codigo: 'FAB-1',
+        descricao: 'Item A',
+        fabricante_parceiro_nome: 'ACME',
+      }),
     ])
     renderPage()
 
