@@ -27,12 +27,21 @@ function wrapper(qc: QueryClient, { children }: { children: ReactNode }) {
 }
 
 describe('useProdutoListQuery', () => {
-  it('chama listarProdutos com categoria, página e tamanho', async () => {
+  it('chama listarProdutos com categoria, página, tamanho e busca vazia', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const { result } = renderHook(() => useProdutoListQuery('cat-1', 3, 20), {
       wrapper: (p) => wrapper(qc, p),
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(listarProdutos).toHaveBeenCalledWith('cat-1', 3, 20)
+    expect(listarProdutos).toHaveBeenCalledWith('cat-1', 3, 20, undefined)
+  })
+
+  it('chama listarProdutos com termo de busca quando informado', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result } = renderHook(() => useProdutoListQuery('cat-1', 1, 50, 'disjuntor'), {
+      wrapper: (p) => wrapper(qc, p),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(listarProdutos).toHaveBeenCalledWith('cat-1', 1, 50, 'disjuntor')
   })
 })

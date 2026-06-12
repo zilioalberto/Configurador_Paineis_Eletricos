@@ -21,6 +21,7 @@ try:
 except ImportError:
     LongTable = Table
 
+from apps.catalogo.utils.fabricante_produto import nome_fabricante_produto
 from apps.configurador_paineis.composicao_painel.models import (
     ComposicaoInclusaoManual,
     ComposicaoItem,
@@ -159,7 +160,7 @@ def _linhas_composicao_export(projeto: ProjetoConfigurador) -> list[list[str]]:
             _corrente_ref_item(item),
             _txt(item.produto.codigo),
             _txt(item.produto.descricao),
-            _txt(item.produto.fabricante),
+            _txt(nome_fabricante_produto(item.produto)),
             _txt(item.quantidade),
             _txt(item.observacoes),
             _txt(item.memoria_calculo),
@@ -189,7 +190,7 @@ def _linhas_sugestao_export(projeto: ProjetoConfigurador) -> list[list[str]]:
             _corrente_para_carga(sugestao.corrente_referencia_a, sugestao.carga),
             _txt(sugestao.produto.codigo),
             _txt(sugestao.produto.descricao),
-            _txt(sugestao.produto.fabricante),
+            _txt(nome_fabricante_produto(sugestao.produto)),
             _txt(sugestao.quantidade),
             _txt(sugestao.observacoes),
             _txt(sugestao.memoria_calculo),
@@ -217,7 +218,7 @@ def _linhas_inclusao_manual_export(projeto: ProjetoConfigurador) -> list[list[st
             "",
             _txt(inclusao.produto.codigo),
             _txt(inclusao.produto.descricao),
-            _txt(inclusao.produto.fabricante),
+            _txt(nome_fabricante_produto(inclusao.produto)),
             _txt(inclusao.quantidade),
             _txt(inclusao.observacoes),
             "",
