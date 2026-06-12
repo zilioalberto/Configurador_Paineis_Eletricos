@@ -112,6 +112,10 @@ export function labelAnexoSimples(anexo: AnexoSimplesNacional | string): string 
   return map[anexo as Exclude<AnexoSimplesNacional, ''>] ?? anexo
 }
 
+export function labelIncluirFaturamento(incluir: boolean): string {
+  return incluir ? 'Compõe faturamento' : 'Não compõe'
+}
+
 export function formatCompetencia(competencia: string): string {
   if (!competencia || competencia.length < 7) return competencia || '—'
   const [ano, mes] = competencia.split('-')

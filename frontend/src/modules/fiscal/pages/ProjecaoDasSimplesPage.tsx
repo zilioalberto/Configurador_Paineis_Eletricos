@@ -41,7 +41,11 @@ export default function ProjecaoDasSimplesPage() {
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: fiscalQueryKeys.simplesProjecao(competencia) })
-      showToast({ variant: 'success', title: 'Perfil atualizado' })
+      showToast({
+        variant: 'success',
+        title: 'Perfil atualizado',
+        message: 'Os dados tributários foram salvos para a projeção.',
+      })
       refetch().catch(() => undefined)
     },
     onError: (err) => {

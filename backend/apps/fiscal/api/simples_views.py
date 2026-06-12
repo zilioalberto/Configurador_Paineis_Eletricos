@@ -205,9 +205,9 @@ class ClassificacaoDocumentoEmitidoView(APIView):
     def required_permission(self, request, view):
         return PermissionKeys.FISCAL_EDITAR
 
-    def patch(self, request, documento_id: int):
+    def patch(self, request, public_id):
         try:
-            documento = DocumentoFiscalEmitido.objects.get(pk=documento_id)
+            documento = DocumentoFiscalEmitido.objects.get(public_id=public_id)
         except DocumentoFiscalEmitido.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

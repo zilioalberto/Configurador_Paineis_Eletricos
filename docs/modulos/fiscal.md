@@ -95,6 +95,35 @@ Parâmetros do relatório de faturamento: `data_inicio`, `data_fim`, `cliente` (
 
 Requer `FISCAL_EMPRESA_CNPJ` no `.env` (CNPJ da ZFW). Resultado é **estimativa** — conferir com PGDAS-D.
 
+### Validação de CNPJ na importação manual
+
+Variável de referência: **`FISCAL_EMPRESA_CNPJ`** (CNPJ da ZFW, 14 dígitos). O portal expõe o valor em `GET /api/v1/fiscal/config/` (`cnpj_empresa`).
+
+| Fluxo | Campo validado no XML | Quando aplica | Serviço backend |
+|-------|----------------------|---------------|-----------------|
+| **NF-es emitidas** (saída) | Emitente (NF-e) ou prestador (NFS-e) | Importação manual e lote (`MANUAL`) | `validar_emitente_documento_emitido` |
+| **NF-es recebidas** (entrada) | Destinatário | Importação manual, agente e ponte (`≠ SEFAZ_SYNC`) | `validar_destinatario_nfe_recebida` |
+
+Regras:
+
+- XML deve começar com `<` e ser parseável; o frontend rejeita arquivos inválidos **antes** do envio.
+- Se o CNPJ no XML **não** for o da ZFW, a API responde **400** com mensagem orientando o fluxo correto (emitidas ↔ recebidas).
+- **Sincronização SEFAZ** (`origem_importacao=SEFAZ_SYNC`) não repete a validação de destinatário — os documentos já vêm da DistDFe do CNPJ configurado.
+- Importações **anteriores** à validação podem permanecer no banco; use o comando de auditoria abaixo.
+
+**Exclusão de emitidas importadas:** `DELETE /api/v1/fiscal/nfes-emitidas/{public_id}/` (JWT, `fiscal.editar`). Remove itens em cascata. Botões na listagem e no detalhe do portal.
+
+**Auditoria de CNPJ divergente (limpeza):**
+
+```bash
+cd backend
+python manage.py fiscal_listar_documentos_cnpj_divergente
+python manage.py fiscal_listar_documentos_cnpj_divergente --tipo ambos
+python manage.py fiscal_listar_documentos_cnpj_divergente --tipo recebidas --csv > divergentes.csv
+```
+
+Lista emitidas cujo `cnpj_emitente ≠ FISCAL_EMPRESA_CNPJ` e/ou recebidas cujo `cnpj_destinatario ≠ FISCAL_EMPRESA_CNPJ`. Opções: `--tipo emitidas|recebidas|ambos`, `--limite N`, `--csv`.
+
 ## Backend
 
 - **App:** `backend/apps/fiscal/`
@@ -127,6 +156,10 @@ CNPJ e NSU são normalizados no `save()` (somente dígitos; NSU com 15 posiçõe
 |---------|--------|
 | `services/nfe_parser.py` | `parse_nfe_xml(xml: str)` → dict; raiz `nfeProc` ou `NFe`; namespace Portal Fiscal |
 | `services/importar_xml_nfe_service.py` | `importar_xml_nfe(...)` → `{created, documento, message}`; `transaction.atomic` |
+| `services/validar_destinatario_nfe_recebida.py` | Destinatário = ZFW em importações manuais de entrada |
+| `services/validar_emitente_documento_emitido.py` | Emitente/prestador = ZFW em importações de saída |
+| `services/fiscal_empresa.py` | `cnpj_empresa_fiscal_configurado()` — lê `FISCAL_EMPRESA_CNPJ` |
+| `services/documentos_fiscais_divergentes.py` | Querysets para auditoria de CNPJ divergente no banco |
 | `services/__init__.py` | Funções do catálogo (`p_ipi_referencia_produto`, `criar_item_fiscal_importacao_nfe`, …) |
 
 ### Autenticação do agente (ponte A3)
@@ -161,6 +194,8 @@ Prefixo do projeto: **`/api/v1/fiscal/`** (registrado em `config/urls.py` → `a
 | `GET` | `/api/v1/fiscal/nfes/` | Lista paginada (sem `xml_original`) |
 | `GET` | `/api/v1/fiscal/nfes/{id}/` | Detalhe com itens e `xml_original` |
 | `POST` | `/api/v1/fiscal/nfes/importar-manual/` | Importação manual pelo portal (origem `MANUAL`) |
+
+Validação: destinatário do XML deve ser `FISCAL_EMPRESA_CNPJ` (CNPJ da ZFW).
 
 Permissão listagem/detalhe/NSU (GET): `fiscal.visualizar`. Importação manual: `fiscal.editar`.
 
@@ -214,7 +249,19 @@ Permissão listagem/detalhe/NSU (GET): `fiscal.visualizar`. Importação manual:
 }
 ```
 
-**Erro de XML (400):** `{ "detail": "..." }` (mensagem do parser/serviço).
+**Erro de XML (400):** `{ "detail": "..." }` (mensagem do parser/serviço ou CNPJ divergente).
+
+### NF-es emitidas (JWT)
+
+| Método | URL | Descrição |
+|--------|-----|-----------|
+| `GET` | `/api/v1/fiscal/nfes-emitidas/` | Lista paginada |
+| `GET` | `/api/v1/fiscal/nfes-emitidas/{public_id}/` | Detalhe com itens e XML |
+| `DELETE` | `/api/v1/fiscal/nfes-emitidas/{public_id}/` | Exclui documento importado (`fiscal.editar`) |
+| `POST` | `/api/v1/fiscal/nfes-emitidas/importar-manual/` | Importação unitária |
+| `POST` | `/api/v1/fiscal/nfes-emitidas/importar-lote/` | Importação em lote |
+
+Validação na importação: emitente/prestador do XML = `FISCAL_EMPRESA_CNPJ`.
 
 ### Controle NSU
 
@@ -314,6 +361,7 @@ Botão **Buscar NF-es na SEFAZ** na home fiscal e em **Controle NSU** — chama 
 python manage.py fiscal_sync_nsu
 python manage.py fiscal_sync_nsu --dry-run
 python manage.py fiscal_sync_nsu --sem-manifestacao
+python manage.py fiscal_listar_documentos_cnpj_divergente --tipo emitidas
 ```
 
 ### Agendamento (cron no VPS)
@@ -484,7 +532,8 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 | `/fiscal/itens-fiscais` | `ItensFiscaisListPage` | `fiscal.visualizar` |
 | `/fiscal/relatorios/nfes` | `RelatorioNfesPage` — NF-es recebidas por período | `fiscal.visualizar` |
 | `/fiscal/relatorios/faturamento` | `RelatorioFaturamentoPage` — dashboard por cliente | `fiscal.visualizar` |
-| `/fiscal/nfes-emitidas` | `NfesEmitidasListPage` | `fiscal.visualizar` |
+| `/fiscal/nfes-emitidas` | `NfesEmitidasListPage` — excluir (`fiscal.editar`) | `fiscal.visualizar` |
+| `/fiscal/nfes-emitidas/:id` | `NfeEmitidaDetailPage` — detalhe + excluir | `fiscal.visualizar` |
 | `/fiscal/nfes-emitidas/importar` | `NfeEmitidaImportarPage` | `fiscal.editar` |
 | `/fiscal/simples/projecao-das` | `ProjecaoDasSimplesPage` | `fiscal.visualizar` |
 
@@ -505,7 +554,7 @@ cd backend
 pytest apps/fiscal/tests/ -q
 ```
 
-Cobertura principal: parser (`nfeProc` / `NFe`), serviço de importação, API JWT + agente Bearer, NSU GET/PATCH.
+Cobertura principal: parser (`nfeProc` / `NFe`), serviço de importação, validação de CNPJ (emitidas/recebidas), API JWT + agente Bearer, NSU GET/PATCH, auditoria `documentos_fiscais_divergentes`.
 
 ## Roadmap (servidor)
 

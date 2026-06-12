@@ -93,4 +93,38 @@ describe('fiscalSimplesService', () => {
       },
     })
   })
+
+  it('converte competência em período no relatório de faturamento', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        cnpj: '07284171000139',
+        filtros: {},
+        resumo: {
+          valor_total: '0',
+          quantidade_documentos: 0,
+          ticket_medio: '0',
+          clientes_distintos: 0,
+          meses_no_periodo: 1,
+        },
+        por_mes: [],
+        por_cliente: [],
+        por_anexo: [],
+        por_objetivo: [],
+        documentos: [],
+      },
+    })
+
+    await obterRelatorioFaturamento({
+      competencia: '2026-02',
+      top_clientes: 10,
+    })
+
+    expect(apiClient.get).toHaveBeenCalledWith('/fiscal/relatorios/faturamento/', {
+      params: {
+        data_inicio: '2026-02-01',
+        data_fim: '2026-02-28',
+        top_clientes: 10,
+      },
+    })
+  })
 })

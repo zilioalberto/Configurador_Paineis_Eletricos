@@ -9,6 +9,7 @@ import type {
   PerfilTributarioSimplesDto,
   ProjecaoDasSimplesResponse,
 } from '../types/simplesNacional'
+import { periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 const PERFIL_URL = '/fiscal/simples/perfil/'
 const RELATORIO_FATURAMENTO_URL = '/fiscal/relatorios/faturamento/'
@@ -63,8 +64,9 @@ function relatorioFaturamentoParams(filtros: RelatorioFaturamentoFiltros): Recor
     if (raw === undefined || raw === '') return
     params[key] = raw
   }
-  add('data_inicio', filtros.data_inicio)
-  add('data_fim', filtros.data_fim)
+  const periodoCompetencia = filtros.competencia ? periodoDaCompetencia(filtros.competencia) : null
+  add('data_inicio', filtros.data_inicio || periodoCompetencia?.data_inicio)
+  add('data_fim', filtros.data_fim || periodoCompetencia?.data_fim)
   add('cliente', filtros.cliente)
   add('objetivo_saida', filtros.objetivo_saida)
   add('anexo_simples', filtros.anexo_simples)

@@ -1,10 +1,17 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { ConfirmModal, useToast } from '@/components/feedback'
 import { aplicarMascaraCnpj } from '@/modules/cadastros/utils/cnpjMask'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
+import SortableTableHeader from '../components/SortableTableHeader'
 import { labelObjetivoSaida, objetivoSaidaOptions } from '../constants/objetivoSaidaOptions'
 import { fiscalPaths } from '../fiscalPaths'
+import { useExcluirNfeEmitidaMutation } from '../hooks/useExcluirNfeEmitidaMutation'
 import { useNfesEmitidasListQuery } from '../hooks/useNfesEmitidasListQuery'
 import type { NfesEmitidasFiltros } from '../types/documentoFiscalRecebido'
 import {
@@ -12,10 +19,17 @@ import {
   formatDataIso,
   formatMoedaBrl,
   labelAnexoSimples,
+  labelIncluirFaturamento,
 } from '../utils/fiscalDisplay'
+import {
+  DEFAULT_NFES_EMITIDAS_ORDERING,
+  proximaOrdenacaoEmitidas,
+  type NfesEmitidasOrdenacaoCampo,
+} from '../utils/nfesEmitidasOrdering'
 
 const FILTROS_VAZIOS: NfesEmitidasFiltros = {
   tipo_documento: '',
+  competencia: '',
   objetivo_saida: '',
   cfop: '',
   anexo_simples: '',
@@ -25,11 +39,22 @@ const FILTROS_VAZIOS: NfesEmitidasFiltros = {
   numero: '',
 }
 
+type ExcluirAlvo = {
+  readonly publicId: string
+  readonly label: string
+}
+
 /** Lista de NF-es/NFS-es emitidas com classificação CFOP / anexo Simples. */
 export default function NfesEmitidasListPage() {
+  const { user } = useAuth()
+  const { showToast } = useToast()
+  const podeEditar = hasPermission(user, PERMISSION_KEYS.FISCAL_EDITAR)
+  const excluirMutation = useExcluirNfeEmitidaMutation()
+  const [excluirAlvo, setExcluirAlvo] = useState<ExcluirAlvo | null>(null)
   const [filtrosInput, setFiltrosInput] = useState<NfesEmitidasFiltros>(FILTROS_VAZIOS)
   const [filtrosDebounced, setFiltrosDebounced] = useState<NfesEmitidasFiltros>(FILTROS_VAZIOS)
   const [paginaAtual, setPaginaAtual] = useState(1)
+  const [ordering, setOrdering] = useState(DEFAULT_NFES_EMITIDAS_ORDERING)
   const pageSize = 50
 
   useEffect(() => {
@@ -39,12 +64,13 @@ export default function NfesEmitidasListPage() {
 
   useEffect(() => {
     setPaginaAtual(1)
-  }, [filtrosDebounced])
+  }, [filtrosDebounced, ordering])
 
   const { data: pageData, isPending, isError, error, refetch } = useNfesEmitidasListQuery(
     filtrosDebounced,
     paginaAtual,
     pageSize,
+    ordering,
   )
 
   const items = pageData?.items ?? []
@@ -61,8 +87,60 @@ export default function NfesEmitidasListPage() {
     [],
   )
 
+  const onSortColumn = useCallback((field: NfesEmitidasOrdenacaoCampo) => {
+    setOrdering((atual) => proximaOrdenacaoEmitidas(field, atual))
+  }, [])
+
+  const onSolicitarExclusao = useCallback(
+    (publicId: string, numero: string, serie: string) => {
+      const rotulo = numero
+        ? `NF-e/NFS-e nº ${numero}${serie ? ` · série ${serie}` : ''}`
+        : 'este documento'
+      setExcluirAlvo({ publicId, label: rotulo })
+    },
+    [],
+  )
+
+  const fecharModalExclusao = useCallback(() => {
+    if (!excluirMutation.isPending) setExcluirAlvo(null)
+  }, [excluirMutation.isPending])
+
+  const confirmarExclusao = useCallback(async () => {
+    if (!excluirAlvo) return
+    try {
+      await excluirMutation.mutateAsync(excluirAlvo.publicId)
+      setExcluirAlvo(null)
+      showToast({ variant: 'success', message: 'Documento emitido excluído com sucesso.' })
+    } catch (err) {
+      console.error(err)
+      setExcluirAlvo(null)
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível excluir',
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+    }
+  }, [excluirAlvo, excluirMutation, showToast])
+
+  const colSpanTabela = podeEditar ? 9 : 8
+
   return (
     <div className="container-fluid">
+      <ConfirmModal
+        show={excluirAlvo !== null}
+        title="Excluir NF-e emitida"
+        message={
+          excluirAlvo
+            ? `Deseja realmente excluir ${excluirAlvo.label}? Esta ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        confirmVariant="danger"
+        isConfirming={excluirMutation.isPending}
+        onCancel={fecharModalExclusao}
+        onConfirm={() => void confirmarExclusao()}
+      />
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <nav aria-label="breadcrumb">
@@ -102,6 +180,18 @@ export default function NfesEmitidasListPage() {
         <div className="card-body">
           <h2 className="h6 mb-3">Filtros</h2>
           <div className="row g-3">
+            <div className="col-md-3">
+              <label className="form-label" htmlFor="filtro-competencia-emitida">
+                Competência
+              </label>
+              <input
+                id="filtro-competencia-emitida"
+                type="month"
+                className="form-control"
+                value={filtrosInput.competencia ?? ''}
+                onChange={onFiltroChange('competencia')}
+              />
+            </div>
             <div className="col-md-3">
               <label className="form-label" htmlFor="filtro-numero-emitida">
                 Número
@@ -213,25 +303,42 @@ export default function NfesEmitidasListPage() {
           <table className="table table-hover mb-0 align-middle">
             <thead className="table-light">
               <tr>
-                <th>Nº / Série</th>
-                <th>Emissão</th>
-                <th>Destinatário</th>
+                <SortableTableHeader
+                  label="Nº / Série"
+                  field="serie"
+                  ordering={ordering}
+                  onSort={onSortColumn}
+                />
+                <SortableTableHeader
+                  label="Emissão"
+                  field="data_emissao"
+                  ordering={ordering}
+                  onSort={onSortColumn}
+                />
+                <SortableTableHeader
+                  label="Destinatário"
+                  field="nome_destinatario"
+                  ordering={ordering}
+                  onSort={onSortColumn}
+                />
                 <th>CFOP</th>
                 <th>Anexo</th>
+                <th>Compõe faturamento</th>
                 <th>Finalidade</th>
                 <th className="text-end">Valor</th>
+                {podeEditar ? <th className="text-end">Ações</th> : null}
               </tr>
             </thead>
             <tbody>
               {isPending ? (
                 <tr>
-                  <td colSpan={7} className="text-muted p-4">
+                  <td colSpan={colSpanTabela} className="text-muted p-4">
                     Carregando…
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-muted p-4">
+                  <td colSpan={colSpanTabela} className="text-muted p-4">
                     Nenhum documento emitido encontrado.{' '}
                     <Link to={fiscalPaths.nfeEmitidaImportar}>Importar XMLs</Link>
                   </td>
@@ -240,7 +347,12 @@ export default function NfesEmitidasListPage() {
                 items.map((doc) => (
                   <tr key={doc.id}>
                     <td>
-                      <div className="fw-semibold">{doc.numero}</div>
+                      <Link
+                        to={fiscalPaths.nfeEmitidaDetalhe(doc.public_id)}
+                        className="fw-semibold text-decoration-none"
+                      >
+                        {doc.numero || '—'}
+                      </Link>
                       <div className="small text-muted">Série {doc.serie || '—'}</div>
                     </td>
                     <td>{formatDataIso(doc.data_emissao)}</td>
@@ -252,14 +364,33 @@ export default function NfesEmitidasListPage() {
                     </td>
                     <td>{doc.cfop_predominante || '—'}</td>
                     <td>
+                      <span className="badge bg-light text-dark border">
+                        {labelAnexoSimples(doc.anexo_simples)}
+                      </span>
+                    </td>
+                    <td>
                       <span
                         className={`badge ${doc.incluir_faturamento ? 'bg-primary' : 'bg-secondary'}`}
+                        title={labelIncluirFaturamento(doc.incluir_faturamento)}
                       >
-                        {labelAnexoSimples(doc.anexo_simples)}
+                        {doc.incluir_faturamento ? 'Sim' : 'Não'}
                       </span>
                     </td>
                     <td>{labelObjetivoSaida(doc.objetivo_saida)}</td>
                     <td className="text-end">{formatMoedaBrl(doc.valor_total)}</td>
+                    {podeEditar ? (
+                      <td className="text-end">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() =>
+                            onSolicitarExclusao(doc.public_id, doc.numero, doc.serie)
+                          }
+                        >
+                          Excluir
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))
               )}

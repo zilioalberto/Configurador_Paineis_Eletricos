@@ -19,6 +19,9 @@ from apps.fiscal.services.documento_emitido_parser import (
     parse_nfe_produto_emitida,
     parse_nfse_servico_emitida,
 )
+from apps.fiscal.services.validar_emitente_documento_emitido import (
+    validar_emitente_documento_emitido,
+)
 
 
 class ResultadoImportacaoDocumentoEmitido(TypedDict):
@@ -44,11 +47,35 @@ def importar_xml_documento_emitido(
     classificar_automaticamente: bool = True,
 ) -> ResultadoImportacaoDocumentoEmitido:
     """Importa XML emitido pela ZFW e evita duplicidade pelo identificador fiscal."""
-    tipo = tipo_documento or detectar_tipo_documento_emitido(xml)
-    dados = _parse_por_tipo(tipo, xml)
+    texto_xml = (xml or "").strip()
+    if not texto_xml:
+        raise DocumentoEmitidoParserError("XML não informado.")
+    if not texto_xml.startswith("<"):
+        raise DocumentoEmitidoParserError("Conteúdo não parece ser um arquivo XML válido.")
+
+    tipo = tipo_documento or detectar_tipo_documento_emitido(texto_xml)
+    dados = _parse_por_tipo(tipo, texto_xml)
+    validar_emitente_documento_emitido(dados.get("emitente") or {})
     identificador = dados["identificador"]
     existente = DocumentoFiscalEmitido.objects.filter(identificador=identificador).first()
     if existente is not None:
+        update_fields: list[str] = []
+        emitente = dados.get("emitente") or {}
+        destinatario = dados.get("destinatario") or {}
+        if not existente.cnpj_emitente and emitente.get("cnpj"):
+            existente.cnpj_emitente = emitente["cnpj"]
+            update_fields.append("cnpj_emitente")
+        if not existente.nome_emitente and emitente.get("nome"):
+            existente.nome_emitente = emitente["nome"][:255]
+            update_fields.append("nome_emitente")
+        if not existente.cnpj_destinatario and destinatario.get("cnpj"):
+            existente.cnpj_destinatario = destinatario["cnpj"]
+            update_fields.append("cnpj_destinatario")
+        if not existente.nome_destinatario and destinatario.get("nome"):
+            existente.nome_destinatario = destinatario["nome"][:255]
+            update_fields.append("nome_destinatario")
+        if update_fields:
+            existente.save(update_fields=[*update_fields, "atualizada_em"])
         if classificar_automaticamente:
             classificar_documento_emitido(existente, forcar=True)
         return {
@@ -85,7 +112,7 @@ def importar_xml_documento_emitido(
             objetivo_saida=objetivo_inicial,
             origem_importacao=origem_importacao,
             classificacao_origem=origem_classificacao,
-            xml_original=xml,
+            xml_original=texto_xml,
         )
         ItemDocumentoFiscalEmitido.objects.bulk_create(
             [

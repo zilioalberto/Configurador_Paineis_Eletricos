@@ -114,7 +114,7 @@ urlpatterns = [
         name="fiscal-nfes-emitidas-reclassificar",
     ),
     path(
-        "fiscal/nfes-emitidas/<int:documento_id>/classificacao/",
+        "fiscal/nfes-emitidas/<uuid:public_id>/classificacao/",
         ClassificacaoDocumentoEmitidoView.as_view(),
         name="fiscal-nfe-emitida-classificacao",
     ),

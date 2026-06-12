@@ -12,6 +12,7 @@ const NfesRecebidasListPage = lazy(() => import('./pages/NfesRecebidasListPage')
 const NfeRecebidaDetailPage = lazy(() => import('./pages/NfeRecebidaDetailPage'))
 const NfeImportarManualPage = lazy(() => import('./pages/NfeImportarManualPage'))
 const NfeEmitidaImportarPage = lazy(() => import('./pages/NfeEmitidaImportarPage'))
+const NfeEmitidaDetailPage = lazy(() => import('./pages/NfeEmitidaDetailPage'))
 const ControleNsuPage = lazy(() => import('./pages/ControleNsuPage'))
 const RelatorioNfesPage = lazy(() => import('./pages/RelatorioNfesPage'))
 const NfesEmitidasListPage = lazy(() => import('./pages/NfesEmitidasListPage'))
@@ -63,6 +64,10 @@ export const fiscalRoutes: ModuleRouteConfig[] = [
   {
     path: '/fiscal/nfes-emitidas/importar',
     element: withPermission(PERMISSION_KEYS.FISCAL_EDITAR, <NfeEmitidaImportarPage />),
+  },
+  {
+    path: '/fiscal/nfes-emitidas/:id',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <NfeEmitidaDetailPage />),
   },
   {
     path: '/fiscal/simples/projecao-das',

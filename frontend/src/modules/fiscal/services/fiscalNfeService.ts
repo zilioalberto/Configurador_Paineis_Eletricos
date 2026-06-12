@@ -5,6 +5,7 @@ import apiClient from '@/services/apiClient'
 
 import type {
   ControleNsuDto,
+  DocumentoFiscalEmitidoDetail,
   DocumentoFiscalEmitidoListRow,
   DocumentoFiscalRecebidoDetail,
   DocumentoFiscalRecebidoListRow,
@@ -20,6 +21,7 @@ import type {
   TipoDocumentoFiscalEmitido,
   TipoManifestacaoDestinatario,
 } from '../types/documentoFiscalRecebido'
+import { periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 const NFES_URL = '/fiscal/nfes/'
 const IMPORT_MANUAL_URL = '/fiscal/nfes/importar-manual/'
@@ -109,8 +111,9 @@ function relatorioFiltrosParaParams(filtros: RelatorioNFeFiltros): Record<string
     params[key] = digitsOnly ? v.replace(/\D/g, '') : v
   }
   add('tipo_movimento', filtros.tipo_movimento || 'ENTRADA')
-  add('data_inicio', filtros.data_inicio)
-  add('data_fim', filtros.data_fim)
+  const periodoCompetencia = filtros.competencia ? periodoDaCompetencia(filtros.competencia) : null
+  add('data_inicio', filtros.data_inicio || periodoCompetencia?.data_inicio)
+  add('data_fim', filtros.data_fim || periodoCompetencia?.data_fim)
   add('objetivo_entrada', filtros.objetivo_entrada)
   add('objetivo_saida', filtros.objetivo_saida)
   add('cnpj_emitente', filtros.cnpj_emitente, true)
@@ -148,6 +151,36 @@ export async function listarNfesRecebidas(
 /** Detalhe com itens e XML original. */
 export async function obterNfeRecebida(id: number): Promise<DocumentoFiscalRecebidoDetail> {
   const response = await apiClient.get<DocumentoFiscalRecebidoDetail>(`${NFES_URL}${id}/`)
+  return response.data
+}
+
+/** Detalhe de NF-e/NFS-e emitida com itens e XML original. */
+export async function obterNfeEmitida(publicId: string): Promise<DocumentoFiscalEmitidoDetail> {
+  const response = await apiClient.get<DocumentoFiscalEmitidoDetail>(
+    `${NFES_EMITIDAS_URL}${publicId}/`,
+  )
+  return response.data
+}
+
+export type AtualizarClassificacaoDocumentoEmitidoPayload = {
+  readonly incluir_faturamento?: boolean
+  readonly objetivo_saida?: ObjetivoSaidaFiscal
+}
+
+/** Remove NF-e/NFS-e emitida importada (itens vinculados são excluídos em cascata). */
+export async function excluirDocumentoEmitido(publicId: string): Promise<void> {
+  await apiClient.delete(`${NFES_EMITIDAS_URL}${publicId}/`)
+}
+
+/** Atualiza manualmente a classificação fiscal de um documento emitido importado. */
+export async function atualizarClassificacaoDocumentoEmitido(
+  publicId: string,
+  payload: AtualizarClassificacaoDocumentoEmitidoPayload,
+): Promise<DocumentoFiscalEmitidoListRow> {
+  const response = await apiClient.patch<DocumentoFiscalEmitidoListRow>(
+    `${NFES_EMITIDAS_URL}${publicId}/classificacao/`,
+    payload,
+  )
   return response.data
 }
 
@@ -196,7 +229,10 @@ function filtrosEmitidasParaParams(filtros: NfesEmitidasFiltros): Record<string,
     if (!v) return
     params[key] = digitsOnly ? v.replace(/\D/g, '') : v
   }
+  const periodoCompetencia = filtros.competencia ? periodoDaCompetencia(filtros.competencia) : null
   add('tipo_documento', filtros.tipo_documento)
+  add('data_inicio', filtros.data_inicio || periodoCompetencia?.data_inicio)
+  add('data_fim', filtros.data_fim || periodoCompetencia?.data_fim)
   add('objetivo_saida', filtros.objetivo_saida)
   add('cfop', filtros.cfop)
   add('anexo_simples', filtros.anexo_simples)
@@ -221,14 +257,17 @@ export async function listarNfesEmitidas(
   filtros: NfesEmitidasFiltros,
   page = 1,
   pageSize = 50,
+  ordering?: string,
 ): Promise<NfesEmitidasListPage> {
   const params: Record<string, string | number> = {
     page,
     page_size: pageSize,
     ...filtrosEmitidasParaParams(filtros),
   }
+  const ordem = (ordering ?? '').trim()
+  if (ordem) params.ordering = ordem
   const response = await apiClient.get<unknown>(NFES_EMITIDAS_URL, { params })
-  return normalizeListPage(response.data, page, pageSize) as NfesEmitidasListPage
+  return normalizeListPage(response.data, page, pageSize) as unknown as NfesEmitidasListPage
 }
 
 /** Importa XML emitido pela ZFW (NF-e de produto ou NFS-e de serviço). */

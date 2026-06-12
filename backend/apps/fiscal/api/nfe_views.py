@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import mixins, viewsets
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -120,18 +121,44 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
         return qs
 
 
-class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
-    """Lista e detalha NF-es/NFS-es emitidas pela ZFW."""
+_EMITIDAS_ORDERING_MAP: dict[str, tuple[str, ...]] = {
+    "serie": ("serie", "numero", "-data_emissao"),
+    "-serie": ("-serie", "-numero", "-data_emissao"),
+    "data_emissao": ("data_emissao", "-criada_em"),
+    "-data_emissao": ("-data_emissao", "-criada_em"),
+    "nome_destinatario": ("nome_destinatario", "-data_emissao"),
+    "-nome_destinatario": ("-nome_destinatario", "-data_emissao"),
+}
+_EMITIDAS_ORDERING_DEFAULT = ("-data_emissao", "-criada_em")
+
+
+def aplicar_ordenacao_emitidas(queryset, ordering_param: str):
+    """Aplica ordenação segura à listagem de documentos emitidos."""
+    chave = (ordering_param or "").strip()
+    campos = _EMITIDAS_ORDERING_MAP.get(chave)
+    if campos:
+        return queryset.order_by(*campos)
+    return queryset.order_by(*_EMITIDAS_ORDERING_DEFAULT)
+
+
+class DocumentoFiscalEmitidoViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Lista, detalha e exclui NF-es/NFS-es emitidas importadas pela ZFW."""
 
     permission_classes = [HasEffectivePermission]
+    lookup_field = "public_id"
+    lookup_value_regex = "[0-9a-f-]{36}"
 
     def required_permission(self, request, view):
+        if self.action == "destroy":
+            return PermissionKeys.FISCAL_EDITAR
         return PermissionKeys.FISCAL_VISUALIZAR
 
-    queryset = DocumentoFiscalEmitido.objects.prefetch_related("itens").order_by(
-        "-data_emissao",
-        "-criada_em",
-    )
+    queryset = DocumentoFiscalEmitido.objects.prefetch_related("itens")
     pagination_class = DocumentoFiscalPagination
 
     def get_serializer_class(self):
@@ -150,6 +177,14 @@ class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
         objetivo = (params.get("objetivo_saida") or "").strip()
         if objetivo:
             qs = qs.filter(objetivo_saida=objetivo)
+
+        data_inicio = (params.get("data_inicio") or "").strip()
+        if data_inicio:
+            qs = qs.filter(data_emissao__date__gte=data_inicio)
+
+        data_fim = (params.get("data_fim") or "").strip()
+        if data_fim:
+            qs = qs.filter(data_emissao__date__lte=data_fim)
 
         cnpj_dest = (params.get("cnpj_destinatario") or "").strip()
         if cnpj_dest:
@@ -173,7 +208,8 @@ class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
         elif incluir in {"false", "0", "nao", "não"}:
             qs = qs.filter(incluir_faturamento=False)
 
-        return qs
+        ordering = (params.get("ordering") or "").strip()
+        return aplicar_ordenacao_emitidas(qs, ordering)
 
 
 class RelatorioNFeView(APIView):
@@ -390,6 +426,7 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
                 "created": resultado["created"],
                 "message": resultado["message"],
                 "documento_id": documento.id,
+                "documento_public_id": str(documento.public_id),
                 "identificador": documento.identificador,
             },
             status=status_code,

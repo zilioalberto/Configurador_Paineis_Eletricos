@@ -5,6 +5,7 @@ import {
   formatChaveAcesso,
   formatCnpjExibicao,
   labelAnexoSimples,
+  labelIncluirFaturamento,
   labelOrigemImportacao,
   periodoUltimos12MesesLocal,
 } from './fiscalDisplay'
@@ -22,6 +23,11 @@ describe('fiscalDisplay', () => {
 
   it('rotula origem PONTE_A3', () => {
     expect(labelOrigemImportacao('PONTE_A3')).toContain('Ponte A3')
+  })
+
+  it('rotula compoe faturamento', () => {
+    expect(labelIncluirFaturamento(true)).toBe('Compõe faturamento')
+    expect(labelIncluirFaturamento(false)).toBe('Não compõe')
   })
 
   it('rotula anexo SERVICO e vazio como serviço Fator R', () => {

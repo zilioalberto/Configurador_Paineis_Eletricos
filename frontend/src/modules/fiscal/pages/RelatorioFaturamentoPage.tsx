@@ -17,10 +17,12 @@ import {
   labelAnexoSimples,
   periodoUltimos12MesesLocal,
 } from '../utils/fiscalDisplay'
+import { periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 import './RelatorioFaturamentoPage.css'
 
 const FILTROS_INICIAIS: RelatorioFaturamentoFiltros = {
+  competencia: '',
   cliente: '',
   objetivo_saida: '',
   anexo_simples: '',
@@ -60,8 +62,22 @@ export default function RelatorioFaturamentoPage() {
     (field: keyof RelatorioFaturamentoFiltros) =>
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const value = e.target.value
-      setFiltrosInput((prev) => ({ ...prev, [field]: value }))
+      setFiltrosInput((prev) => ({
+        ...prev,
+        [field]: value,
+        ...(field === 'data_inicio' || field === 'data_fim' ? { competencia: '' } : {}),
+      }))
     }
+
+  const onCompetenciaChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const competencia = e.target.value
+    const periodo = periodoDaCompetencia(competencia)
+    setFiltrosInput((prev) => ({
+      ...prev,
+      competencia,
+      ...(periodo ?? { data_inicio: '', data_fim: '' }),
+    }))
+  }
 
   return (
     <div className="container-fluid">
@@ -104,6 +120,18 @@ export default function RelatorioFaturamentoPage() {
         <div className="card-body">
           <h2 className="h6 mb-3">Filtros</h2>
           <div className="row g-3">
+            <div className="col-md-3">
+              <label className="form-label" htmlFor="fat-competencia">
+                Competência
+              </label>
+              <input
+                id="fat-competencia"
+                type="month"
+                className="form-control"
+                value={filtrosInput.competencia ?? ''}
+                onChange={onCompetenciaChange}
+              />
+            </div>
             <div className="col-md-3">
               <label className="form-label" htmlFor="fat-inicio">
                 Data início

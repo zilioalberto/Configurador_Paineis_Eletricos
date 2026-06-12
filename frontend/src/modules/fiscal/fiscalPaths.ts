@@ -6,6 +6,7 @@ export const fiscalPaths = {
   relatorioNfes: '/fiscal/relatorios/nfes',
   relatorioFaturamento: '/fiscal/relatorios/faturamento',
   nfesEmitidas: '/fiscal/nfes-emitidas',
+  nfeEmitidaDetalhe: (id: number | string) => `/fiscal/nfes-emitidas/${id}`,
   nfeEmitidaImportar: '/fiscal/nfes-emitidas/importar',
   projecaoDas: '/fiscal/simples/projecao-das',
   nfeDetalhe: (id: number | string) => `/fiscal/nfes/${id}`,

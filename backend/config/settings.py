@@ -13,11 +13,23 @@ import os
 
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR.parent / ".env")
+ENV_FILE = BASE_DIR.parent / ".env"
+load_dotenv(ENV_FILE)
+_DOTENV_VALUES = dotenv_values(ENV_FILE)
+
+
+def _env_or_dotenv(name: str, default: str = "") -> str:
+    value = os.getenv(name)
+    if value is not None and value.strip():
+        return value
+    dotenv_value = _DOTENV_VALUES.get(name)
+    if dotenv_value is not None and str(dotenv_value).strip():
+        return str(dotenv_value)
+    return default
 
 
 # Quick-start development settings - unsuitable for production
@@ -204,7 +216,7 @@ REST_FRAMEWORK = {
 # Token Bearer para agente fiscal legado (ponte local). Opcional com sincronização nativa A1.
 FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
 # CNPJ da ZFW (14 dígitos) — DistDFe e portal fiscal.
-FISCAL_EMPRESA_CNPJ = os.getenv("FISCAL_EMPRESA_CNPJ", "")
+FISCAL_EMPRESA_CNPJ = _env_or_dotenv("FISCAL_EMPRESA_CNPJ", "")
 # Certificado A1 (.pfx) no servidor — sincronização SEFAZ nativa (sem ACBr).
 FISCAL_CERT_PATH = os.getenv("FISCAL_CERT_PATH", "")
 FISCAL_CERT_PASSWORD = os.getenv("FISCAL_CERT_PASSWORD", "")

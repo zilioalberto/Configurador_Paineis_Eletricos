@@ -33,3 +33,10 @@ def fiscal_cnpj_settings():
     """CNPJ do emitente no XML_NFE_PROC de fixtures_nfe_xml."""
     with override_settings(FISCAL_EMPRESA_CNPJ="12345678000199"):
         yield
+
+
+@pytest.fixture
+def fiscal_cnpj_recebidas_settings():
+    """CNPJ do destinatário no XML_NFE_PROC de fixtures_nfe_xml."""
+    with override_settings(FISCAL_EMPRESA_CNPJ="98765432000188"):
+        yield

@@ -14,9 +14,14 @@ export const fiscalQueryKeys = {
   relatorioNfes: (filtros: RelatorioNFeFiltros) =>
     ['fiscal', 'relatorio-nfes', filtros] as const,
   nfeRecebida: (id: number) => ['fiscal', 'nfe-recebida', id] as const,
+  nfeEmitida: (publicId: string) => ['fiscal', 'nfe-emitida', publicId] as const,
   controleNsu: (cnpj: string) => ['fiscal', 'controle-nsu', cnpj.replace(/\D/g, '')] as const,
-  nfesEmitidas: (filtros: NfesEmitidasFiltros, page: number, pageSize: number) =>
-    ['fiscal', 'nfes-emitidas', filtros, page, pageSize] as const,
+  nfesEmitidas: (
+    filtros: NfesEmitidasFiltros,
+    page: number,
+    pageSize: number,
+    ordering: string,
+  ) => ['fiscal', 'nfes-emitidas', filtros, page, pageSize, ordering] as const,
   simplesPerfil: ['fiscal', 'simples', 'perfil'] as const,
   simplesFaturamento: (dataReferencia: string) =>
     ['fiscal', 'simples', 'faturamento', dataReferencia] as const,

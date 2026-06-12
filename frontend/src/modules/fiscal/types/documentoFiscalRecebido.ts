@@ -137,6 +137,7 @@ export type TipoMovimentoRelatorioNFe = 'ENTRADA' | 'SAIDA' | 'TODOS'
 
 export type RelatorioNFeFiltros = {
   readonly tipo_movimento?: TipoMovimentoRelatorioNFe
+  readonly competencia?: string
   readonly data_inicio?: string
   readonly data_fim?: string
   readonly objetivo_entrada?: ObjetivoEntradaFiscal | ''
@@ -205,6 +206,7 @@ export type ImportarDocumentoEmitidoResponse = {
   readonly created: boolean
   readonly message: string
   readonly documento_id: number
+  readonly documento_public_id: string
   readonly identificador: string
 }
 
@@ -223,6 +225,7 @@ export type ItemDocumentoFiscalEmitidoRow = {
 
 export type DocumentoFiscalEmitidoListRow = {
   readonly id: number
+  readonly public_id: string
   readonly identificador: string
   readonly tipo_documento: TipoDocumentoFiscalEmitido
   readonly chave_acesso: string
@@ -246,8 +249,15 @@ export type DocumentoFiscalEmitidoListRow = {
   readonly atualizada_em: string
 }
 
+export type DocumentoFiscalEmitidoDetail = DocumentoFiscalEmitidoListRow & {
+  readonly xml_original: string
+}
+
 export type NfesEmitidasFiltros = {
   readonly tipo_documento?: TipoDocumentoFiscalEmitido | ''
+  readonly competencia?: string
+  readonly data_inicio?: string
+  readonly data_fim?: string
   readonly objetivo_saida?: ObjetivoSaidaFiscal | ''
   readonly cfop?: string
   readonly anexo_simples?: AnexoSimplesNacional

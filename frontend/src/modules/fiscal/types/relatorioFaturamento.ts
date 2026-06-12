@@ -1,6 +1,7 @@
 import type { AnexoSimplesNacional, ObjetivoSaidaFiscal, TipoDocumentoFiscalEmitido } from './documentoFiscalRecebido'
 
 export type RelatorioFaturamentoFiltros = {
+  readonly competencia?: string
   readonly data_inicio?: string
   readonly data_fim?: string
   readonly cliente?: string

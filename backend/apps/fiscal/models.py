@@ -3,6 +3,8 @@ Modelos fiscais: tributação por produto do catálogo e documentos NF-e recebid
 """
 from __future__ import annotations
 
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -327,6 +329,7 @@ class ItemDocumentoFiscal(models.Model):
 class DocumentoFiscalEmitido(models.Model):
     """NF-e/NFS-e emitida pela ZFW para relatórios de saídas."""
 
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, editable=False)
     identificador = models.CharField(
         max_length=120,
         unique=True,
