@@ -24,16 +24,7 @@ import {
   formatDataIso,
   formatMoedaBrl,
 } from '../utils/fiscalDisplay'
-
-function mesAtualPeriodo() {
-  const hoje = new Date()
-  const ano = hoje.getFullYear()
-  const mes = hoje.getMonth()
-  const inicio = new Date(ano, mes, 1)
-  const fim = new Date(ano, mes + 1, 0)
-  const iso = (data: Date) => data.toISOString().slice(0, 10)
-  return { data_inicio: iso(inicio), data_fim: iso(fim) }
-}
+import { competenciaAtualLocal, periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 function formatQuantidade(valor: string): string {
   const n = Number(valor)
@@ -51,13 +42,14 @@ function itensResumo(doc: RelatorioNFeDocumentoRow): string {
 
 const FILTROS_INICIAIS: RelatorioNFeFiltros = {
   tipo_movimento: 'ENTRADA',
+  competencia: competenciaAtualLocal(),
   objetivo_entrada: '',
   objetivo_saida: '',
   cnpj_emitente: '',
   cnpj_destinatario: '',
   fornecedor: '',
   cliente: '',
-  ...mesAtualPeriodo(),
+  ...(periodoDaCompetencia(competenciaAtualLocal()) ?? {}),
 }
 
 function labelObjetivoRelatorio(doc: RelatorioNFeDocumentoRow): string {
@@ -81,12 +73,14 @@ function valorFiltro(field: keyof RelatorioNFeFiltros, value: string) {
 function RelatorioFiltros({
   filtros,
   onFiltroChange,
+  onCompetenciaChange,
   onLimparPeriodo,
 }: Readonly<{
   filtros: RelatorioNFeFiltros
   onFiltroChange: (
     field: keyof RelatorioNFeFiltros
   ) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+  onCompetenciaChange: (event: ChangeEvent<HTMLInputElement>) => void
   onLimparPeriodo: () => void
 }>) {
   const saida = filtros.tipo_movimento === 'SAIDA'
@@ -102,6 +96,10 @@ function RelatorioFiltros({
               <option value="SAIDA">Saídas</option>
               <option value="TODOS">Todos</option>
             </select>
+          </div>
+          <div className="col-md-6 col-lg-2">
+            <label className="form-label" htmlFor="relatorio-competencia">Competência</label>
+            <input id="relatorio-competencia" type="month" className="form-control" value={filtros.competencia ?? ''} onChange={onCompetenciaChange} />
           </div>
           <div className="col-md-6 col-lg-2">
             <label className="form-label" htmlFor="relatorio-inicio">De</label>
@@ -349,11 +347,22 @@ export default function RelatorioNfesPage() {
       setFiltros((prev) => ({
         ...prev,
         [field]: valorFiltro(field, event.target.value),
+        ...(field === 'data_inicio' || field === 'data_fim' ? { competencia: '' } : {}),
       }))
     }
 
+  const onCompetenciaChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const competencia = event.target.value
+    const periodo = periodoDaCompetencia(competencia)
+    setFiltros((prev) => ({
+      ...prev,
+      competencia,
+      ...(periodo ?? { data_inicio: '', data_fim: '' }),
+    }))
+  }
+
   const limparPeriodo = () => {
-    setFiltros((prev) => ({ ...prev, data_inicio: '', data_fim: '' }))
+    setFiltros((prev) => ({ ...prev, competencia: '', data_inicio: '', data_fim: '' }))
   }
 
   const toggleItens = (docKey: string) => {
@@ -391,6 +400,7 @@ export default function RelatorioNfesPage() {
       <RelatorioFiltros
         filtros={filtros}
         onFiltroChange={onFiltroChange}
+        onCompetenciaChange={onCompetenciaChange}
         onLimparPeriodo={limparPeriodo}
       />
 

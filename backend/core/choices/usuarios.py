@@ -33,6 +33,8 @@ class PermissaoUsuarioChoices(models.TextChoices):
     )
     MATERIAL_EDITAR_LISTA = PermissionKeys.MATERIAL_EDITAR_LISTA, "Editar lista de materiais"
     CATALOGO_REVISAR_PRECO = PermissionKeys.CATALOGO_REVISAR_PRECO, "Revisar preços do catálogo"
+    FISCAL_VISUALIZAR = PermissionKeys.FISCAL_VISUALIZAR, "Ver módulo fiscal"
+    FISCAL_EDITAR = PermissionKeys.FISCAL_EDITAR, "Editar módulo fiscal"
     CADASTRO_VISUALIZAR = PermissionKeys.CADASTRO_VISUALIZAR, "Ver cadastros"
     CADASTRO_EDITAR = PermissionKeys.CADASTRO_EDITAR, "Editar cadastros"
     RH_VISUALIZAR = PermissionKeys.RH_VISUALIZAR, "Ver RH"
@@ -132,6 +134,7 @@ def _build_default_permissions_map():
             *tarefas_operacionais,
             PermissaoUsuarioChoices.TAREFA_VISUALIZAR_RELATORIOS.value,
             PermissaoUsuarioChoices.MATERIAL_VISUALIZAR_LISTA.value,
+            PermissaoUsuarioChoices.FISCAL_VISUALIZAR.value,
             PermissaoUsuarioChoices.CADASTRO_VISUALIZAR.value,
             PermissaoUsuarioChoices.RELATORIO_VISUALIZAR.value,
         },
@@ -148,6 +151,8 @@ def _build_default_permissions_map():
             PermissaoUsuarioChoices.TAREFA_VISUALIZAR_RELATORIOS.value,
             PermissaoUsuarioChoices.MATERIAL_VISUALIZAR_LISTA.value,
             PermissaoUsuarioChoices.MATERIAL_EDITAR_LISTA.value,
+            PermissaoUsuarioChoices.FISCAL_VISUALIZAR.value,
+            PermissaoUsuarioChoices.FISCAL_EDITAR.value,
             PermissaoUsuarioChoices.CATALOGO_REVISAR_PRECO.value,
             PermissaoUsuarioChoices.CADASTRO_VISUALIZAR.value,
             PermissaoUsuarioChoices.CADASTRO_EDITAR.value,
@@ -156,6 +161,7 @@ def _build_default_permissions_map():
         TipoUsuarioChoices.ALMOXARIFADO: {
             PermissaoUsuarioChoices.PROJETO_VISUALIZAR.value,
             PermissaoUsuarioChoices.MATERIAL_VISUALIZAR_LISTA.value,
+            PermissaoUsuarioChoices.FISCAL_VISUALIZAR.value,
             PermissaoUsuarioChoices.CADASTRO_VISUALIZAR.value,
             PermissaoUsuarioChoices.ALMOXARIFADO_VISUALIZAR_TAREFAS.value,
             PermissaoUsuarioChoices.ALMOXARIFADO_BAIXAR_ESTOQUE.value,

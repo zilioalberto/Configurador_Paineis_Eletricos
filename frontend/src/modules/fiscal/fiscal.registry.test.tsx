@@ -10,7 +10,7 @@ describe('fiscal.registry', () => {
       expect.objectContaining({
         to: '/fiscal',
         label: 'Fiscal',
-        requiresPermission: PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA,
+        requiresPermission: PERMISSION_KEYS.FISCAL_VISUALIZAR,
       }),
     ])
     expect(fiscalRoutes.map((r) => r.path)).toEqual([
@@ -18,8 +18,12 @@ describe('fiscal.registry', () => {
       '/fiscal/itens-fiscais',
       '/fiscal/nfes',
       '/fiscal/relatorios/nfes',
+      '/fiscal/relatorios/faturamento',
       '/fiscal/nfes/importar',
+      '/fiscal/nfes-emitidas',
       '/fiscal/nfes-emitidas/importar',
+      '/fiscal/nfes-emitidas/:id',
+      '/fiscal/simples/projecao-das',
       '/fiscal/nfes/:id',
       '/fiscal/nsu',
     ])

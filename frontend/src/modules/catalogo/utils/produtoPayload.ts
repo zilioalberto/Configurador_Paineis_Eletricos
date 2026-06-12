@@ -46,7 +46,6 @@ export function produtoFormToApiPayload(
     aliquota_ipi: decNullablePercent(data.aliquota_ipi),
     fabricante_parceiro: fabPar || null,
     fornecedor_parceiro: fornPar || null,
-    fabricante: data.fabricante.trim(),
     referencia_fabricante: refFab || codigo,
     largura_mm: dec(data.largura_mm),
     altura_mm: dec(data.altura_mm),

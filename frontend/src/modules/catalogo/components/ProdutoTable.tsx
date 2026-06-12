@@ -48,7 +48,7 @@ export default function ProdutoTable({
                   {p.categoria_display ?? p.categoria_nome ?? '—'}
                 </span>
               </td>
-              <td>{p.fabricante || '—'}</td>
+              <td>{p.fabricante_parceiro_nome || '—'}</td>
               <td>{p.preco_base}</td>
               <td>{p.ativo ? 'Sim' : 'Não'}</td>
               {canManage ? (

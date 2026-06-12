@@ -30,11 +30,6 @@ class NfeCatalogoAplicarSerializer(serializers.Serializer):
     criar_fornecedor = serializers.BooleanField(required=False, default=False)
     fornecedor_id = serializers.UUIDField(required=False, allow_null=True)
     categoria_padrao = serializers.CharField(required=False, allow_blank=True, max_length=50)
-    fabricante_padrao = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        max_length=100,
-    )
     objetivo_entrada = serializers.ChoiceField(
         choices=ObjetivoEntradaFiscalChoices.choices,
         required=False,

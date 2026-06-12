@@ -601,7 +601,6 @@ export default function NfeImportPage() {
   const [carregandoPreview, setCarregandoPreview] = useState(false)
   const [aplicando, setAplicando] = useState(false)
   const [registrandoFiscal, setRegistrandoFiscal] = useState(false)
-  const [fabricantePadrao, setFabricantePadrao] = useState('')
   const [objetivoEntrada, setObjetivoEntrada] = useState<ObjetivoEntradaFiscal | ''>('')
   const [registrarNoFiscal, setRegistrarNoFiscal] = useState(false)
   const [origemFiscal, setOrigemFiscal] = useState<{ id: number; numero: string } | null>(null)
@@ -911,7 +910,6 @@ export default function NfeImportPage() {
         : null
       const res = await aplicarImportacaoNfe({
         snapshot: preview.snapshot,
-        fabricante_padrao: fabricantePadrao.trim(),
         objetivo_entrada: objetivoEntrada,
         itens: itensPayload,
       })
@@ -933,7 +931,6 @@ export default function NfeImportPage() {
     }
   }, [
     preview,
-    fabricantePadrao,
     objetivoEntrada,
     itensPayload,
     itensSemCategoria.length,
@@ -1041,22 +1038,6 @@ export default function NfeImportPage() {
                       CNPJ; pode importar apenas produtos.
                     </p>
                   )}
-                </div>
-                <div className="col-lg-6">
-                  <label className="form-label" htmlFor="fab-padrao">
-                    Fabricante em texto padrão (opcional)
-                  </label>
-                  <input
-                    id="fab-padrao"
-                    className="form-control form-control-sm"
-                    maxLength={100}
-                    value={fabricantePadrao}
-                    onChange={(e) => setFabricantePadrao(e.target.value)}
-                  />
-                  <p className="form-text mb-0">
-                    Usado apenas como texto do fabricante quando preenchido; a seleção por item
-                    continua gravando o vínculo do fabricante.
-                  </p>
                 </div>
                 <div className="col-lg-6">
                   <label className="form-label" htmlFor="nfe-catalogo-objetivo-entrada">

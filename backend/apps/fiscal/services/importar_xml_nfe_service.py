@@ -14,6 +14,9 @@ from apps.fiscal.choices import (
 )
 from apps.fiscal.models import DocumentoFiscalRecebido, ItemDocumentoFiscal
 from apps.fiscal.services.nfe_parser import NFeParserError, parse_nfe_xml
+from apps.fiscal.services.validar_destinatario_nfe_recebida import (
+    validar_destinatario_nfe_recebida,
+)
 from apps.fiscal.utils import normalizar_cnpj, normalizar_nsu
 
 
@@ -36,8 +39,12 @@ def importar_xml_nfe(
     """
     if not (xml or "").strip():
         raise NFeParserError("XML não informado.")
+    if not xml.strip().startswith("<"):
+        raise NFeParserError("Conteúdo não parece ser um arquivo XML válido.")
 
     dados = parse_nfe_xml(xml)
+    if origem_importacao != OrigemImportacaoFiscalChoices.SEFAZ_SYNC:
+        validar_destinatario_nfe_recebida(dados["destinatario"])
     chave = dados["chave_acesso"]
 
     existente = DocumentoFiscalRecebido.objects.filter(chave_acesso=chave).first()

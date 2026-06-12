@@ -188,7 +188,7 @@ export default function ProdutoDetailPage() {
               ) : null}
 
               <SpecBlock title="Fabricante e dimensões">
-                <Row label="Fabricante" value={p.fabricante} />
+                <Row label="Fabricante" value={p.fabricante_parceiro_nome} />
                 <Row label="Ref. fabricante" value={p.referencia_fabricante} />
                 <Row
                   label="L × A × P (mm)"

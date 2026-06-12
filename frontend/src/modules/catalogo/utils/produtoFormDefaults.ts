@@ -18,7 +18,6 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   fornecedor_parceiro: '',
   fornecedor_parceiro_nome: '',
   fornecedor_parceiro_documento: '',
-  fabricante: '',
   referencia_fabricante: '',
   largura_mm: '',
   altura_mm: '',

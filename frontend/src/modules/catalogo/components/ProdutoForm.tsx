@@ -133,12 +133,10 @@ export default function ProdutoForm({
       formData.fabricante_parceiro,
       formData.fabricante_parceiro_nome,
       formData.fabricante_parceiro_documento,
-      formData.fabricante,
     )
   }, [
     opcoesParceiroComAtual,
     formData.fabricante_parceiro,
-    formData.fabricante,
     formData.fabricante_parceiro_nome,
     formData.fabricante_parceiro_documento,
   ])
@@ -197,7 +195,6 @@ export default function ProdutoForm({
         fabricante_parceiro: id,
         fabricante_parceiro_nome: nome,
         fabricante_parceiro_documento: f?.documento ?? '',
-        fabricante: nome,
       }))
     },
     [opcoesFabricanteParceiro, selecionarParceiro],
@@ -454,12 +451,6 @@ export default function ProdutoForm({
                 ? ` — ${formData.fabricante_parceiro_documento}`
                 : ''}
             </strong>
-          </p>
-        ) : null}
-        {formData.fabricante.trim() && !formData.fabricante_parceiro.trim() ? (
-          <p className="form-text small text-muted mb-0">
-            Fabricante em texto (sem vínculo): <strong>{formData.fabricante}</strong>. Selecione um
-            fornecedor acima para padronizar pelo cadastro.
           </p>
         ) : null}
       </div>

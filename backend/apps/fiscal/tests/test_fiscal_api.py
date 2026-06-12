@@ -7,8 +7,6 @@ from apps.catalogo.models import Produto
 from apps.fiscal.models import ItemFiscalProduto
 from core.choices.produtos import CategoriaProdutoNomeChoices, UnidadeMedidaChoices
 from core.choices.usuarios import TipoUsuarioChoices
-from core.permissions import PermissionKeys
-
 User = get_user_model()
 
 
@@ -42,14 +40,13 @@ class FiscalItensFiscaisApiTests(TestCase):
         )
 
     def test_list_requires_permission(self):
-        sem_material = User.objects.create_user(
-            email="fiscal_sem_material@test.com",
+        sem_fiscal = User.objects.create_user(
+            email="fiscal_sem_permissao@test.com",
             password="pass12345",
             is_active=True,
             tipo_usuario=TipoUsuarioChoices.USUARIO,
-            permissoes_negadas=[PermissionKeys.MATERIAL_VISUALIZAR_LISTA],
         )
-        self.client.force_authenticate(sem_material)
+        self.client.force_authenticate(sem_fiscal)
         resp = self.client.get("/api/v1/fiscal/itens-fiscais/")
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.client.force_authenticate(self.user)

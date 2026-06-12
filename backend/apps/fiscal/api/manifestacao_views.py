@@ -31,7 +31,7 @@ class SolicitarManifestacaoView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request, documento_id: int):
         try:
@@ -55,7 +55,7 @@ class SolicitarManifestacaoView(APIView):
         documento.refresh_from_db()
         return Response(
             {
-                "message": "Manifestação enfileirada. A ponte A3 enviará o evento à SEFAZ.",
+                "message": "Manifestação enfileirada. O job fiscal_sync_nsu enviará o evento à SEFAZ.",
                 "documento": DocumentoFiscalRecebidoDetailSerializer(documento).data,
             },
             status=status.HTTP_202_ACCEPTED,

@@ -4,17 +4,25 @@ vi.mock('@/services/apiClient', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
 import apiClient from '@/services/apiClient'
 import {
+  atualizarClassificacaoDocumentoEmitido,
+  excluirDocumentoEmitido,
   importarDocumentoEmitidoManual,
+  listarNfesEmitidas,
   listarNfesRecebidas,
+  obterNfeEmitida,
   obterRelatorioNfes,
 } from './fiscalNfeService'
 
 describe('fiscalNfeService', () => {
+  const publicId = '11111111-1111-4111-8111-111111111111'
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -63,12 +71,96 @@ describe('fiscalNfeService', () => {
     })
   })
 
+  it('converte competência do relatório em período mensal', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        filtros: {},
+        resumo: {
+          tipo_movimento: 'SAIDA',
+          total_documentos: 0,
+          valor_total: '0',
+          por_objetivo: [],
+        },
+        documentos: [],
+      },
+    })
+
+    await obterRelatorioNfes({
+      tipo_movimento: 'SAIDA',
+      competencia: '2026-02',
+    })
+
+    expect(apiClient.get).toHaveBeenCalledWith('/fiscal/relatorios/nfes/', {
+      params: {
+        tipo_movimento: 'SAIDA',
+        data_inicio: '2026-02-01',
+        data_fim: '2026-02-28',
+      },
+    })
+  })
+
+  it('lista emitidas filtrando por competência', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { count: 0, results: [], next: null, previous: null },
+    })
+
+    await listarNfesEmitidas({ competencia: '2026-06', cliente: 'Alpha' }, 1, 50)
+
+    expect(apiClient.get).toHaveBeenCalledWith('/fiscal/nfes-emitidas/', {
+      params: {
+        page: 1,
+        page_size: 50,
+        data_inicio: '2026-06-01',
+        data_fim: '2026-06-30',
+        cliente: 'Alpha',
+      },
+    })
+  })
+
+  it('busca detalhe da NF-e emitida', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: { id: 12, numero: '200', xml_original: '<nfeProc />' },
+    })
+
+    const detalhe = await obterNfeEmitida(publicId)
+
+    expect(detalhe.numero).toBe('200')
+    expect(apiClient.get).toHaveBeenCalledWith(`/fiscal/nfes-emitidas/${publicId}/`)
+  })
+
+  it('exclui NF-e emitida importada', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({ data: undefined })
+
+    await excluirDocumentoEmitido(publicId)
+
+    expect(apiClient.delete).toHaveBeenCalledWith(`/fiscal/nfes-emitidas/${publicId}/`)
+  })
+
+  it('atualiza classificação da NF-e emitida', async () => {
+    vi.mocked(apiClient.patch).mockResolvedValue({
+      data: { id: 12, incluir_faturamento: false, classificacao_origem: 'MANUAL' },
+    })
+
+    const detalhe = await atualizarClassificacaoDocumentoEmitido(publicId, {
+      incluir_faturamento: false,
+    })
+
+    expect(detalhe.incluir_faturamento).toBe(false)
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      `/fiscal/nfes-emitidas/${publicId}/classificacao/`,
+      {
+        incluir_faturamento: false,
+      },
+    )
+  })
+
   it('importa documento fiscal emitido', async () => {
     vi.mocked(apiClient.post).mockResolvedValue({
       data: {
         created: true,
         message: 'Importado',
         documento_id: 3,
+        documento_public_id: publicId,
         identificador: 'NFSE:1',
       },
     })
@@ -80,6 +172,7 @@ describe('fiscalNfeService', () => {
     expect(result.documento_id).toBe(3)
     expect(apiClient.post).toHaveBeenCalledWith('/fiscal/nfes-emitidas/importar-manual/', {
       xml: '<CompNfse />',
+      classificar_automaticamente: true,
       tipo_documento: 'NFSE_SERVICO',
       objetivo_saida: 'PRESTACAO_SERVICO',
     })

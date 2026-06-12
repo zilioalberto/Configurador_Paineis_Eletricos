@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from apps.cadastros.models import ParceiroComercial
 from apps.catalogo.models import (
     EspecificacaoCanaleta,
     EspecificacaoContatora,
@@ -498,11 +499,16 @@ def test_aplicar_escolhas_mescla_disposicao_incompleta(criar_projeto):
 def test_calcular_dimensionamento_mecanico_somente_trilho_ou_placa(criar_projeto):
     projeto = criar_projeto(nome="MecMont", codigo="30006-26")
 
+    fabricante_siemens = ParceiroComercial.objects.create(
+        documento="12345678000199",
+        razao_social="SIEMENS",
+        eh_fornecedor=True,
+    )
     prod_trilho = Produto.objects.create(
         codigo="DM-TRILHO",
         descricao="Disjuntor motor trilho",
         categoria=CategoriaProdutoNomeChoices.DISJUNTOR_MOTOR,
-        fabricante="SIEMENS",
+        fabricante_parceiro=fabricante_siemens,
         largura_mm=Decimal("55"),
         altura_mm=Decimal("100"),
     )

@@ -6,9 +6,10 @@ import { aplicarMascaraCnpj, apenasDigitosCnpj } from '@/modules/cadastros/utils
 import { fiscalPaths } from '../fiscalPaths'
 import { useControleNsuQuery } from '../hooks/useControleNsuQuery'
 import { useFiscalConfigQuery } from '../hooks/useFiscalConfigQuery'
+import SincronizarNfesSefazButton from '../components/SincronizarNfesSefazButton'
 import { formatCnpjExibicao, formatDataIso } from '../utils/fiscalDisplay'
 
-/** Consulta o estado de sincronização NSU (leitura; atualização via agente/ponte A3). */
+/** Consulta o estado de sincronização NSU e permite busca manual na SEFAZ. */
 export default function ControleNsuPage() {
   const { data: fiscalConfig } = useFiscalConfigQuery()
   const [cnpjInput, setCnpjInput] = useState('')
@@ -53,11 +54,16 @@ export default function ControleNsuPage() {
       </nav>
 
       <h1 className="h3 mb-2">Controle NSU (SEFAZ)</h1>
-      <p className="text-muted mb-4">
-        Estado guardado no servidor (fonte de verdade do NSU). A consulta SEFAZ e a atualização são
-        feitas pelo agente <code>fiscal-ponte</code> na máquina com certificado A3; aqui apenas
-        visualiza o registo.
+      <p className="text-muted mb-3">
+        Estado guardado no servidor (fonte de verdade do NSU). Use o botão abaixo para consultar a
+        SEFAZ e importar NF-es emitidas contra o CNPJ da empresa (certificado A1 no servidor).
       </p>
+      <div className="mb-4">
+        <SincronizarNfesSefazButton
+          cnpj={fiscalConfig?.cnpj_empresa ?? digits}
+          disabled={!(fiscalConfig?.sefaz_sync_configurado ?? fiscalConfig?.agente_ponte_configurado)}
+        />
+      </div>
       {fiscalConfig?.cnpj_empresa && !autoConsulta ? (
         <p className="small text-muted mb-3">
           CNPJ da empresa no servidor: {formatCnpjExibicao(fiscalConfig.cnpj_empresa)}.{' '}
@@ -111,11 +117,25 @@ export default function ControleNsuPage() {
 
       {data && (
         <div className="card">
-          <div className="card-header d-flex justify-content-between align-items-center">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <span className="fw-semibold">{formatCnpjExibicao(data.cnpj)}</span>
-            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => void refetch()}>
-              Atualizar
-            </button>
+            <div className="d-flex flex-wrap gap-2">
+              <SincronizarNfesSefazButton
+                cnpj={data.cnpj}
+                className="btn btn-primary"
+                size="sm"
+                disabled={
+                  !(fiscalConfig?.sefaz_sync_configurado ?? fiscalConfig?.agente_ponte_configurado)
+                }
+              />
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => void refetch()}
+              >
+                Atualizar
+              </button>
+            </div>
           </div>
           <ul className="list-group list-group-flush">
             <li className="list-group-item d-flex justify-content-between">

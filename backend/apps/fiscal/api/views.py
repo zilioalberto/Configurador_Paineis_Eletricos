@@ -33,7 +33,7 @@ class ItemFiscalProdutoViewSet(ReadOnlyModelViewSet):
     )
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def get_queryset(self):
         qs = super().get_queryset()

@@ -73,9 +73,12 @@ export async function listarProdutos(
   categoriaId?: string | null,
   page = 1,
   pageSize = 50,
+  search?: string | null,
 ): Promise<ProdutoListPage> {
   const params: Record<string, string | number> = { page, page_size: pageSize }
   if (categoriaId) params.categoria = categoriaId
+  const termo = (search ?? '').trim()
+  if (termo) params.search = termo
   const response = await apiClient.get<unknown>(BASE_URL, {
     params,
   })

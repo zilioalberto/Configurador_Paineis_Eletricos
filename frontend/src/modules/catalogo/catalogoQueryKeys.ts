@@ -4,8 +4,8 @@ export const catalogoQueryKeys = {
   plcFamilias: (apenasEspecificacaoPlc?: boolean) =>
     [...catalogoQueryKeys.all, 'plc-familias', Boolean(apenasEspecificacaoPlc)] as const,
   categorias: () => [...catalogoQueryKeys.all, 'categorias'] as const,
-  produtos: (categoriaId?: string | null, page = 1, pageSize = 50) =>
-    [...catalogoQueryKeys.all, 'produtos', categoriaId ?? 'all', page, pageSize] as const,
+  produtos: (categoriaId?: string | null, page = 1, pageSize = 50, search?: string | null) =>
+    [...catalogoQueryKeys.all, 'produtos', categoriaId ?? 'all', page, pageSize, search ?? ''] as const,
   produto: (id: string) => [...catalogoQueryKeys.all, 'produto', id] as const,
   servicos: (page = 1, pageSize = 50) =>
     [...catalogoQueryKeys.all, 'servicos', page, pageSize] as const,

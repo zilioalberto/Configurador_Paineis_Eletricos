@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.fiscal.models import ControleNSU, DocumentoFiscalRecebido
 from apps.fiscal.services.importar_xml_nfe_service import importar_xml_nfe
-from apps.fiscal.tests.fixtures_nfe_xml import CHAVE_NFE_TESTE, XML_NFE_PROC
+from apps.fiscal.tests.fixtures_nfe_xml import CHAVE_NFE_RAIZ, CHAVE_NFE_TESTE, XML_NFE_PROC
 from core.choices.usuarios import TipoUsuarioChoices
 
 User = get_user_model()
@@ -39,6 +39,38 @@ XML_NFSE_TESTE = """<?xml version="1.0" encoding="UTF-8"?>
         <Cnpj>12345678000199</Cnpj>
         <RazaoSocial>Cliente Industrial</RazaoSocial>
       </Tomador>
+    </InfNfse>
+  </Nfse>
+</CompNfse>
+"""
+
+XML_NFSE_ABRASF_TOMADOR_SERVICO = """<?xml version="1.0" encoding="UTF-8"?>
+<CompNfse>
+  <Nfse>
+    <InfNfse>
+      <Numero>901</Numero>
+      <CodigoVerificacao>DEF456</CodigoVerificacao>
+      <DataEmissao>2026-06-11T09:00:00</DataEmissao>
+      <Servico>
+        <Valores>
+          <ValorServicos>14400.00</ValorServicos>
+        </Valores>
+        <Discriminacao>SERVIÇO DE MÃO-DE-OBRA CONFORME PEDIDO N°: 12943.</Discriminacao>
+      </Servico>
+      <PrestadorServico>
+        <IdentificacaoPrestador>
+          <Cnpj>07284171000139</Cnpj>
+        </IdentificacaoPrestador>
+        <RazaoSocial>ZFW Engenharia</RazaoSocial>
+      </PrestadorServico>
+      <TomadorServico>
+        <IdentificacaoTomador>
+          <CpfCnpj>
+            <Cnpj>08053030000110</Cnpj>
+          </CpfCnpj>
+        </IdentificacaoTomador>
+        <RazaoSocial>ETA Cubatão Saneamento LTDA</RazaoSocial>
+      </TomadorServico>
     </InfNfse>
   </Nfse>
 </CompNfse>
@@ -79,6 +111,7 @@ def _autenticar_agente(client: APIClient) -> None:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("fiscal_cnpj_recebidas_settings")
 class TestNfeApiAgent:
     def test_importar_sem_token_bloqueia(self, api_client, fiscal_agent_settings):
         api_client.credentials()
@@ -157,6 +190,7 @@ class TestNfeApiAgent:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("fiscal_cnpj_recebidas_settings")
 class TestNfeApiJwt:
     def test_listar_nfes(self, jwt_client):
         importar_xml_nfe(xml=XML_NFE_PROC)
@@ -204,6 +238,7 @@ class TestNfeApiJwt:
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["created"] is False
 
+    @override_settings(FISCAL_EMPRESA_CNPJ="12345678000199")
     def test_importar_nfe_emitida_produto(self, jwt_client):
         resp = jwt_client.post(
             IMPORT_EMITIDA_URL,
@@ -216,12 +251,86 @@ class TestNfeApiJwt:
         )
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data["created"] is True
-        detail = jwt_client.get(f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_id']}/")
+        assert resp.data["documento_public_id"]
+        detail = jwt_client.get(
+            f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_public_id']}/"
+        )
         assert detail.status_code == status.HTTP_200_OK
+        assert detail.data["id"] == resp.data["documento_id"]
+        assert detail.data["public_id"] == resp.data["documento_public_id"]
         assert detail.data["tipo_documento"] == "NFE_PRODUTO"
         assert detail.data["objetivo_saida"] == "VENDA_PRODUTO"
         assert len(detail.data["itens"]) == 1
 
+        detail_por_id = jwt_client.get(
+            f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_id']}/"
+        )
+        assert detail_por_id.status_code == status.HTTP_404_NOT_FOUND
+
+    @override_settings(FISCAL_EMPRESA_CNPJ="12345678000199")
+    def test_excluir_nfe_emitida_importada(self, jwt_client):
+        from apps.fiscal.models import DocumentoFiscalEmitido, ItemDocumentoFiscalEmitido
+
+        resp = jwt_client.post(
+            IMPORT_EMITIDA_URL,
+            {"xml": XML_NFE_PROC, "tipo_documento": "NFE_PRODUTO"},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        public_id = resp.data["documento_public_id"]
+        documento_id = resp.data["documento_id"]
+        assert ItemDocumentoFiscalEmitido.objects.filter(documento_id=documento_id).exists()
+
+        delete_resp = jwt_client.delete(f"/api/v1/fiscal/nfes-emitidas/{public_id}/")
+        assert delete_resp.status_code == status.HTTP_204_NO_CONTENT
+        assert not DocumentoFiscalEmitido.objects.filter(public_id=public_id).exists()
+        assert not ItemDocumentoFiscalEmitido.objects.filter(documento_id=documento_id).exists()
+
+        detail = jwt_client.get(f"/api/v1/fiscal/nfes-emitidas/{public_id}/")
+        assert detail.status_code == status.HTTP_404_NOT_FOUND
+
+    @override_settings(FISCAL_EMPRESA_CNPJ="12345678000199")
+    def test_listar_emitidas_ordenacao_destinatario(self, jwt_client):
+        jwt_client.post(
+            IMPORT_EMITIDA_URL,
+            {"xml": XML_NFE_PROC, "tipo_documento": "NFE_PRODUTO"},
+            format="json",
+        )
+
+        from apps.fiscal.models import DocumentoFiscalEmitido
+
+        base = DocumentoFiscalEmitido.objects.get()
+        DocumentoFiscalEmitido.objects.create(
+            identificador=CHAVE_NFE_RAIZ,
+            tipo_documento=base.tipo_documento,
+            chave_acesso=CHAVE_NFE_RAIZ,
+            cnpj_emitente=base.cnpj_emitente,
+            nome_emitente=base.nome_emitente,
+            cnpj_destinatario="11111111000111",
+            nome_destinatario="AAA Cliente",
+            numero="101",
+            serie="1",
+            valor_total=base.valor_total,
+            xml_original=base.xml_original,
+        )
+        DocumentoFiscalEmitido.objects.filter(numero="100").update(nome_destinatario="ZZZ Cliente")
+
+        resp = jwt_client.get(
+            "/api/v1/fiscal/nfes-emitidas/",
+            {"ordering": "nome_destinatario", "page_size": 50},
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        nomes = [row["nome_destinatario"] for row in resp.data["results"]]
+        assert nomes[0].startswith("AAA")
+
+        resp_desc = jwt_client.get(
+            "/api/v1/fiscal/nfes-emitidas/",
+            {"ordering": "-nome_destinatario", "page_size": 50},
+        )
+        nomes_desc = [row["nome_destinatario"] for row in resp_desc.data["results"]]
+        assert nomes_desc[0].startswith("ZZZ")
+
+    @override_settings(FISCAL_EMPRESA_CNPJ="98765432000188")
     def test_importar_nfse_emitida_servico(self, jwt_client):
         resp = jwt_client.post(
             IMPORT_EMITIDA_URL,
@@ -233,10 +342,59 @@ class TestNfeApiJwt:
             format="json",
         )
         assert resp.status_code == status.HTTP_201_CREATED
-        detail = jwt_client.get(f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_id']}/")
+        detail = jwt_client.get(
+            f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_public_id']}/"
+        )
         assert detail.data["numero"] == "900"
         assert detail.data["valor_total"] == "2500.00"
         assert detail.data["itens"][0]["descricao"] == "Serviço de engenharia ZFW"
+
+    @override_settings(FISCAL_EMPRESA_CNPJ="07284171000139")
+    def test_importar_nfse_emitida_tomador_servico_com_razao_social(self, jwt_client):
+        resp = jwt_client.post(
+            IMPORT_EMITIDA_URL,
+            {
+                "xml": XML_NFSE_ABRASF_TOMADOR_SERVICO,
+                "tipo_documento": "NFSE_SERVICO",
+                "objetivo_saida": "PRESTACAO_SERVICO",
+            },
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        detail = jwt_client.get(
+            f"/api/v1/fiscal/nfes-emitidas/{resp.data['documento_public_id']}/"
+        )
+        assert detail.data["cnpj_destinatario"] == "08053030000110"
+        assert detail.data["nome_destinatario"] == "ETA Cubatão Saneamento LTDA"
+
+    @override_settings(FISCAL_EMPRESA_CNPJ="07284171000139")
+    def test_reimportar_nfse_emitida_preenche_participante_faltante(self, jwt_client):
+        resp = jwt_client.post(
+            IMPORT_EMITIDA_URL,
+            {
+                "xml": XML_NFSE_ABRASF_TOMADOR_SERVICO,
+                "tipo_documento": "NFSE_SERVICO",
+                "objetivo_saida": "PRESTACAO_SERVICO",
+            },
+            format="json",
+        )
+        documento_id = resp.data["documento_id"]
+        documento_public_id = resp.data["documento_public_id"]
+        from apps.fiscal.models import DocumentoFiscalEmitido
+
+        DocumentoFiscalEmitido.objects.filter(pk=documento_id).update(nome_destinatario="")
+        resp_reimport = jwt_client.post(
+            IMPORT_EMITIDA_URL,
+            {
+                "xml": XML_NFSE_ABRASF_TOMADOR_SERVICO,
+                "tipo_documento": "NFSE_SERVICO",
+                "objetivo_saida": "PRESTACAO_SERVICO",
+            },
+            format="json",
+        )
+        assert resp_reimport.status_code == status.HTTP_200_OK
+        detail = jwt_client.get(f"/api/v1/fiscal/nfes-emitidas/{documento_public_id}/")
+        assert detail.data["nome_destinatario"] == "ETA Cubatão Saneamento LTDA"
 
     def test_relatorio_nfes_entradas(self, jwt_client):
         importar_xml_nfe(xml=XML_NFE_PROC, objetivo_entrada="INDUSTRIALIZACAO")

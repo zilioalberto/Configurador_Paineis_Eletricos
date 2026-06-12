@@ -16,6 +16,22 @@ class DocumentoEmitidoParserError(ValueError):
     """Erro de validação ou estrutura do XML emitido."""
 
 
+def detectar_tipo_documento_emitido(xml: str) -> str:
+    """Infere NF-e de produto ou NFS-e a partir do conteúdo do XML."""
+    from apps.fiscal.choices import TipoDocumentoFiscalEmitidoChoices
+
+    texto = (xml or "").strip().lower()
+    if not texto:
+        raise DocumentoEmitidoParserError("XML não informado.")
+    if "compnfse" in texto or "<nfse" in texto or "nfse:" in texto:
+        return TipoDocumentoFiscalEmitidoChoices.NFSE_SERVICO
+    if "nfeproc" in texto or "<nfe" in texto or "portalfiscal.inf.br/nfe" in texto:
+        return TipoDocumentoFiscalEmitidoChoices.NFE_PRODUTO
+    raise DocumentoEmitidoParserError(
+        "Não foi possível identificar o tipo do XML (NF-e ou NFS-e)."
+    )
+
+
 def _local(tag: str) -> str:
     return tag.split("}", 1)[-1] if tag else ""
 
@@ -60,17 +76,33 @@ def _parse_data(valor: str) -> datetime | None:
 
 
 def _participante_nomes(root: ET.Element, grupo_nomes: tuple[str, ...]) -> dict[str, str]:
+    melhor = {"cnpj": "", "nome": ""}
     for grupo in root.iter():
         if _local(grupo.tag) not in grupo_nomes:
             continue
         cnpj = normalizar_cnpj(_text_first(grupo, ("Cnpj", "CNPJ")))
         if not cnpj:
             cnpj = somente_digitos(_text_first(grupo, ("Cpf", "CPF")), 11)
-        return {
-            "cnpj": cnpj,
-            "nome": _text_first(grupo, ("RazaoSocial", "Nome", "xNome")),
-        }
-    return {"cnpj": "", "nome": ""}
+        nome = _text_first(
+            grupo,
+            (
+                "RazaoSocial",
+                "RazaoSocialTomador",
+                "RazaoSocialPrestador",
+                "NomeRazaoSocial",
+                "NomeTomador",
+                "NomePrestador",
+                "Nome",
+                "xNome",
+            ),
+        )
+        if cnpj and nome:
+            return {"cnpj": cnpj, "nome": nome}
+        if cnpj and not melhor["cnpj"]:
+            melhor["cnpj"] = cnpj
+        if nome and not melhor["nome"]:
+            melhor["nome"] = nome
+    return melhor
 
 
 def parse_nfe_produto_emitida(xml: str) -> dict[str, Any]:
@@ -96,8 +128,14 @@ def parse_nfse_servico_emitida(xml: str) -> dict[str, Any]:
     root = _parse_root(xml)
     numero = _text_first(root, ("Numero", "NumeroNfse", "nNFSe"))[:20]
     codigo_verificacao = _text_first(root, ("CodigoVerificacao", "CodVerificacao"))[:60]
-    prestador = _participante_nomes(root, ("Prestador", "IdentificacaoPrestador", "DadosPrestador"))
-    tomador = _participante_nomes(root, ("Tomador", "IdentificacaoTomador", "DadosTomador"))
+    prestador = _participante_nomes(
+        root,
+        ("PrestadorServico", "Prestador", "IdentificacaoPrestador", "DadosPrestador"),
+    )
+    tomador = _participante_nomes(
+        root,
+        ("TomadorServico", "Tomador", "IdentificacaoTomador", "DadosTomador"),
+    )
     valor_total = _parse_decimal(
         _text_first(root, ("ValorServicos", "ValorServico", "ValorTotalServicos", "ValorLiquidoNfse"))
     )

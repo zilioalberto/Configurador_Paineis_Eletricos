@@ -138,10 +138,11 @@ export const ERP_MODULES: ErpModule[] = [
     backendPackage: 'apps.fiscal',
     title: 'Fiscal',
     area: 'Suprimentos',
-    summary: 'Importação de NF-e, itens fiscais e vínculo com o catálogo.',
+    summary:
+      'NF-es recebidas e emitidas, relatórios, faturamento por cliente, Simples Nacional e itens fiscais.',
     status: 'available',
     to: '/fiscal',
-    permissions: [PERMISSION_KEYS.MATERIAL_VISUALIZAR_LISTA],
+    permissions: [PERMISSION_KEYS.FISCAL_VISUALIZAR],
   },
   {
     id: 'financeiro',

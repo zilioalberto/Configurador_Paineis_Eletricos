@@ -36,8 +36,8 @@ export type NfeProdutoExistenteResumo = {
   cest: string
   gtin: string
   origem_mercadoria: string
-  fabricante: string
   referencia_fabricante: string
+  fabricante_parceiro_nome: string
   aliquota_ipi: string
   fabricante_parceiro_id: string
   fornecedor_parceiro_id: string
@@ -103,7 +103,6 @@ export type NfeAplicarPayload = {
   criar_fornecedor?: boolean
   fornecedor_id?: string
   categoria_padrao?: string
-  fabricante_padrao?: string
   objetivo_entrada?: ObjetivoEntradaFiscal
   itens: NfeAplicarItem[]
 }

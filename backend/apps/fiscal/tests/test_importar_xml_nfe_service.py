@@ -7,6 +7,7 @@ from apps.fiscal.tests.fixtures_nfe_xml import CHAVE_NFE_TESTE, XML_NFE_PROC
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("fiscal_cnpj_recebidas_settings")
 class TestImportarXmlNfeService:
     def test_cria_documento_e_itens(self):
         resultado = importar_xml_nfe(

@@ -11,7 +11,8 @@ class StatusImportacaoFiscalChoices(models.TextChoices):
 
 class OrigemImportacaoFiscalChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
-    PONTE_A3 = "PONTE_A3", "Ponte A3"
+    PONTE_A3 = "PONTE_A3", "Ponte A3 (legado)"
+    SEFAZ_SYNC = "SEFAZ_SYNC", "Sincronização SEFAZ"
     API = "API", "API"
     OUTRO = "OUTRO", "Outro"
 
@@ -44,6 +45,21 @@ class TipoDocumentoFiscalEmitidoChoices(models.TextChoices):
     NFSE_SERVICO = "NFSE_SERVICO", "NFS-e de serviço"
 
 
+class AnexoSimplesNacionalChoices(models.TextChoices):
+    """Anexos do Simples Nacional usados na projeção de DAS."""
+
+    I = "I", "Anexo I — Comércio"
+    II = "II", "Anexo II — Indústria"
+    III = "III", "Anexo III — Serviços"
+    V = "V", "Anexo V — Serviços"
+    NENHUM = "NENHUM", "Não compõe faturamento"
+
+
+class ClassificacaoFiscalOrigemChoices(models.TextChoices):
+    AUTOMATICA = "AUTOMATICA", "Automática (CFOP)"
+    MANUAL = "MANUAL", "Manual"
+
+
 class ObjetivoSaidaFiscalChoices(models.TextChoices):
     VENDA_PRODUTO = "VENDA_PRODUTO", "Venda de produto"
     PRESTACAO_SERVICO = "PRESTACAO_SERVICO", "Prestação de serviço"
@@ -69,7 +85,7 @@ class TipoManifestacaoDestinatarioChoices(models.TextChoices):
 
 class StatusManifestacaoDestinatarioChoices(models.TextChoices):
     NAO_SOLICITADA = "NAO_SOLICITADA", "Não solicitada"
-    PENDENTE = "PENDENTE", "Pendente (aguarda ponte A3)"
+    PENDENTE = "PENDENTE", "Pendente (aguarda sincronização SEFAZ)"
     MANIFESTADA = "MANIFESTADA", "Registrada na SEFAZ"
     ERRO = "ERRO", "Erro na última tentativa"
 

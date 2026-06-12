@@ -113,9 +113,9 @@ ERP_MODULES_REGISTRY: dict[str, ErpModuleMeta] = {
         "id": "fiscal",
         "area": "Suprimentos",
         "title": "Fiscal",
-        "summary": "Itens fiscais por produto do catálogo e importação de tributos a partir da NF-e.",
+        "summary": "NF-es recebidas e emitidas, relatórios, faturamento e Simples Nacional.",
         "backend_package": "apps.fiscal",
-        "notes": "Modelo ItemFiscalProduto; integração com importação NF-e no catálogo.",
+        "notes": "Permissões fiscal.visualizar / fiscal.editar; ItemFiscalProduto e documentos fiscais.",
     },
     "financeiro": {
         "id": "financeiro",

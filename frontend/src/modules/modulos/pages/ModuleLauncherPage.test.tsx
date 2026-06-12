@@ -41,6 +41,39 @@ describe('ModuleLauncherPage', () => {
     ).toHaveAttribute('href', '/erp/orcamentos')
   })
 
+  it('mostra fiscal quando o usuario tem fiscal.visualizar', () => {
+    useAuthMock.mockReturnValue({
+      user: authUser(['fiscal.visualizar'], { email: 'user@example.com' }),
+    })
+
+    render(
+      <MemoryRouter>
+        <ModuleLauncherPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole('heading', { name: 'Fiscal' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Acessar Fiscal' })).toHaveAttribute('href', '/fiscal')
+  })
+
+  it('nao mostra fiscal apenas com permissao de catalogo', () => {
+    useAuthMock.mockReturnValue({
+      user: authUser(['material.visualizar_lista'], { email: 'user@example.com' }),
+    })
+
+    render(
+      <MemoryRouter>
+        <ModuleLauncherPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.queryByRole('link', { name: 'Acessar Fiscal' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver estrutura de Fiscal' })).toHaveAttribute(
+      'href',
+      '/fiscal'
+    )
+  })
+
   it('mostra tarefas quando o usuario tem permissao do Kanban', () => {
     useAuthMock.mockReturnValue({
       user: authUser(['tarefa.visualizar'], { email: 'user@example.com' }),

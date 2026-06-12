@@ -80,8 +80,6 @@ class _AplicarContexto:
     fornecedor_emitente: ParceiroComercial | None
     unidades_validas: set[str]
     categoria_padrao: str
-    fabricante_padrao_limpo: str
-    fabricante_emitente: str
     fornecedor_id: str | None
     fornecedores_usados: dict[str, ParceiroComercial]
     produtos_criados: list[str]
@@ -290,17 +288,6 @@ def _registrar_fornecedor_uso(
         ctx.fornecedor_id = str(fornecedor.id)
 
 
-def _fabricante_produto(
-    ctx: _AplicarContexto,
-    fabricante_parceiro: ParceiroComercial | None,
-) -> str:
-    return (
-        ctx.fabricante_padrao_limpo
-        or getattr(fabricante_parceiro, "razao_social", "")
-        or ctx.fabricante_emitente
-    )[:100]
-
-
 def _produto_payload(
     *,
     codigo: str,
@@ -308,7 +295,6 @@ def _produto_payload(
     categoria_item: str,
     fornecedor_produto: ParceiroComercial | None,
     fabricante_parceiro: ParceiroComercial | None,
-    fabricante_produto: str,
     unidade: str,
     preco: Decimal,
     ncm: str,
@@ -323,7 +309,6 @@ def _produto_payload(
         "preco_base": preco,
         "fabricante_parceiro": fabricante_parceiro,
         "fornecedor_parceiro": fornecedor_produto,
-        "fabricante": fabricante_produto,
         "gtin": (snap.get("c_ean") or "")[:14],
         "ncm": ncm,
         "cest": (snap.get("cest") or "")[:7],
@@ -391,7 +376,6 @@ def _aplicar_item_importacao(ctx: _AplicarContexto, n_item: int, sel: dict) -> N
         categoria_item=categoria_item,
         fornecedor_produto=fornecedor_produto,
         fabricante_parceiro=fabricante_parceiro,
-        fabricante_produto=_fabricante_produto(ctx, fabricante_parceiro),
         unidade=_unidade_item(snap, ctx.unidades_validas),
         preco=_preco_item(snap),
         ncm=_ncm_item(snap),
@@ -425,7 +409,6 @@ def aplicar_importacao_nfe(
     snapshot: dict[str, Any],
     criar_fornecedor: bool,
     categoria_padrao: str,
-    fabricante_padrao: str,
     itens: list[dict],
     fornecedor_id: str | None = None,
     objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
@@ -475,8 +458,6 @@ def aplicar_importacao_nfe(
     fornecedor_emitente: ParceiroComercial | None = None
     fornecedores_usados: dict[str, ParceiroComercial] = {}
 
-    fabricante_padrao_limpo = (fabricante_padrao or "").strip()[:100]
-    fabricante_emitente = (emit.get("razao_social") or "").strip()[:100]
     fiscal_apenas_alinhados: list[str] = []
     objetivo_entrada_limpo = objetivo_entrada or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS
 
@@ -494,8 +475,6 @@ def aplicar_importacao_nfe(
             fornecedor_emitente=fornecedor_emitente,
             unidades_validas={c for c, _ in UnidadeMedidaChoices.choices},
             categoria_padrao=categoria_padrao,
-            fabricante_padrao_limpo=fabricante_padrao_limpo,
-            fabricante_emitente=fabricante_emitente,
             fornecedor_id=fornecedor_id,
             fornecedores_usados=fornecedores_usados,
             produtos_criados=produtos_criados,

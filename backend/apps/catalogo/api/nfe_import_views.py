@@ -123,7 +123,6 @@ class NfeCatalogoAplicarView(APIView):
                 criar_fornecedor=dados.get("criar_fornecedor", False),
                 fornecedor_id=dados.get("fornecedor_id"),
                 categoria_padrao=dados.get("categoria_padrao") or "",
-                fabricante_padrao=dados.get("fabricante_padrao") or "",
                 objetivo_entrada=dados.get("objetivo_entrada"),
                 itens=dados["itens"],
             )

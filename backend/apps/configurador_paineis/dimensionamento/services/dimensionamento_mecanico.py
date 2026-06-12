@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.db.models import F
 
 from apps.catalogo.models import Produto
+from apps.catalogo.utils.fabricante_produto import nome_fabricante_produto
 from apps.catalogo.selectors._base import related_name_para_categoria
 from apps.catalogo.selectors.canaletas import selecionar_canaletas
 from apps.catalogo.selectors.paineis import selecionar_paineis
@@ -315,16 +316,7 @@ def _append_reserva_mecanica(
     )
 
 
-def _fabricante_produto(produto: Produto) -> str:
-    if produto.fabricante:
-        return produto.fabricante
-    try:
-        parceiro = produto.fabricante_parceiro
-    except Exception:
-        parceiro = None
-    if parceiro is not None:
-        return (parceiro.nome_fantasia or parceiro.razao_social or "").strip()
-    return ""
+_fabricante_produto = nome_fabricante_produto
 
 
 def _dimensoes_produto(produto: Produto) -> tuple[Decimal | None, Decimal | None, Decimal | None]:

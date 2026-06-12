@@ -13,11 +13,23 @@ import os
 
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR.parent / ".env")
+ENV_FILE = BASE_DIR.parent / ".env"
+load_dotenv(ENV_FILE)
+_DOTENV_VALUES = dotenv_values(ENV_FILE)
+
+
+def _env_or_dotenv(name: str, default: str = "") -> str:
+    value = os.getenv(name)
+    if value is not None and value.strip():
+        return value
+    dotenv_value = _DOTENV_VALUES.get(name)
+    if dotenv_value is not None and str(dotenv_value).strip():
+        return str(dotenv_value)
+    return default
 
 
 # Quick-start development settings - unsuitable for production
@@ -201,10 +213,20 @@ REST_FRAMEWORK = {
 }
 
 # Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
-# Token Bearer para agente fiscal local (ponte A3). Não commitar valor real.
+# Token Bearer para agente fiscal legado (ponte local). Opcional com sincronização nativa A1.
 FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
-# CNPJ da ZFW (14 dígitos) — pré-preenche NSU no portal e deve coincidir com FISCAL_PONTE_CNPJ na máquina local.
-FISCAL_EMPRESA_CNPJ = os.getenv("FISCAL_EMPRESA_CNPJ", "")
+# CNPJ da ZFW (14 dígitos) — DistDFe e portal fiscal.
+FISCAL_EMPRESA_CNPJ = _env_or_dotenv("FISCAL_EMPRESA_CNPJ", "")
+# Certificado A1 (.pfx) no servidor — sincronização SEFAZ nativa (sem ACBr).
+FISCAL_CERT_PATH = os.getenv("FISCAL_CERT_PATH", "")
+FISCAL_CERT_PASSWORD = os.getenv("FISCAL_CERT_PASSWORD", "")
+# Código UF IBGE do autor (ex.: 35=SP, 42=SC). Usado em distDFeInt cUFAutor.
+FISCAL_SEFAZ_UF = os.getenv("FISCAL_SEFAZ_UF", "42")
+# 1=produção, 2=homologação
+FISCAL_SEFAZ_AMBIENTE = os.getenv("FISCAL_SEFAZ_AMBIENTE", "2")
+# native | stub (stub = sem certificado, para testes)
+FISCAL_SEFAZ_PROVIDER = os.getenv("FISCAL_SEFAZ_PROVIDER", "native")
+FISCAL_SYNC_MAX_CICLOS = int(os.getenv("FISCAL_SYNC_MAX_CICLOS", "20"))
 
 CNPJ_CONSULTA = {
     "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),
