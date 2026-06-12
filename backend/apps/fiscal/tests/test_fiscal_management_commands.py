@@ -9,6 +9,15 @@ from apps.fiscal.models import DocumentoFiscalEmitido, DocumentoFiscalRecebido
 
 CNPJ_ZFW = "07284171000139"
 
+SEFAZ_STUB_SETTINGS = {
+    "FISCAL_EMPRESA_CNPJ": CNPJ_ZFW,
+    "FISCAL_SEFAZ_UF": "35",
+    "FISCAL_SEFAZ_AMBIENTE": "2",
+    "FISCAL_SEFAZ_PROVIDER": "stub",
+    "FISCAL_CERT_PATH": "",
+    "FISCAL_CERT_PASSWORD": "",
+}
+
 
 @pytest.mark.django_db
 class TestFiscalListarDocumentosCnpjDivergenteCommand:
@@ -79,14 +88,7 @@ class TestFiscalListarDocumentosCnpjDivergenteCommand:
 
 
 class TestFiscalSyncNsuCommand:
-    @override_settings(
-        FISCAL_EMPRESA_CNPJ=CNPJ_ZFW,
-        FISCAL_SEFAZ_UF="35",
-        FISCAL_SEFAZ_AMBIENTE="2",
-        FISCAL_SEFAZ_PROVIDER="stub",
-        FISCAL_CERT_PATH="",
-        FISCAL_CERT_PASSWORD="",
-    )
+    @override_settings(**SEFAZ_STUB_SETTINGS)
     def test_dry_run_sucesso(self):
         out = io.StringIO()
         call_command("fiscal_sync_nsu", "--dry-run", stdout=out)
@@ -104,7 +106,7 @@ class TestFiscalSyncNsuCommand:
         assert exc.value.code == 1
         assert "cert inválido" in err.getvalue()
 
-    @override_settings(FISCAL_EMPRESA_CNPJ=CNPJ_ZFW)
+    @override_settings(**SEFAZ_STUB_SETTINGS)
     def test_sincronizacao_com_erro_importacao_imprime_warning(self):
         resultado = MagicMock(
             mensagem="ok",
@@ -127,7 +129,7 @@ class TestFiscalSyncNsuCommand:
         assert "ciclos=1" in out.getvalue()
         assert "falha xml" in err.getvalue()
 
-    @override_settings(FISCAL_EMPRESA_CNPJ=CNPJ_ZFW)
+    @override_settings(**SEFAZ_STUB_SETTINGS)
     def test_sincronizacao_falha_encerra(self):
         resultado = MagicMock(
             mensagem="erro sefaz",

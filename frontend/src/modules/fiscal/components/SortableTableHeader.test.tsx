@@ -33,9 +33,9 @@ describe('SortableTableHeader', () => {
         <thead>
           <tr>
             <SortableTableHeader
-              label="Valor"
-              field="valor_total"
-              ordering="-valor_total"
+              label="Destinatário"
+              field="nome_destinatario"
+              ordering="-nome_destinatario"
               onSort={vi.fn()}
             />
           </tr>
@@ -43,7 +43,7 @@ describe('SortableTableHeader', () => {
       </table>
     )
 
-    expect(screen.getByRole('button', { name: /valor/i })).toHaveTextContent('▼')
+    expect(screen.getByRole('button', { name: /destinatário/i })).toHaveTextContent('▼')
   })
 
   it('exibe indicador neutro quando coluna não está ordenada', () => {
