@@ -20,6 +20,7 @@ from apps.fiscal.choices import ClassificacaoFiscalOrigemChoices
 from apps.fiscal.models import DocumentoFiscalEmitido, FaturamentoMensalAjuste, PerfilTributarioSimples
 from apps.fiscal.services.classificar_documento_emitido import classificar_documento_emitido
 from apps.fiscal.services.faturamento_simples import agregar_faturamento_mensal, montar_projecao_das
+from apps.fiscal.services.fiscal_empresa import MSG_FISCAL_EMPRESA_CNPJ_NAO_CONFIGURADO
 from apps.fiscal.services.importar_lote_documentos_emitidos import importar_lote_xmls_emitidos
 from apps.fiscal.utils import normalizar_cnpj
 from core.permissions import PermissionKeys
@@ -37,6 +38,13 @@ def _obter_ou_criar_perfil(cnpj: str) -> PerfilTributarioSimples:
     return perfil
 
 
+def _resposta_cnpj_ausente() -> Response:
+    return Response(
+        {"detail": MSG_FISCAL_EMPRESA_CNPJ_NAO_CONFIGURADO},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
 class PerfilTributarioSimplesView(APIView):
     permission_classes = [HasEffectivePermission]
 
@@ -48,20 +56,14 @@ class PerfilTributarioSimplesView(APIView):
     def get(self, request):
         cnpj = _cnpj_empresa()
         if not cnpj:
-            return Response(
-                {"detail": "FISCAL_EMPRESA_CNPJ não configurado no servidor."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return _resposta_cnpj_ausente()
         perfil = _obter_ou_criar_perfil(cnpj)
         return Response(PerfilTributarioSimplesSerializer(perfil).data)
 
     def patch(self, request):
         cnpj = _cnpj_empresa()
         if not cnpj:
-            return Response(
-                {"detail": "FISCAL_EMPRESA_CNPJ não configurado no servidor."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return _resposta_cnpj_ausente()
         perfil = _obter_ou_criar_perfil(cnpj)
         serializer = PerfilTributarioSimplesSerializer(
             perfil,
@@ -82,10 +84,7 @@ class FaturamentoSimplesView(APIView):
     def get(self, request):
         cnpj = _cnpj_empresa()
         if not cnpj:
-            return Response(
-                {"detail": "FISCAL_EMPRESA_CNPJ não configurado no servidor."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return _resposta_cnpj_ausente()
         ref_raw = (request.query_params.get("data_referencia") or "").strip()
         data_ref = date.fromisoformat(ref_raw) if ref_raw else date.today()
         linhas = agregar_faturamento_mensal(cnpj, data_ref)
@@ -109,10 +108,7 @@ class ProjecaoDasSimplesView(APIView):
     def get(self, request):
         cnpj = _cnpj_empresa()
         if not cnpj:
-            return Response(
-                {"detail": "FISCAL_EMPRESA_CNPJ não configurado no servidor."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return _resposta_cnpj_ausente()
         competencia = (request.query_params.get("competencia") or "").strip()
         if not competencia:
             hoje = date.today()
@@ -143,10 +139,7 @@ class FaturamentoMensalAjusteView(APIView):
     def put(self, request):
         cnpj = _cnpj_empresa()
         if not cnpj:
-            return Response(
-                {"detail": "FISCAL_EMPRESA_CNPJ não configurado no servidor."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            return _resposta_cnpj_ausente()
         serializer = FaturamentoMensalAjusteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

@@ -77,16 +77,50 @@ def xml_importavel_como_nfe(xml: str) -> bool:
     return "infNFe" in texto and "resNFe" not in texto[:200]
 
 
+def _parse_doczip_element(elem: ET.Element) -> DistDfeDocumento | None:
+    conteudo = (elem.text or "").strip()
+    if not conteudo:
+        return None
+    try:
+        xml = _descompactar_doc_zip(conteudo)
+    except Exception:
+        return None
+    if not xml_importavel_como_nfe(xml):
+        return None
+    nsu_attr = elem.attrib.get("NSU") or elem.attrib.get("nsu")
+    return DistDfeDocumento(
+        xml=xml,
+        nsu=normalizar_nsu(nsu_attr) if nsu_attr else None,
+        schema=elem.attrib.get("schema") or "",
+    )
+
+
+def _extrair_documentos_doczip(ret: ET.Element) -> list[DistDfeDocumento]:
+    documentos: list[DistDfeDocumento] = []
+    for elem in ret.iter():
+        if _local(elem.tag) != "docZip":
+            continue
+        documento = _parse_doczip_element(elem)
+        if documento is not None:
+            documentos.append(documento)
+    return documentos
+
+
+def _resultado_sem_ret_dist_dfe(soap_xml: str, ultimo_nsu_consulta: str) -> DistDfeResultado:
+    nsu = normalizar_nsu(ultimo_nsu_consulta) or "000000000000000"
+    return DistDfeResultado(
+        cstat="",
+        xmotivo="Resposta SEFAZ sem retDistDFeInt",
+        ultimo_nsu=nsu,
+        max_nsu=nsu,
+        resposta_bruta=soap_xml[:2000],
+    )
+
+
 def parse_resposta_distribuicao_dfe(soap_xml: str, *, ultimo_nsu_consulta: str) -> DistDfeResultado:
     ret = _extrair_corpo_ret_dist_dfe(soap_xml)
     if ret is None:
-        return DistDfeResultado(
-            cstat="",
-            xmotivo="Resposta SEFAZ sem retDistDFeInt",
-            ultimo_nsu=normalizar_nsu(ultimo_nsu_consulta) or "000000000000000",
-            max_nsu=normalizar_nsu(ultimo_nsu_consulta) or "000000000000000",
-            resposta_bruta=soap_xml[:2000],
-        )
+        return _resultado_sem_ret_dist_dfe(soap_xml, ultimo_nsu_consulta)
 
     cstat = _texto(_buscar_filho_por_nome(ret, "cStat"))
     xmotivo = _texto(_buscar_filho_por_nome(ret, "xMotivo"))
@@ -95,34 +129,11 @@ def parse_resposta_distribuicao_dfe(soap_xml: str, *, ultimo_nsu_consulta: str) 
     )
     maximo = normalizar_nsu(_texto(_buscar_filho_por_nome(ret, "maxNSU"))) or ultimo
 
-    documentos: list[DistDfeDocumento] = []
-    for elem in ret.iter():
-        if _local(elem.tag) != "docZip":
-            continue
-        nsu_attr = elem.attrib.get("NSU") or elem.attrib.get("nsu")
-        schema = elem.attrib.get("schema") or ""
-        conteudo = (elem.text or "").strip()
-        if not conteudo:
-            continue
-        try:
-            xml = _descompactar_doc_zip(conteudo)
-        except Exception:
-            continue
-        if not xml_importavel_como_nfe(xml):
-            continue
-        documentos.append(
-            DistDfeDocumento(
-                xml=xml,
-                nsu=normalizar_nsu(nsu_attr) if nsu_attr else None,
-                schema=schema,
-            )
-        )
-
     return DistDfeResultado(
         cstat=cstat,
         xmotivo=xmotivo,
         ultimo_nsu=ultimo or "000000000000000",
         max_nsu=maximo or ultimo or "000000000000000",
-        documentos=documentos,
+        documentos=_extrair_documentos_doczip(ret),
         resposta_bruta=soap_xml,
     )

@@ -12,6 +12,7 @@ import {
   atualizarPerfilTributarioSimples,
   salvarAjusteFaturamentoMensal,
 } from '../services/fiscalSimplesService'
+import type { ProjecaoDasSimplesResponse } from '../types/simplesNacional'
 import {
   formatCompetencia,
   formatMoedaBrl,
@@ -21,6 +22,82 @@ import {
 function competenciaAtual(): string {
   const hoje = new Date()
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+}
+
+type ProjecaoDasResumoPainelProps = {
+  readonly data: ProjecaoDasSimplesResponse
+}
+
+function ProjecaoDasResumoPainel({ data }: ProjecaoDasResumoPainelProps) {
+  return (
+    <>
+      <div className="card border-primary mb-3">
+        <div className="card-body">
+          <div className="row g-3">
+            <div className="col-md-4">
+              <div className="text-muted small">RBT12 total</div>
+              <div className="fs-5 fw-semibold">{formatMoedaBrl(data.rbt12_total)}</div>
+            </div>
+            <div className="col-md-4">
+              <div className="text-muted small">Receita da competência</div>
+              <div className="fs-5 fw-semibold">{formatMoedaBrl(data.receita_competencia)}</div>
+            </div>
+            <div className="col-md-4">
+              <div className="text-muted small">DAS estimado</div>
+              <div className="fs-4 fw-bold text-primary">
+                {formatMoedaBrl(data.das_estimado_total)}
+              </div>
+            </div>
+          </div>
+          {data.fator_r ? (
+            <p className="small text-muted mb-0 mt-2">
+              Fator R: {data.fator_r} — serviços no Anexo {data.anexo_servicos}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {data.avisos.length > 0 ? (
+        <div className="alert alert-warning">
+          <ul className="mb-0 ps-3">
+            {data.avisos.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {data.parcelas.length > 0 ? (
+        <div className="card mb-3">
+          <div className="card-header">Parcelas por anexo</div>
+          <div className="table-responsive">
+            <table className="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Anexo</th>
+                  <th>Receita mês</th>
+                  <th>RBT12 anexo</th>
+                  <th>Alíq. efetiva</th>
+                  <th className="text-end">DAS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.parcelas.map((p) => (
+                  <tr key={p.anexo}>
+                    <td>{labelAnexoSimples(p.anexo as '' | 'I')}</td>
+                    <td>{formatMoedaBrl(p.receita_mes)}</td>
+                    <td>{formatMoedaBrl(p.rbt12_anexo)}</td>
+                    <td>{(Number(p.aliquota_efetiva) * 100).toFixed(2)}%</td>
+                    <td className="text-end">{formatMoedaBrl(p.das_estimado)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 /** Projeção de DAS do Simples Nacional a partir das NF-es emitidas importadas. */
@@ -169,79 +246,8 @@ export default function ProjecaoDasSimplesPage() {
               {error instanceof Error ? error.message : 'Erro ao calcular projeção.'}
             </div>
           ) : null}
-          {isPending ? (
-            <p className="text-muted">Calculando…</p>
-          ) : data ? (
-            <>
-              <div className="card border-primary mb-3">
-                <div className="card-body">
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <div className="text-muted small">RBT12 total</div>
-                      <div className="fs-5 fw-semibold">{formatMoedaBrl(data.rbt12_total)}</div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="text-muted small">Receita da competência</div>
-                      <div className="fs-5 fw-semibold">
-                        {formatMoedaBrl(data.receita_competencia)}
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="text-muted small">DAS estimado</div>
-                      <div className="fs-4 fw-bold text-primary">
-                        {formatMoedaBrl(data.das_estimado_total)}
-                      </div>
-                    </div>
-                  </div>
-                  {data.fator_r ? (
-                    <p className="small text-muted mb-0 mt-2">
-                      Fator R: {data.fator_r} — serviços no Anexo {data.anexo_servicos}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {data.avisos.length > 0 ? (
-                <div className="alert alert-warning">
-                  <ul className="mb-0 ps-3">
-                    {data.avisos.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {data.parcelas.length > 0 ? (
-                <div className="card mb-3">
-                  <div className="card-header">Parcelas por anexo</div>
-                  <div className="table-responsive">
-                    <table className="table table-sm mb-0">
-                      <thead>
-                        <tr>
-                          <th>Anexo</th>
-                          <th>Receita mês</th>
-                          <th>RBT12 anexo</th>
-                          <th>Alíq. efetiva</th>
-                          <th className="text-end">DAS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.parcelas.map((p) => (
-                          <tr key={p.anexo}>
-                            <td>{labelAnexoSimples(p.anexo as '' | 'I')}</td>
-                            <td>{formatMoedaBrl(p.receita_mes)}</td>
-                            <td>{formatMoedaBrl(p.rbt12_anexo)}</td>
-                            <td>{(Number(p.aliquota_efetiva) * 100).toFixed(2)}%</td>
-                            <td className="text-end">{formatMoedaBrl(p.das_estimado)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : null}
-            </>
-          ) : null}
+          {isPending ? <p className="text-muted">Calculando…</p> : null}
+          {data ? <ProjecaoDasResumoPainel data={data} /> : null}
         </div>
       </div>
 

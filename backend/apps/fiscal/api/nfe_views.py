@@ -141,6 +141,55 @@ def aplicar_ordenacao_emitidas(queryset, ordering_param: str):
     return queryset.order_by(*_EMITIDAS_ORDERING_DEFAULT)
 
 
+def _parametro_texto(params, nome: str) -> str:
+    return (params.get(nome) or "").strip()
+
+
+def _filtrar_incluir_faturamento(queryset, valor: str):
+    incluir = valor.lower()
+    if incluir in {"true", "1", "sim"}:
+        return queryset.filter(incluir_faturamento=True)
+    if incluir in {"false", "0", "nao", "não"}:
+        return queryset.filter(incluir_faturamento=False)
+    return queryset
+
+
+def filtrar_queryset_emitidas(queryset, params):
+    """Aplica filtros de query string à listagem de documentos emitidos."""
+    filtros_simples = (
+        ("tipo_documento", "tipo_documento"),
+        ("objetivo_saida", "objetivo_saida"),
+        ("cfop", "cfop_predominante"),
+        ("anexo_simples", "anexo_simples"),
+    )
+    for param, campo in filtros_simples:
+        valor = _parametro_texto(params, param)
+        if valor:
+            queryset = queryset.filter(**{campo: valor})
+
+    data_inicio = _parametro_texto(params, "data_inicio")
+    if data_inicio:
+        queryset = queryset.filter(data_emissao__date__gte=data_inicio)
+
+    data_fim = _parametro_texto(params, "data_fim")
+    if data_fim:
+        queryset = queryset.filter(data_emissao__date__lte=data_fim)
+
+    cnpj_dest = _parametro_texto(params, "cnpj_destinatario")
+    if cnpj_dest:
+        queryset = queryset.filter(cnpj_destinatario=normalizar_cnpj(cnpj_dest))
+
+    cliente = _parametro_texto(params, "cliente")
+    if cliente:
+        queryset = queryset.filter(nome_destinatario__icontains=cliente)
+
+    queryset = _filtrar_incluir_faturamento(
+        queryset,
+        _parametro_texto(params, "incluir_faturamento"),
+    )
+    return aplicar_ordenacao_emitidas(queryset, _parametro_texto(params, "ordering"))
+
+
 class DocumentoFiscalEmitidoViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -167,49 +216,7 @@ class DocumentoFiscalEmitidoViewSet(
         return DocumentoFiscalEmitidoSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        params = self.request.query_params
-
-        tipo = (params.get("tipo_documento") or "").strip()
-        if tipo:
-            qs = qs.filter(tipo_documento=tipo)
-
-        objetivo = (params.get("objetivo_saida") or "").strip()
-        if objetivo:
-            qs = qs.filter(objetivo_saida=objetivo)
-
-        data_inicio = (params.get("data_inicio") or "").strip()
-        if data_inicio:
-            qs = qs.filter(data_emissao__date__gte=data_inicio)
-
-        data_fim = (params.get("data_fim") or "").strip()
-        if data_fim:
-            qs = qs.filter(data_emissao__date__lte=data_fim)
-
-        cnpj_dest = (params.get("cnpj_destinatario") or "").strip()
-        if cnpj_dest:
-            qs = qs.filter(cnpj_destinatario=normalizar_cnpj(cnpj_dest))
-
-        cliente = (params.get("cliente") or "").strip()
-        if cliente:
-            qs = qs.filter(nome_destinatario__icontains=cliente)
-
-        cfop = (params.get("cfop") or "").strip()
-        if cfop:
-            qs = qs.filter(cfop_predominante=cfop)
-
-        anexo = (params.get("anexo_simples") or "").strip()
-        if anexo:
-            qs = qs.filter(anexo_simples=anexo)
-
-        incluir = (params.get("incluir_faturamento") or "").strip().lower()
-        if incluir in {"true", "1", "sim"}:
-            qs = qs.filter(incluir_faturamento=True)
-        elif incluir in {"false", "0", "nao", "não"}:
-            qs = qs.filter(incluir_faturamento=False)
-
-        ordering = (params.get("ordering") or "").strip()
-        return aplicar_ordenacao_emitidas(qs, ordering)
+        return filtrar_queryset_emitidas(super().get_queryset(), self.request.query_params)
 
 
 class RelatorioNFeView(APIView):

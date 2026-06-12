@@ -101,6 +101,136 @@ def _queryset_emitidas(
     return qs
 
 
+def _resolver_periodo(
+    data_inicio: date | None,
+    data_fim: date | None,
+) -> tuple[date, date]:
+    inicio, fim = data_inicio, data_fim
+    if not inicio or not fim:
+        padrao_inicio, padrao_fim = _periodo_padrao()
+        inicio = inicio or padrao_inicio
+        fim = fim or padrao_fim
+    if fim < inicio:
+        inicio, fim = fim, inicio
+    return inicio, fim
+
+
+def _inicializar_acumuladores(meses_periodo: list[str]) -> dict:
+    return {
+        "valor_total": Decimal("0"),
+        "por_mes_valor": {m: Decimal("0") for m in meses_periodo},
+        "por_mes_qtd": {m: 0 for m in meses_periodo},
+        "por_mes_anexo": {m: {} for m in meses_periodo},
+        "por_cliente": {},
+        "por_anexo": defaultdict(lambda: Decimal("0")),
+        "por_objetivo": defaultdict(lambda: Decimal("0")),
+    }
+
+
+def _acumular_documento(doc: DocumentoFiscalEmitido, acum: dict, meses_periodo: list[str]) -> None:
+    valor = doc.valor_total or Decimal("0")
+    acum["valor_total"] += valor
+    comp = _competencia_de_documento(doc)
+    if comp in acum["por_mes_valor"]:
+        acum["por_mes_valor"][comp] += valor
+        acum["por_mes_qtd"][comp] += 1
+        chave_anexo = doc.anexo_simples or "SERVICO"
+        acum["por_mes_anexo"][comp][chave_anexo] = (
+            acum["por_mes_anexo"][comp].get(chave_anexo, Decimal("0")) + valor
+        )
+
+    anexo_chave = doc.anexo_simples or "SERVICO"
+    acum["por_anexo"][anexo_chave] += valor
+    acum["por_objetivo"][doc.objetivo_saida] += valor
+
+    cnpj_dest = doc.cnpj_destinatario or "SEM_CNPJ"
+    if cnpj_dest not in acum["por_cliente"]:
+        acum["por_cliente"][cnpj_dest] = {
+            "cnpj_destinatario": cnpj_dest,
+            "nome_destinatario": doc.nome_destinatario or "",
+            "valor_total": Decimal("0"),
+            "quantidade_documentos": 0,
+        }
+    row = acum["por_cliente"][cnpj_dest]
+    if doc.nome_destinatario and not row["nome_destinatario"]:
+        row["nome_destinatario"] = doc.nome_destinatario
+    row["valor_total"] += valor
+    row["quantidade_documentos"] += 1
+
+
+def _montar_linhas_por_mes(
+    meses_periodo: list[str],
+    acum: dict,
+    ajustes_map: dict,
+) -> tuple[list[dict], Decimal]:
+    por_mes_linhas: list[dict] = []
+    valor_total = acum["valor_total"]
+    for comp in meses_periodo:
+        ajuste = ajustes_map.get(comp)
+        valor_ajuste = ajuste.valor_ajuste if ajuste else Decimal("0")
+        valor_nf = acum["por_mes_valor"][comp]
+        por_mes_linhas.append(
+            {
+                "competencia": comp,
+                "valor_nfes": _decimal_str(valor_nf),
+                "valor_ajuste": _decimal_str(valor_ajuste),
+                "valor_total": _decimal_str(valor_nf + valor_ajuste),
+                "quantidade_documentos": acum["por_mes_qtd"][comp],
+                "por_anexo": {
+                    k: _decimal_str(v) for k, v in acum["por_mes_anexo"][comp].items()
+                },
+            }
+        )
+        valor_total += valor_ajuste
+    return por_mes_linhas, valor_total
+
+
+def _montar_linhas_por_cliente(por_cliente: dict, valor_total: Decimal, top_clientes: int) -> list[dict]:
+    clientes_ordenados = sorted(
+        por_cliente.values(),
+        key=lambda row: row["valor_total"],
+        reverse=True,
+    )
+    linhas: list[dict] = []
+    for row in clientes_ordenados[: max(1, top_clientes)]:
+        participacao = (
+            (row["valor_total"] / valor_total * Decimal("100"))
+            if valor_total > 0
+            else Decimal("0")
+        )
+        linhas.append(
+            {
+                "cnpj_destinatario": row["cnpj_destinatario"],
+                "nome_destinatario": row["nome_destinatario"],
+                "valor_total": _decimal_str(row["valor_total"]),
+                "quantidade_documentos": row["quantidade_documentos"],
+                "participacao_percentual": _decimal_str(participacao),
+            }
+        )
+    return linhas
+
+
+def _montar_linhas_documentos(documentos: list[DocumentoFiscalEmitido], limite: int) -> list[dict]:
+    linhas: list[dict] = []
+    for doc in documentos[:limite]:
+        linhas.append(
+            {
+                "id": doc.id,
+                "numero": doc.numero,
+                "serie": doc.serie,
+                "data_emissao": doc.data_emissao.isoformat() if doc.data_emissao else None,
+                "tipo_documento": doc.tipo_documento,
+                "valor_total": _decimal_str(doc.valor_total or Decimal("0")),
+                "cnpj_destinatario": doc.cnpj_destinatario,
+                "nome_destinatario": doc.nome_destinatario,
+                "cfop_predominante": doc.cfop_predominante,
+                "anexo_simples": doc.anexo_simples,
+                "objetivo_saida": doc.objetivo_saida,
+            }
+        )
+    return linhas
+
+
 def montar_relatorio_faturamento(
     *,
     cnpj: str,
@@ -114,14 +244,7 @@ def montar_relatorio_faturamento(
     incluir_documentos: bool = True,
     limite_documentos: int = 500,
 ) -> dict:
-    inicio, fim = data_inicio, data_fim
-    if not inicio or not fim:
-        padrao_inicio, padrao_fim = _periodo_padrao()
-        inicio = inicio or padrao_inicio
-        fim = fim or padrao_fim
-    if fim < inicio:
-        inicio, fim = fim, inicio
-
+    inicio, fim = _resolver_periodo(data_inicio, data_fim)
     meses_periodo = _meses_no_periodo(inicio, fim)
     documentos = list(
         _queryset_emitidas(
@@ -135,109 +258,25 @@ def montar_relatorio_faturamento(
         )
     )
 
-    valor_total = Decimal("0")
-    por_mes_valor: dict[str, Decimal] = {m: Decimal("0") for m in meses_periodo}
-    por_mes_qtd: dict[str, int] = {m: 0 for m in meses_periodo}
-    por_mes_anexo: dict[str, dict[str, Decimal]] = {m: {} for m in meses_periodo}
-    por_cliente: dict[str, dict] = {}
-    por_anexo: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    por_objetivo: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-
+    acum = _inicializar_acumuladores(meses_periodo)
     for doc in documentos:
-        valor = doc.valor_total or Decimal("0")
-        valor_total += valor
-        comp = _competencia_de_documento(doc)
-        if comp in por_mes_valor:
-            por_mes_valor[comp] += valor
-            por_mes_qtd[comp] += 1
-            chave_anexo = doc.anexo_simples or "SERVICO"
-            por_mes_anexo[comp][chave_anexo] = (
-                por_mes_anexo[comp].get(chave_anexo, Decimal("0")) + valor
-            )
+        _acumular_documento(doc, acum, meses_periodo)
 
-        anexo_chave = doc.anexo_simples or "SERVICO"
-        por_anexo[anexo_chave] += valor
-        por_objetivo[doc.objetivo_saida] += valor
-
-        cnpj_dest = doc.cnpj_destinatario or "SEM_CNPJ"
-        if cnpj_dest not in por_cliente:
-            por_cliente[cnpj_dest] = {
-                "cnpj_destinatario": cnpj_dest,
-                "nome_destinatario": doc.nome_destinatario or "",
-                "valor_total": Decimal("0"),
-                "quantidade_documentos": 0,
-            }
-        row = por_cliente[cnpj_dest]
-        if doc.nome_destinatario and not row["nome_destinatario"]:
-            row["nome_destinatario"] = doc.nome_destinatario
-        row["valor_total"] += valor
-        row["quantidade_documentos"] += 1
-
-    ajustes = FaturamentoMensalAjuste.objects.filter(
-        cnpj=cnpj,
-        competencia__in=meses_periodo,
-    )
-    ajustes_map = {a.competencia: a for a in ajustes}
-    por_mes_linhas: list[dict] = []
-    for comp in meses_periodo:
-        ajuste = ajustes_map.get(comp)
-        valor_ajuste = ajuste.valor_ajuste if ajuste else Decimal("0")
-        valor_nf = por_mes_valor[comp]
-        por_mes_linhas.append(
-            {
-                "competencia": comp,
-                "valor_nfes": _decimal_str(valor_nf),
-                "valor_ajuste": _decimal_str(valor_ajuste),
-                "valor_total": _decimal_str(valor_nf + valor_ajuste),
-                "quantidade_documentos": por_mes_qtd[comp],
-                "por_anexo": {k: _decimal_str(v) for k, v in por_mes_anexo[comp].items()},
-            }
+    ajustes_map = {
+        a.competencia: a
+        for a in FaturamentoMensalAjuste.objects.filter(
+            cnpj=cnpj,
+            competencia__in=meses_periodo,
         )
-        valor_total += valor_ajuste
-
-    clientes_ordenados = sorted(
-        por_cliente.values(),
-        key=lambda row: row["valor_total"],
-        reverse=True,
-    )
-    por_cliente_linhas: list[dict] = []
-    for row in clientes_ordenados[: max(1, top_clientes)]:
-        participacao = (
-            (row["valor_total"] / valor_total * Decimal("100"))
-            if valor_total > 0
-            else Decimal("0")
-        )
-        por_cliente_linhas.append(
-            {
-                "cnpj_destinatario": row["cnpj_destinatario"],
-                "nome_destinatario": row["nome_destinatario"],
-                "valor_total": _decimal_str(row["valor_total"]),
-                "quantidade_documentos": row["quantidade_documentos"],
-                "participacao_percentual": _decimal_str(participacao),
-            }
-        )
+    }
+    por_mes_linhas, valor_total = _montar_linhas_por_mes(meses_periodo, acum, ajustes_map)
+    por_cliente_linhas = _montar_linhas_por_cliente(acum["por_cliente"], valor_total, top_clientes)
 
     qtd_docs = len(documentos)
     ticket_medio = valor_total / qtd_docs if qtd_docs else Decimal("0")
-
-    documentos_linhas: list[dict] = []
-    if incluir_documentos:
-        for doc in documentos[:limite_documentos]:
-            documentos_linhas.append(
-                {
-                    "id": doc.id,
-                    "numero": doc.numero,
-                    "serie": doc.serie,
-                    "data_emissao": doc.data_emissao.isoformat() if doc.data_emissao else None,
-                    "tipo_documento": doc.tipo_documento,
-                    "valor_total": _decimal_str(doc.valor_total or Decimal("0")),
-                    "cnpj_destinatario": doc.cnpj_destinatario,
-                    "nome_destinatario": doc.nome_destinatario,
-                    "cfop_predominante": doc.cfop_predominante,
-                    "anexo_simples": doc.anexo_simples,
-                    "objetivo_saida": doc.objetivo_saida,
-                }
-            )
+    documentos_linhas = (
+        _montar_linhas_documentos(documentos, limite_documentos) if incluir_documentos else []
+    )
 
     return {
         "filtros": {
@@ -253,18 +292,18 @@ def montar_relatorio_faturamento(
             "valor_total": _decimal_str(valor_total),
             "quantidade_documentos": qtd_docs,
             "ticket_medio": _decimal_str(ticket_medio),
-            "clientes_distintos": len(por_cliente),
+            "clientes_distintos": len(acum["por_cliente"]),
             "meses_no_periodo": len(meses_periodo),
         },
         "por_mes": por_mes_linhas,
         "por_cliente": por_cliente_linhas,
         "por_anexo": [
             {"anexo": k, "valor_total": _decimal_str(v)}
-            for k, v in sorted(por_anexo.items(), key=lambda item: item[1], reverse=True)
+            for k, v in sorted(acum["por_anexo"].items(), key=lambda item: item[1], reverse=True)
         ],
         "por_objetivo": [
             {"objetivo_saida": k, "valor_total": _decimal_str(v)}
-            for k, v in sorted(por_objetivo.items(), key=lambda item: item[1], reverse=True)
+            for k, v in sorted(acum["por_objetivo"].items(), key=lambda item: item[1], reverse=True)
         ],
         "documentos": documentos_linhas,
     }

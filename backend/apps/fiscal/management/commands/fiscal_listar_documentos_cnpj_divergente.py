@@ -1,15 +1,13 @@
 """Lista documentos fiscais importados com CNPJ divergente da ZFW (limpeza pós-importação)."""
 from __future__ import annotations
 
-import csv
-import sys
-
 from django.core.management.base import BaseCommand
 
 from apps.fiscal.services.documentos_fiscais_divergentes import (
     cnpj_empresa_fiscal,
-    queryset_emitidas_emitente_divergente,
-    queryset_recebidas_destinatario_divergente,
+    coletar_documentos_divergentes,
+    exportar_linhas_divergentes_csv,
+    formatar_rotulo_linha_divergente,
 )
 
 
@@ -51,105 +49,35 @@ class Command(BaseCommand):
 
         tipo = options["tipo"]
         limite = max(0, int(options["limite"] or 0))
-        usar_csv = options["csv"]
+        listagem = coletar_documentos_divergentes(tipo, limite)
 
-        linhas: list[dict[str, str]] = []
-        total_emitidas = 0
-        total_recebidas = 0
-
-        if tipo in {"emitidas", "ambos"}:
-            qs = queryset_emitidas_emitente_divergente()
-            total_emitidas = qs.count()
-            docs = qs[:limite] if limite else qs
-            for doc in docs:
-                linhas.append(
-                    {
-                        "tipo": "EMITIDA",
-                        "public_id": str(doc.public_id),
-                        "id": str(doc.id),
-                        "numero": doc.numero,
-                        "serie": doc.serie,
-                        "data_emissao": doc.data_emissao.isoformat() if doc.data_emissao else "",
-                        "valor_total": str(doc.valor_total),
-                        "cnpj_participante": doc.cnpj_emitente,
-                        "nome_participante": doc.nome_emitente,
-                        "cnpj_contraparte": doc.cnpj_destinatario,
-                        "nome_contraparte": doc.nome_destinatario,
-                        "origem_importacao": doc.origem_importacao,
-                    }
-                )
-
-        if tipo in {"recebidas", "ambos"}:
-            qs = queryset_recebidas_destinatario_divergente()
-            total_recebidas = qs.count()
-            docs = qs[:limite] if limite else qs
-            for doc in docs:
-                linhas.append(
-                    {
-                        "tipo": "RECEBIDA",
-                        "public_id": "",
-                        "id": str(doc.id),
-                        "numero": doc.numero,
-                        "serie": doc.serie,
-                        "data_emissao": doc.data_emissao.isoformat() if doc.data_emissao else "",
-                        "valor_total": str(doc.valor_total),
-                        "cnpj_participante": doc.cnpj_destinatario,
-                        "nome_participante": doc.nome_destinatario,
-                        "cnpj_contraparte": doc.cnpj_emitente,
-                        "nome_contraparte": doc.nome_emitente,
-                        "origem_importacao": doc.origem_importacao,
-                    }
-                )
-
-        if usar_csv:
-            writer = csv.DictWriter(
-                sys.stdout,
-                fieldnames=[
-                    "tipo",
-                    "public_id",
-                    "id",
-                    "numero",
-                    "serie",
-                    "data_emissao",
-                    "valor_total",
-                    "cnpj_participante",
-                    "nome_participante",
-                    "cnpj_contraparte",
-                    "nome_contraparte",
-                    "origem_importacao",
-                ],
-            )
-            writer.writeheader()
-            writer.writerows(linhas)
+        if options["csv"]:
+            exportar_linhas_divergentes_csv(listagem.linhas)
             return
 
+        self._imprimir_texto(cnpj_empresa, tipo, limite, listagem)
+
+    def _imprimir_texto(self, cnpj_empresa, tipo, limite, listagem) -> None:
         self.stdout.write(f"CNPJ empresa (ZFW): {cnpj_empresa}")
         if tipo in {"emitidas", "ambos"}:
             self.stdout.write(
-                f"Emitidas com emitente divergente: {total_emitidas}"
+                f"Emitidas com emitente divergente: {listagem.total_emitidas}"
             )
         if tipo in {"recebidas", "ambos"}:
             self.stdout.write(
-                f"Recebidas com destinatário divergente: {total_recebidas}"
+                f"Recebidas com destinatário divergente: {listagem.total_recebidas}"
             )
 
-        if not linhas:
+        if not listagem.linhas:
             self.stdout.write(self.style.SUCCESS("Nenhum documento divergente encontrado."))
             return
 
-        for row in linhas:
-            rotulo = (
-                f"[{row['tipo']}] nº {row['numero']}/{row['serie']} "
-                f"— participante {row['nome_participante']} ({row['cnpj_participante']}) "
-                f"— valor {row['valor_total']}"
-            )
-            if row["tipo"] == "EMITIDA":
-                rotulo += f" — public_id={row['public_id']}"
-            else:
-                rotulo += f" — id={row['id']}"
-            self.stdout.write(rotulo)
+        for row in listagem.linhas:
+            self.stdout.write(formatar_rotulo_linha_divergente(row))
 
-        if limite and (total_emitidas > limite or total_recebidas > limite):
+        if limite and (
+            listagem.total_emitidas > limite or listagem.total_recebidas > limite
+        ):
             self.stdout.write(
                 self.style.WARNING(
                     f"Listagem limitada a {limite} registro(s) por tipo; "

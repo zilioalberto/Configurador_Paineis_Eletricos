@@ -72,6 +72,80 @@ def _atualizar_controle(
     )
 
 
+def _importar_documentos_distribuicao(dist, config: SefazConfig, resultado: SyncNsuResult) -> None:
+    for doc in dist.documentos:
+        resultado.documentos_importados += 1
+        try:
+            imp = importar_xml_nfe(
+                xml=doc.xml,
+                nsu=doc.nsu,
+                cnpj_destinatario=config.cnpj,
+                origem_importacao=OrigemImportacaoFiscalChoices.SEFAZ_SYNC,
+            )
+            if imp["created"]:
+                resultado.documentos_novos += 1
+            else:
+                resultado.documentos_duplicados += 1
+        except Exception as exc:
+            msg = f"{doc.nsu or 'xml'}: {exc}"
+            resultado.erros_importacao.append(msg)
+            logger.error("Falha ao importar NF-e: %s", msg)
+
+
+def _executar_ciclos_distribuicao(
+    *,
+    config: SefazConfig,
+    controle: ControleNSU,
+    ultimo_nsu: str,
+    agora,
+) -> tuple[str, str, SyncNsuResult]:
+    max_nsu = normalizar_nsu(controle.max_nsu) or ultimo_nsu
+    resultado = SyncNsuResult(
+        sucesso=True,
+        mensagem="Sincronização concluída",
+        ultimo_nsu=ultimo_nsu,
+        max_nsu=max_nsu,
+    )
+
+    for ciclos in range(1, config.max_ciclos_nsu + 1):
+        resultado.ciclos_executados = ciclos
+        logger.info("Ciclo %s — DistDFe ultNSU=%s", ciclos, ultimo_nsu)
+
+        dist = consultar_distribuicao_por_nsu(config=config, ultimo_nsu=ultimo_nsu)
+        resultado.ultimo_cstat = dist.cstat
+        resultado.ultimo_nsu = dist.ultimo_nsu
+        resultado.max_nsu = dist.max_nsu
+
+        bloqueado_ate = agora + timedelta(hours=1) if dist.cstat in _CSTAT_BLOQUEIO else None
+        _importar_documentos_distribuicao(dist, config, resultado)
+
+        ultimo_nsu = dist.ultimo_nsu
+        max_nsu = dist.max_nsu
+        _atualizar_controle(
+            controle,
+            ultimo_nsu=ultimo_nsu,
+            max_nsu=max_nsu,
+            cstat=dist.cstat,
+            motivo=dist.xmotivo,
+            bloqueado_ate=bloqueado_ate,
+        )
+
+        if dist.cstat == "137" or ultimo_nsu >= max_nsu:
+            break
+
+    return ultimo_nsu, max_nsu, resultado
+
+
+def _processar_manifestacoes_pos_sync(config: SefazConfig, resultado: SyncNsuResult) -> None:
+    try:
+        man = processar_manifestacoes_pendentes(config=config)
+        resultado.manifestacoes_processadas = man.processadas
+        if man.erros:
+            logger.warning("Manifestações com erro: %s", man.detalhes)
+    except Exception:
+        logger.exception("Falha ao processar manifestações pendentes")
+
+
 def executar_sincronizacao_nsu(
     *,
     config: SefazConfig | None = None,
@@ -99,74 +173,19 @@ def executar_sincronizacao_nsu(
         )
 
     ultimo_nsu = normalizar_nsu(controle.ultimo_nsu) or "000000000000000"
-    max_nsu = normalizar_nsu(controle.max_nsu) or ultimo_nsu
-
-    resultado = SyncNsuResult(
-        sucesso=True,
-        mensagem="Sincronização concluída",
+    ultimo_nsu, max_nsu, resultado = _executar_ciclos_distribuicao(
+        config=config,
+        controle=controle,
         ultimo_nsu=ultimo_nsu,
-        max_nsu=max_nsu,
+        agora=agora,
     )
-
-    ciclos = 0
-    while ciclos < config.max_ciclos_nsu:
-        ciclos += 1
-        resultado.ciclos_executados = ciclos
-        logger.info("Ciclo %s — DistDFe ultNSU=%s", ciclos, ultimo_nsu)
-
-        dist = consultar_distribuicao_por_nsu(config=config, ultimo_nsu=ultimo_nsu)
-        resultado.ultimo_cstat = dist.cstat
-        resultado.ultimo_nsu = dist.ultimo_nsu
-        resultado.max_nsu = dist.max_nsu
-
-        bloqueado_ate = None
-        if dist.cstat in _CSTAT_BLOQUEIO:
-            bloqueado_ate = agora + timedelta(hours=1)
-
-        for doc in dist.documentos:
-            resultado.documentos_importados += 1
-            try:
-                imp = importar_xml_nfe(
-                    xml=doc.xml,
-                    nsu=doc.nsu,
-                    cnpj_destinatario=config.cnpj,
-                    origem_importacao=OrigemImportacaoFiscalChoices.SEFAZ_SYNC,
-                )
-                if imp["created"]:
-                    resultado.documentos_novos += 1
-                else:
-                    resultado.documentos_duplicados += 1
-            except Exception as exc:
-                msg = f"{doc.nsu or 'xml'}: {exc}"
-                resultado.erros_importacao.append(msg)
-                logger.error("Falha ao importar NF-e: %s", msg)
-
-        ultimo_nsu = dist.ultimo_nsu
-        max_nsu = dist.max_nsu
-        _atualizar_controle(
-            controle,
-            ultimo_nsu=ultimo_nsu,
-            max_nsu=max_nsu,
-            cstat=dist.cstat,
-            motivo=dist.xmotivo,
-            bloqueado_ate=bloqueado_ate,
-        )
-
-        if dist.cstat == "137" or ultimo_nsu >= max_nsu:
-            break
 
     if resultado.erros_importacao:
         resultado.sucesso = False
         resultado.mensagem = "Sincronização com erros de importação"
 
     if processar_manifestacoes:
-        try:
-            man = processar_manifestacoes_pendentes(config=config)
-            resultado.manifestacoes_processadas = man.processadas
-            if man.erros:
-                logger.warning("Manifestações com erro: %s", man.detalhes)
-        except Exception:
-            logger.exception("Falha ao processar manifestações pendentes")
+        _processar_manifestacoes_pos_sync(config, resultado)
 
     resultado.ultimo_nsu = ultimo_nsu
     resultado.max_nsu = max_nsu

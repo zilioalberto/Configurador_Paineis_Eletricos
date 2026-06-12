@@ -44,12 +44,13 @@ function PermissionSelector({
   options: UserPermissionOption[]
   onToggle: (value: string) => void
 }>) {
+  const sections = useMemo(() => groupPermissionOptions(options), [options])
+
   if (options.length === 0) {
     return <p className="text-muted small mb-0">Nenhuma permissão disponível.</p>
   }
 
   const selectedSet = new Set(selected)
-  const sections = useMemo(() => groupPermissionOptions(options), [options])
 
   return (
     <div className="d-flex flex-column gap-3">

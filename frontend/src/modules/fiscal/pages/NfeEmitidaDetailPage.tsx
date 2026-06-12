@@ -15,6 +15,7 @@ import { fiscalPaths } from '../fiscalPaths'
 import { useExcluirNfeEmitidaMutation } from '../hooks/useExcluirNfeEmitidaMutation'
 import { useNfeEmitidaDetailQuery } from '../hooks/useNfeEmitidaDetailQuery'
 import { atualizarClassificacaoDocumentoEmitido } from '../services/fiscalNfeService'
+import type { DocumentoFiscalEmitidoDetail } from '../types/documentoFiscalRecebido'
 import {
   formatChaveAcesso,
   formatCnpjExibicao,
@@ -26,6 +27,230 @@ import {
 
 function nomeXml(numero: string, id: number): string {
   return `nfe-emitida-${numero || id}.xml`
+}
+
+function rotuloExclusaoDocumento(data: DocumentoFiscalEmitidoDetail): string {
+  const numero = data.numero || '—'
+  const serie = data.serie ? ` · série ${data.serie}` : ''
+  return `${labelTipoDocumentoEmitido(data.tipo_documento)} nº ${numero}${serie}`
+}
+
+type NfeEmitidaItensTableProps = {
+  readonly itens: DocumentoFiscalEmitidoDetail['itens']
+}
+
+function NfeEmitidaItensTable({ itens }: NfeEmitidaItensTableProps) {
+  return (
+    <>
+      <h2 className="h5 mb-3">Itens da nota ({itens.length})</h2>
+      <div className="card mb-4">
+        <div className="card-body p-0">
+          {itens.length === 0 ? (
+            <p className="text-muted p-3 mb-0">Nenhum item parseado.</p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-sm align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Código</th>
+                    <th scope="col">Descrição</th>
+                    <th scope="col">NCM</th>
+                    <th scope="col">CFOP</th>
+                    <th scope="col">Un.</th>
+                    <th scope="col" className="text-end">Qtd</th>
+                    <th scope="col" className="text-end">Unitário</th>
+                    <th scope="col" className="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itens.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.numero_item}</td>
+                      <td className="text-break">{item.codigo || '—'}</td>
+                      <td className="text-break">{item.descricao || '—'}</td>
+                      <td>{item.ncm || '—'}</td>
+                      <td>{item.cfop || '—'}</td>
+                      <td>{item.unidade || '—'}</td>
+                      <td className="text-end">{item.quantidade}</td>
+                      <td className="text-end">{formatMoedaBrl(item.valor_unitario)}</td>
+                      <td className="text-end">{formatMoedaBrl(item.valor_total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+type NfeEmitidaDetalheConteudoProps = {
+  readonly data: DocumentoFiscalEmitidoDetail
+  readonly podeEditar: boolean
+  readonly xmlAberto: boolean
+  readonly salvandoFaturamento: boolean
+  readonly erroFaturamento: string | null
+  readonly onDownloadXml: () => void
+  readonly onToggleXml: () => void
+  readonly onSolicitarExclusao: () => void
+  readonly onAlterarFaturamento: (novoValor: boolean) => void
+}
+
+function NfeEmitidaDetalheConteudo({
+  data,
+  podeEditar,
+  xmlAberto,
+  salvandoFaturamento,
+  erroFaturamento,
+  onDownloadXml,
+  onToggleXml,
+  onSolicitarExclusao,
+  onAlterarFaturamento,
+}: NfeEmitidaDetalheConteudoProps) {
+  return (
+    <>
+      <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+          <h1 className="h3 mb-2">
+            {labelTipoDocumentoEmitido(data.tipo_documento)} {data.numero || '—'}
+            {data.serie ? ` · série ${data.serie}` : ''}
+          </h1>
+          <p className="text-muted font-monospace small mb-2">
+            {data.chave_acesso ? formatChaveAcesso(data.chave_acesso) : data.identificador}
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            <span className="badge bg-secondary">
+              {labelOrigemImportacao(data.origem_importacao)}
+            </span>
+            <span className="badge bg-info text-dark">
+              {labelObjetivoSaida(data.objetivo_saida)}
+            </span>
+            <span className={`badge ${data.incluir_faturamento ? 'bg-primary' : 'bg-secondary'}`}>
+              {data.incluir_faturamento ? 'Compõe faturamento' : 'Não compõe faturamento'}
+            </span>
+            <span className="badge bg-light text-dark border">
+              {labelAnexoSimples(data.anexo_simples)}
+            </span>
+          </div>
+        </div>
+        <div className="d-flex flex-wrap gap-2">
+          {data.xml_original ? (
+            <>
+              <button type="button" className="btn btn-outline-secondary" onClick={onDownloadXml}>
+                Descarregar XML
+              </button>
+              <button type="button" className="btn btn-outline-primary" onClick={onToggleXml}>
+                {xmlAberto ? 'Ocultar XML' : 'Ver XML'}
+              </button>
+            </>
+          ) : null}
+          <Link to={fiscalPaths.nfesEmitidas} className="btn btn-outline-secondary">
+            Voltar à lista
+          </Link>
+          {podeEditar ? (
+            <button type="button" className="btn btn-outline-danger" onClick={onSolicitarExclusao}>
+              Excluir
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="row g-3 mb-4">
+        <div className="col-md-6">
+          <div className="card h-100">
+            <div className="card-body">
+              <h2 className="h6 text-muted text-uppercase">Emitente</h2>
+              <p className="mb-1 fw-semibold">{data.nome_emitente || '—'}</p>
+              <p className="mb-0 small">{formatCnpjExibicao(data.cnpj_emitente)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="card h-100">
+            <div className="card-body">
+              <h2 className="h6 text-muted text-uppercase">Cliente / destinatário</h2>
+              <p className="mb-1 fw-semibold">{data.nome_destinatario || '—'}</p>
+              <p className="mb-0 small">{formatCnpjExibicao(data.cnpj_destinatario)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="col-12">
+          <div className="card">
+            <div className="card-body row g-3">
+              <div className="col-sm-3">
+                <div className="small text-muted">Emissão</div>
+                <div>{formatDataIso(data.data_emissao)}</div>
+              </div>
+              <div className="col-sm-3">
+                <div className="small text-muted">Valor total</div>
+                <div className="fw-semibold">{formatMoedaBrl(data.valor_total)}</div>
+              </div>
+              <div className="col-sm-3">
+                <div className="small text-muted">CFOP predominante</div>
+                <div>{data.cfop_predominante || '—'}</div>
+              </div>
+              <div className="col-sm-3">
+                <div className="small text-muted">Classificação</div>
+                <div>{data.classificacao_origem === 'AUTOMATICA' ? 'Automática' : 'Manual'}</div>
+              </div>
+              <div className="col-sm-6">
+                <div className="small text-muted">Faturamento</div>
+                <div className="form-check form-switch mt-1">
+                  <input
+                    id="nfe-emitida-incluir-faturamento"
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={data.incluir_faturamento}
+                    disabled={salvandoFaturamento}
+                    onChange={(event) => void onAlterarFaturamento(event.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="nfe-emitida-incluir-faturamento">
+                    {data.incluir_faturamento ? 'Compõe faturamento' : 'Não compõe faturamento'}
+                  </label>
+                </div>
+                {erroFaturamento ? (
+                  <div className="text-danger small mt-1" role="alert">
+                    {erroFaturamento}
+                  </div>
+                ) : null}
+                {salvandoFaturamento ? (
+                  <div className="text-muted small mt-1">Salvando alteração…</div>
+                ) : null}
+              </div>
+              <div className="col-sm-6">
+                <div className="small text-muted">Natureza da operação</div>
+                <div>{data.natureza_operacao || '—'}</div>
+              </div>
+              <div className="col-sm-3">
+                <div className="small text-muted">Registrada em</div>
+                <div>{formatDataIso(data.criada_em)}</div>
+              </div>
+              <div className="col-sm-3">
+                <div className="small text-muted">Atualizada em</div>
+                <div>{formatDataIso(data.atualizada_em)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <NfeEmitidaItensTable itens={data.itens} />
+
+      {xmlAberto && data.xml_original ? (
+        <div className="card mb-4">
+          <div className="card-header">XML original</div>
+          <div className="card-body p-0">
+            <pre className="mb-0 p-3 small bg-light overflow-auto" style={{ maxHeight: '28rem' }}>
+              {data.xml_original}
+            </pre>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 /** Detalhe completo de NF-e/NFS-e emitida: cabeçalho, classificação, itens e XML. */
@@ -79,12 +304,7 @@ export default function NfeEmitidaDetailPage() {
     [data, refetch],
   )
 
-  const rotuloExclusao = useMemo(() => {
-    if (!data) return 'este documento'
-    const numero = data.numero || '—'
-    const serie = data.serie ? ` · série ${data.serie}` : ''
-    return `${labelTipoDocumentoEmitido(data.tipo_documento)} nº ${numero}${serie}`
-  }, [data])
+  const rotuloExclusao = data ? rotuloExclusaoDocumento(data) : 'este documento'
 
   const onConfirmarExclusao = useCallback(async () => {
     if (!data) return
@@ -150,198 +370,17 @@ export default function NfeEmitidaDetailPage() {
       ) : null}
 
       {data ? (
-        <>
-          <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-            <div>
-              <h1 className="h3 mb-2">
-                {labelTipoDocumentoEmitido(data.tipo_documento)} {data.numero || '—'}
-                {data.serie ? ` · série ${data.serie}` : ''}
-              </h1>
-              <p className="text-muted font-monospace small mb-2">
-                {data.chave_acesso ? formatChaveAcesso(data.chave_acesso) : data.identificador}
-              </p>
-              <div className="d-flex flex-wrap gap-2">
-                <span className="badge bg-secondary">
-                  {labelOrigemImportacao(data.origem_importacao)}
-                </span>
-                <span className="badge bg-info text-dark">
-                  {labelObjetivoSaida(data.objetivo_saida)}
-                </span>
-                <span className={`badge ${data.incluir_faturamento ? 'bg-primary' : 'bg-secondary'}`}>
-                  {data.incluir_faturamento ? 'Compõe faturamento' : 'Não compõe faturamento'}
-                </span>
-                <span className="badge bg-light text-dark border">
-                  {labelAnexoSimples(data.anexo_simples)}
-                </span>
-              </div>
-            </div>
-            <div className="d-flex flex-wrap gap-2">
-              {data.xml_original ? (
-                <>
-                  <button type="button" className="btn btn-outline-secondary" onClick={onDownloadXml}>
-                    Descarregar XML
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary"
-                    onClick={() => setXmlAberto((v) => !v)}
-                  >
-                    {xmlAberto ? 'Ocultar XML' : 'Ver XML'}
-                  </button>
-                </>
-              ) : null}
-              <Link to={fiscalPaths.nfesEmitidas} className="btn btn-outline-secondary">
-                Voltar à lista
-              </Link>
-              {podeEditar ? (
-                <button
-                  type="button"
-                  className="btn btn-outline-danger"
-                  onClick={() => setConfirmarExclusaoAberto(true)}
-                >
-                  Excluir
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="row g-3 mb-4">
-            <div className="col-md-6">
-              <div className="card h-100">
-                <div className="card-body">
-                  <h2 className="h6 text-muted text-uppercase">Emitente</h2>
-                  <p className="mb-1 fw-semibold">{data.nome_emitente || '—'}</p>
-                  <p className="mb-0 small">{formatCnpjExibicao(data.cnpj_emitente)}</p>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="card h-100">
-                <div className="card-body">
-                  <h2 className="h6 text-muted text-uppercase">Cliente / destinatário</h2>
-                  <p className="mb-1 fw-semibold">{data.nome_destinatario || '—'}</p>
-                  <p className="mb-0 small">{formatCnpjExibicao(data.cnpj_destinatario)}</p>
-                </div>
-              </div>
-            </div>
-            <div className="col-12">
-              <div className="card">
-                <div className="card-body row g-3">
-                  <div className="col-sm-3">
-                    <div className="small text-muted">Emissão</div>
-                    <div>{formatDataIso(data.data_emissao)}</div>
-                  </div>
-                  <div className="col-sm-3">
-                    <div className="small text-muted">Valor total</div>
-                    <div className="fw-semibold">{formatMoedaBrl(data.valor_total)}</div>
-                  </div>
-                  <div className="col-sm-3">
-                    <div className="small text-muted">CFOP predominante</div>
-                    <div>{data.cfop_predominante || '—'}</div>
-                  </div>
-                  <div className="col-sm-3">
-                    <div className="small text-muted">Classificação</div>
-                    <div>{data.classificacao_origem === 'AUTOMATICA' ? 'Automática' : 'Manual'}</div>
-                  </div>
-                  <div className="col-sm-6">
-                    <div className="small text-muted">Faturamento</div>
-                    <div className="form-check form-switch mt-1">
-                      <input
-                        id="nfe-emitida-incluir-faturamento"
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={data.incluir_faturamento}
-                        disabled={salvandoFaturamento}
-                        onChange={(event) => void onAlterarFaturamento(event.target.checked)}
-                      />
-                      <label
-                        className="form-check-label"
-                        htmlFor="nfe-emitida-incluir-faturamento"
-                      >
-                        {data.incluir_faturamento
-                          ? 'Compõe faturamento'
-                          : 'Não compõe faturamento'}
-                      </label>
-                    </div>
-                    {erroFaturamento ? (
-                      <div className="text-danger small mt-1" role="alert">
-                        {erroFaturamento}
-                      </div>
-                    ) : null}
-                    {salvandoFaturamento ? (
-                      <div className="text-muted small mt-1">Salvando alteração…</div>
-                    ) : null}
-                  </div>
-                  <div className="col-sm-6">
-                    <div className="small text-muted">Natureza da operação</div>
-                    <div>{data.natureza_operacao || '—'}</div>
-                  </div>
-                  <div className="col-sm-3">
-                    <div className="small text-muted">Registrada em</div>
-                    <div>{formatDataIso(data.criada_em)}</div>
-                  </div>
-                  <div className="col-sm-3">
-                    <div className="small text-muted">Atualizada em</div>
-                    <div>{formatDataIso(data.atualizada_em)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <h2 className="h5 mb-3">Itens da nota ({data.itens.length})</h2>
-          <div className="card mb-4">
-            <div className="card-body p-0">
-              {data.itens.length === 0 ? (
-                <p className="text-muted p-3 mb-0">Nenhum item parseado.</p>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-sm align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Código</th>
-                        <th scope="col">Descrição</th>
-                        <th scope="col">NCM</th>
-                        <th scope="col">CFOP</th>
-                        <th scope="col">Un.</th>
-                        <th scope="col" className="text-end">Qtd</th>
-                        <th scope="col" className="text-end">Unitário</th>
-                        <th scope="col" className="text-end">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.itens.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.numero_item}</td>
-                          <td className="text-break">{item.codigo || '—'}</td>
-                          <td className="text-break">{item.descricao || '—'}</td>
-                          <td>{item.ncm || '—'}</td>
-                          <td>{item.cfop || '—'}</td>
-                          <td>{item.unidade || '—'}</td>
-                          <td className="text-end">{item.quantidade}</td>
-                          <td className="text-end">{formatMoedaBrl(item.valor_unitario)}</td>
-                          <td className="text-end">{formatMoedaBrl(item.valor_total)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {xmlAberto && data.xml_original ? (
-            <div className="card mb-4">
-              <div className="card-header">XML original</div>
-              <div className="card-body p-0">
-                <pre className="mb-0 p-3 small bg-light overflow-auto" style={{ maxHeight: '28rem' }}>
-                  {data.xml_original}
-                </pre>
-              </div>
-            </div>
-          ) : null}
-        </>
+        <NfeEmitidaDetalheConteudo
+          data={data}
+          podeEditar={podeEditar}
+          xmlAberto={xmlAberto}
+          salvandoFaturamento={salvandoFaturamento}
+          erroFaturamento={erroFaturamento}
+          onDownloadXml={onDownloadXml}
+          onToggleXml={() => setXmlAberto((v) => !v)}
+          onSolicitarExclusao={() => setConfirmarExclusaoAberto(true)}
+          onAlterarFaturamento={(novoValor) => void onAlterarFaturamento(novoValor)}
+        />
       ) : null}
     </div>
   )
