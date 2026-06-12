@@ -15,6 +15,7 @@ from .certificado import CertificadoA1
 from .config import SefazConfig
 from .soap_client import post_soap
 from .urls import NS_NFE, NS_RECEPCAO_EVENTO, RECEPCAO_EVENTO
+from .xml_namespaces import C14N_XML_20010315, montar_envelope_soap12
 
 _CSTAT_SUCESSO = {"128", "135", "136"}
 
@@ -109,7 +110,7 @@ def assinar_env_evento(xml_env: str, certificado: CertificadoA1) -> str:
         method=methods.enveloped,
         signature_algorithm="rsa-sha1",
         digest_algorithm="sha1",
-        c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315",
+        c14n_algorithm=C14N_XML_20010315,
     )
     assinado = signer.sign(
         evento,
@@ -122,19 +123,12 @@ def assinar_env_evento(xml_env: str, certificado: CertificadoA1) -> str:
 
 
 def _montar_envelope_recepcao_evento(dados_msg: str) -> str:
-    dados_esc = escape(dados_msg)
-    return (
-        '<?xml version="1.0" encoding="utf-8"?>'
-        '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-        'xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
-        "<soap12:Body>"
+    corpo = (
         f'<nfeRecepcaoEvento xmlns="{NS_RECEPCAO_EVENTO}">'
-        f"<nfeDadosMsg>{dados_esc}</nfeDadosMsg>"
+        f"<nfeDadosMsg>{escape(dados_msg)}</nfeDadosMsg>"
         "</nfeRecepcaoEvento>"
-        "</soap12:Body>"
-        "</soap12:Envelope>"
     )
+    return montar_envelope_soap12(body_inner_xml=corpo)
 
 
 def _parse_resposta_manifestacao(soap_xml: str) -> ResultadoManifestacaoSefaz:

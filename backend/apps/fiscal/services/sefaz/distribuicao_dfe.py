@@ -9,6 +9,7 @@ from .parse_dist_dfe import DistDfeResultado, parse_resposta_distribuicao_dfe
 from .soap_client import post_soap
 from .stub import consultar_distribuicao_stub
 from .urls import DIST_DFE, NS_DIST_DFE, NS_NFE
+from .xml_namespaces import montar_envelope_soap12
 
 
 def _montar_dist_dfe_int(*, config: SefazConfig, ultimo_nsu: str) -> str:
@@ -23,19 +24,12 @@ def _montar_dist_dfe_int(*, config: SefazConfig, ultimo_nsu: str) -> str:
 
 
 def _montar_envelope_soap(dados_msg: str) -> str:
-    dados_esc = escape(dados_msg)
-    return (
-        '<?xml version="1.0" encoding="utf-8"?>'
-        '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-        'xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
-        "<soap12:Body>"
+    corpo = (
         f'<nfeDistDFeInteresse xmlns="{NS_DIST_DFE}">'
-        f"<nfeDadosMsg>{dados_esc}</nfeDadosMsg>"
+        f"<nfeDadosMsg>{escape(dados_msg)}</nfeDadosMsg>"
         "</nfeDistDFeInteresse>"
-        "</soap12:Body>"
-        "</soap12:Envelope>"
     )
+    return montar_envelope_soap12(body_inner_xml=corpo)
 
 
 def consultar_distribuicao_por_nsu(

@@ -9,7 +9,9 @@ from xml.etree import ElementTree as ET
 
 from apps.fiscal.utils import normalizar_nsu
 
-NS = {"nfe": "http://www.portalfiscal.inf.br/nfe"}
+from .xml_namespaces import NS_NFE
+
+NS = {"nfe": NS_NFE}
 
 
 @dataclass
