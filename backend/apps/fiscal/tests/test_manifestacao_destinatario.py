@@ -25,7 +25,8 @@ PENDENTES_URL = "/api/v1/fiscal/nfes/manifestacoes-pendentes/"
 
 
 @pytest.fixture
-def documento(db):
+def documento(db, fiscal_cnpj_recebidas_settings):
+    del fiscal_cnpj_recebidas_settings
     return importar_xml_nfe(xml=XML_NFE_PROC)["documento"]
 
 

@@ -17,6 +17,7 @@ type DeleteTarget = { id: string; label: string }
 export default function ProdutoListPage() {
   const { user } = useAuth()
   const [filtroCategoria, setFiltroCategoria] = useState<string>('')
+  const [buscaRapida, setBuscaRapida] = useState<string>('')
   const [paginaAtual, setPaginaAtual] = useState<number>(1)
   const pageSize = 50
   const { showToast } = useToast()
@@ -25,19 +26,25 @@ export default function ProdutoListPage() {
 
   const { data: categorias = [], isPending: loadingCat } = useCategoriaListQuery()
   const categoriaQuery = filtroCategoria || null
+  const searchQuery = buscaRapida.trim() || null
   const {
     data: pageData,
     isPending: loadingProdutos,
     isError,
     error: loadError,
     refetch,
-  } = useProdutoListQuery(categoriaQuery, paginaAtual, pageSize)
+  } = useProdutoListQuery(categoriaQuery, paginaAtual, pageSize, searchQuery)
   const produtos = useMemo(() => pageData?.items ?? [], [pageData?.items])
 
   const deleteMutation = useDeleteProdutoMutation()
 
   const onFiltroChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     setFiltroCategoria(e.target.value)
+    setPaginaAtual(1)
+  }, [])
+
+  const onBuscaRapidaChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setBuscaRapida(e.target.value)
     setPaginaAtual(1)
   }, [])
 
@@ -128,24 +135,41 @@ export default function ProdutoListPage() {
 
       <div className="card mb-3">
         <div className="card-body">
-          <label className="form-label fw-semibold" htmlFor="filtro-cat-catalogo">
-            Filtrar por categoria
-          </label>
-          <select
-            id="filtro-cat-catalogo"
-            className="form-select"
-            style={{ maxWidth: '28rem' }}
-            value={filtroCategoria}
-            onChange={onFiltroChange}
-            disabled={loadingCat}
-          >
-            <option value="">Todas</option>
-            {categorias.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome_display ?? c.nome}
-              </option>
-            ))}
-          </select>
+          <div className="row g-3">
+            <div className="col-md-6 col-lg-5">
+              <label className="form-label fw-semibold" htmlFor="filtro-cat-catalogo">
+                Filtrar por categoria
+              </label>
+              <select
+                id="filtro-cat-catalogo"
+                className="form-select"
+                value={filtroCategoria}
+                onChange={onFiltroChange}
+                disabled={loadingCat}
+              >
+                <option value="">Todas</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome_display ?? c.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6 col-lg-5">
+              <label className="form-label fw-semibold" htmlFor="busca-rapida-produto">
+                Busca rápida por código
+              </label>
+              <input
+                id="busca-rapida-produto"
+                type="search"
+                className="form-control"
+                value={buscaRapida}
+                onChange={onBuscaRapidaChange}
+                placeholder="Digite parte do código"
+                autoComplete="off"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

@@ -113,6 +113,7 @@ class DocumentoFiscalEmitidoSerializer(serializers.ModelSerializer):
         model = DocumentoFiscalEmitido
         fields = (
             "id",
+            "public_id",
             "identificador",
             "tipo_documento",
             "chave_acesso",
@@ -127,6 +128,10 @@ class DocumentoFiscalEmitidoSerializer(serializers.ModelSerializer):
             "natureza_operacao",
             "objetivo_saida",
             "origem_importacao",
+            "cfop_predominante",
+            "anexo_simples",
+            "incluir_faturamento",
+            "classificacao_origem",
             "itens",
             "criada_em",
             "atualizada_em",
@@ -208,9 +213,12 @@ class ImportarXMLNFeSerializer(serializers.Serializer):
     xml = serializers.CharField(required=True, allow_blank=False)
 
     def validate_xml(self, value: str) -> str:
-        if not (value or "").strip():
+        texto = (value or "").strip()
+        if not texto:
             raise serializers.ValidationError("XML é obrigatório.")
-        return value
+        if not texto.startswith("<"):
+            raise serializers.ValidationError("Conteúdo não parece ser um arquivo XML válido.")
+        return texto
 
     def validate_cnpj_destinatario(self, value: str) -> str:
         if not value:
@@ -224,18 +232,26 @@ class ImportarXMLNFeSerializer(serializers.Serializer):
 
 
 class ImportarXMLDocumentoEmitidoSerializer(serializers.Serializer):
-    tipo_documento = serializers.ChoiceField(choices=TipoDocumentoFiscalEmitidoChoices.choices)
+    tipo_documento = serializers.ChoiceField(
+        choices=TipoDocumentoFiscalEmitidoChoices.choices,
+        required=False,
+        allow_null=True,
+    )
     objetivo_saida = serializers.ChoiceField(
         choices=ObjetivoSaidaFiscalChoices.choices,
         required=False,
-        default=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
+        allow_null=True,
     )
+    classificar_automaticamente = serializers.BooleanField(required=False, default=True)
     xml = serializers.CharField(required=True, allow_blank=False)
 
     def validate_xml(self, value: str) -> str:
-        if not (value or "").strip():
+        texto = (value or "").strip()
+        if not texto:
             raise serializers.ValidationError("XML é obrigatório.")
-        return value
+        if not texto.startswith("<"):
+            raise serializers.ValidationError("Conteúdo não parece ser um arquivo XML válido.")
+        return texto
 
 
 class SolicitarManifestacaoSerializer(serializers.Serializer):

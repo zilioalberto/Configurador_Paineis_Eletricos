@@ -5,6 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
 
+import { groupPermissionOptions } from '@/modules/auth/permissionGroups'
 import { useToast } from '@/components/feedback'
 import type {
   AdminUserDto,
@@ -43,6 +44,8 @@ function PermissionSelector({
   options: UserPermissionOption[]
   onToggle: (value: string) => void
 }>) {
+  const sections = useMemo(() => groupPermissionOptions(options), [options])
+
   if (options.length === 0) {
     return <p className="text-muted small mb-0">Nenhuma permissão disponível.</p>
   }
@@ -50,23 +53,32 @@ function PermissionSelector({
   const selectedSet = new Set(selected)
 
   return (
-    <div className="row g-2">
-      {options.map((permission) => (
-        <div className="col-md-6" key={permission.value}>
-          <div className="form-check border rounded px-2 py-2">
-            <input
-              id={`perm-${permission.value}`}
-              type="checkbox"
-              className="form-check-input"
-              checked={selectedSet.has(permission.value)}
-              onChange={() => onToggle(permission.value)}
-              disabled={disabled}
-            />
-            <label className="form-check-label" htmlFor={`perm-${permission.value}`}>
-              {permission.label}
-            </label>
+    <div className="d-flex flex-column gap-3">
+      {sections.map((section) => (
+        <section key={section.id} aria-labelledby={`perm-group-${section.id}`}>
+          <h3 className="h6 mb-2" id={`perm-group-${section.id}`}>
+            {section.label}
+          </h3>
+          <div className="row g-2">
+            {section.permissions.map((permission) => (
+              <div className="col-md-6" key={permission.value}>
+                <div className="form-check border rounded px-2 py-2">
+                  <input
+                    id={`perm-${permission.value}`}
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={selectedSet.has(permission.value)}
+                    onChange={() => onToggle(permission.value)}
+                    disabled={disabled}
+                  />
+                  <label className="form-check-label" htmlFor={`perm-${permission.value}`}>
+                    {permission.label}
+                  </label>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   )

@@ -1,0 +1,48 @@
+.fat-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  min-height: 180px;
+  padding: 0.5rem 0;
+}
+
+.fat-bar-chart__item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fat-bar-chart__bar-wrap {
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.fat-bar-chart__bar {
+  width: 72%;
+  max-width: 2.5rem;
+  background: linear-gradient(180deg, #0d6efd 0%, #0a58ca 100%);
+  border-radius: 0.25rem 0.25rem 0 0;
+  min-height: 4px;
+  transition: height 0.2s ease;
+}
+
+.fat-bar-chart__label {
+  font-size: 0.65rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.fat-client-bar {
+  height: 0.65rem;
+  background: #0d6efd;
+  border-radius: 0.2rem;
+  min-width: 2%;
+}

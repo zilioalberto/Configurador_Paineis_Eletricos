@@ -72,7 +72,7 @@ class IsFiscalAgentAuthenticated(BasePermission):
 
 
 class ControleNSUGetPermission(BasePermission):
-    """GET do controle NSU: agente Bearer ou utilizador JWT com visualização de materiais."""
+    """GET do controle NSU: agente Bearer ou utilizador JWT com fiscal.visualizar."""
 
     message = "Sem permissão para consultar o controle NSU."
 

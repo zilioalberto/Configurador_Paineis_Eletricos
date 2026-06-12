@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import mixins, viewsets
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -64,7 +65,7 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     queryset = DocumentoFiscalRecebido.objects.prefetch_related("itens").order_by(
         "-data_emissao",
@@ -120,18 +121,93 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
         return qs
 
 
-class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
-    """Lista e detalha NF-es/NFS-es emitidas pela ZFW."""
+_EMITIDAS_ORDERING_MAP: dict[str, tuple[str, ...]] = {
+    "serie": ("serie", "numero", "-data_emissao"),
+    "-serie": ("-serie", "-numero", "-data_emissao"),
+    "data_emissao": ("data_emissao", "-criada_em"),
+    "-data_emissao": ("-data_emissao", "-criada_em"),
+    "nome_destinatario": ("nome_destinatario", "-data_emissao"),
+    "-nome_destinatario": ("-nome_destinatario", "-data_emissao"),
+}
+_EMITIDAS_ORDERING_DEFAULT = ("-data_emissao", "-criada_em")
+
+
+def aplicar_ordenacao_emitidas(queryset, ordering_param: str):
+    """Aplica ordenação segura à listagem de documentos emitidos."""
+    chave = (ordering_param or "").strip()
+    campos = _EMITIDAS_ORDERING_MAP.get(chave)
+    if campos:
+        return queryset.order_by(*campos)
+    return queryset.order_by(*_EMITIDAS_ORDERING_DEFAULT)
+
+
+def _parametro_texto(params, nome: str) -> str:
+    return (params.get(nome) or "").strip()
+
+
+def _filtrar_incluir_faturamento(queryset, valor: str):
+    incluir = valor.lower()
+    if incluir in {"true", "1", "sim"}:
+        return queryset.filter(incluir_faturamento=True)
+    if incluir in {"false", "0", "nao", "não"}:
+        return queryset.filter(incluir_faturamento=False)
+    return queryset
+
+
+def filtrar_queryset_emitidas(queryset, params):
+    """Aplica filtros de query string à listagem de documentos emitidos."""
+    filtros_simples = (
+        ("tipo_documento", "tipo_documento"),
+        ("objetivo_saida", "objetivo_saida"),
+        ("cfop", "cfop_predominante"),
+        ("anexo_simples", "anexo_simples"),
+    )
+    for param, campo in filtros_simples:
+        valor = _parametro_texto(params, param)
+        if valor:
+            queryset = queryset.filter(**{campo: valor})
+
+    data_inicio = _parametro_texto(params, "data_inicio")
+    if data_inicio:
+        queryset = queryset.filter(data_emissao__date__gte=data_inicio)
+
+    data_fim = _parametro_texto(params, "data_fim")
+    if data_fim:
+        queryset = queryset.filter(data_emissao__date__lte=data_fim)
+
+    cnpj_dest = _parametro_texto(params, "cnpj_destinatario")
+    if cnpj_dest:
+        queryset = queryset.filter(cnpj_destinatario=normalizar_cnpj(cnpj_dest))
+
+    cliente = _parametro_texto(params, "cliente")
+    if cliente:
+        queryset = queryset.filter(nome_destinatario__icontains=cliente)
+
+    queryset = _filtrar_incluir_faturamento(
+        queryset,
+        _parametro_texto(params, "incluir_faturamento"),
+    )
+    return aplicar_ordenacao_emitidas(queryset, _parametro_texto(params, "ordering"))
+
+
+class DocumentoFiscalEmitidoViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Lista, detalha e exclui NF-es/NFS-es emitidas importadas pela ZFW."""
 
     permission_classes = [HasEffectivePermission]
+    lookup_field = "public_id"
+    lookup_value_regex = "[0-9a-f-]{36}"
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        if self.action == "destroy":
+            return PermissionKeys.FISCAL_EDITAR
+        return PermissionKeys.FISCAL_VISUALIZAR
 
-    queryset = DocumentoFiscalEmitido.objects.prefetch_related("itens").order_by(
-        "-data_emissao",
-        "-criada_em",
-    )
+    queryset = DocumentoFiscalEmitido.objects.prefetch_related("itens")
     pagination_class = DocumentoFiscalPagination
 
     def get_serializer_class(self):
@@ -140,26 +216,7 @@ class DocumentoFiscalEmitidoViewSet(ReadOnlyModelViewSet):
         return DocumentoFiscalEmitidoSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        params = self.request.query_params
-
-        tipo = (params.get("tipo_documento") or "").strip()
-        if tipo:
-            qs = qs.filter(tipo_documento=tipo)
-
-        objetivo = (params.get("objetivo_saida") or "").strip()
-        if objetivo:
-            qs = qs.filter(objetivo_saida=objetivo)
-
-        cnpj_dest = (params.get("cnpj_destinatario") or "").strip()
-        if cnpj_dest:
-            qs = qs.filter(cnpj_destinatario=normalizar_cnpj(cnpj_dest))
-
-        cliente = (params.get("cliente") or "").strip()
-        if cliente:
-            qs = qs.filter(nome_destinatario__icontains=cliente)
-
-        return qs
+        return filtrar_queryset_emitidas(super().get_queryset(), self.request.query_params)
 
 
 class RelatorioNFeView(APIView):
@@ -168,7 +225,7 @@ class RelatorioNFeView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def _queryset_entradas(self, params):
         qs = DocumentoFiscalRecebido.objects.prefetch_related("itens").order_by(
@@ -351,7 +408,7 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request):
         serializer = ImportarXMLDocumentoEmitidoSerializer(data=request.data)
@@ -361,9 +418,10 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
         try:
             resultado = importar_xml_documento_emitido(
                 xml=data["xml"],
-                tipo_documento=data["tipo_documento"],
+                tipo_documento=data.get("tipo_documento"),
                 objetivo_saida=data.get("objetivo_saida"),
                 origem_importacao="MANUAL",
+                classificar_automaticamente=data.get("classificar_automaticamente", True),
             )
         except DocumentoEmitidoParserError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -375,6 +433,7 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
                 "created": resultado["created"],
                 "message": resultado["message"],
                 "documento_id": documento.id,
+                "documento_public_id": str(documento.public_id),
                 "identificador": documento.identificador,
             },
             status=status_code,
@@ -412,7 +471,7 @@ class ImportarXMLNFePortalView(APIView):
     permission_classes = [HasEffectivePermission]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_EDITAR_LISTA
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request):
         serializer = ImportarXMLNFeSerializer(data=request.data)
@@ -462,7 +521,7 @@ class ControleNSUView(ControleNSUBaseView):
         return [FiscalAgentTokenConfigured(), IsFiscalAgentAuthenticated()]
 
     def required_permission(self, request, view):
-        return PermissionKeys.MATERIAL_VISUALIZAR_LISTA
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def get(self, request, cnpj: str):
         controle = self._get_or_create(cnpj)

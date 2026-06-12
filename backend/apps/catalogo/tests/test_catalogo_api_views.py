@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from apps.cadastros.models import ParceiroComercial
 from apps.catalogo.models import Produto
 from core.choices.produtos import CategoriaProdutoNomeChoices, UnidadeMedidaChoices
 from core.choices.usuarios import TipoUsuarioChoices
@@ -143,13 +144,19 @@ class TestCatalogoProdutos:
         assert "CAT-SRC-INAT" not in codigos
 
     def test_list_search_composta_varias_palavras_and(self, admin_client):
-        """Várias palavras: cada uma deve casar (parcial) em código/descrição/fabricante."""
+        """Várias palavras: cada uma deve casar em código, descrição ou fabricante vinculado."""
         client, _ = admin_client
+        fabricante = ParceiroComercial.objects.create(
+            documento="12345678000199",
+            razao_social="Fabricante Busca LTDA",
+            eh_fornecedor=True,
+        )
         Produto.objects.create(
             codigo="CAT-SRC-CT-6A",
             descricao="3TS2901-0BB4 CONTATOR AC3:6A 1NF 24VCC",
             categoria=CategoriaProdutoNomeChoices.CONTATORA,
             unidade_medida=UnidadeMedidaChoices.UN,
+            fabricante_parceiro=fabricante,
             ativo=True,
         )
         url = reverse("catalogo-produtos-list")
@@ -158,6 +165,9 @@ class TestCatalogoProdutos:
         body = r.json()
         codigos = {x["codigo"] for x in body["results"]}
         assert "CAT-SRC-CT-6A" in codigos
+        r2 = client.get(url, {"search": "fabricante busca"})
+        assert r2.status_code == 200
+        assert "CAT-SRC-CT-6A" in {x["codigo"] for x in r2.json()["results"]}
         r3 = client.get(url, {"search": "contator 6A fantasma"})
         assert r3.status_code == 200
         assert "CAT-SRC-CT-6A" not in {x["codigo"] for x in r3.json()["results"]}
@@ -224,14 +234,13 @@ class TestCatalogoProdutos:
         url = reverse("catalogo-produtos-detail", kwargs={"pk": p.pk})
         r = client.patch(
             url,
-            {"descricao": "Depois", "fabricante": "Fab X"},
+            {"descricao": "Depois"},
             format="json",
         )
         assert r.status_code == 200
         assert r.json()["descricao"] == "DEPOIS"
         p.refresh_from_db()
         assert p.descricao == "DEPOIS"
-        assert p.fabricante == "FAB X"
 
     def test_list_sem_auth_401(self):
         url = reverse("catalogo-produtos-list")

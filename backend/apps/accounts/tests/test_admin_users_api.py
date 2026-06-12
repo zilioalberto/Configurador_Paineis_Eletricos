@@ -118,6 +118,12 @@ class TestAdminUsersApi:
         assert "permissions" in response.data
         assert "defaults_by_tipo" in response.data
         assert TipoUsuarioChoices.ADMIN in response.data["defaults_by_tipo"]
+        permission_values = {item["value"] for item in response.data["permissions"]}
+        assert PermissionKeys.FISCAL_VISUALIZAR in permission_values
+        assert PermissionKeys.FISCAL_EDITAR in permission_values
+        assert PermissionKeys.FISCAL_VISUALIZAR in response.data["defaults_by_tipo"][
+            TipoUsuarioChoices.ENGENHARIA
+        ]
 
     def test_create_user_with_custom_permissions(self, admin_user):
         admin, secret = admin_user

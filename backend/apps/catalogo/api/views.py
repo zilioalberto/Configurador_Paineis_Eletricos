@@ -32,7 +32,7 @@ from core.permissions import PermissionKeys
 
 def _produto_busca_por_tokens(search: str) -> Q:
     """
-    Cada palavra deve aparecer em código, descrição ou fabricante (AND entre palavras).
+    Cada palavra deve aparecer em código, descrição ou fabricante vinculado (AND entre palavras).
     Dentro de cada palavra vale correspondência parcial (icontains), em qualquer posição.
     """
     tokens = [t for t in search.split() if t]
@@ -43,7 +43,8 @@ def _produto_busca_por_tokens(search: str) -> Q:
         parte = (
             Q(codigo__icontains=token)
             | Q(descricao__icontains=token)
-            | Q(fabricante__icontains=token)
+            | Q(fabricante_parceiro__razao_social__icontains=token)
+            | Q(fabricante_parceiro__documento__icontains=token)
         )
         combined = parte if not combined else combined & parte
     return combined

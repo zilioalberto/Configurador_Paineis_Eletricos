@@ -5,8 +5,9 @@ import { fiscalPaths } from '../fiscalPaths'
 import { useControleNsuQuery } from '../hooks/useControleNsuQuery'
 import { useFiscalConfigQuery } from '../hooks/useFiscalConfigQuery'
 import { formatCnpjExibicao, formatDataIso } from '../utils/fiscalDisplay'
+import SincronizarNfesSefazButton from './SincronizarNfesSefazButton'
 
-/** Resumo do NSU da empresa (ponte A3 / SEFAZ) na home fiscal. */
+/** Resumo do NSU da empresa (sincronização SEFAZ no servidor) na home fiscal. */
 export default function FiscalNsuStatusCard() {
   const { data: config, isPending: configPending } = useFiscalConfigQuery()
   const cnpj = config?.cnpj_empresa ?? ''
@@ -40,7 +41,7 @@ export default function FiscalNsuStatusCard() {
     return (
       <div className="alert alert-secondary small mb-4" role="status">
         Configure <code>FISCAL_EMPRESA_CNPJ</code> no servidor para exibir o estado da sincronização
-        SEFAZ aqui. A ponte local usa o mesmo CNPJ em <code>FISCAL_PONTE_CNPJ</code>.
+        SEFAZ aqui.
       </div>
     )
   }
@@ -53,16 +54,26 @@ export default function FiscalNsuStatusCard() {
             <h2 className="h6 mb-1">Sincronização SEFAZ (NSU)</h2>
             <p className="small text-muted mb-0">
               Empresa {formatCnpjExibicao(cnpj)}
-              {config?.agente_ponte_configurado ? (
-                <span className="badge bg-success ms-2">Agente configurado</span>
+              {config?.sefaz_sync_configurado ?? config?.agente_ponte_configurado ? (
+                <span className="badge bg-success ms-2">SEFAZ configurado</span>
               ) : (
-                <span className="badge bg-warning text-dark ms-2">Token agente ausente no servidor</span>
+                <span className="badge bg-warning text-dark ms-2">Certificado A1 ausente no servidor</span>
               )}
             </p>
           </div>
-          <Link to={fiscalPaths.nsu} className="btn btn-sm btn-outline-secondary">
-            Detalhes
-          </Link>
+          <div className="d-flex flex-wrap gap-2">
+            <SincronizarNfesSefazButton
+              cnpj={cnpj}
+              className="btn btn-primary"
+              size="sm"
+              disabled={
+                bloqueado || !(config?.sefaz_sync_configurado ?? config?.agente_ponte_configurado)
+              }
+            />
+            <Link to={fiscalPaths.nsu} className="btn btn-sm btn-outline-secondary">
+              Detalhes
+            </Link>
+          </div>
         </div>
 
         {isFetching && <p className="small text-muted mb-0">A carregar estado…</p>}
@@ -96,9 +107,12 @@ export default function FiscalNsuStatusCard() {
             ) : null}
           </dl>
         )}
-        <p className="small text-muted mt-2 mb-0">
-          Atualização via máquina local: <code>fiscal-ponte sync</code> (ACBr + certificado A3).
-        </p>
+        {bloqueado ? (
+          <p className="small text-warning mt-2 mb-0">
+            Consulta temporariamente bloqueada pela SEFAZ (consumo indevido). Aguarde o horário
+            indicado em &quot;Bloqueado até&quot;.
+          </p>
+        ) : null}
       </div>
     </div>
   )

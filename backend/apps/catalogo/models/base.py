@@ -15,7 +15,6 @@ from core.models.mixins import (
     DimensoesMixin,
     AtivacaoMixin,
     ObservacoesTecnicasMixin,
-    FabricanteMixin,
     UpperCaseMixin,
 )
 
@@ -33,14 +32,12 @@ class Produto(
     DimensoesMixin,
     AtivacaoMixin,
     ObservacoesTecnicasMixin,
-    FabricanteMixin,
 ):
     """Item do catálogo técnico; categoria define a especificação 1:1 associada."""
 
     UPPERCASE_FIELDS = [
         "codigo",
         "descricao",
-        "fabricante",
         "referencia_fabricante",
         "unidade_medida",
         "categoria",
@@ -49,6 +46,7 @@ class Produto(
 
     codigo = models.CharField(max_length=60, unique=True)
     descricao = models.CharField(max_length=255)
+    referencia_fabricante = models.CharField(max_length=120, blank=True)
 
     categoria = models.CharField(
         max_length=50,

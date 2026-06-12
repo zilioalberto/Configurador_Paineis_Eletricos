@@ -72,7 +72,7 @@ function renderPanel(documento = documentoStub()) {
 describe('NfeManifestacaoDestinatarioPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.MATERIAL_EDITAR_LISTA]) })
+    useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.FISCAL_EDITAR]) })
     solicitarManifestacaoDestinatarioMock.mockResolvedValue({ message: 'Solicitada' })
   })
 

@@ -8,6 +8,7 @@ from apps.configurador_paineis.cargas.models import Carga, CargaResistencia, Car
 from apps.configurador_paineis.cargas.models.motor import CargaMotor
 from apps.configurador_paineis.cargas.models.valvula import CargaValvula
 from apps.catalogo.models import Produto
+from apps.catalogo.utils.fabricante_produto import nome_fabricante_produto
 from apps.configurador_paineis.composicao_painel.models import (
     ComposicaoInclusaoManual,
     ComposicaoItem,
@@ -254,17 +255,27 @@ class ProjetoAlimentacaoSerializer(serializers.ModelSerializer):
 class ProdutoMiniSerializer(serializers.ModelSerializer):
     """Resumo do produto do catálogo para listagens de composição."""
 
+    fabricante = serializers.SerializerMethodField()
+
     class Meta:
         model = Produto
         fields = ("id", "codigo", "descricao", "fabricante")
+
+    def get_fabricante(self, obj: Produto) -> str:
+        return nome_fabricante_produto(obj)
 
 
 class ProdutoAlternativaSerializer(serializers.ModelSerializer):
     """Produto alternativo compatível com a sugestão (inclui preço base)."""
 
+    fabricante = serializers.SerializerMethodField()
+
     class Meta:
         model = Produto
         fields = ("id", "codigo", "descricao", "fabricante", "preco_base")
+
+    def get_fabricante(self, obj: Produto) -> str:
+        return nome_fabricante_produto(obj)
 
 
 class AprovarSugestaoInputSerializer(serializers.Serializer):

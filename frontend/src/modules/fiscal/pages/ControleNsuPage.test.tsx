@@ -14,6 +14,10 @@ vi.mock('../hooks/useFiscalConfigQuery', () => ({
   useFiscalConfigQuery: () => useFiscalConfigQueryMock(),
 }))
 
+vi.mock('../components/SincronizarNfesSefazButton', () => ({
+  default: () => <button type="button">Buscar NF-es na SEFAZ</button>,
+}))
+
 import ControleNsuPage from './ControleNsuPage'
 
 function renderPage() {

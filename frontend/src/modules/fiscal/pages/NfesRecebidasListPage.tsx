@@ -214,7 +214,8 @@ export default function NfesRecebidasListPage() {
               >
                 <option value="">Todas</option>
                 <option value="MANUAL">Manual (portal)</option>
-                <option value="PONTE_A3">Ponte A3 / SEFAZ</option>
+                <option value="SEFAZ_SYNC">Sincronização SEFAZ</option>
+                <option value="PONTE_A3">Ponte A3 (legado)</option>
                 <option value="API">API</option>
                 <option value="OUTRO">Outro</option>
               </select>

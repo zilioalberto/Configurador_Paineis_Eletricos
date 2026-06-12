@@ -50,8 +50,8 @@ const produtoExistente = {
   preco_base: '10.00',
   unidade_tributavel: '',
   origem_mercadoria: '0',
-  fabricante: '',
   referencia_fabricante: '',
+  fabricante_parceiro_nome: '',
   aliquota_ipi: '',
   fabricante_parceiro_id: '',
   fornecedor_parceiro_id: '',
@@ -213,9 +213,6 @@ describe('NfeImportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Marcar todos' }))
     fireEvent.click(screen.getByRole('button', { name: /Ver campos/i }))
 
-    fireEvent.change(screen.getByLabelText('Fabricante em texto padrão (opcional)'), {
-      target: { value: 'Fabricante manual' },
-    })
     fireEvent.click(screen.getByRole('button', { name: /Aplicar importação/i }))
 
     await waitFor(() => {
@@ -223,7 +220,6 @@ describe('NfeImportPage', () => {
     })
     expect(aplicarImportacaoNfe.mock.calls[0][0]).toEqual(
       expect.objectContaining({
-        fabricante_padrao: 'Fabricante manual',
         objetivo_entrada: 'INDUSTRIALIZACAO',
         itens: expect.arrayContaining([
           expect.objectContaining({
@@ -393,8 +389,8 @@ describe('NfeImportPage', () => {
       cest: '',
       gtin: '',
       origem_mercadoria: '0',
-      fabricante: '',
       referencia_fabricante: '',
+      fabricante_parceiro_nome: '',
       aliquota_ipi: '',
       fabricante_parceiro_id: '',
       fornecedor_parceiro_id: '',

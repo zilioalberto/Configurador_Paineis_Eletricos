@@ -318,15 +318,13 @@ class ProdutoAdmin(admin.ModelAdmin):
         "categoria",
         "fabricante_parceiro",
         "fornecedor_parceiro",
-        "fabricante",
         "preco_base",
         "ativo",
     )
-    list_filter = ("ativo", "categoria", "fabricante_parceiro", "fornecedor_parceiro", "fabricante")
+    list_filter = ("ativo", "categoria", "fabricante_parceiro", "fornecedor_parceiro")
     search_fields = (
         "codigo",
         "descricao",
-        "fabricante",
         "referencia_fabricante",
         "fabricante_parceiro__razao_social",
         "fabricante_parceiro__documento",
@@ -374,7 +372,7 @@ class ProdutoAdmin(admin.ModelAdmin):
         (
             "Fabricante",
             {
-                "fields": (("fabricante", "referencia_fabricante"),),
+                "fields": ("referencia_fabricante",),
             },
         ),
         (

@@ -14,6 +14,9 @@ class PermissionKeys:
     MATERIAL_EDITAR_LISTA = "material.editar_lista"
     CATALOGO_REVISAR_PRECO = "catalogo.revisar_preco"
 
+    FISCAL_VISUALIZAR = "fiscal.visualizar"
+    FISCAL_EDITAR = "fiscal.editar"
+
     CADASTRO_VISUALIZAR = "cadastro.visualizar"
     CADASTRO_EDITAR = "cadastro.editar"
 

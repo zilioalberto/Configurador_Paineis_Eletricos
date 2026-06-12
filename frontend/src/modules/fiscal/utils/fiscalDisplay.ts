@@ -1,6 +1,7 @@
 import { aplicarMascaraCnpj } from '@/modules/cadastros/utils/cnpjMask'
 
 import type {
+  AnexoSimplesNacional,
   OrigemImportacaoFiscal,
   StatusImportacaoFiscal,
   StatusManifestacaoDestinatario,
@@ -34,7 +35,8 @@ export function labelStatusImportacao(status: StatusImportacaoFiscal): string {
 export function labelOrigemImportacao(origem: OrigemImportacaoFiscal): string {
   const map: Record<OrigemImportacaoFiscal, string> = {
     MANUAL: 'Manual (portal)',
-    PONTE_A3: 'Ponte A3 / SEFAZ',
+    PONTE_A3: 'Ponte A3 (legado)',
+    SEFAZ_SYNC: 'Sincronização SEFAZ',
     API: 'API',
     OUTRO: 'Outro',
   }
@@ -57,7 +59,7 @@ export function formatDataIso(data: string | null | undefined): string {
 export function labelStatusManifestacao(status: StatusManifestacaoDestinatario): string {
   const map: Record<StatusManifestacaoDestinatario, string> = {
     NAO_SOLICITADA: 'Não solicitada',
-    PENDENTE: 'Pendente (ponte A3)',
+    PENDENTE: 'Pendente (sincronização SEFAZ)',
     MANIFESTADA: 'Registrada na SEFAZ',
     ERRO: 'Erro na última tentativa',
   }
@@ -80,4 +82,42 @@ export function formatMoedaBrl(valor: string | number | null | undefined): strin
   const n = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'))
   if (Number.isNaN(n)) return String(valor)
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+/** Data civil local (YYYY-MM-DD), sem deslocamento UTC do `toISOString()`. */
+export function dataLocalIso(data: Date = new Date()): string {
+  const y = data.getFullYear()
+  const m = String(data.getMonth() + 1).padStart(2, '0')
+  const day = String(data.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Últimos 12 meses corridos no fuso local do navegador. */
+export function periodoUltimos12MesesLocal(): { data_inicio: string; data_fim: string } {
+  const hoje = new Date()
+  const fim = dataLocalIso(hoje)
+  const inicioDate = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1)
+  return { data_inicio: dataLocalIso(inicioDate), data_fim: fim }
+}
+
+export function labelAnexoSimples(anexo: AnexoSimplesNacional | string): string {
+  if (!anexo || anexo === 'SERVICO') return 'Serviço (Fator R)'
+  const map: Record<Exclude<AnexoSimplesNacional, ''>, string> = {
+    I: 'Anexo I — Comércio',
+    II: 'Anexo II — Indústria',
+    III: 'Anexo III — Serviços',
+    V: 'Anexo V — Serviços',
+    NENHUM: 'Não compõe RBT12',
+  }
+  return map[anexo as Exclude<AnexoSimplesNacional, ''>] ?? anexo
+}
+
+export function labelIncluirFaturamento(incluir: boolean): string {
+  return incluir ? 'Compõe faturamento' : 'Não compõe'
+}
+
+export function formatCompetencia(competencia: string): string {
+  if (!competencia || competencia.length < 7) return competencia || '—'
+  const [ano, mes] = competencia.split('-')
+  return `${mes}/${ano}`
 }
