@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SyntheticEvent } from 'react'
 
 import {
   formatMoedaInput,
@@ -66,7 +66,7 @@ export function ReconciliacaoContabilidadeEditModal({
     }
   }, [isSubmitting, onClose])
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault()
     if (isIcms) {
       const entNum = parseMoedaPt(icmsEntradas)

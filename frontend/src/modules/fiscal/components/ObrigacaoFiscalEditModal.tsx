@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SyntheticEvent } from 'react'
 
 import {
   formatMoedaInput,
@@ -105,7 +105,7 @@ export function ObrigacaoFiscalEditModal({
     }
   }, [isSubmitting, onClose])
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault()
     let payload: AtualizarObrigacaoFiscalPayload | null
     if (dasDoPdf) {
@@ -148,22 +148,30 @@ export function ObrigacaoFiscalEditModal({
               />
             </div>
             <div className="modal-body">
-              {dasDoPdf ? (
-                <p className="text-muted small">
-                  Valor, descrição e composição vêm do PDF Simples Nacional importado. Aqui você
-                  pode ajustar apenas vencimento e observações; para alterar o DAS, reimporte um PDF
-                  pesquisável.
-                </p>
-              ) : dasManual ? (
-                <p className="text-muted small">
-                  O PDF do DAS não pôde ser lido (escaneado ou ilegível). Informe o valor total e o
-                  INSS da composição (cód. 1006) conforme o documento.
-                </p>
-              ) : (
-                <p className="text-muted small">
-                  Use quando o PDF não extraiu o valor corretamente.
-                </p>
-              )}
+              {(() => {
+                if (dasDoPdf) {
+                  return (
+                    <p className="text-muted small">
+                      Valor, descrição e composição vêm do PDF Simples Nacional importado. Aqui você
+                      pode ajustar apenas vencimento e observações; para alterar o DAS, reimporte um
+                      PDF pesquisável.
+                    </p>
+                  )
+                }
+                if (dasManual) {
+                  return (
+                    <p className="text-muted small">
+                      O PDF do DAS não pôde ser lido (escaneado ou ilegível). Informe o valor total e
+                      o INSS da composição (cód. 1006) conforme o documento.
+                    </p>
+                  )
+                }
+                return (
+                  <p className="text-muted small">
+                    Use quando o PDF não extraiu o valor corretamente.
+                  </p>
+                )
+              })()}
               <div className="mb-3">
                 <label htmlFor="obrigacao-valor" className="form-label">
                   Valor (R$)

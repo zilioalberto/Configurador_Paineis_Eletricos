@@ -50,13 +50,15 @@ export default function FiscalNfseAdnStatusCard() {
             <h2 className="h6 mb-1">NFS-e de serviço recebidas (ADN)</h2>
             <p className="small text-muted mb-0">
               Empresa {formatCnpjExibicao(cnpj)}
-              {isNfseAdnSyncDisponivel(config) ? (
-                <span className="badge bg-success ms-2">ADN pronto</span>
-              ) : config?.nfse_adn_sync_modo === 'stub' ? (
-                <span className="badge bg-warning text-dark ms-2">Modo simulado</span>
-              ) : (
-                <span className="badge bg-warning text-dark ms-2">Certificado ausente</span>
-              )}
+              {(() => {
+                if (isNfseAdnSyncDisponivel(config)) {
+                  return <span className="badge bg-success ms-2">ADN pronto</span>
+                }
+                if (config?.nfse_adn_sync_modo === 'stub') {
+                  return <span className="badge bg-warning text-dark ms-2">Modo simulado</span>
+                }
+                return <span className="badge bg-warning text-dark ms-2">Certificado ausente</span>
+              })()}
             </p>
           </div>
           <div className="d-flex flex-wrap gap-2">

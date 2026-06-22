@@ -34,7 +34,7 @@ def _parse_bloco_holerite(bloco: str) -> dict | None:
 
     proventos = Decimal("0")
     desconto_inss = Decimal("0")
-    if re.search(r"Pro-Labore|Pro-Labore", bloco, re.IGNORECASE):
+    if re.search(r"Pro-Labore", bloco, re.IGNORECASE):
         tipo = TipoHoleriteFiscalChoices.PRO_LABORE
     elif re.search(r"Horas Normais|Sal[aá]rio", bloco, re.IGNORECASE):
         tipo = TipoHoleriteFiscalChoices.CLT
@@ -64,7 +64,7 @@ def _parse_bloco_holerite(bloco: str) -> dict | None:
                 if len(cols) >= 4:
                     fgts_mes = parse_moeda_br(cols[3]) or Decimal("0")
                 break
-    m_liq = re.search(r"([\d.,]+)\s*Total L[ií]quido", bloco)
+    m_liq = re.search(r"([\d.,]{1,20})\s{0,12}Total L[ií]quido", bloco)
     liquido = parse_moeda_br(m_liq.group(1)) if m_liq else None
 
     return {

@@ -46,7 +46,7 @@ describe('fiscalDisplay', () => {
   })
 
   it('parseMoedaPt e formatMoedaInput convertem valores pt-BR', () => {
-    expect(parseMoedaPt('1.118,26')).toBe(1118.26)
+    expect(parseMoedaPt('1.118,26')).toBeCloseTo(1118.26, 2)
     expect(formatMoedaInput('1118.26')).toBe('1.118,26')
     expect(toDateInputValue('2026-03-15')).toBe('2026-03-15')
   })

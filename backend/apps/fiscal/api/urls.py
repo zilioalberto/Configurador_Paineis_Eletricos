@@ -171,7 +171,7 @@ urlpatterns = [
         name="fiscal-nfse-recebidas-sincronizar-adn",
     ),
     path(
-        "fiscal/nsu-nfse-adn/<str:cnpj>/",
+        "fiscal/nsu-nfse-adn/<str:cnpj_raw>/",
         ControleNsuNfseAdnView.as_view(),
         name="fiscal-nsu-nfse-adn",
     ),

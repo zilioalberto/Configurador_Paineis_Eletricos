@@ -16,7 +16,7 @@ import {
 type Props = {
   readonly cnpj?: string
   readonly className?: string
-  readonly size?: 'sm' | undefined
+  readonly size?: 'sm'
   readonly disabled?: boolean
 }
 
@@ -44,12 +44,12 @@ export default function SincronizarNfseAdnButton({
   const mutation = useMutation({
     mutationFn: sincronizarNfseAdn,
     onSuccess: (res) => {
-      const detalhe =
-        res.documentos_novos > 0
-          ? `${res.documentos_novos} nova(s) NFS-e(s).`
-          : res.documentos_duplicados > 0
-            ? 'Nenhuma NFS-e nova (já importadas).'
-            : 'Nenhum documento novo no ADN.'
+      let detalhe = 'Nenhum documento novo no ADN.'
+      if (res.documentos_novos > 0) {
+        detalhe = `${res.documentos_novos} nova(s) NFS-e(s).`
+      } else if (res.documentos_duplicados > 0) {
+        detalhe = 'Nenhuma NFS-e nova (já importadas).'
+      }
       showToast({
         variant: res.sucesso ? 'success' : 'warning',
         title: res.sucesso ? 'Sincronização ADN concluída' : 'Sincronização ADN com avisos',

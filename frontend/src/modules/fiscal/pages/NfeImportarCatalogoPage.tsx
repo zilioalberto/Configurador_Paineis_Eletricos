@@ -560,7 +560,7 @@ export default function NfeImportarCatalogoPage() {
                   </label>
                 </div>
               </div>
-              {!fornecedorEhFabricante ? (
+              {!fornecedorEhFabricante && (
                 <div className="col-md-4">
                   <label className="form-label" htmlFor="fabricante-nfe-cat">
                     Fabricante
@@ -588,7 +588,7 @@ export default function NfeImportarCatalogoPage() {
                     ) : null}
                   </select>
                 </div>
-              ) : null}
+              )}
             </div>
             <p className="form-text mt-2 mb-0">
               Marque a opção acima quando o emitente da NF-e também fabrica os produtos. Caso seja

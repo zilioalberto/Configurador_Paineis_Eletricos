@@ -118,12 +118,12 @@ export function formatMoedaInput(valor: string | number | null | undefined): str
 
 /** Converte entrada pt-BR (1.118,26) para número. */
 export function parseMoedaPt(valor: string): number {
-  const semEspacos = valor.trim().replace(/\s/g, '')
+  const semEspacos = valor.trim().replaceAll(/\s/g, '')
   const normalizado = semEspacos.includes(',')
-    ? semEspacos.replace(/\./g, '').replace(',', '.')
+    ? semEspacos.replaceAll(/\./g, '').replace(',', '.')
     : semEspacos
   const n = Number(normalizado)
-  return Number.isFinite(n) ? n : NaN
+  return Number.isFinite(n) ? n : Number.NaN
 }
 
 /** Data ISO (YYYY-MM-DD) para input type="date". */

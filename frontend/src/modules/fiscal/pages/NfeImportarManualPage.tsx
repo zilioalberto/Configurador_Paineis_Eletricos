@@ -1,7 +1,7 @@
 import {
   type ChangeEvent,
   type DragEvent,
-  type FormEvent,
+  type SyntheticEvent,
   useCallback,
   useMemo,
   useState,
@@ -61,7 +61,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function BadgeResultado({ status }: { status?: ResultadoStatus }) {
+function BadgeResultado({ status }: Readonly<{ status?: ResultadoStatus }>) {
   switch (status) {
     case 'enviando':
       return <span className="badge text-bg-info">Enviando…</span>
@@ -307,7 +307,7 @@ export default function NfeImportarManualPage() {
   )
 
   const onSubmit = useCallback(
-    (e: FormEvent) => {
+    (e: SyntheticEvent) => {
       e.preventDefault()
       if (!xml.trim() && arquivos.length === 0) {
         showToast({ variant: 'danger', message: 'Selecione ou cole o conteúdo do XML da NF-e.' })

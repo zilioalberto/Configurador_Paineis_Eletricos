@@ -268,9 +268,9 @@ export default function NfeRecebidaDetailPage() {
                 </div>
               ) : null}
               {reclassificarMutation.isSuccess ? (
-                <div className="alert alert-success mt-3 mb-0 py-2 small" role="status">
+                <output className="alert alert-success mt-3 mb-0 py-2 small d-block">
                   Classificação atualizada.
-                </div>
+                </output>
               ) : null}
             </div>
           </div>

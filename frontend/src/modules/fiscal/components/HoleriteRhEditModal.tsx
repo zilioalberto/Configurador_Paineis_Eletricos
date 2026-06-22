@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type SyntheticEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { rhApi } from '@/modules/rh/services/rhApi'
@@ -105,7 +105,7 @@ export function HoleriteRhEditModal({
     [colaboradores],
   )
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault()
     if (!form.colaborador_id) {
       setErroForm('Selecione o colaborador cadastrado no RH para aplicar os valores.')

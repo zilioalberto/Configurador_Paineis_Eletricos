@@ -24,7 +24,7 @@ type GrupoAtalhos = {
   itens: Atalho[]
 }
 
-function AtalhoCard({ atalho, podeEditar }: { atalho: Atalho; podeEditar: boolean }) {
+function AtalhoCard({ atalho, podeEditar }: Readonly<{ atalho: Atalho; podeEditar: boolean }>) {
   const bloqueado = Boolean(atalho.requerEdicao) && !podeEditar
   const btnClass = atalho.primario ? 'btn btn-primary' : 'btn btn-outline-primary'
   return (

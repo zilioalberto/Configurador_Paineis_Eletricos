@@ -8,6 +8,8 @@ from io import BytesIO
 
 from pypdf import PdfReader
 
+TXT_SIMPLES_NACIONAL = "simples nacional"
+
 
 def extrair_texto_pdf(arquivo_bytes: bytes) -> str:
     try:
@@ -112,20 +114,20 @@ def eh_documento_simples_nacional(nome_arquivo: str, texto: str, parsed: dict | 
     t = _texto_busca_pdf(texto)
     if "darf" in nome and "simples" not in nome:
         return False
-    if "receitas federais" in t and "simples nacional" not in t:
+    if "receitas federais" in t and TXT_SIMPLES_NACIONAL not in t:
         return False
     if parsed:
         linhas = parsed.get("linhas_composicao") or []
         if any(str(l.get("codigo") or "") in {"1001", "1002", "1004", "1005", "1006", "1008"} for l in linhas):
             return True
     if (
-        "simples nacional" in t
+        TXT_SIMPLES_NACIONAL in t
         or "documento de arrecadacao do simples" in t
         or "pgdas" in t
         or "pg mei" in t
     ):
         return True
-    if "simples nacional" in nome or ("simples" in nome and "nacional" in nome):
+    if TXT_SIMPLES_NACIONAL in nome or ("simples" in nome and "nacional" in nome):
         return True
     return _tem_composicao_simples(texto) and not _tem_composicao_darf(texto)
 
@@ -154,7 +156,7 @@ def detectar_tipo_anexo(nome_arquivo: str, texto: str) -> str:
     nome = (nome_arquivo or "").lower()
     t = _texto_busca_pdf(texto)
     if not t.strip():
-        if "simples nacional" in nome or ("simples" in nome and "nacional" in nome):
+        if TXT_SIMPLES_NACIONAL in nome or ("simples" in nome and "nacional" in nome):
             return "SIMPLES"
         if "darf" in nome:
             return "DARF"

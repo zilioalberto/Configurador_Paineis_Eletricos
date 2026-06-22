@@ -82,6 +82,12 @@ function renderPage() {
   )
 }
 
+async function prepararItemCategorizado() {
+  renderPage()
+  await screen.findByText('Produto 1')
+  fireEvent.change(screen.getByLabelText('Categoria do item 1'), { target: { value: 'cat1' } })
+}
+
 describe('NfeImportarCatalogoPage — fornecedor/fabricante', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -102,12 +108,6 @@ describe('NfeImportarCatalogoPage — fornecedor/fabricante', () => {
       isPending: false,
     })
   })
-
-  async function prepararItemCategorizado() {
-    renderPage()
-    await screen.findByText('Produto 1')
-    fireEvent.change(screen.getByLabelText('Categoria do item 1'), { target: { value: 'cat1' } })
-  }
 
   it('por padrão envia o emitente como fornecedor e não envia fabricante (fornecedor = fabricante)', async () => {
     await prepararItemCategorizado()

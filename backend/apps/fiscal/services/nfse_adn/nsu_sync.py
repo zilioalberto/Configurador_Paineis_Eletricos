@@ -104,7 +104,7 @@ def _documento_e_nfse(doc) -> bool:
     return "nfse" in xml or "compnfse" in xml
 
 
-def _importar_documentos(dist, config: NfseAdnConfig, resultado: SyncNfseAdnResult) -> None:
+def _importar_documentos(dist, resultado: SyncNfseAdnResult) -> None:
     for doc in dist.documentos:
         if not _documento_e_nfse(doc):
             continue
@@ -186,7 +186,7 @@ def _executar_ciclos(
             resultado.alertas.append(resultado.mensagem)
             break
 
-        _importar_documentos(dist, config, resultado)
+        _importar_documentos(dist, resultado)
 
         ultimo_nsu = dist.ultimo_nsu
         max_nsu = dist.max_nsu

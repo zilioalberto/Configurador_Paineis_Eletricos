@@ -50,7 +50,7 @@ export default function NfseRecebidasListPage() {
         </div>
       )}
 
-      {data && data.items.length === 0 && !isFetching && (
+      {data?.items.length === 0 && !isFetching && (
         <p className="text-muted">Nenhuma NFS-e recebida importada ainda.</p>
       )}
 

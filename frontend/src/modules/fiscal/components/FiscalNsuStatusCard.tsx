@@ -59,13 +59,15 @@ export default function FiscalNsuStatusCard() {
             <h2 className="h6 mb-1">Sincronização SEFAZ (NSU)</h2>
             <p className="small text-muted mb-0">
               Empresa {formatCnpjExibicao(cnpj)}
-              {isSefazSyncDisponivel(config) ? (
-                <span className="badge bg-success ms-2">SEFAZ pronta</span>
-              ) : config?.sefaz_sync_modo === 'stub' ? (
-                <span className="badge bg-warning text-dark ms-2">Modo simulado (stub)</span>
-              ) : (
-                <span className="badge bg-warning text-dark ms-2">Certificado A1 ausente</span>
-              )}
+              {(() => {
+                if (isSefazSyncDisponivel(config)) {
+                  return <span className="badge bg-success ms-2">SEFAZ pronta</span>
+                }
+                if (config?.sefaz_sync_modo === 'stub') {
+                  return <span className="badge bg-warning text-dark ms-2">Modo simulado (stub)</span>
+                }
+                return <span className="badge bg-warning text-dark ms-2">Certificado A1 ausente</span>
+              })()}
             </p>
           </div>
           <div className="d-flex flex-wrap gap-2">

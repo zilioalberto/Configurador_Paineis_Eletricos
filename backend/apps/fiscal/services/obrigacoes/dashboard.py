@@ -14,13 +14,11 @@ from apps.fiscal.models_obrigacoes import ObrigacaoFiscal, PacoteObrigacaoFiscal
 def montar_dashboard_obrigacoes(*, cnpj: str) -> dict:
     hoje = timezone.localdate()
     limite_7 = hoje + timedelta(days=7)
-    limite_15 = hoje + timedelta(days=15)
 
     obrigacoes = ObrigacaoFiscal.objects.filter(pacote__cnpj=cnpj)
     pendentes = obrigacoes.filter(status=StatusObrigacaoFiscalChoices.PENDENTE)
     vencidas = obrigacoes.filter(status=StatusObrigacaoFiscalChoices.VENCIDO)
     vence_7 = pendentes.filter(data_vencimento__gte=hoje, data_vencimento__lte=limite_7)
-    vence_15 = pendentes.filter(data_vencimento__gte=hoje, data_vencimento__lte=limite_15)
 
     total_pendente = pendentes.aggregate(t=Sum("valor"))["t"] or Decimal("0")
     total_vencido = vencidas.aggregate(t=Sum("valor"))["t"] or Decimal("0")

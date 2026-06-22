@@ -49,6 +49,8 @@ from apps.fiscal.services.ponte_catalogo import (
 from apps.fiscal.utils import normalizar_cnpj
 from core.permissions import PermissionKeys
 
+MSG_NFE_RECEBIDA_NAO_ENCONTRADA = "NF-e recebida não encontrada."
+
 
 def _resposta_importar_xml(resultado: dict) -> Response:
     documento = resultado["documento"]
@@ -531,7 +533,7 @@ class ReclassificarEntradaView(APIView):
             )
         except DocumentoFiscalRecebido.DoesNotExist:
             return Response(
-                {"detail": "NF-e recebida não encontrada."},
+                {"detail": MSG_NFE_RECEBIDA_NAO_ENCONTRADA},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -565,7 +567,7 @@ class PreviewCatalogoNFeView(APIView):
             )
         except DocumentoFiscalRecebido.DoesNotExist:
             return Response(
-                {"detail": "NF-e recebida não encontrada."},
+                {"detail": MSG_NFE_RECEBIDA_NAO_ENCONTRADA},
                 status=status.HTTP_404_NOT_FOUND,
             )
         try:
@@ -589,7 +591,7 @@ class ImportarCatalogoNFeView(APIView):
             )
         except DocumentoFiscalRecebido.DoesNotExist:
             return Response(
-                {"detail": "NF-e recebida não encontrada."},
+                {"detail": MSG_NFE_RECEBIDA_NAO_ENCONTRADA},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

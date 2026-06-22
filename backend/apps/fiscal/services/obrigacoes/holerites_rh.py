@@ -188,7 +188,6 @@ def importar_holerite_item(
     extra["nome_pdf"] = nome_pdf
     extra["valores_pendentes"] = _serializar_valores(valores)
     aviso = ""
-    status = "SEM_CADASTRO"
     vinculo_automatico = False
 
     holerite = HoleriteCompetencia(

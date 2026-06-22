@@ -173,7 +173,6 @@ def reconciliar_das_inss_holerites(pacote: PacoteObrigacaoFiscal) -> Reconciliac
         pacote,
         TipoReconciliacaoFiscalChoices.DAS_INSS,
     )
-    anexo = pacote.anexos.filter(tipo_arquivo="SIMPLES").order_by("-criado_em").first()
     total_inss, holerites = _soma_inss_holerites(pacote)
     valor_interno = total_inss or None
 
@@ -237,12 +236,10 @@ def reconciliar_inss(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
     valor_contab, anexo_darf = valor_darf_pdf(pacote)
     if valor_contab is None and obrigacao and obrigacao.valor > 0:
         extra = obrigacao.dados_extra or {}
-        if extra.get("valor_das_removido"):
-            pass
-        elif extra.get("fonte_valor") in {"manual", "pdf_darf"}:
-            valor_contab = obrigacao.valor
-        elif not extra.get("fonte_valor"):
-            if not valor_parece_das_contaminado(
+        if not extra.get("valor_das_removido"):
+            if extra.get("fonte_valor") in {"manual", "pdf_darf"}:
+                valor_contab = obrigacao.valor
+            elif not extra.get("fonte_valor") and not valor_parece_das_contaminado(
                 pacote,
                 {"valor": str(obrigacao.valor), "linhas_composicao": []},
             ):

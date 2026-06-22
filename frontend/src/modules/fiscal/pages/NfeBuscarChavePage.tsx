@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useMemo, useState } from 'react'
+import { type SyntheticEvent, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -38,7 +38,7 @@ function formatChave(chave: string): string {
   return chave.replace(/(\d{4})(?=\d)/g, '$1 ').trim()
 }
 
-function BadgeStatus({ status }: { status: ImportarPorChaveItem['status'] }) {
+function BadgeStatus({ status }: Readonly<{ status: ImportarPorChaveItem['status'] }>) {
   switch (status) {
     case 'importada':
       return <span className="badge text-bg-success">Importada</span>
@@ -82,7 +82,7 @@ export default function NfeBuscarChavePage() {
   })
 
   const onSubmit = useCallback(
-    (e: FormEvent) => {
+    (e: SyntheticEvent) => {
       e.preventDefault()
       if (!chaves.length) {
         showToast({ variant: 'danger', message: 'Informe ao menos uma chave de 44 dígitos.' })

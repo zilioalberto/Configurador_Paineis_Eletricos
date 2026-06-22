@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type ChangeEvent, type SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
@@ -49,7 +49,7 @@ export default function ControleNsuPage() {
   }, [])
 
   const onConsultar = useCallback(
-    (e: FormEvent) => {
+    (e: SyntheticEvent) => {
       e.preventDefault()
       setCnpjConsulta(apenasDigitosCnpj(cnpjInput))
     },

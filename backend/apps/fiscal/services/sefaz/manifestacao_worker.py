@@ -43,7 +43,7 @@ def solicitar_ciencia_automatica(*, limit: int = 200) -> int:
     ).exclude(chave_acesso="")[:limit]
 
     marcados = 0
-    for documento in list(pendentes):
+    for documento in pendentes:
         try:
             solicitar_manifestacao_destinatario(
                 documento,

@@ -54,15 +54,21 @@ def parse_darf(texto: str) -> dict:
         numero_doc = m_num.group(1).strip()
 
     linhas: list[dict] = []
-    for m_linha in re.finditer(
-        r"(\d{4})\s+(.+?)\s+([\d.,]+)\s+([\d.,]+)",
-        texto,
-    ):
-        codigo = m_linha.group(1)
-        if codigo not in {"1082", "1099", "1138", "0561"}:
+    codigos_inss = {"1082", "1099", "1138", "0561"}
+    for linha in texto.splitlines():
+        m_cod = re.match(r"\s*(\d{4})\s+(.*)", linha)
+        if not m_cod:
             continue
-        descricao = m_linha.group(2).strip()
-        valor = parse_moeda_br(m_linha.group(4)) or parse_moeda_br(m_linha.group(3))
+        codigo = m_cod.group(1)
+        if codigo not in codigos_inss:
+            continue
+        resto = m_cod.group(2)
+        numeros = re.findall(r"[\d.,]+", resto)
+        if len(numeros) < 2:
+            continue
+        m_num = re.search(r"[\d.,]+", resto)
+        descricao = resto[: m_num.start()].strip() if m_num else resto.strip()
+        valor = parse_moeda_br(numeros[-1]) or parse_moeda_br(numeros[-2])
         if valor is not None:
             linhas.append({"codigo": codigo, "descricao": descricao, "valor": str(valor)})
 

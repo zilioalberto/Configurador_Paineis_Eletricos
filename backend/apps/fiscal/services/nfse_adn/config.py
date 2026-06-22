@@ -16,7 +16,7 @@ ADN_BASE_URL = {
 @dataclass(frozen=True)
 class NfseAdnConfig:
     cnpj: str
-    ambiente: str  # 1=produção, 2=homologação
+    ambiente: str  # ambiente fiscal: "1" para produção, "2" para homologação
     cert_path: Path
     cert_password: str
     provider: str  # native | stub

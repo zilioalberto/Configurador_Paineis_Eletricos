@@ -44,6 +44,12 @@ function badgeReconciliacao(status: StatusReconciliacaoFiscal): string {
   return 'secondary'
 }
 
+function corBadgeStatusObrigacao(status: string): string {
+  if (status === 'PAGO') return 'success'
+  if (status === 'VENCIDO') return 'danger'
+  return 'secondary'
+}
+
 type HoleriteInssConciliacao = {
   readonly nome?: string
   readonly colaborador?: string
@@ -175,19 +181,27 @@ function ReconciliacaoTable({
               </td>
               {podeEditar ? (
                 <td className="text-end">
-                  {r.tipo !== 'PACOTE' && r.editavel ? (
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => onEditarContabilidade(r)}
-                    >
-                      {r.valor_contabilidade == null ? 'Informar' : 'Editar'}
-                    </button>
-                  ) : r.tipo !== 'PACOTE' && !r.editavel ? (
-                    <span className="small text-muted" title="Valor definido pelo PDF importado">
-                      PDF
-                    </span>
-                  ) : null}
+                  {(() => {
+                    if (r.tipo !== 'PACOTE' && r.editavel) {
+                      return (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => onEditarContabilidade(r)}
+                        >
+                          {r.valor_contabilidade == null ? 'Informar' : 'Editar'}
+                        </button>
+                      )
+                    }
+                    if (r.tipo !== 'PACOTE' && !r.editavel) {
+                      return (
+                        <span className="small text-muted" title="Valor definido pelo PDF importado">
+                          PDF
+                        </span>
+                      )
+                    }
+                    return null
+                  })()}
                 </td>
               ) : null}
             </tr>
@@ -366,7 +380,7 @@ export default function ObrigacoesFiscaisCompetenciaPage() {
         title: 'Colaboradores atualizados',
         message: `${res.criados} criado(s), ${res.vinculados} vinculado(s).`,
       })
-      void queryClient.setQueryData(fiscalQueryKeys.obrigacaoPacote(publicId), res.pacote)
+      queryClient.setQueryData(fiscalQueryKeys.obrigacaoPacote(publicId), res.pacote)
       if (holeriteEmEdicao) {
         const atualizado = res.pacote.holerites.find((h) => h.id === holeriteEmEdicao.id)
         if (atualizado) setHoleriteEmEdicao(atualizado)
@@ -544,7 +558,7 @@ export default function ObrigacoesFiscaisCompetenciaPage() {
                       <td>{formatDataIso(o.data_vencimento)}</td>
                       <td>
                         <span
-                          className={`badge bg-${o.status === 'PAGO' ? 'success' : o.status === 'VENCIDO' ? 'danger' : 'secondary'}`}
+                          className={`badge bg-${corBadgeStatusObrigacao(o.status)}`}
                         >
                           {o.status_label}
                         </span>
@@ -558,11 +572,11 @@ export default function ObrigacoesFiscaisCompetenciaPage() {
                               disabled={editarMutation.isPending}
                               onClick={() => setObrigacaoEmEdicao(o)}
                             >
-                              {obrigacaoDasDoPdf(o)
-                                ? 'Observações'
-                                : o.tipo === 'DAS'
-                                  ? 'Informar DAS'
-                                  : 'Editar'}
+                              {(() => {
+                                if (obrigacaoDasDoPdf(o)) return 'Observações'
+                                if (o.tipo === 'DAS') return 'Informar DAS'
+                                return 'Editar'
+                              })()}
                             </button>
                           )}
                           {podeEditar && o.status === 'PENDENTE' && (

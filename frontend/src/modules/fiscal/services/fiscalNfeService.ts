@@ -102,13 +102,17 @@ function normalizeListPage(
   }
 }
 
-function filtrosParaParams(filtros: NfesRecebidasFiltros): Record<string, string> {
-  const params: Record<string, string> = {}
-  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
+function criarAdicionadorParams(params: Record<string, string>) {
+  return (key: string, raw: string | undefined, digitsOnly = false) => {
     const v = (raw ?? '').trim()
     if (!v) return
     params[key] = digitsOnly ? v.replace(/\D/g, '') : v
   }
+}
+
+function filtrosParaParams(filtros: NfesRecebidasFiltros): Record<string, string> {
+  const params: Record<string, string> = {}
+  const add = criarAdicionadorParams(params)
   add('chave_acesso', (filtros.chave_acesso ?? '').replace(/\s/g, ''))
   add('cnpj_emitente', filtros.cnpj_emitente, true)
   add('cnpj_destinatario', filtros.cnpj_destinatario, true)
@@ -125,11 +129,7 @@ function filtrosSefazDistribuicaoParaParams(
   filtros: SefazDistribuicaoFiltros,
 ): Record<string, string> {
   const params: Record<string, string> = {}
-  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
-    const v = (raw ?? '').trim()
-    if (!v) return
-    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
-  }
+  const add = criarAdicionadorParams(params)
   add('chave_acesso', (filtros.chave_acesso ?? '').replace(/\s/g, ''))
   add('cnpj_emitente', filtros.cnpj_emitente, true)
   add('status', filtros.status)

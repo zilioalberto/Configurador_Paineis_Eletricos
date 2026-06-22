@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type SyntheticEvent, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -143,7 +143,7 @@ export default function ProjecaoDasSimplesPage() {
     }
   }, [perfil])
 
-  const onSalvarPerfil = (e: FormEvent) => {
+  const onSalvarPerfil = (e: SyntheticEvent) => {
     e.preventDefault()
     perfilSalvar.mutate()
   }

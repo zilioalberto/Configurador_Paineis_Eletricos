@@ -41,7 +41,8 @@ def parse_fgts(texto: str) -> dict:
         vencimento = parse_data_br(m_venc.group(1))
 
     qtd_trabalhadores = None
-    m_qtd = re.search(r"(\d+)\s*$", texto.split("Trabalhadores")[-1][:40] if "Trabalhadores" in texto else "")
+    cauda_trab = (texto.split("Trabalhadores")[-1][:40] if "Trabalhadores" in texto else "").rstrip()
+    m_qtd = re.search(r"(\d+)$", cauda_trab)
     if m_qtd:
         qtd_trabalhadores = int(m_qtd.group(1))
 
