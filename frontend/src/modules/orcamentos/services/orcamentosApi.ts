@@ -15,7 +15,6 @@ import type {
   OrcamentoDtoComLinkEnvio,
   EnviarOfertaClientePayload,
   OrcamentoOfertaBlocoDto,
-  OrcamentoOfertaArquivoDto,
   OrcamentoPreviewOfertaDto,
   ParametroConfiguracaoDto,
   ParceiroClienteDto,
