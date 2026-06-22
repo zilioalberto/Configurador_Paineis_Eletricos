@@ -29,7 +29,7 @@ export default function ServicoTable({ servicos, canManage, onDeleteRequest }: S
             <th>Descrição</th>
             <th>Categoria</th>
             <th>Unidade</th>
-            <th className="text-end">Preço base</th>
+            <th className="text-end">Custo de referência</th>
             <th>Ativo</th>
             {canManage ? <th className="text-end">Ações</th> : null}
           </tr>
@@ -45,7 +45,7 @@ export default function ServicoTable({ servicos, canManage, onDeleteRequest }: S
               <td>{s.descricao}</td>
               <td>{s.categoria || '—'}</td>
               <td>{s.unidade_medida_display ?? s.unidade_medida}</td>
-              <td className="text-end">{s.preco_base}</td>
+              <td className="text-end">{s.custo_referencia}</td>
               <td>{s.ativo ? 'Sim' : 'Não'}</td>
               {canManage ? (
                 <td className="text-end">

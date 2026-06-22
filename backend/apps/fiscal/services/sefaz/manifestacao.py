@@ -7,7 +7,9 @@ from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 from zoneinfo import ZoneInfo
 
+from lxml import etree as LET
 from signxml import XMLSigner, methods
+from signxml.util import namespaces as _signxml_namespaces
 
 from apps.fiscal.choices import TP_EVENTO_MANIFESTACAO, TipoManifestacaoDestinatarioChoices
 
@@ -25,6 +27,13 @@ _DESC_EVENTO = {
     TipoManifestacaoDestinatarioChoices.DESCONHECIMENTO: "Desconhecimento da Operacao",
     TipoManifestacaoDestinatarioChoices.NAO_REALIZADA: "Operacao nao Realizada",
 }
+
+
+class NFeLegacySHA1Signer(XMLSigner):
+    """Assinador compatível com XML-DSig legado exigido pelo evento NF-e."""
+
+    def check_deprecated_methods(self):
+        return None
 
 
 @dataclass
@@ -91,43 +100,58 @@ def montar_xml_env_evento(
         f"</infEvento>"
     )
 
-    inf_elem = ET.fromstring(inf)
     return (
         f'<envEvento xmlns="{NS_NFE}" versao="1.00">'
         f"<idLote>1</idLote>"
-        f'<evento versao="1.00">{ET.tostring(inf_elem, encoding="unicode")}</evento>'
+        f'<evento versao="1.00">{inf}</evento>'
         f"</envEvento>"
     )
 
 
 def assinar_env_evento(xml_env: str, certificado: CertificadoA1) -> str:
-    raiz = ET.fromstring(xml_env)
+    """Assina o ``infEvento`` com XML-DSig enveloped (RSA-SHA1 + C14N inclusiva).
+
+    Usa ``signxml`` para garantir que todos os nós da assinatura (Signature,
+    SignedInfo, Reference, Transforms, DigestMethod/Value etc.) fiquem no
+    namespace ``xmldsig`` correto. A montagem manual anterior gerava
+    ``xmlns=""`` nesses nós, levando à rejeição 297 ("Assinatura difere do
+    calculado") na SEFAZ.
+    """
+    raiz = LET.fromstring(xml_env.encode("utf-8"))
     evento = raiz.find(f"{{{NS_NFE}}}evento")
     if evento is None:
         raise ValueError("envEvento sem nó evento.")
+    inf_evento = evento.find(f"{{{NS_NFE}}}infEvento")
+    if inf_evento is None:
+        raise ValueError("evento sem nó infEvento.")
+    ref_id = inf_evento.attrib.get("Id", "")
+    if not ref_id:
+        raise ValueError("infEvento sem atributo Id.")
 
-    signer = XMLSigner(
+    signer = NFeLegacySHA1Signer(
         method=methods.enveloped,
         signature_algorithm="rsa-sha1",
         digest_algorithm="sha1",
         c14n_algorithm=C14N_XML_20010315,
     )
-    assinado = signer.sign(
+    # A NF-e exige a <Signature> no namespace XML-DSig SEM prefixo (rejeição 404
+    # "Uso de prefixo de namespace nao permitido"). Definir o ds como namespace
+    # padrão faz o signxml emitir os nós sem prefixo e sem xmlns="" espúrios.
+    signer.namespaces = {None: _signxml_namespaces.ds}
+
+    evento_assinado = signer.sign(
         evento,
         key=certificado.key_pem,
         cert=certificado.cert_pem,
+        reference_uri=ref_id,
     )
-    raiz.remove(evento)
-    raiz.append(assinado)
-    return ET.tostring(raiz, encoding="unicode", xml_declaration=False)
+
+    raiz.replace(evento, evento_assinado)
+    return LET.tostring(raiz, encoding="unicode", xml_declaration=False)
 
 
 def _montar_envelope_recepcao_evento(dados_msg: str) -> str:
-    corpo = (
-        f'<nfeRecepcaoEvento xmlns="{NS_RECEPCAO_EVENTO}">'
-        f"<nfeDadosMsg>{escape(dados_msg)}</nfeDadosMsg>"
-        "</nfeRecepcaoEvento>"
-    )
+    corpo = f'<nfeDadosMsg xmlns="{NS_RECEPCAO_EVENTO}">{dados_msg}</nfeDadosMsg>'
     return montar_envelope_soap12(body_inner_xml=corpo)
 
 
@@ -136,14 +160,35 @@ def _parse_resposta_manifestacao(soap_xml: str) -> ResultadoManifestacaoSefaz:
     motivo = ""
     protocolo = ""
     try:
-        for elem in ET.fromstring(soap_xml).iter():
+        raiz = ET.fromstring(soap_xml)
+        lote_cstat = ""
+        lote_motivo = ""
+        evento_cstat = ""
+        evento_motivo = ""
+        dentro_ret_evento = False
+
+        for elem in raiz.iter():
             tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
-            if tag == "cStat" and not cstat:
-                cstat = (elem.text or "").strip()
-            elif tag == "xMotivo" and not motivo:
-                motivo = (elem.text or "").strip()
+            if tag == "retEvento":
+                dentro_ret_evento = True
+                continue
+            if tag == "cStat":
+                valor = (elem.text or "").strip()
+                if dentro_ret_evento and not evento_cstat:
+                    evento_cstat = valor
+                elif not lote_cstat:
+                    lote_cstat = valor
+            elif tag == "xMotivo":
+                valor = (elem.text or "").strip()
+                if dentro_ret_evento and not evento_motivo:
+                    evento_motivo = valor
+                elif not lote_motivo:
+                    lote_motivo = valor
             elif tag == "nProt" and not protocolo:
                 protocolo = (elem.text or "").strip()
+
+        cstat = evento_cstat or lote_cstat
+        motivo = evento_motivo or lote_motivo
     except ET.ParseError:
         motivo = "Resposta SEFAZ inválida"
 
@@ -186,6 +231,6 @@ def enviar_manifestacao_destinatario(
     xml_assinado = assinar_env_evento(xml_env, cert)
     envelope = _montar_envelope_recepcao_evento(xml_assinado)
     url = RECEPCAO_EVENTO[config.ambiente]
-    action = f"{NS_RECEPCAO_EVENTO}/nfeRecepcaoEvento"
+    action = f"{NS_RECEPCAO_EVENTO}/nfeRecepcaoEventoNF"
     resposta = post_soap(url=url, soap_action=action, envelope=envelope, certificado=cert)
     return _parse_resposta_manifestacao(resposta)

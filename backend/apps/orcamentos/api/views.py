@@ -412,7 +412,7 @@ class OrcamentoRevisarPrecoCatalogoItemView(APIView):
             revisar_preco_catalogo_item_orcamento(
                 orcamento,
                 item_id,
-                preco_base=ser.validated_data["preco_base"],
+                custo_referencia=ser.validated_data["custo_referencia"],
                 justificativa=ser.validated_data["justificativa"],
             )
         except ValueError as exc:

@@ -78,7 +78,7 @@ def test_produto_write_serializer_cria_especificacao_acessorio_geral():
             "descricao": "Kit acessórios gerais médio",
             "categoria": CategoriaProdutoNomeChoices.ACESSORIOS_GERAIS,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "25.00",
+            "custo_referencia": "25.00",
             "especificacao_acessorio_geral": {
                 "tipo_acessorio": TipoAcessorioGeralChoices.KIT_MONTAGEM,
                 "porte_painel": PortePainelAcessoriosChoices.MEDIO,

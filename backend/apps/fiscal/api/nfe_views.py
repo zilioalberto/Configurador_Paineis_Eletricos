@@ -8,33 +8,44 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import mixins, viewsets
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.accounts.api.permissions import HasEffectivePermission
 from apps.fiscal.api.nfe_serializers import (
     ControleNSUSerializer,
-    ControleNSUUpdateSerializer,
     DocumentoFiscalEmitidoDetailSerializer,
     DocumentoFiscalEmitidoSerializer,
     DocumentoFiscalRecebidoDetailSerializer,
     DocumentoFiscalRecebidoSerializer,
+    DocumentoSefazDistribuidoDetailSerializer,
+    DocumentoSefazDistribuidoSerializer,
+    ImportarCatalogoNFeSerializer,
     ImportarXMLDocumentoEmitidoSerializer,
     ImportarXMLNFeSerializer,
+    ReclassificarEntradaSerializer,
     RelatorioNFeSerializer,
+    VincularProdutoItemSerializer,
 )
-from apps.fiscal.authentication import (
-    ControleNSUGetPermission,
-    FiscalAgentAuthentication,
-    FiscalAgentTokenConfigured,
-    IsFiscalAgentAuthenticated,
+from apps.fiscal.models import (
+    ControleNSU,
+    DocumentoFiscalEmitido,
+    DocumentoFiscalRecebido,
+    DocumentoSefazDistribuido,
+    ItemDocumentoFiscal,
 )
-from apps.fiscal.models import ControleNSU, DocumentoFiscalEmitido, DocumentoFiscalRecebido
+from apps.catalogo.models import Produto
 from apps.fiscal.services.documento_emitido_parser import DocumentoEmitidoParserError
 from apps.fiscal.services.importar_xml_documento_emitido_service import (
     importar_xml_documento_emitido,
 )
 from apps.fiscal.services.importar_xml_nfe_service import importar_xml_nfe
 from apps.fiscal.services.nfe_parser import NFeParserError
+from apps.fiscal.services.reclassificar_entrada import reclassificar_entrada
+from apps.fiscal.services.sefaz.nsu_sync import redefinir_nsu_sefaz
+from apps.fiscal.services.ponte_catalogo import (
+    importar_nfe_para_catalogo,
+    preview_catalogo_nfe,
+    vincular_item_a_produto,
+)
 from apps.fiscal.utils import normalizar_cnpj
 from core.permissions import PermissionKeys
 
@@ -119,6 +130,44 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
             qs = qs.filter(manifestacao_status=manifestacao)
 
         return qs
+
+
+class DocumentoSefazDistribuidoViewSet(ReadOnlyModelViewSet):
+    """Caixa de entrada da Distribuição DFe (resumos, XML completo e eventos)."""
+
+    permission_classes = [HasEffectivePermission]
+    queryset = DocumentoSefazDistribuido.objects.select_related("documento_recebido")
+    pagination_class = DocumentoFiscalPagination
+
+    def required_permission(self, request, view):
+        return PermissionKeys.FISCAL_VISUALIZAR
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return DocumentoSefazDistribuidoDetailSerializer
+        return DocumentoSefazDistribuidoSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = self.request.query_params
+
+        chave = (params.get("chave_acesso") or "").strip()
+        if chave:
+            qs = qs.filter(chave_acesso=chave)
+
+        status_doc = (params.get("status") or "").strip()
+        if status_doc:
+            qs = qs.filter(status=status_doc)
+
+        manifestacao = (params.get("manifestacao_status") or "").strip()
+        if manifestacao:
+            qs = qs.filter(manifestacao_status=manifestacao)
+
+        cnpj_emit = (params.get("cnpj_emitente") or "").strip()
+        if cnpj_emit:
+            qs = qs.filter(cnpj_emitente=normalizar_cnpj(cnpj_emit))
+
+        return qs.order_by("-data_emissao", "-criado_em")
 
 
 _EMITIDAS_ORDERING_MAP: dict[str, tuple[str, ...]] = {
@@ -440,31 +489,6 @@ class ImportarXMLDocumentoEmitidoPortalView(APIView):
         )
 
 
-class ImportarXMLNFeView(APIView):
-    """Importa XML de NF-e (agente fiscal / ponte A3)."""
-
-    authentication_classes = [FiscalAgentAuthentication]
-    permission_classes = [FiscalAgentTokenConfigured, IsFiscalAgentAuthenticated]
-
-    def post(self, request):
-        serializer = ImportarXMLNFeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        try:
-            resultado = importar_xml_nfe(
-                xml=data["xml"],
-                nsu=data.get("nsu") or None,
-                cnpj_destinatario=data.get("cnpj_destinatario") or None,
-                origem_importacao=data.get("origem_importacao"),
-                objetivo_entrada=data.get("objetivo_entrada"),
-            )
-        except NFeParserError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return _resposta_importar_xml(resultado)
-
-
 class ImportarXMLNFePortalView(APIView):
     """Importa XML de NF-e pelo portal (JWT); origem fixa MANUAL."""
 
@@ -492,15 +516,163 @@ class ImportarXMLNFePortalView(APIView):
         return _resposta_importar_xml(resultado)
 
 
-class ControleNSUBaseView(APIView):
-    authentication_classes = [FiscalAgentAuthentication]
-    permission_classes = [FiscalAgentTokenConfigured, IsFiscalAgentAuthenticated]
+class ReclassificarEntradaView(APIView):
+    """Reclassifica manualmente a destinação (objetivo) de uma NF-e recebida."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.FISCAL_EDITAR
+
+    def patch(self, request, documento_id: int):
+        try:
+            documento = DocumentoFiscalRecebido.objects.prefetch_related("itens").get(
+                pk=documento_id
+            )
+        except DocumentoFiscalRecebido.DoesNotExist:
+            return Response(
+                {"detail": "NF-e recebida não encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ReclassificarEntradaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        itens_objetivo = {
+            item["item_id"]: item["objetivo_entrada"] for item in data.get("itens", [])
+        }
+        documento = reclassificar_entrada(
+            documento,
+            objetivo_nota=data.get("objetivo_entrada"),
+            itens_objetivo=itens_objetivo or None,
+        )
+        return Response(DocumentoFiscalRecebidoDetailSerializer(documento).data)
+
+
+class PreviewCatalogoNFeView(APIView):
+    """Preview de importação da NF-e recebida para o catálogo (com matching em cascata)."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.MATERIAL_EDITAR_LISTA
+
+    def get(self, request, documento_id: int):
+        try:
+            documento = DocumentoFiscalRecebido.objects.prefetch_related("itens").get(
+                pk=documento_id
+            )
+        except DocumentoFiscalRecebido.DoesNotExist:
+            return Response(
+                {"detail": "NF-e recebida não encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            return Response(preview_catalogo_nfe(documento))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ImportarCatalogoNFeView(APIView):
+    """Importa os produtos da NF-e recebida para o catálogo (rastreabilidade + de-para)."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.MATERIAL_EDITAR_LISTA
+
+    def post(self, request, documento_id: int):
+        try:
+            documento = DocumentoFiscalRecebido.objects.prefetch_related("itens").get(
+                pk=documento_id
+            )
+        except DocumentoFiscalRecebido.DoesNotExist:
+            return Response(
+                {"detail": "NF-e recebida não encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ImportarCatalogoNFeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        dados = serializer.validated_data
+        try:
+            resultado, vinculados = importar_nfe_para_catalogo(
+                documento,
+                criar_fornecedor=dados.get("criar_fornecedor", False),
+                fornecedor_id=dados.get("fornecedor_id"),
+                categoria_padrao=dados.get("categoria_padrao") or "",
+                itens=dados["itens"],
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "produtos_criados": resultado.produtos_criados,
+                "produtos_atualizados": resultado.produtos_atualizados,
+                "produtos_ignorados": resultado.produtos_ignorados,
+                "fornecedores_associados": resultado.fornecedores_associados,
+                "itens_vinculados": vinculados,
+                "avisos": resultado.avisos,
+            }
+        )
+
+
+class VincularProdutoItemView(APIView):
+    """Confirma manualmente que um item de NF-e corresponde a um produto do catálogo."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.MATERIAL_EDITAR_LISTA
+
+    def post(self, request, item_id: int):
+        try:
+            item = ItemDocumentoFiscal.objects.select_related("documento").get(pk=item_id)
+        except ItemDocumentoFiscal.DoesNotExist:
+            return Response(
+                {"detail": "Item de NF-e não encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = VincularProdutoItemSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        dados = serializer.validated_data
+
+        produto = Produto.objects.filter(pk=dados["produto_id"]).first()
+        if produto is None:
+            return Response(
+                {"detail": "Produto não encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        vincular_item_a_produto(
+            item,
+            produto,
+            registrar_depara=dados.get("registrar_depara", True),
+        )
+        return Response(
+            {
+                "item_id": item.id,
+                "produto_id": str(produto.id),
+                "produto_codigo": produto.codigo,
+                "importado_para_produto": True,
+            }
+        )
+
+
+class ControleNSUView(APIView):
+    """Consulta o controle NSU da SEFAZ (usuário JWT com permissão de visualização)."""
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.FISCAL_VISUALIZAR
 
     def _get_or_create(self, cnpj_raw: str) -> ControleNSU:
         cnpj = normalizar_cnpj(cnpj_raw)
         if len(cnpj) != 14:
-            from rest_framework.exceptions import ValidationError
-
             raise ValidationError({"cnpj": "CNPJ deve conter 14 dígitos."})
         controle, _ = ControleNSU.objects.get_or_create(
             cnpj=cnpj,
@@ -508,32 +680,32 @@ class ControleNSUBaseView(APIView):
         )
         return controle
 
-
-class ControleNSUView(ControleNSUBaseView):
-    def get_authenticators(self):
-        if self.request.method == "GET":
-            return [FiscalAgentAuthentication(), JWTAuthentication()]
-        return [FiscalAgentAuthentication()]
-
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [ControleNSUGetPermission()]
-        return [FiscalAgentTokenConfigured(), IsFiscalAgentAuthenticated()]
-
-    def required_permission(self, request, view):
-        return PermissionKeys.FISCAL_VISUALIZAR
-
     def get(self, request, cnpj: str):
         controle = self._get_or_create(cnpj)
         return Response(ControleNSUSerializer(controle).data)
 
+
+class ControleNSUEditarView(APIView):
+    """Edita manualmente o NSU consumido da SEFAZ (usuário JWT com permissão de edição).
+
+    Permite ajustar o NSU para ressincronizar NF-es. Também remove o bloqueio
+    temporário (cStat 137/656).
+    """
+
+    permission_classes = [HasEffectivePermission]
+
+    def required_permission(self, request, view):
+        return PermissionKeys.FISCAL_EDITAR
+
     def patch(self, request, cnpj: str):
-        controle = self._get_or_create(cnpj)
-        serializer = ControleNSUUpdateSerializer(
-            controle,
-            data=request.data,
-            partial=True,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        novo_nsu = str(request.data.get("ultimo_nsu", "")).strip()
+        if not novo_nsu:
+            return Response(
+                {"detail": "Informe o NSU (ultimo_nsu)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            controle = redefinir_nsu_sefaz(cnpj, novo_nsu=novo_nsu)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(ControleNSUSerializer(controle).data)

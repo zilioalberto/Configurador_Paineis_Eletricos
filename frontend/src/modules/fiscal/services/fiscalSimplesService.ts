@@ -5,7 +5,6 @@ import type {
   RelatorioFaturamentoResponse,
 } from '../types/relatorioFaturamento'
 import type {
-  FaturamentoSimplesResponse,
   PerfilTributarioSimplesDto,
   ProjecaoDasSimplesResponse,
 } from '../types/simplesNacional'
@@ -13,14 +12,8 @@ import { periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 const PERFIL_URL = '/fiscal/simples/perfil/'
 const RELATORIO_FATURAMENTO_URL = '/fiscal/relatorios/faturamento/'
-const FATURAMENTO_URL = '/fiscal/simples/faturamento/'
 const PROJECAO_URL = '/fiscal/simples/projecao-das/'
 const AJUSTE_URL = '/fiscal/simples/faturamento-ajuste/'
-
-export async function obterPerfilTributarioSimples(): Promise<PerfilTributarioSimplesDto> {
-  const response = await apiClient.get<PerfilTributarioSimplesDto>(PERFIL_URL)
-  return response.data
-}
 
 export async function atualizarPerfilTributarioSimples(
   payload: Partial<
@@ -28,14 +21,6 @@ export async function atualizarPerfilTributarioSimples(
   >,
 ): Promise<PerfilTributarioSimplesDto> {
   const response = await apiClient.patch<PerfilTributarioSimplesDto>(PERFIL_URL, payload)
-  return response.data
-}
-
-export async function obterFaturamentoSimples(
-  dataReferencia?: string,
-): Promise<FaturamentoSimplesResponse> {
-  const params = dataReferencia ? { data_referencia: dataReferencia } : undefined
-  const response = await apiClient.get<FaturamentoSimplesResponse>(FATURAMENTO_URL, { params })
   return response.data
 }
 

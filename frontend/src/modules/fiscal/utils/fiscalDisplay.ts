@@ -3,8 +3,10 @@ import { aplicarMascaraCnpj } from '@/modules/cadastros/utils/cnpjMask'
 import type {
   AnexoSimplesNacional,
   OrigemImportacaoFiscal,
+  StatusDocumentoSefazDistribuido,
   StatusImportacaoFiscal,
   StatusManifestacaoDestinatario,
+  TipoDocumentoSefazDistribuido,
   TipoManifestacaoDestinatario,
 } from '../types/documentoFiscalRecebido'
 
@@ -35,8 +37,8 @@ export function labelStatusImportacao(status: StatusImportacaoFiscal): string {
 export function labelOrigemImportacao(origem: OrigemImportacaoFiscal): string {
   const map: Record<OrigemImportacaoFiscal, string> = {
     MANUAL: 'Manual (portal)',
-    PONTE_A3: 'Ponte A3 (legado)',
     SEFAZ_SYNC: 'Sincronização SEFAZ',
+    ADN_SYNC: 'Sincronização ADN (NFS-e)',
     API: 'API',
     OUTRO: 'Outro',
   }
@@ -77,11 +79,60 @@ export function labelTipoManifestacao(tipo: TipoManifestacaoDestinatario | ''): 
   return map[tipo] ?? tipo
 }
 
+export function labelStatusSefazDistribuicao(status: StatusDocumentoSefazDistribuido): string {
+  const map: Record<StatusDocumentoSefazDistribuido, string> = {
+    RESUMO_RECEBIDO: 'Resumo recebido',
+    AGUARDANDO_MANIFESTACAO: 'Aguardando manifestação',
+    MANIFESTADO: 'Manifestado',
+    XML_IMPORTADO: 'XML importado',
+    IGNORADO: 'Ignorado',
+    ERRO: 'Erro',
+  }
+  return map[status] ?? status
+}
+
+export function labelTipoSefazDistribuicao(tipo: TipoDocumentoSefazDistribuido): string {
+  const map: Record<TipoDocumentoSefazDistribuido, string> = {
+    RESUMO_NFE: 'Resumo NF-e',
+    NFE_COMPLETA: 'NF-e completa',
+    EVENTO: 'Evento',
+    OUTRO: 'Outro',
+  }
+  return map[tipo] ?? tipo
+}
+
 export function formatMoedaBrl(valor: string | number | null | undefined): string {
   if (valor === null || valor === undefined || valor === '') return '—'
   const n = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'))
   if (Number.isNaN(n)) return String(valor)
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+/** Valor monetário para campo de formulário (ex.: 1118.26 → "1.118,26"). */
+export function formatMoedaInput(valor: string | number | null | undefined): string {
+  if (valor === null || valor === undefined || valor === '') return ''
+  const n = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'))
+  if (Number.isNaN(n)) return String(valor)
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/** Converte entrada pt-BR (1.118,26) para número. */
+export function parseMoedaPt(valor: string): number {
+  const semEspacos = valor.trim().replace(/\s/g, '')
+  const normalizado = semEspacos.includes(',')
+    ? semEspacos.replace(/\./g, '').replace(',', '.')
+    : semEspacos
+  const n = Number(normalizado)
+  return Number.isFinite(n) ? n : NaN
+}
+
+/** Data ISO (YYYY-MM-DD) para input type="date". */
+export function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toISOString().slice(0, 10)
 }
 
 /** Data civil local (YYYY-MM-DD), sem deslocamento UTC do `toISOString()`. */

@@ -62,8 +62,8 @@ Todas as rotas abaixo usam o prefixo **`/api/v1/`**.
 | `composicao/` | `configurador_paineis.composicao_painel` | BoM / composição |
 | `catalogo/` | `catalogo` | Produtos, categorias, importação NF-e |
 | `fiscal/itens-fiscais/` | `fiscal` | Itens fiscais por produto (leitura) |
-| `fiscal/nfes/`, `fiscal/nfes/importar-xml/` | `fiscal` | NF-e recebidas (JWT list/detail; Bearer import) |
-| `fiscal/nsu/{cnpj}/` | `fiscal` | Controle NSU por CNPJ (Bearer — ponte A3) |
+| `fiscal/nfes/`, `fiscal/nfes/importar-manual/` | `fiscal` | NF-e recebidas (JWT list/detail; importação manual de XML) |
+| `fiscal/nsu/{cnpj}/` | `fiscal` | Controle NSU por CNPJ (JWT) |
 | `cadastros/` | `cadastros` | Parceiros, contatos, endereços |
 | `rh/` | `rh` | Colaboradores, jornadas, equipes |
 | `tarefas/` | `tarefas` | Kanban, apontamentos, relatórios |

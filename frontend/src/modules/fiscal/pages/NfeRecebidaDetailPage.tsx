@@ -1,12 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 
 import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 
 import NfeManifestacaoDestinatarioPanel from '../components/NfeManifestacaoDestinatarioPanel'
-import { labelObjetivoEntrada } from '../constants/objetivoEntradaOptions'
+import { labelObjetivoEntrada, objetivoEntradaOptions } from '../constants/objetivoEntradaOptions'
 import { fiscalPaths } from '../fiscalPaths'
+import { fiscalQueryKeys } from '../fiscalQueryKeys'
 import { useNfeRecebidaDetailQuery } from '../hooks/useNfeRecebidaDetailQuery'
+import { reclassificarEntradaNfe } from '../services/fiscalNfeService'
+import type { ObjetivoEntradaFiscal } from '../types/documentoFiscalRecebido'
 import {
   formatChaveAcesso,
   formatCnpjExibicao,
@@ -22,8 +26,35 @@ export default function NfeRecebidaDetailPage() {
   const id = Number(idParam)
   const validId = Number.isFinite(id) && id > 0
 
+  const queryClient = useQueryClient()
   const { data, isPending, isError, error } = useNfeRecebidaDetailQuery(id, validId)
   const [xmlAberto, setXmlAberto] = useState(false)
+  const [objetivoNota, setObjetivoNota] = useState<ObjetivoEntradaFiscal | ''>('')
+
+  useEffect(() => {
+    if (data) setObjetivoNota(data.objetivo_entrada)
+  }, [data])
+
+  const reclassificarMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof reclassificarEntradaNfe>[1]) =>
+      reclassificarEntradaNfe(id, payload),
+    onSuccess: (atualizado) => {
+      queryClient.setQueryData(fiscalQueryKeys.nfeRecebida(id), atualizado)
+      void queryClient.invalidateQueries({ queryKey: ['fiscal', 'nfes-recebidas'] })
+    },
+  })
+
+  const salvarObjetivoNota = useCallback(() => {
+    if (!objetivoNota) return
+    reclassificarMutation.mutate({ objetivo_entrada: objetivoNota })
+  }, [objetivoNota, reclassificarMutation])
+
+  const reclassificarItem = useCallback(
+    (itemId: number, objetivo: ObjetivoEntradaFiscal) => {
+      reclassificarMutation.mutate({ itens: [{ item_id: itemId, objetivo_entrada: objetivo }] })
+    },
+    [reclassificarMutation],
+  )
 
   const downloadNome = useMemo(() => {
     if (!data) return 'nfe.xml'
@@ -88,8 +119,20 @@ export default function NfeRecebidaDetailPage() {
                   {labelOrigemImportacao(data.origem_importacao)}
                 </span>
                 <span className="badge bg-info text-dark">
-                  {labelObjetivoEntrada(data.objetivo_entrada)}
+                  {data.objetivo_entrada_display || labelObjetivoEntrada(data.objetivo_entrada)}
                 </span>
+                <span
+                  className={`badge ${
+                    data.classificacao_origem === 'MANUAL' ? 'bg-warning text-dark' : 'bg-light text-dark border'
+                  }`}
+                >
+                  {data.classificacao_origem === 'MANUAL' ? 'Classificação manual' : 'Classificação automática'}
+                </span>
+                {data.finalidade_nfe_display ? (
+                  <span className="badge bg-light text-dark border">
+                    finNFe: {data.finalidade_nfe_display}
+                  </span>
+                ) : null}
                 {data.nsu ? (
                   <span className="badge bg-light text-dark border">NSU {data.nsu}</span>
                 ) : null}
@@ -98,11 +141,14 @@ export default function NfeRecebidaDetailPage() {
             <div className="d-flex flex-wrap gap-2">
               {data.xml_original ? (
                 <>
+                  <Link to={fiscalPaths.nfeImportarCatalogo(data.id)} className="btn btn-primary">
+                    Revisar e importar no catálogo
+                  </Link>
                   <Link
                     to={`${catalogoPaths.produtoImportarNfe}?documentoFiscalId=${data.id}`}
-                    className="btn btn-primary"
+                    className="btn btn-outline-primary"
                   >
-                    Importar itens no catálogo
+                    Importar (assistente clássico)
                   </Link>
                   <button type="button" className="btn btn-outline-secondary" onClick={onDownloadXml}>
                     Descarregar XML
@@ -170,6 +216,65 @@ export default function NfeRecebidaDetailPage() {
             </div>
           </div>
 
+          <div className="card mb-4">
+            <div className="card-header d-flex align-items-center justify-content-between">
+              <span>Classificação fiscal da entrada</span>
+              {data.cfop_predominante ? (
+                <span className="badge bg-light text-dark border">
+                  CFOP predominante: {data.cfop_predominante}
+                </span>
+              ) : null}
+            </div>
+            <div className="card-body">
+              <p className="small text-muted mb-3">
+                A destinação foi sugerida automaticamente pelo CFOP. Revise e ajuste o objetivo da
+                nota ou de cada item, se necessário.
+              </p>
+              <div className="row g-2 align-items-end">
+                <div className="col-sm-8 col-md-6">
+                  <label className="form-label small text-muted mb-1" htmlFor="objetivo-nota">
+                    Objetivo da nota
+                  </label>
+                  <select
+                    id="objetivo-nota"
+                    className="form-select"
+                    value={objetivoNota}
+                    onChange={(e) => setObjetivoNota(e.target.value as ObjetivoEntradaFiscal)}
+                    disabled={reclassificarMutation.isPending}
+                  >
+                    {objetivoEntradaOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-sm-4 col-md-3">
+                  <button
+                    type="button"
+                    className="btn btn-primary w-100"
+                    onClick={salvarObjetivoNota}
+                    disabled={
+                      reclassificarMutation.isPending || objetivoNota === data.objetivo_entrada
+                    }
+                  >
+                    {reclassificarMutation.isPending ? 'Salvando…' : 'Salvar classificação'}
+                  </button>
+                </div>
+              </div>
+              {reclassificarMutation.isError ? (
+                <div className="alert alert-danger mt-3 mb-0 py-2 small" role="alert">
+                  Não foi possível reclassificar. Tente novamente.
+                </div>
+              ) : null}
+              {reclassificarMutation.isSuccess ? (
+                <div className="alert alert-success mt-3 mb-0 py-2 small" role="status">
+                  Classificação atualizada.
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           <NfeManifestacaoDestinatarioPanel documento={data} />
 
           <h2 className="h5 mb-3">Itens da nota ({data.itens.length})</h2>
@@ -194,6 +299,7 @@ export default function NfeRecebidaDetailPage() {
                         <th scope="col" className="text-end">
                           Total
                         </th>
+                        <th scope="col">Objetivo (entrada)</th>
                         <th scope="col">Catálogo</th>
                       </tr>
                     </thead>
@@ -208,9 +314,31 @@ export default function NfeRecebidaDetailPage() {
                           <td>{item.unidade || '—'}</td>
                           <td className="text-end">{item.quantidade}</td>
                           <td className="text-end">{formatMoedaBrl(item.valor_total)}</td>
+                          <td style={{ minWidth: '12rem' }}>
+                            <select
+                              className="form-select form-select-sm"
+                              aria-label={`Objetivo do item ${item.numero_item}`}
+                              value={item.objetivo_entrada}
+                              onChange={(e) =>
+                                reclassificarItem(item.id, e.target.value as ObjetivoEntradaFiscal)
+                              }
+                              disabled={reclassificarMutation.isPending}
+                            >
+                              {objetivoEntradaOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            {item.classificacao_origem === 'MANUAL' ? (
+                              <span className="badge bg-warning text-dark mt-1">Manual</span>
+                            ) : null}
+                          </td>
                           <td>
                             {item.importado_para_produto ? (
-                              <span className="badge bg-success">Sim</span>
+                              <span className="badge bg-success" title={item.produto_codigo ?? ''}>
+                                {item.produto_codigo || 'Sim'}
+                              </span>
                             ) : (
                               <span className="text-muted small">Não</span>
                             )}

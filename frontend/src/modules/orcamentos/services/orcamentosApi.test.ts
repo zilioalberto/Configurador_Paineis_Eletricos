@@ -130,7 +130,7 @@ describe('orcamentosApi', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       '/orcamentos/o-1/itens/i-1/revisar-preco-catalogo/',
-      { preco_base: '150.00', justificativa: 'Cotação revisada' }
+      { custo_referencia: '150.00', justificativa: 'Cotação revisada' }
     )
   })
 

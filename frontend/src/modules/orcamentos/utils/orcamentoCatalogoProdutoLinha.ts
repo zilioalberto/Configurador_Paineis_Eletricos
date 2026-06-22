@@ -16,7 +16,7 @@ export function criarLinhaDeProdutoCatalogo(
   margemProdutos: string,
   extras?: Partial<LinhaEditavelOrcamento>
 ): LinhaEditavelOrcamento {
-  const custo = String(produto.preco_base ?? '0')
+  const custo = String(produto.custo_referencia ?? '0')
   const margem = margemProdutos || '0'
   const aliquota_ipi = aliquotaIpiProduto(produto)
   return {

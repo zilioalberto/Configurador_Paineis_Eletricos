@@ -78,6 +78,92 @@ flowchart LR
 
 O **catálogo** alimenta seleção de componentes e dados fiscais/técnicos.
 
+## Casos de uso (atores × funcionalidades)
+
+Visão de alto nível dos principais atores e do que cada um faz no sistema. `SEFAZ` e
+`Telegram` são sistemas externos; `Cliente` interage apenas pela oferta pública.
+
+```mermaid
+flowchart LR
+  Eng([Engenharia])
+  Orc([Orçamentista])
+  Alm([Almoxarifado])
+  Adm([Administrador])
+  Cli([Cliente])
+  SEFAZ[[SEFAZ]]
+  TG[[Telegram]]
+
+  subgraph CPQ [Configurador / CPQ]
+    UC1(Configurar painel: projeto → cargas → dimensionamento)
+    UC2(Compor BoM do painel)
+  end
+  subgraph COM [Comercial]
+    UC3(Montar orçamento e margens)
+    UC4(Gerar e enviar oferta)
+    UC5(Aprovar/recusar oferta)
+  end
+  subgraph SUP [Suprimentos / Fiscal]
+    UC6(Importar NF-e / sincronizar SEFAZ)
+    UC7(Manter catálogo e custos)
+  end
+  subgraph ADM [Administração]
+    UC8(Gerir usuários e permissões)
+    UC9(Observar saúde do sistema)
+  end
+
+  Eng --> UC1 & UC2
+  Orc --> UC3 & UC4 & UC7
+  Alm --> UC6 & UC7
+  Cli --> UC5
+  Adm --> UC8 & UC9
+  UC6 <--> SEFAZ
+  UC9 --> TG
+```
+
+## Modelo de dados (núcleo)
+
+Recorte das entidades centrais do portfólio (catálogo + CPQ + comercial + fiscal). Não é o
+esquema completo do banco — apps de apoio (auth, tarefas, documentos, notificações, etc.) ficam
+de fora. Fonte da verdade: os `models.py` de cada app.
+
+```mermaid
+erDiagram
+  PARCEIRO_COMERCIAL ||--o{ ORCAMENTO : "cliente"
+  PARCEIRO_COMERCIAL ||--o| CONFIG_MARGEM_CLIENTE : "margem"
+  PARCEIRO_COMERCIAL ||--o{ PRODUTO : "fornece/fabrica"
+  PRODUTO ||--o| ITEM_FISCAL_PRODUTO : "tributos ref."
+  PROJETO_CONFIGURADOR ||--o{ CARGA : "tem"
+  PROJETO_CONFIGURADOR ||--o{ DIMENSIONAMENTO_CIRCUITO : "calcula"
+  PROJETO_CONFIGURADOR ||--o{ COMPOSICAO_ITEM : "BoM"
+  PRODUTO ||--o{ COMPOSICAO_ITEM : "compõe"
+  ORCAMENTO ||--o{ ORCAMENTO_ITEM : "linhas"
+  PRODUTO ||--o{ ORCAMENTO_ITEM : "referencia"
+  SERVICO ||--o{ ORCAMENTO_ITEM : "referencia"
+  ORCAMENTO ||--o{ ORCAMENTO_CONFIGURADOR_PAINEL : "vincula"
+  PROJETO_CONFIGURADOR ||--o{ ORCAMENTO_CONFIGURADOR_PAINEL : "origem"
+  DOCUMENTO_FISCAL_RECEBIDO ||--o{ ITEM_DOCUMENTO_FISCAL : "itens"
+  PRODUTO ||--o{ ITEM_DOCUMENTO_FISCAL : "importado_para_produto"
+
+  PRODUTO {
+    string codigo
+    string descricao
+    decimal custo_referencia
+  }
+  ORCAMENTO_ITEM {
+    string tipo
+    decimal custo_unitario
+    decimal preco_unitario
+  }
+  ORCAMENTO {
+    string codigo_base
+    int revisao
+    string status
+  }
+```
+
+> **Composição do preço da oferta:** `preco_unitario = custo_referencia × (1 + margem do cliente) × (1 + IPI)`.
+> Ver [Catálogo › Custo de referência](../modulos/catalogo.md#custo-de-referência-e-composição-do-preço).
+
 ## API e metadados de módulos
 
 - Rotas REST sob prefixos por app (ex.: configurador, catálogo, tarefas).
@@ -98,3 +184,4 @@ O **catálogo** alimenta seleção de componentes e dados fiscais/técnicos.
 
 - Detalhar contratos de API por módulo (OpenAPI ou tabelas de endpoints).
 - Diagrama de deploy em produção (`docker-compose.prod.yml`).
+- Expandir o modelo de dados para apps de apoio (tarefas, documentos, notificações, RH).

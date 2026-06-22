@@ -31,7 +31,7 @@ export type NfeProdutoExistenteResumo = {
   categoria: string
   unidade_medida: string
   unidade_tributavel: string
-  preco_base: string
+  custo_referencia: string
   ncm: string
   cest: string
   gtin: string

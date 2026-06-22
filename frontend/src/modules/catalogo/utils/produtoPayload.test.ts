@@ -13,14 +13,14 @@ describe('produtoFormToApiPayload', () => {
     const data = produtoFormEmpty()
     data.categoria = 'cid-plc'
     data.codigo = ' P1 '
-    data.preco_base = '10,5'
+    data.custo_referencia = '10,5'
     data.especificacao = { campo: '1' }
     const categorias: CategoriaProduto[] = [
       { id: 'cid-plc', nome: 'PLC', descricao: '', ativo: true },
     ]
     const payload = produtoFormToApiPayload(data, categorias)
     expect(payload.codigo).toBe('P1')
-    expect(payload.preco_base).toBe(10.5)
+    expect(payload.custo_referencia).toBe(10.5)
     expect(payload).toHaveProperty('especificacao_plc')
   })
 

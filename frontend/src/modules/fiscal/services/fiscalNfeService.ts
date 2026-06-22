@@ -9,21 +9,30 @@ import type {
   DocumentoFiscalEmitidoListRow,
   DocumentoFiscalRecebidoDetail,
   DocumentoFiscalRecebidoListRow,
+  DocumentoSefazDistribuidoDetail,
+  DocumentoSefazDistribuidoListRow,
   ImportarDocumentoEmitidoResponse,
   ImportarLoteDocumentosEmitidosResponse,
   NfesEmitidasFiltros,
   ImportarNfeXmlResponse,
   NfesRecebidasFiltros,
+  ImportarCatalogoPayload,
+  ImportarCatalogoResponse,
   ObjetivoEntradaFiscal,
   ObjetivoSaidaFiscal,
+  PreviewCatalogoResponse,
+  ReclassificarEntradaPayload,
   RelatorioNFeFiltros,
   RelatorioNFeResponse,
+  SefazDistribuicaoFiltros,
   TipoDocumentoFiscalEmitido,
   TipoManifestacaoDestinatario,
+  VincularProdutoResponse,
 } from '../types/documentoFiscalRecebido'
 import { periodoDaCompetencia } from '../utils/periodoCompetencia'
 
 const NFES_URL = '/fiscal/nfes/'
+const SEFAZ_DISTRIBUICAO_URL = '/fiscal/sefaz-distribuicao/'
 const IMPORT_MANUAL_URL = '/fiscal/nfes/importar-manual/'
 const NFES_EMITIDAS_URL = '/fiscal/nfes-emitidas/'
 const IMPORT_EMITIDA_MANUAL_URL = '/fiscal/nfes-emitidas/importar-manual/'
@@ -41,6 +50,15 @@ function normalizeTotal(count: unknown, fallback: number): number {
 
 export type NfesRecebidasListPage = {
   readonly items: DocumentoFiscalRecebidoListRow[]
+  readonly total: number
+  readonly page: number
+  readonly pageSize: number
+  readonly hasNext: boolean
+  readonly hasPrevious: boolean
+}
+
+export type SefazDistribuicaoListPage = {
+  readonly items: DocumentoSefazDistribuidoListRow[]
   readonly total: number
   readonly page: number
   readonly pageSize: number
@@ -103,6 +121,22 @@ function filtrosParaParams(filtros: NfesRecebidasFiltros): Record<string, string
   return params
 }
 
+function filtrosSefazDistribuicaoParaParams(
+  filtros: SefazDistribuicaoFiltros,
+): Record<string, string> {
+  const params: Record<string, string> = {}
+  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
+    const v = (raw ?? '').trim()
+    if (!v) return
+    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
+  }
+  add('chave_acesso', (filtros.chave_acesso ?? '').replace(/\s/g, ''))
+  add('cnpj_emitente', filtros.cnpj_emitente, true)
+  add('status', filtros.status)
+  add('manifestacao_status', filtros.manifestacao_status)
+  return params
+}
+
 function relatorioFiltrosParaParams(filtros: RelatorioNFeFiltros): Record<string, string> {
   const params: Record<string, string> = {}
   const add = (key: string, raw: string | undefined, digitsOnly = false) => {
@@ -133,6 +167,11 @@ export type SolicitarManifestacaoResponse = {
   readonly documento: DocumentoFiscalRecebidoDetail
 }
 
+export type SolicitarManifestacaoSefazDistribuicaoResponse = {
+  readonly message: string
+  readonly documento: DocumentoSefazDistribuidoDetail
+}
+
 /** Lista NF-es recebidas com filtros opcionais. */
 export async function listarNfesRecebidas(
   filtros: NfesRecebidasFiltros,
@@ -148,9 +187,68 @@ export async function listarNfesRecebidas(
   return normalizeListPage(response.data, page, pageSize)
 }
 
+export async function listarSefazDistribuicao(
+  filtros: SefazDistribuicaoFiltros,
+  page = 1,
+  pageSize = 50,
+): Promise<SefazDistribuicaoListPage> {
+  const params: Record<string, string | number> = {
+    page,
+    page_size: pageSize,
+    ...filtrosSefazDistribuicaoParaParams(filtros),
+  }
+  const response = await apiClient.get<unknown>(SEFAZ_DISTRIBUICAO_URL, { params })
+  return normalizeListPage(response.data, page, pageSize) as unknown as SefazDistribuicaoListPage
+}
+
 /** Detalhe com itens e XML original. */
 export async function obterNfeRecebida(id: number): Promise<DocumentoFiscalRecebidoDetail> {
   const response = await apiClient.get<DocumentoFiscalRecebidoDetail>(`${NFES_URL}${id}/`)
+  return response.data
+}
+
+/** Reclassifica a destinação (objetivo de entrada) da NF-e e/ou de itens. */
+export async function reclassificarEntradaNfe(
+  documentoId: number,
+  payload: ReclassificarEntradaPayload,
+): Promise<DocumentoFiscalRecebidoDetail> {
+  const response = await apiClient.patch<DocumentoFiscalRecebidoDetail>(
+    `${NFES_URL}${documentoId}/reclassificar/`,
+    payload,
+  )
+  return response.data
+}
+
+/** Preview de importação da NF-e recebida para o catálogo (com matching em cascata). */
+export async function previewCatalogoNfe(documentoId: number): Promise<PreviewCatalogoResponse> {
+  const response = await apiClient.get<PreviewCatalogoResponse>(
+    `${NFES_URL}${documentoId}/preview-catalogo/`,
+  )
+  return response.data
+}
+
+/** Aplica a importação dos itens da NF-e recebida no catálogo (rastreabilidade + de-para). */
+export async function importarCatalogoNfe(
+  documentoId: number,
+  payload: ImportarCatalogoPayload,
+): Promise<ImportarCatalogoResponse> {
+  const response = await apiClient.post<ImportarCatalogoResponse>(
+    `${NFES_URL}${documentoId}/importar-catalogo/`,
+    payload,
+  )
+  return response.data
+}
+
+/** Confirma manualmente que um item de NF-e corresponde a um produto do catálogo. */
+export async function vincularProdutoItemNfe(
+  itemId: number,
+  produtoId: string,
+  registrarDepara = true,
+): Promise<VincularProdutoResponse> {
+  const response = await apiClient.post<VincularProdutoResponse>(
+    `/fiscal/itens-nfe/${itemId}/vincular-produto/`,
+    { produto_id: produtoId, registrar_depara: registrarDepara },
+  )
   return response.data
 }
 
@@ -305,17 +403,57 @@ export type SincronizarNfesSefazResponse = {
   readonly documentos_importados: number
   readonly documentos_novos: number
   readonly documentos_duplicados: number
+  readonly resumos_armazenados?: number
+  readonly resumos_novos?: number
+  readonly documentos_ignorados?: number
+  readonly schemas_ignorados?: Readonly<Record<string, number>>
   readonly erros_importacao: readonly string[]
+  readonly alertas?: readonly string[]
   readonly ultimo_cstat: string
+  readonly ultimo_motivo?: string
   readonly ultimo_nsu: string
   readonly max_nsu: string
   readonly manifestacoes_processadas: number
+  readonly detail?: string
 }
 
 /** Consulta a SEFAZ e importa NF-es recebidas (certificado A1 no servidor). */
 export async function sincronizarNfesSefaz(): Promise<SincronizarNfesSefazResponse> {
   const response = await apiClient.post<SincronizarNfesSefazResponse>(
     '/fiscal/nfes/sincronizar-sefaz/',
+  )
+  return response.data
+}
+
+export type ImportarPorChaveItem = {
+  readonly chave: string
+  readonly sucesso: boolean
+  readonly status: 'importada' | 'duplicada' | 'resumo' | 'nao_encontrada' | 'erro'
+  readonly mensagem: string
+  readonly documento_id: number | null
+  readonly cstat: string
+  readonly motivo: string
+}
+
+export type ImportarNfesPorChaveResponse = {
+  readonly sucesso: boolean
+  readonly total: number
+  readonly importadas: number
+  readonly duplicadas: number
+  readonly resumos: number
+  readonly nao_encontradas: number
+  readonly erros: number
+  readonly resultados: readonly ImportarPorChaveItem[]
+}
+
+/** Importa NF-e(s) recebida(s) pela chave de acesso (consChNFe — consulta retroativa). */
+export async function importarNfesPorChaveSefaz(
+  chaves: readonly string[],
+): Promise<ImportarNfesPorChaveResponse> {
+  const limpas = chaves.map((c) => c.replace(/\D/g, '')).filter((c) => c.length === 44)
+  const response = await apiClient.post<ImportarNfesPorChaveResponse>(
+    '/fiscal/nfes/importar-por-chave/',
+    { chaves: limpas },
   )
   return response.data
 }
@@ -332,8 +470,31 @@ export async function solicitarManifestacaoDestinatario(
   return response.data
 }
 
+export async function solicitarManifestacaoSefazDistribuicao(
+  documentoId: number,
+  payload: SolicitarManifestacaoPayload,
+): Promise<SolicitarManifestacaoSefazDistribuicaoResponse> {
+  const response = await apiClient.post<SolicitarManifestacaoSefazDistribuicaoResponse>(
+    `/fiscal/sefaz-distribuicao/${documentoId}/solicitar-manifestacao/`,
+    payload,
+  )
+  return response.data
+}
+
 export async function obterControleNsu(cnpj: string): Promise<ControleNsuDto> {
   const digits = cnpj.replace(/\D/g, '')
   const response = await apiClient.get<ControleNsuDto>(`/fiscal/nsu/${digits}/`)
+  return response.data
+}
+
+/** Edita manualmente o NSU consumido da SEFAZ (reset/ajuste) e remove o bloqueio. */
+export async function atualizarControleNsu(
+  cnpj: string,
+  ultimoNsu: string,
+): Promise<ControleNsuDto> {
+  const digits = cnpj.replace(/\D/g, '')
+  const response = await apiClient.patch<ControleNsuDto>(`/fiscal/nsu/${digits}/editar/`, {
+    ultimo_nsu: ultimoNsu,
+  })
   return response.data
 }

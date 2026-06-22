@@ -42,7 +42,7 @@ export function produtoFormToApiPayload(
     descricao: data.descricao.trim(),
     categoria: data.categoria,
     unidade_medida: data.unidade_medida,
-    preco_base: num(data.preco_base),
+    custo_referencia: num(data.custo_referencia),
     aliquota_ipi: decNullablePercent(data.aliquota_ipi),
     fabricante_parceiro: fabPar || null,
     fornecedor_parceiro: fornPar || null,

@@ -12,8 +12,6 @@ from core.choices.usuarios import TipoUsuarioChoices
 
 User = get_user_model()
 
-FISCAL_TEST_TOKEN = "fiscal-agent-test-token-seguro"
-IMPORT_URL = "/api/v1/fiscal/nfes/importar-xml/"
 IMPORT_PORTAL_URL = "/api/v1/fiscal/nfes/importar-manual/"
 IMPORT_EMITIDA_URL = "/api/v1/fiscal/nfes-emitidas/importar-manual/"
 NSU_URL = "/api/v1/fiscal/nsu/98765432000188/"
@@ -83,12 +81,6 @@ def api_client():
 
 
 @pytest.fixture
-def fiscal_agent_settings():
-    with override_settings(FISCAL_AGENT_TOKEN=FISCAL_TEST_TOKEN):
-        yield
-
-
-@pytest.fixture
 def jwt_client(api_client):
     user = User.objects.create_user(
         email="fiscal-nfe-jwt@test.com",
@@ -104,89 +96,6 @@ def jwt_client(api_client):
     assert token.status_code == 200
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.data['access']}")
     return api_client
-
-
-def _autenticar_agente(client: APIClient) -> None:
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {FISCAL_TEST_TOKEN}")
-
-
-@pytest.mark.django_db
-@pytest.mark.usefixtures("fiscal_cnpj_recebidas_settings")
-class TestNfeApiAgent:
-    def test_importar_sem_token_bloqueia(self, api_client, fiscal_agent_settings):
-        api_client.credentials()
-        resp = api_client.post(IMPORT_URL, {"xml": XML_NFE_PROC}, format="json")
-        assert resp.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
-
-    def test_importar_token_invalido(self, api_client, fiscal_agent_settings):
-        api_client.credentials(HTTP_AUTHORIZATION="Bearer token-errado")
-        resp = api_client.post(IMPORT_URL, {"xml": XML_NFE_PROC}, format="json")
-        assert resp.status_code in (
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_403_FORBIDDEN,
-        )
-
-    def test_importar_com_token_valido(self, api_client, fiscal_agent_settings):
-        _autenticar_agente(api_client)
-        resp = api_client.post(
-            IMPORT_URL,
-            {
-                "xml": XML_NFE_PROC,
-                "origem_importacao": "MANUAL",
-                "objetivo_entrada": "INDUSTRIALIZACAO",
-            },
-            format="json",
-        )
-        assert resp.status_code == status.HTTP_201_CREATED
-        assert resp.data["created"] is True
-        assert resp.data["chave_acesso"] == CHAVE_NFE_TESTE
-
-    def test_importar_duplicada_retorna_200(self, api_client, fiscal_agent_settings):
-        importar_xml_nfe(xml=XML_NFE_PROC)
-        _autenticar_agente(api_client)
-        resp = api_client.post(IMPORT_URL, {"xml": XML_NFE_PROC}, format="json")
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.data["created"] is False
-
-    def test_importar_xml_invalido_400(self, api_client, fiscal_agent_settings):
-        _autenticar_agente(api_client)
-        resp = api_client.post(IMPORT_URL, {"xml": "<invalid"}, format="json")
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_nsu_sem_token_bloqueia(self, api_client, fiscal_agent_settings):
-        api_client.credentials()
-        resp = api_client.get(NSU_URL)
-        assert resp.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
-
-    def test_nsu_get_cria_controle(self, api_client, fiscal_agent_settings):
-        _autenticar_agente(api_client)
-        resp = api_client.get(NSU_URL)
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.data["cnpj"] == "98765432000188"
-        assert resp.data["ultimo_nsu"] == "000000000000000"
-        assert ControleNSU.objects.filter(cnpj="98765432000188").exists()
-
-    def test_nsu_patch_atualiza(self, api_client, fiscal_agent_settings):
-        _autenticar_agente(api_client)
-        api_client.get(NSU_URL)
-        resp = api_client.patch(
-            NSU_URL,
-            {
-                "ultimo_nsu": "000000000123456",
-                "ultimo_cstat": "137",
-                "ultimo_motivo": "Nenhum documento localizado",
-            },
-            format="json",
-        )
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.data["ultimo_nsu"] == "000000000123456"
-        assert resp.data["ultimo_cstat"] == "137"
-
-    def test_token_nao_configurado_bloqueia(self, api_client):
-        with override_settings(FISCAL_AGENT_TOKEN=""):
-            _autenticar_agente(api_client)
-            resp = api_client.post(IMPORT_URL, {"xml": XML_NFE_PROC}, format="json")
-            assert resp.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
@@ -428,14 +337,14 @@ class TestNfeApiJwt:
         assert resp.data["documentos"][0]["tipo_movimento"] == "SAIDA"
         assert resp.data["documentos"][0]["objetivo"] == "PRESTACAO_SERVICO"
 
-    def test_nsu_get_jwt(self, jwt_client):
+    def test_nsu_get_jwt_cria_controle(self, jwt_client):
         resp = jwt_client.get(NSU_URL)
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["cnpj"] == "98765432000188"
+        assert resp.data["ultimo_nsu"] == "000000000000000"
+        assert ControleNSU.objects.filter(cnpj="98765432000188").exists()
 
-    def test_nsu_patch_jwt_bloqueia(self, jwt_client):
+    def test_nsu_patch_nao_permitido(self, jwt_client):
+        jwt_client.get(NSU_URL)
         resp = jwt_client.patch(NSU_URL, {"ultimo_nsu": "000000000000001"}, format="json")
-        assert resp.status_code in (
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_403_FORBIDDEN,
-        )
+        assert resp.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

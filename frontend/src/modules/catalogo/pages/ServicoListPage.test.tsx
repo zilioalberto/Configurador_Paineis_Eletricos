@@ -57,7 +57,7 @@ describe('ServicoListPage', () => {
     useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.MATERIAL_EDITAR_LISTA]) })
     useServicoListQueryMock.mockReturnValue({
       data: {
-        items: [{ id: 's-1', codigo: 'SRV', descricao: 'Serviço', categoria: '', unidade_medida: 'UN', preco_base: '10', ativo: true }],
+        items: [{ id: 's-1', codigo: 'SRV', descricao: 'Serviço', categoria: '', unidade_medida: 'UN', custo_referencia: '10', ativo: true }],
         total: 1,
         page: 1,
         pageSize: 50,

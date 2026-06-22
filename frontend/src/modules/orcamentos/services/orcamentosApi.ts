@@ -168,15 +168,6 @@ export async function uploadArquivoOfertaOrcamento(
   return data
 }
 
-export async function listarArquivosOfertaOrcamento(
-  id: string
-): Promise<OrcamentoOfertaArquivoDto[]> {
-  const { data } = await apiClient.get<OrcamentoOfertaArquivoDto[]>(
-    `/orcamentos/${id}/arquivos-oferta/`
-  )
-  return data
-}
-
 export async function baixarArquivoOfertaOrcamento(
   orcamentoId: string,
   arquivoId: string
@@ -235,12 +226,12 @@ export async function gerarBlocosPadraoOfertaOrcamento(
 export async function revisarPrecoCatalogoItemOrcamento(
   orcamentoId: string,
   itemId: string,
-  precoBase: string | number,
+  custoReferencia: string | number,
   justificativa: string
 ): Promise<OrcamentoDto> {
   const { data } = await apiClient.post<OrcamentoDto>(
     `/orcamentos/${orcamentoId}/itens/${itemId}/revisar-preco-catalogo/`,
-    { preco_base: precoBase, justificativa }
+    { custo_referencia: custoReferencia, justificativa }
   )
   return data
 }

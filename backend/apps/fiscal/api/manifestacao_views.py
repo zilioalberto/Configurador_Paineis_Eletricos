@@ -1,4 +1,4 @@
-"""API de manifestação do destinatário (portal JWT + agente Bearer)."""
+"""API de manifestação do destinatário (portal JWT)."""
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,27 +6,20 @@ from rest_framework.views import APIView
 from apps.accounts.api.permissions import HasEffectivePermission
 from apps.fiscal.api.nfe_serializers import (
     DocumentoFiscalRecebidoDetailSerializer,
-    ManifestacaoPendenteSerializer,
-    RegistrarManifestacaoResultadoSerializer,
+    DocumentoSefazDistribuidoDetailSerializer,
     SolicitarManifestacaoSerializer,
 )
-from apps.fiscal.authentication import (
-    FiscalAgentAuthentication,
-    FiscalAgentTokenConfigured,
-    IsFiscalAgentAuthenticated,
-)
-from apps.fiscal.choices import StatusManifestacaoDestinatarioChoices
-from apps.fiscal.models import DocumentoFiscalRecebido
+from apps.fiscal.models import DocumentoFiscalRecebido, DocumentoSefazDistribuido
 from apps.fiscal.services.manifestacao_destinatario_service import (
     ManifestacaoDestinatarioError,
-    registrar_resultado_manifestacao,
     solicitar_manifestacao_destinatario,
 )
+from apps.fiscal.services.sefaz.manifestacao_worker import processar_manifestacao_documento
 from core.permissions import PermissionKeys
 
 
 class SolicitarManifestacaoView(APIView):
-    """Portal: enfileira manifestação para a ponte A3 processar na SEFAZ."""
+    """Portal: enfileira manifestação para o job de sincronização SEFAZ processar."""
 
     permission_classes = [HasEffectivePermission]
 
@@ -62,56 +55,55 @@ class SolicitarManifestacaoView(APIView):
         )
 
 
-class ManifestacoesPendentesAgentView(APIView):
-    """Agente: lista NF-es com manifestação pendente."""
+class SolicitarManifestacaoDocumentoSefazView(APIView):
+    """Portal: solicita e envia manifestação para um resumo da caixa de entrada SEFAZ."""
 
-    authentication_classes = [FiscalAgentAuthentication]
-    permission_classes = [FiscalAgentTokenConfigured, IsFiscalAgentAuthenticated]
+    permission_classes = [HasEffectivePermission]
 
-    def get(self, request):
-        limit = min(int(request.query_params.get("limit", 50)), 200)
-        qs = (
-            DocumentoFiscalRecebido.objects.filter(
-                manifestacao_status=StatusManifestacaoDestinatarioChoices.PENDENTE,
-            )
-            .order_by("manifestacao_solicitada_em", "id")[:limit]
-        )
-        return Response(ManifestacaoPendenteSerializer(qs, many=True).data)
-
-
-class RegistrarManifestacaoAgentView(APIView):
-    """Agente: registra resultado da manifestação na SEFAZ."""
-
-    authentication_classes = [FiscalAgentAuthentication]
-    permission_classes = [FiscalAgentTokenConfigured, IsFiscalAgentAuthenticated]
+    def required_permission(self, request, view):
+        return PermissionKeys.FISCAL_EDITAR
 
     def post(self, request, documento_id: int):
         try:
-            documento = DocumentoFiscalRecebido.objects.get(pk=documento_id)
-        except DocumentoFiscalRecebido.DoesNotExist:
-            return Response({"detail": "NF-e não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+            documento = DocumentoSefazDistribuido.objects.get(pk=documento_id)
+        except DocumentoSefazDistribuido.DoesNotExist:
+            return Response(
+                {"detail": "Documento distribuído SEFAZ não encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        serializer = RegistrarManifestacaoResultadoSerializer(data=request.data)
+        serializer = SolicitarManifestacaoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
         try:
-            registrar_resultado_manifestacao(
+            solicitar_manifestacao_destinatario(
                 documento,
-                sucesso=data["sucesso"],
-                protocolo=data.get("protocolo") or "",
-                cstat=data.get("cstat") or "",
-                motivo=data.get("motivo") or "",
-                mensagem_erro=data.get("mensagem_erro") or "",
+                tipo=data["tipo"],
+                justificativa=data.get("justificativa") or "",
             )
         except ManifestacaoDestinatarioError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+        processamento = processar_manifestacao_documento(documento)
         documento.refresh_from_db()
+        if processamento.sucesso:
+            message = (
+                "Manifestação registrada na SEFAZ. Consulte a SEFAZ novamente em alguns "
+                "minutos para tentar obter o XML completo."
+            )
+            http_status = status.HTTP_200_OK
+        elif processamento.erros:
+            detalhe = "; ".join(processamento.detalhes) or "Não foi possível enviar a manifestação."
+            message = f"Manifestação solicitada, mas a SEFAZ retornou erro: {detalhe}"
+            http_status = status.HTTP_202_ACCEPTED
+        else:
+            message = "Manifestação enfileirada. A próxima sincronização enviará o evento à SEFAZ."
+            http_status = status.HTTP_202_ACCEPTED
         return Response(
             {
-                "message": "Resultado registrado.",
-                "documento_id": documento.id,
-                "manifestacao_status": documento.manifestacao_status,
-            }
+                "message": message,
+                "documento": DocumentoSefazDistribuidoDetailSerializer(documento).data,
+            },
+            status=http_status,
         )

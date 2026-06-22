@@ -93,7 +93,7 @@ def test_produto_write_serializer_cria_especificacao_terminal():
             "descricao": "Terminal tubular 1,5 mm2",
             "categoria": CategoriaProdutoNomeChoices.TERMINAIS,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "0.50",
+            "custo_referencia": "0.50",
             "especificacao_terminal": {
                 "tipo_terminal": TipoTerminalChoices.TUBULAR,
                 "secao_min_mm2": "1.50",
@@ -130,7 +130,7 @@ def test_produto_write_serializer_salva_acessorios_compativeis_borne():
             "descricao": "Borne passagem",
             "categoria": CategoriaProdutoNomeChoices.BORNE,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "1.00",
+            "custo_referencia": "1.00",
             "especificacao_borne": {
                 "tipo_borne": TipoBorneChoices.PASSAGEM,
                 "secao_max_mm2": "2.50",

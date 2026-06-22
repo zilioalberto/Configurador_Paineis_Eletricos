@@ -335,7 +335,8 @@ export default function RelatorioNfesPage() {
   const [itensAbertos, setItensAbertos] = useState<Record<string, boolean>>({})
   const { data, isPending, isError, error, refetch } = useRelatorioNfesQuery(filtros)
 
-  const documentos = data?.documentos ?? []
+  const documentosData = data?.documentos
+  const documentos = useMemo(() => documentosData ?? [], [documentosData])
   const totalItens = useMemo(
     () => documentos.reduce((acc, doc) => acc + doc.itens.length, 0),
     [documentos],

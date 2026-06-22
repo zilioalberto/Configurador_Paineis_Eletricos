@@ -34,7 +34,7 @@ class VincularProjetoConfiguradorSerializer(serializers.Serializer):
 
 
 class RevisarPrecoCatalogoItemSerializer(serializers.Serializer):
-    preco_base = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0)
+    custo_referencia = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0)
     justificativa = serializers.CharField(max_length=500, trim_whitespace=True)
 
 

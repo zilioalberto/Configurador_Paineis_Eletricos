@@ -365,20 +365,20 @@ export default function ProdutoForm({
         </select>
       </div>
       <div className="col-md-3">
-        <label className="form-label" htmlFor="produto-preco-base">
-          Preço base
+        <label className="form-label" htmlFor="produto-custo-referencia">
+          Custo de referência
         </label>
         <div className="input-group">
           <span className="input-group-text">R$</span>
           <input
-            id="produto-preco-base"
-            name="preco_base"
+            id="produto-custo-referencia"
+            name="custo_referencia"
             type="text"
             inputMode="decimal"
             className="form-control"
-            value={formData.preco_base}
+            value={formData.custo_referencia}
             onChange={handleBaseChange}
-            aria-label="Preço base em reais"
+            aria-label="Custo de referência em reais"
           />
         </div>
       </div>

@@ -17,6 +17,7 @@ import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { rhApi } from '../services/rhApi'
+import { aplicarMascaraCpf, validarCpf } from '../utils/cpf'
 import type {
   AtivoFiltroRh,
   CargoDto,
@@ -173,7 +174,7 @@ function colaboradorParaForm(c: ColaboradorDto): ColaboradorForm {
     nome: c.nome ?? '',
     email: c.email ?? '',
     telefone: c.telefone ?? '',
-    documento: c.documento ?? '',
+    documento: c.documento ? aplicarMascaraCpf(c.documento) : '',
     usuario: c.usuario != null ? String(c.usuario) : '',
     cargo: c.cargo ?? '',
     departamento: c.departamento ?? '',
@@ -314,6 +315,7 @@ export default function RhPage() {
   const [jornadaId, setJornadaId] = useState<string | null>(null)
 
   const [colaboradorForm, setColaboradorForm] = useState<ColaboradorForm>(colaboradorVazio)
+  const [cpfErro, setCpfErro] = useState<string | null>(null)
   const [departamentoForm, setDepartamentoForm] = useState<SimplesForm>(simplesVazio)
   const [cargoForm, setCargoForm] = useState<SimplesForm>(simplesVazio)
   const [equipeForm, setEquipeForm] = useState<EquipeForm>(equipeVazia)
@@ -429,6 +431,7 @@ export default function RhPage() {
       colaboradores: () => {
         setColaboradorId(null)
         setColaboradorForm(colaboradorVazio)
+        setCpfErro(null)
       },
       departamentos: () => {
         setDepartamentoId(null)
@@ -455,6 +458,7 @@ export default function RhPage() {
     setAba('colaboradores')
     setColaboradorId(item.id)
     setColaboradorForm(colaboradorParaForm(item))
+    setCpfErro(null)
     setMobileDetailOpen(true)
   }
 
@@ -493,6 +497,15 @@ export default function RhPage() {
 
   async function salvarColaboradorAsync() {
     if (!canEdit || !colaboradorForm.matricula.trim() || !colaboradorForm.nome.trim()) return
+
+    const erroCpf = validarCpf(colaboradorForm.documento)
+    if (erroCpf) {
+      setCpfErro(erroCpf)
+      showToast({ variant: 'danger', title: 'Colaborador', message: erroCpf })
+      return
+    }
+    setCpfErro(null)
+
     setSalvando(true)
     try {
       const payload = colaboradorPayload(colaboradorForm)
@@ -861,6 +874,7 @@ export default function RhPage() {
                 colaboradores={colaboradores}
                 colaboradorForm={colaboradorForm}
                 colaboradorId={colaboradorId}
+                cpfErro={cpfErro}
                 departamentoForm={departamentoForm}
                 departamentoId={departamentoId}
                 departamentos={departamentos}
@@ -873,6 +887,7 @@ export default function RhPage() {
                 salvando={salvando}
                 setCargoForm={setCargoForm}
                 setColaboradorForm={setColaboradorForm}
+                setCpfErro={setCpfErro}
                 setDepartamentoForm={setDepartamentoForm}
                 setEquipeForm={setEquipeForm}
                 setJornadaForm={setJornadaForm}
@@ -1000,6 +1015,7 @@ function RhFormularioAtual({
   colaboradores,
   colaboradorForm,
   colaboradorId,
+  cpfErro,
   departamentoForm,
   departamentoId,
   departamentos,
@@ -1012,6 +1028,7 @@ function RhFormularioAtual({
   salvando,
   setCargoForm,
   setColaboradorForm,
+  setCpfErro,
   setDepartamentoForm,
   setEquipeForm,
   setJornadaForm,
@@ -1031,6 +1048,7 @@ function RhFormularioAtual({
   colaboradores: ColaboradorDto[]
   colaboradorForm: ColaboradorForm
   colaboradorId: string | null
+  cpfErro: string | null
   departamentoForm: SimplesForm
   departamentoId: string | null
   departamentos: DepartamentoDto[]
@@ -1043,6 +1061,7 @@ function RhFormularioAtual({
   salvando: boolean
   setCargoForm: Dispatch<SetStateAction<SimplesForm>>
   setColaboradorForm: Dispatch<SetStateAction<ColaboradorForm>>
+  setCpfErro: Dispatch<SetStateAction<string | null>>
   setDepartamentoForm: Dispatch<SetStateAction<SimplesForm>>
   setEquipeForm: Dispatch<SetStateAction<EquipeForm>>
   setJornadaForm: Dispatch<SetStateAction<JornadaForm>>
@@ -1063,6 +1082,7 @@ function RhFormularioAtual({
         <FormColaborador
           canEdit={canEdit}
           cargos={cargos}
+          cpfErro={cpfErro}
           departamentos={departamentos}
           equipes={equipes}
           form={colaboradorForm}
@@ -1072,6 +1092,7 @@ function RhFormularioAtual({
           usuariosVinculo={usuariosVinculo}
           salvando={salvando}
           setForm={setColaboradorForm}
+          setCpfErro={setCpfErro}
           onSubmit={onSubmitColaborador}
         />
       )
@@ -1312,6 +1333,7 @@ function ListaJornadas({
 function FormColaborador({
   canEdit,
   cargos,
+  cpfErro,
   departamentos,
   equipes,
   form,
@@ -1321,10 +1343,12 @@ function FormColaborador({
   usuariosVinculo,
   salvando,
   setForm,
+  setCpfErro,
   onSubmit,
 }: Readonly<{
   canEdit: boolean
   cargos: CargoDto[]
+  cpfErro: string | null
   departamentos: DepartamentoDto[]
   equipes: EquipeDto[]
   form: ColaboradorForm
@@ -1334,6 +1358,7 @@ function FormColaborador({
   usuariosVinculo: UsuarioVinculoDto[]
   salvando: boolean
   setForm: Dispatch<SetStateAction<ColaboradorForm>>
+  setCpfErro: Dispatch<SetStateAction<string | null>>
   onSubmit: FormEventHandler<HTMLFormElement>
 }>) {
   return (
@@ -1372,7 +1397,23 @@ function FormColaborador({
           )}
           <TextField label="Email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} type="email" />
           <TextField label="Telefone" value={form.telefone} onChange={(v) => setForm((f) => ({ ...f, telefone: v }))} />
-          <TextField label="Documento" value={form.documento} onChange={(v) => setForm((f) => ({ ...f, documento: v }))} />
+          <TextField
+            label="CPF"
+            value={form.documento}
+            error={cpfErro}
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="000.000.000-00"
+            onChange={(v) => {
+              setCpfErro(null)
+              setForm((f) => ({ ...f, documento: aplicarMascaraCpf(v) }))
+            }}
+          />
+          <div className="col-md-8">
+            <p className="text-muted small mb-0">
+              Usado para vincular holerites importados quando o nome do PDF não bater com o cadastro.
+            </p>
+          </div>
           <SelectField label="Cargo" value={form.cargo} onChange={(v) => setForm((f) => ({ ...f, cargo: v }))}>
             <option value="">Sem cargo</option>
             {cargos.map((cargo) => (
@@ -1586,6 +1627,10 @@ function TextField({
   type = 'text',
   required = false,
   wide = false,
+  error = null,
+  inputMode,
+  autoComplete,
+  placeholder,
 }: Readonly<{
   label: string
   value: string
@@ -1593,6 +1638,10 @@ function TextField({
   type?: string
   required?: boolean
   wide?: boolean
+  error?: string | null
+  inputMode?: 'numeric' | 'text' | 'email' | 'tel'
+  autoComplete?: string
+  placeholder?: string
 }>) {
   const id = `rh-field-${label.toLowerCase().replace(/\W+/g, '-')}`
   return (
@@ -1602,12 +1651,16 @@ function TextField({
       </label>
       <input
         id={id}
-        className="form-control"
+        className={`form-control${error ? ' is-invalid' : ''}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         type={type}
         required={required}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
       />
+      {error ? <div className="invalid-feedback d-block">{error}</div> : null}
     </div>
   )
 }

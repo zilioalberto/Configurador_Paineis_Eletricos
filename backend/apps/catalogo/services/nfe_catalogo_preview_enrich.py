@@ -39,8 +39,8 @@ def produto_resumo_para_preview(produto: Produto) -> dict[str, Any]:
         "categoria": produto.categoria,
         "unidade_medida": produto.unidade_medida,
         "unidade_tributavel": (produto.unidade_tributavel or "").strip(),
-        "preco_base": str(
-            produto.preco_base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        "custo_referencia": str(
+            produto.custo_referencia.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         ),
         "ncm": (produto.ncm or "").strip(),
         "cest": (produto.cest or "").strip(),
@@ -124,7 +124,7 @@ def _campos_produto_xml_comparaveis(
             (resumo.get("unidade_tributavel") or "").strip(),
             _unidade_xml(snap, "u_trib_catalogo", ""),
         ),
-        ((resumo.get("preco_base") or ""), _preco_xml(snap)),
+        ((resumo.get("custo_referencia") or ""), _preco_xml(snap)),
         (_norm_digits(resumo.get("ncm")), _norm_digits(snap.get("ncm"))),
         (_norm_digits(resumo.get("cest")), _norm_digits(snap.get("cest"))),
         (_norm_str(resumo.get("gtin")), _norm_str(snap.get("c_ean"))),

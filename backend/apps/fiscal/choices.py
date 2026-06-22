@@ -11,8 +11,8 @@ class StatusImportacaoFiscalChoices(models.TextChoices):
 
 class OrigemImportacaoFiscalChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
-    PONTE_A3 = "PONTE_A3", "Ponte A3 (legado)"
     SEFAZ_SYNC = "SEFAZ_SYNC", "Sincronização SEFAZ"
+    ADN_SYNC = "ADN_SYNC", "Sincronização ADN (NFS-e Nacional)"
     API = "API", "API"
     OUTRO = "OUTRO", "Outro"
 
@@ -60,6 +60,15 @@ class ClassificacaoFiscalOrigemChoices(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
 
 
+class FinalidadeNFeChoices(models.TextChoices):
+    """finNFe — finalidade de emissão da NF-e (campo ide/finNFe)."""
+
+    NORMAL = "1", "Normal"
+    COMPLEMENTAR = "2", "Complementar"
+    AJUSTE = "3", "Ajuste"
+    DEVOLUCAO = "4", "Devolução/retorno"
+
+
 class ObjetivoSaidaFiscalChoices(models.TextChoices):
     VENDA_PRODUTO = "VENDA_PRODUTO", "Venda de produto"
     PRESTACAO_SERVICO = "PRESTACAO_SERVICO", "Prestação de serviço"
@@ -90,6 +99,22 @@ class StatusManifestacaoDestinatarioChoices(models.TextChoices):
     ERRO = "ERRO", "Erro na última tentativa"
 
 
+class TipoDocumentoSefazDistribuidoChoices(models.TextChoices):
+    RESUMO_NFE = "RESUMO_NFE", "Resumo NF-e"
+    NFE_COMPLETA = "NFE_COMPLETA", "NF-e completa"
+    EVENTO = "EVENTO", "Evento"
+    OUTRO = "OUTRO", "Outro"
+
+
+class StatusDocumentoSefazDistribuidoChoices(models.TextChoices):
+    RESUMO_RECEBIDO = "RESUMO_RECEBIDO", "Resumo recebido"
+    AGUARDANDO_MANIFESTACAO = "AGUARDANDO_MANIFESTACAO", "Aguardando manifestação"
+    MANIFESTADO = "MANIFESTADO", "Manifestado"
+    XML_IMPORTADO = "XML_IMPORTADO", "XML completo importado"
+    IGNORADO = "IGNORADO", "Ignorado"
+    ERRO = "ERRO", "Erro"
+
+
 # tpEvento oficial (layout evento NF-e)
 TP_EVENTO_MANIFESTACAO = {
     TipoManifestacaoDestinatarioChoices.CIENCIA: "210210",
@@ -97,3 +122,53 @@ TP_EVENTO_MANIFESTACAO = {
     TipoManifestacaoDestinatarioChoices.DESCONHECIMENTO: "210220",
     TipoManifestacaoDestinatarioChoices.NAO_REALIZADA: "210240",
 }
+
+
+class TipoObrigacaoFiscalChoices(models.TextChoices):
+    DAS = "DAS", "DAS (Simples Nacional)"
+    INSS_DARF = "INSS_DARF", "INSS (DARF)"
+    FGTS = "FGTS", "FGTS"
+    ISS = "ISS", "ISS municipal"
+    ICMS = "ICMS", "ICMS (apuração)"
+    OUTRO = "OUTRO", "Outro"
+
+
+class StatusObrigacaoFiscalChoices(models.TextChoices):
+    PENDENTE = "PENDENTE", "Pendente"
+    PAGO = "PAGO", "Pago"
+    VENCIDO = "VENCIDO", "Vencido"
+    CANCELADO = "CANCELADO", "Cancelado"
+
+
+class TipoAnexoObrigacaoFiscalChoices(models.TextChoices):
+    DARF = "DARF", "DARF"
+    FGTS = "FGTS", "FGTS"
+    ISS = "ISS", "ISS"
+    DIME_ICMS = "DIME_ICMS", "DIME ICMS"
+    SIMPLES = "SIMPLES", "Simples Nacional"
+    HOLERITE = "HOLERITE", "Holerite / folha"
+    COMPROVANTE = "COMPROVANTE", "Comprovante de pagamento"
+    OUTRO = "OUTRO", "Outro"
+
+
+class TipoReconciliacaoFiscalChoices(models.TextChoices):
+    DAS = "DAS", "DAS estimado × contabilidade"
+    DAS_INSS = "DAS_INSS", "INSS DAS (1006) × holerites"
+    INSS = "INSS", "INSS DARF × holerites"
+    FGTS = "FGTS", "FGTS guia × holerites"
+    ISS = "ISS", "ISS guia × NFS-e"
+    ICMS = "ICMS", "ICMS DIME × movimento NF-e"
+    PACOTE = "PACOTE", "Pacote mensal completo"
+
+
+class StatusReconciliacaoFiscalChoices(models.TextChoices):
+    OK = "OK", "OK"
+    ALERTA = "ALERTA", "Alerta"
+    ERRO = "ERRO", "Erro"
+    PENDENTE = "PENDENTE", "Pendente"
+
+
+class TipoHoleriteFiscalChoices(models.TextChoices):
+    CLT = "CLT", "CLT"
+    PRO_LABORE = "PRO_LABORE", "Pró-labore"
+    OUTRO = "OUTRO", "Outro"

@@ -99,13 +99,16 @@ export default function NfesRecebidasListPage() {
           </nav>
           <h1 className="h3 mb-1">NF-es recebidas</h1>
           <p className="text-muted mb-0">
-            Documentos importados da SEFAZ (ponte A3) ou manualmente. O XML fica no servidor; a
+            Documentos importados da SEFAZ ou manualmente. O XML fica no servidor; a
             importação para o catálogo de produtos é um fluxo à parte.
           </p>
         </div>
         <div className="d-flex flex-wrap gap-2">
           <Link to={fiscalPaths.nfeImportarManual} className="btn btn-primary">
             Importar XML
+          </Link>
+          <Link to={fiscalPaths.nfeBuscarChave} className="btn btn-outline-primary">
+            Buscar por chave
           </Link>
           <button type="button" className="btn btn-outline-secondary" onClick={() => refetch().catch(() => undefined)}>
             Atualizar
@@ -215,7 +218,6 @@ export default function NfesRecebidasListPage() {
                 <option value="">Todas</option>
                 <option value="MANUAL">Manual (portal)</option>
                 <option value="SEFAZ_SYNC">Sincronização SEFAZ</option>
-                <option value="PONTE_A3">Ponte A3 (legado)</option>
                 <option value="API">API</option>
                 <option value="OUTRO">Outro</option>
               </select>

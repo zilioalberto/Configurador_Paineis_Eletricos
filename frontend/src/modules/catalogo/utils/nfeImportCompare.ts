@@ -73,7 +73,7 @@ export function nfeItemLinhaDivergeDoCatalogo(
   if ((ex.categoria || '').trim() !== (categoriaEscolhida || '').trim()) return true
   if ((ex.unidade_medida || '').trim() !== unidadeXml(it)) return true
   if ((ex.unidade_tributavel || '').trim() !== utribXml(it)) return true
-  if ((ex.preco_base || '').trim() !== precoXml(it)) return true
+  if ((ex.custo_referencia || '').trim() !== precoXml(it)) return true
   if (normDigits(ex.ncm) !== normDigits(it.ncm)) return true
   if (normDigits(ex.cest) !== normDigits(it.cest)) return true
   if (normStr(ex.gtin) !== normStr(it.c_ean)) return true
@@ -128,11 +128,11 @@ export function buildNfeCamposComparacao(
       diverge: (ex.unidade_tributavel || '').trim() !== utribXml(it),
     },
     {
-      id: 'preco_base',
-      label: 'Preço unitário (vUnCom → preço base)',
+      id: 'custo_referencia',
+      label: 'Preço unitário (vUnCom → custo de referência)',
       xml: precoXml(it),
-      catalogo: ex.preco_base,
-      diverge: (ex.preco_base || '').trim() !== precoXml(it),
+      catalogo: ex.custo_referencia,
+      diverge: (ex.custo_referencia || '').trim() !== precoXml(it),
     },
     {
       id: 'ncm',

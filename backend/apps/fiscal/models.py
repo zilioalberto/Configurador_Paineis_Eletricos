@@ -12,11 +12,14 @@ from apps.catalogo.models import Produto
 from apps.fiscal.choices import (
     AnexoSimplesNacionalChoices,
     ClassificacaoFiscalOrigemChoices,
+    FinalidadeNFeChoices,
     ObjetivoEntradaFiscalChoices,
     ObjetivoSaidaFiscalChoices,
     OrigemImportacaoFiscalChoices,
+    StatusDocumentoSefazDistribuidoChoices,
     StatusImportacaoFiscalChoices,
     StatusManifestacaoDestinatarioChoices,
+    TipoDocumentoSefazDistribuidoChoices,
     TipoManifestacaoDestinatarioChoices,
     TipoDocumentoFiscalEmitidoChoices,
 )
@@ -244,6 +247,18 @@ class DocumentoFiscalRecebido(models.Model):
         default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
         db_index=True,
     )
+    cfop_predominante = models.CharField(max_length=10, blank=True, db_index=True)
+    classificacao_origem = models.CharField(
+        max_length=20,
+        choices=ClassificacaoFiscalOrigemChoices.choices,
+        default=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
+    )
+    finalidade_nfe = models.CharField(
+        max_length=2,
+        choices=FinalidadeNFeChoices.choices,
+        blank=True,
+        db_index=True,
+    )
 
     xml_original = models.TextField(blank=True)
 
@@ -290,6 +305,88 @@ class DocumentoFiscalRecebido(models.Model):
             raise ValidationError({"chave_acesso": "Chave de acesso deve ter 44 dígitos."})
 
 
+class DocumentoSefazDistribuido(models.Model):
+    """Documento descoberto pela Distribuição DFe antes/depois do XML completo."""
+
+    chave_acesso = models.CharField(max_length=44, unique=True)
+    nsu = models.CharField(max_length=15, blank=True, null=True, db_index=True)
+    schema = models.CharField(max_length=80, blank=True)
+    tipo_documento = models.CharField(
+        max_length=30,
+        choices=TipoDocumentoSefazDistribuidoChoices.choices,
+        default=TipoDocumentoSefazDistribuidoChoices.RESUMO_NFE,
+        db_index=True,
+    )
+    status = models.CharField(
+        max_length=40,
+        choices=StatusDocumentoSefazDistribuidoChoices.choices,
+        default=StatusDocumentoSefazDistribuidoChoices.RESUMO_RECEBIDO,
+        db_index=True,
+    )
+
+    cnpj_emitente = models.CharField(max_length=14, blank=True, db_index=True)
+    nome_emitente = models.CharField(max_length=255, blank=True)
+    cnpj_destinatario = models.CharField(max_length=14, blank=True, db_index=True)
+    nome_destinatario = models.CharField(max_length=255, blank=True)
+    data_emissao = models.DateTimeField(null=True, blank=True)
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    situacao_nfe = models.CharField(max_length=10, blank=True)
+    protocolo = models.CharField(max_length=60, blank=True)
+    recebido_em_sefaz = models.DateTimeField(null=True, blank=True)
+
+    manifestacao_status = models.CharField(
+        max_length=30,
+        choices=StatusManifestacaoDestinatarioChoices.choices,
+        default=StatusManifestacaoDestinatarioChoices.NAO_SOLICITADA,
+    )
+    manifestacao_tipo = models.CharField(
+        max_length=30,
+        choices=TipoManifestacaoDestinatarioChoices.choices,
+        blank=True,
+    )
+    manifestacao_justificativa = models.TextField(blank=True)
+    manifestacao_protocolo = models.CharField(max_length=60, blank=True)
+    manifestacao_cstat = models.CharField(max_length=10, blank=True)
+    manifestacao_motivo = models.CharField(max_length=255, blank=True)
+    manifestacao_solicitada_em = models.DateTimeField(null=True, blank=True)
+    manifestacao_registrada_em = models.DateTimeField(null=True, blank=True)
+
+    documento_recebido = models.ForeignKey(
+        DocumentoFiscalRecebido,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="distribuicoes_sefaz",
+    )
+    xml_resumo = models.TextField(blank=True)
+    xml_completo = models.TextField(blank=True)
+    ultimo_erro = models.CharField(max_length=500, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-data_emissao", "-criado_em"]
+        verbose_name = "Documento SEFAZ distribuído"
+        verbose_name_plural = "Documentos SEFAZ distribuídos"
+
+    def __str__(self) -> str:
+        emit = self.nome_emitente or self.cnpj_emitente or "SEFAZ"
+        return f"{self.chave_acesso} — {emit}"
+
+    def save(self, *args, **kwargs):
+        self.chave_acesso = "".join(ch for ch in (self.chave_acesso or "") if ch.isdigit())[:44]
+        self.cnpj_emitente = normalizar_cnpj(self.cnpj_emitente)
+        self.cnpj_destinatario = normalizar_cnpj(self.cnpj_destinatario)
+        if self.nsu:
+            self.nsu = normalizar_nsu(self.nsu)
+        super().save(*args, **kwargs)
+
+    def clean(self) -> None:
+        super().clean()
+        if len(self.chave_acesso) != 44 or not self.chave_acesso.isdigit():
+            raise ValidationError({"chave_acesso": "Chave de acesso deve ter 44 dígitos."})
+
+
 class ItemDocumentoFiscal(models.Model):
     """Item de linha de uma NF-e recebida."""
 
@@ -300,6 +397,7 @@ class ItemDocumentoFiscal(models.Model):
     )
     numero_item = models.PositiveIntegerField()
     codigo_fornecedor = models.CharField(max_length=100, blank=True)
+    gtin = models.CharField(max_length=14, blank=True, db_index=True)
     descricao = models.CharField(max_length=500)
     ncm = models.CharField(max_length=20, blank=True)
     cfop = models.CharField(max_length=10, blank=True)
@@ -307,6 +405,24 @@ class ItemDocumentoFiscal(models.Model):
     quantidade = models.DecimalField(max_digits=14, decimal_places=4)
     valor_unitario = models.DecimalField(max_digits=14, decimal_places=4)
     valor_total = models.DecimalField(max_digits=14, decimal_places=2)
+    objetivo_entrada = models.CharField(
+        max_length=40,
+        choices=ObjetivoEntradaFiscalChoices.choices,
+        default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+        db_index=True,
+    )
+    classificacao_origem = models.CharField(
+        max_length=20,
+        choices=ClassificacaoFiscalOrigemChoices.choices,
+        default=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
+    )
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itens_documento_fiscal",
+    )
     importado_para_produto = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -324,6 +440,53 @@ class ItemDocumentoFiscal(models.Model):
 
     def __str__(self) -> str:
         return f"Item {self.numero_item}: {self.descricao[:60]}"
+
+
+class ProdutoFornecedorXRef(models.Model):
+    """De-para: código/descrição do produto no fornecedor ↔ Produto do catálogo.
+
+    Permite reconhecer automaticamente, em importações futuras, que o ``cProd``
+    de um fornecedor corresponde a um produto interno, mesmo que fornecedores
+    diferentes usem códigos diferentes para o mesmo item.
+    """
+
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.CASCADE,
+        related_name="referencias_fornecedor",
+    )
+    cnpj_fornecedor = models.CharField(max_length=14, db_index=True)
+    nome_fornecedor = models.CharField(max_length=255, blank=True)
+    codigo_fornecedor = models.CharField(max_length=100, db_index=True)
+    gtin = models.CharField(max_length=14, blank=True, db_index=True)
+    descricao_fornecedor = models.CharField(max_length=500, blank=True)
+    unidade_fornecedor = models.CharField(max_length=20, blank=True)
+    ncm_fornecedor = models.CharField(max_length=20, blank=True)
+    origem = models.CharField(
+        max_length=20,
+        choices=ClassificacaoFiscalOrigemChoices.choices,
+        default=ClassificacaoFiscalOrigemChoices.MANUAL,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["cnpj_fornecedor", "codigo_fornecedor"]
+        verbose_name = "De-para produto×fornecedor"
+        verbose_name_plural = "De-para produto×fornecedor"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cnpj_fornecedor", "codigo_fornecedor"],
+                name="fiscal_xref_fornecedor_codigo_unico",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.cnpj_fornecedor}/{self.codigo_fornecedor} → {self.produto_id}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj_fornecedor = normalizar_cnpj(self.cnpj_fornecedor)
+        super().save(*args, **kwargs)
 
 
 class DocumentoFiscalEmitido(models.Model):
@@ -375,8 +538,9 @@ class DocumentoFiscalEmitido(models.Model):
         help_text="Vazio em serviços: resolvido pelo Fator R na projeção de DAS.",
     )
     incluir_faturamento = models.BooleanField(
-        default=True,
-        help_text="Se falso, a nota não entra na RBT12 (devolução, remessa etc.).",
+        default=False,
+        help_text="Se verdadeiro, a nota entra na RBT12/projeção DAS. Remessas, devoluções "
+        "e CFOPs não mapeados ficam falsos até revisão.",
     )
     classificacao_origem = models.CharField(
         max_length=20,
@@ -431,6 +595,118 @@ class ItemDocumentoFiscalEmitido(models.Model):
             models.UniqueConstraint(
                 fields=["documento", "numero_item"],
                 name="fiscal_item_emitido_doc_numero_unico",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Item {self.numero_item}: {self.descricao[:60]}"
+
+
+class ControleNsuNfseAdn(models.Model):
+    """Controle de NSU da distribuição ADN (NFS-e Nacional) por CNPJ tomador."""
+
+    cnpj = models.CharField(max_length=14, unique=True)
+    ultimo_nsu = models.CharField(max_length=15, default="000000000000000")
+    max_nsu = models.CharField(max_length=15, blank=True, null=True)
+    ultimo_status = models.CharField(max_length=80, blank=True)
+    ultimo_motivo = models.CharField(max_length=255, blank=True)
+    bloqueado_ate = models.DateTimeField(null=True, blank=True)
+    ultima_consulta = models.DateTimeField(null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Controle NSU NFS-e ADN"
+        verbose_name_plural = "Controles NSU NFS-e ADN"
+
+    def __str__(self) -> str:
+        return f"ADN {self.cnpj} — NSU {self.ultimo_nsu}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj = normalizar_cnpj(self.cnpj)
+        self.ultimo_nsu = normalizar_nsu(self.ultimo_nsu) or "000000000000000"
+        if self.max_nsu:
+            self.max_nsu = normalizar_nsu(self.max_nsu)
+        super().save(*args, **kwargs)
+
+
+class DocumentoNfseRecebido(models.Model):
+    """NFS-e de serviço recebida pela ZFW (prestador → tomador)."""
+
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, editable=False)
+    identificador = models.CharField(max_length=120, unique=True)
+    chave_acesso = models.CharField(max_length=50, blank=True, db_index=True)
+    nsu_adn = models.CharField(max_length=15, blank=True, null=True)
+
+    cnpj_prestador = models.CharField(max_length=14)
+    nome_prestador = models.CharField(max_length=255, blank=True)
+    cnpj_tomador = models.CharField(max_length=14)
+    nome_tomador = models.CharField(max_length=255, blank=True)
+
+    numero = models.CharField(max_length=20)
+    codigo_verificacao = models.CharField(max_length=60, blank=True)
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    data_emissao = models.DateTimeField(null=True, blank=True)
+    descricao_servico = models.CharField(max_length=500, blank=True)
+
+    status_importacao = models.CharField(
+        max_length=30,
+        choices=StatusImportacaoFiscalChoices.choices,
+        default=StatusImportacaoFiscalChoices.RECEBIDA,
+    )
+    origem_importacao = models.CharField(
+        max_length=30,
+        choices=OrigemImportacaoFiscalChoices.choices,
+        default=OrigemImportacaoFiscalChoices.MANUAL,
+    )
+    objetivo_entrada = models.CharField(
+        max_length=40,
+        choices=ObjetivoEntradaFiscalChoices.choices,
+        default=ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+        db_index=True,
+    )
+    xml_original = models.TextField(blank=True)
+    criada_em = models.DateTimeField(auto_now_add=True)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-data_emissao", "-criada_em"]
+        verbose_name = "NFS-e recebida"
+        verbose_name_plural = "NFS-es recebidas"
+
+    def __str__(self) -> str:
+        prest = self.nome_prestador or self.cnpj_prestador
+        return f"NFS-e {self.numero} — {prest}"
+
+    def save(self, *args, **kwargs):
+        self.cnpj_prestador = normalizar_cnpj(self.cnpj_prestador)
+        self.cnpj_tomador = normalizar_cnpj(self.cnpj_tomador)
+        if self.nsu_adn:
+            self.nsu_adn = normalizar_nsu(self.nsu_adn)
+        super().save(*args, **kwargs)
+
+
+class ItemDocumentoNfseRecebido(models.Model):
+    """Linha de serviço de uma NFS-e recebida."""
+
+    documento = models.ForeignKey(
+        DocumentoNfseRecebido,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    numero_item = models.PositiveIntegerField()
+    descricao = models.CharField(max_length=500)
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["numero_item"]
+        verbose_name = "Item da NFS-e recebida"
+        verbose_name_plural = "Itens das NFS-es recebidas"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["documento", "numero_item"],
+                name="fiscal_item_nfse_recebida_doc_numero_unico",
             ),
         ]
 
@@ -510,3 +786,16 @@ class FaturamentoMensalAjuste(models.Model):
     def save(self, *args, **kwargs):
         self.cnpj = normalizar_cnpj(self.cnpj)
         super().save(*args, **kwargs)
+
+
+# Obrigações fiscais mensais (pacote contabilidade)
+from apps.fiscal.models_obrigacoes import (  # noqa: E402,F401
+    AnexoObrigacaoFiscal,
+    HoleriteCompetencia,
+    LancamentoFinanceiroImposto,
+    LinhaComposicaoObrigacao,
+    ObrigacaoFiscal,
+    PacoteObrigacaoFiscal,
+    ReconciliacaoFiscal,
+    SnapshotApuracaoIcms,
+)

@@ -23,6 +23,8 @@ vi.mock('../services/fiscalNfeService', () => ({
   sincronizarNfesSefaz: sincronizarMock,
 }))
 
+import { ApiError } from '@/services/http/ApiError'
+
 import SincronizarNfesSefazButton from './SincronizarNfesSefazButton'
 
 function renderButton() {
@@ -58,7 +60,40 @@ describe('SincronizarNfesSefazButton', () => {
 
     await waitFor(() => expect(sincronizarMock).toHaveBeenCalledTimes(1))
     expect(showToastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'success', title: 'Sincronização concluída' })
+      expect.objectContaining({ variant: 'success', title: 'Sincronização concluída' }),
+    )
+  })
+
+  it('exibe toast de erro com cStat quando sync falha', async () => {
+    sincronizarMock.mockRejectedValueOnce(
+      new ApiError('Certificado inválido', {
+        status: 422,
+        details: {
+          sucesso: false,
+          mensagem: 'Certificado digital inválido ou não reconhecido pela SEFAZ.',
+          ultimo_cstat: '280',
+          ultimo_motivo: 'Certificado inválido',
+          alertas: ['SEFAZ cStat 280: Certificado inválido'],
+          erros_importacao: [],
+          ciclos_executados: 1,
+          documentos_importados: 0,
+          documentos_novos: 0,
+          documentos_duplicados: 0,
+          ultimo_nsu: '0',
+          max_nsu: '0',
+          manifestacoes_processadas: 0,
+          detail: 'Certificado digital inválido SEFAZ cStat 280 — Certificado inválido',
+        },
+      }),
+    )
+
+    renderButton()
+    fireEvent.click(screen.getByRole('button', { name: /buscar nf-es na sefaz/i }))
+
+    await waitFor(() =>
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'danger', title: 'Falha na sincronização' }),
+      ),
     )
   })
 })

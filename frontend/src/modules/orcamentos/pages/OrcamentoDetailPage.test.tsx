@@ -473,7 +473,7 @@ describe('OrcamentoDetailPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Revisar preço' }))
     const dialog = await screen.findByRole('dialog', { name: 'Revisar preço do catálogo' })
-    fireEvent.change(within(dialog).getByLabelText('Novo preço base'), {
+    fireEvent.change(within(dialog).getByLabelText('Novo custo de referência'), {
       target: { value: '150,00' },
     })
     fireEvent.change(within(dialog).getByLabelText('Justificativa'), {

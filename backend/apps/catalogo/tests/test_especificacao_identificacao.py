@@ -82,7 +82,7 @@ def test_produto_write_serializer_cria_especificacao_identificacao():
             "descricao": "Plaqueta pequena",
             "categoria": CategoriaProdutoNomeChoices.IDENTIFICACAO,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "1.00",
+            "custo_referencia": "1.00",
             "especificacao_identificacao": {
                 "tipo_identificacao": TipoIdentificacaoChoices.PLAQUETA_IDENTIFICACAO,
                 "tamanho_plaqueta": TamanhoPlaquetaIdentificacaoChoices.PEQUENA,
