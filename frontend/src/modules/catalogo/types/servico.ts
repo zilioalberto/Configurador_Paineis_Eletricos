@@ -5,8 +5,8 @@ export type ServicoListItem = {
   categoria: string
   unidade_medida: string
   unidade_medida_display?: string
-  preco_base: string
-  preco_atualizado_em?: string | null
+  custo_referencia: string
+  custo_atualizado_em?: string | null
   ativo: boolean
   criado_em?: string
   atualizado_em?: string
@@ -21,7 +21,7 @@ export type ServicoFormData = {
   descricao: string
   categoria: string
   unidade_medida: string
-  preco_base: string
+  custo_referencia: string
   ativo: boolean
   observacoes: string
 }
@@ -32,7 +32,7 @@ export function servicoFormEmpty(): ServicoFormData {
     descricao: '',
     categoria: '',
     unidade_medida: 'HORAS',
-    preco_base: '0',
+    custo_referencia: '0',
     ativo: true,
     observacoes: '',
   }
@@ -44,7 +44,7 @@ export function servicoDetailToForm(servico: ServicoDetail): ServicoFormData {
     descricao: servico.descricao ?? '',
     categoria: servico.categoria ?? '',
     unidade_medida: servico.unidade_medida ?? 'HORAS',
-    preco_base: String(servico.preco_base ?? '0'),
+    custo_referencia: String(servico.custo_referencia ?? '0'),
     ativo: servico.ativo !== false,
     observacoes: servico.observacoes ?? '',
   }
@@ -56,7 +56,7 @@ export function servicoFormToApiPayload(data: ServicoFormData) {
     descricao: data.descricao.trim(),
     categoria: data.categoria.trim(),
     unidade_medida: data.unidade_medida,
-    preco_base: data.preco_base.trim() || '0',
+    custo_referencia: data.custo_referencia.trim() || '0',
     ativo: data.ativo,
     observacoes: data.observacoes.trim(),
   }

@@ -31,7 +31,7 @@ const produtoBase: NfeProdutoExistenteResumo = {
   categoria: 'cat-motores',
   unidade_medida: 'UN',
   unidade_tributavel: 'UN',
-  preco_base: '123.45',
+  custo_referencia: '123.45',
   ncm: '85011010',
   cest: '1234567',
   gtin: 'SEM GTIN',
@@ -76,7 +76,7 @@ describe('nfeImportCompare', () => {
     expect(rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'categoria', xml: 'Motores', diverge: false }),
-        expect.objectContaining({ id: 'preco_base', xml: '123.45', catalogo: '123.45' }),
+        expect.objectContaining({ id: 'custo_referencia', xml: '123.45', catalogo: '123.45' }),
         expect.objectContaining({ id: 'ipi', xml: '1.5000', catalogo: '1.5000' }),
       ])
     )

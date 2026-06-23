@@ -49,37 +49,3 @@ powershell -ExecutionPolicy Bypass -File scripts/validar-demo-api.ps1
 ```
 
 **Não commitar** alterações com senhas reais de produção; o script usa credenciais apenas para ambiente de desenvolvimento.
-
-## `fiscal-ponte-sync.ps1`
-
-Executa um ciclo da **ponte fiscal** (máquina local com certificado A3 + ACBrMonitor). Requer venv em `tools/fiscal_ponte` e `.env` configurado (ver [tools/fiscal_ponte/README.md](../tools/fiscal_ponte/README.md)).
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/fiscal-ponte-sync.ps1
-```
-
-O token em `FISCAL_PONTE_AGENT_TOKEN` deve ser **igual** ao `FISCAL_AGENT_TOKEN` do backend na VPS.
-
-## `fiscal-ponte-setup.ps1`
-
-Cria venv, copia `.env.example` → `.env` se necessário e executa `setup-check`.
-
-## `fiscal-ponte-homolog.ps1`
-
-Envia XML de `tools/fiscal_ponte/homolog/fixtures` para a API (modo folder). Ver [HOMOLOGACAO.md](../tools/fiscal_ponte/HOMOLOGACAO.md).
-
-## `fiscal-ponte-install-task.ps1`
-
-Cria tarefa agendada **ZFW-Fiscal-Ponte-Sync** (sync a cada 15 min por omissão). Requer PowerShell como administrador.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\fiscal-ponte-install-task.ps1 -IntervalMinutes 15
-```
-
-## `fiscal-ponte-uninstall-task.ps1`
-
-Remove a tarefa agendada.
-
-## `fiscal-ponte-install-service.ps1`
-
-Instala serviço Windows via **NSSM** (`run-service` contínuo). Ver [PRODUCAO.md](../tools/fiscal_ponte/PRODUCAO.md).

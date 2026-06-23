@@ -9,8 +9,15 @@ import RequirePermission from '@/modules/auth/RequirePermission'
 const FiscalHomePage = lazy(() => import('./pages/FiscalHomePage'))
 const ItensFiscaisListPage = lazy(() => import('./pages/ItensFiscaisListPage'))
 const NfesRecebidasListPage = lazy(() => import('./pages/NfesRecebidasListPage'))
+const SefazDistribuicaoPage = lazy(() => import('./pages/SefazDistribuicaoPage'))
+const NfseRecebidasListPage = lazy(() => import('./pages/NfseRecebidasListPage'))
+const NfseRecebidaDetailPage = lazy(() => import('./pages/NfseRecebidaDetailPage'))
+const ObrigacoesFiscaisListPage = lazy(() => import('./pages/ObrigacoesFiscaisListPage'))
+const ObrigacoesFiscaisCompetenciaPage = lazy(() => import('./pages/ObrigacoesFiscaisCompetenciaPage'))
 const NfeRecebidaDetailPage = lazy(() => import('./pages/NfeRecebidaDetailPage'))
+const NfeImportarCatalogoPage = lazy(() => import('./pages/NfeImportarCatalogoPage'))
 const NfeImportarManualPage = lazy(() => import('./pages/NfeImportarManualPage'))
+const NfeBuscarChavePage = lazy(() => import('./pages/NfeBuscarChavePage'))
 const NfeEmitidaImportarPage = lazy(() => import('./pages/NfeEmitidaImportarPage'))
 const NfeEmitidaDetailPage = lazy(() => import('./pages/NfeEmitidaDetailPage'))
 const ControleNsuPage = lazy(() => import('./pages/ControleNsuPage'))
@@ -46,6 +53,26 @@ export const fiscalRoutes: ModuleRouteConfig[] = [
     element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <NfesRecebidasListPage />),
   },
   {
+    path: '/fiscal/sefaz-distribuicao',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <SefazDistribuicaoPage />),
+  },
+  {
+    path: '/fiscal/nfse-recebidas',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <NfseRecebidasListPage />),
+  },
+  {
+    path: '/fiscal/nfse-recebidas/:id',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <NfseRecebidaDetailPage />),
+  },
+  {
+    path: '/fiscal/obrigacoes',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <ObrigacoesFiscaisListPage />),
+  },
+  {
+    path: '/fiscal/obrigacoes/:id',
+    element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <ObrigacoesFiscaisCompetenciaPage />),
+  },
+  {
     path: '/fiscal/relatorios/nfes',
     element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <RelatorioNfesPage />),
   },
@@ -56,6 +83,10 @@ export const fiscalRoutes: ModuleRouteConfig[] = [
   {
     path: '/fiscal/nfes/importar',
     element: withPermission(PERMISSION_KEYS.FISCAL_EDITAR, <NfeImportarManualPage />),
+  },
+  {
+    path: '/fiscal/nfes/buscar-chave',
+    element: withPermission(PERMISSION_KEYS.FISCAL_EDITAR, <NfeBuscarChavePage />),
   },
   {
     path: '/fiscal/nfes-emitidas',
@@ -72,6 +103,10 @@ export const fiscalRoutes: ModuleRouteConfig[] = [
   {
     path: '/fiscal/simples/projecao-das',
     element: withPermission(PERMISSION_KEYS.FISCAL_VISUALIZAR, <ProjecaoDasSimplesPage />),
+  },
+  {
+    path: '/fiscal/nfes/:id/importar-catalogo',
+    element: withPermission(PERMISSION_KEYS.FISCAL_EDITAR, <NfeImportarCatalogoPage />),
   },
   {
     path: '/fiscal/nfes/:id',

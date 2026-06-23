@@ -22,7 +22,7 @@ const produtos: ProdutoListItem[] = [
     categoria: 'CONTATOR',
     fabricante_parceiro_nome: 'Siemens',
     unidade_medida: 'UN',
-    preco_base: '10',
+    custo_referencia: '10',
     aliquota_ipi: '5',
     ativo: true,
   },

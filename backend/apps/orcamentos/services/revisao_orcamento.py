@@ -62,8 +62,8 @@ def _copiar_item(
     aliquota_ipi = item.aliquota_ipi
     preco_unitario = item.preco_unitario
     if atualizar_catalogo and item.tipo == TipoItemOrcamentoChoices.PRODUTO and item.produto_id:
-        item.produto.refresh_from_db(fields=("preco_base",))
-        custo_unitario = item.produto.preco_base
+        item.produto.refresh_from_db(fields=("custo_referencia",))
+        custo_unitario = item.produto.custo_referencia
         aliquota_ipi = p_ipi_referencia_produto(item.produto)
         preco_unitario = calcular_preco_unitario_linha(
             custo_unitario,
@@ -71,8 +71,8 @@ def _copiar_item(
             aliquota_ipi,
         )
     elif atualizar_catalogo and item.tipo == TipoItemOrcamentoChoices.SERVICO and item.servico_id:
-        item.servico.refresh_from_db(fields=("preco_base",))
-        custo_unitario = item.servico.preco_base
+        item.servico.refresh_from_db(fields=("custo_referencia",))
+        custo_unitario = item.servico.custo_referencia
         aliquota_ipi = None
         preco_unitario = calcular_preco_unitario_linha(
             custo_unitario,

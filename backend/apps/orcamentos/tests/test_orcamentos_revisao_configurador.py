@@ -71,7 +71,7 @@ def test_nova_revisao_comercial_copia_itens_editaveis(user_admin, cliente):
         codigo="REV-CAT-001",
         descricao="Produto revisado",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base=Decimal("100.00"),
+        custo_referencia=Decimal("100.00"),
     )
     origem = Orcamento.objects.create(
         codigo_base="Prop-01001-26",
@@ -90,8 +90,8 @@ def test_nova_revisao_comercial_copia_itens_editaveis(user_admin, cliente):
         origem=OrigemItemOrcamentoChoices.CATALOGO,
         produto=produto,
     )
-    produto.preco_base = Decimal("140.00")
-    produto.save(update_fields=("preco_base",))
+    produto.custo_referencia = Decimal("140.00")
+    produto.save(update_fields=("custo_referencia",))
     client = _auth_client(user, raw)
     resp = client.post(
         reverse("erp-orcamento-nova-revisao", kwargs={"pk": origem.pk}),
@@ -240,7 +240,7 @@ def test_sincronizar_composicao_cria_itens(user_admin, cliente, projeto_ca):
         codigo="SYNC-001",
         descricao="Contator",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base=Decimal("80.00"),
+        custo_referencia=Decimal("80.00"),
     )
     ComposicaoItem.objects.create(
         projeto=projeto_ca,
@@ -291,7 +291,7 @@ def test_sincronizar_bloqueado_com_pendencias_abertas(user_admin, cliente, proje
         codigo="SYNC-PEND-001",
         descricao="Item aprovado",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base=Decimal("10.00"),
+        custo_referencia=Decimal("10.00"),
     )
     ComposicaoItem.objects.create(
         projeto=projeto_ca,
@@ -338,7 +338,7 @@ def test_sincronizar_bloqueado_com_sugestoes_pendentes(user_admin, cliente, proj
         codigo="SYNC-SUG-001",
         descricao="Contator pendente",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base=Decimal("10.00"),
+        custo_referencia=Decimal("10.00"),
     )
     SugestaoItem.objects.create(
         projeto=projeto_ca,

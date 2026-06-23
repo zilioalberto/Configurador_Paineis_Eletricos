@@ -210,7 +210,7 @@ class OrcamentoItemSerializer(serializers.ModelSerializer):
             referencia = obj.produto
         if referencia is None:
             return None
-        return referencia.preco_atualizado_em
+        return referencia.custo_atualizado_em
 
     def get_catalogo_preco_desatualizado(self, obj):
         return preco_catalogo_item_desatualizado(obj)
@@ -626,7 +626,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         data["servico"] = None
         desc = (data.get("descricao") or "").strip()
         data["descricao"] = desc or produto.descricao
-        data["custo_unitario"] = produto.preco_base
+        data["custo_unitario"] = produto.custo_referencia
 
     def _preencher_item_servico_catalogo(self, data, servico: Servico) -> None:
         if data.get("tipo") == TipoItemOrcamentoChoices.PRODUTO:
@@ -638,7 +638,7 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         data["produto"] = None
         desc = (data.get("descricao") or "").strip()
         data["descricao"] = desc or servico.descricao
-        data["custo_unitario"] = servico.preco_base
+        data["custo_unitario"] = servico.custo_referencia
 
     def _limpar_produto_catalogo_item(self, data) -> None:
         data["produto"] = None

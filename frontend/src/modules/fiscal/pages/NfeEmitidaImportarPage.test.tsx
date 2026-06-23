@@ -32,7 +32,7 @@ describe('NfeEmitidaImportarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useFiscalConfigQueryMock.mockReturnValue({
-      data: { cnpj_empresa: '07284171000139', agente_ponte_configurado: false },
+      data: { cnpj_empresa: '07284171000139' },
     })
     importarDocumentoEmitidoManualMock.mockResolvedValue({
       created: true,

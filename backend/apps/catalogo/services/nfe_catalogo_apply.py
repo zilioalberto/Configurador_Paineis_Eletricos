@@ -306,7 +306,7 @@ def _produto_payload(
         "descricao": (snap.get("x_prod") or codigo)[:255],
         "categoria": categoria_item,
         "unidade_medida": unidade,
-        "preco_base": preco,
+        "custo_referencia": preco,
         "fabricante_parceiro": fabricante_parceiro,
         "fornecedor_parceiro": fornecedor_produto,
         "gtin": (snap.get("c_ean") or "")[:14],

@@ -231,3 +231,57 @@ class TestRhApi:
 
         assert response.status_code == 400
         assert "usuario" in response.data
+
+    def test_rejeita_cpf_invalido_no_colaborador(self, admin_client):
+        client, _ = admin_client
+
+        response = client.post(
+            reverse("rh-colaboradores-list"),
+            {
+                "matricula": "COL-CPF",
+                "nome": "CPF Inválido",
+                "documento": "12345678901",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "documento" in response.data
+
+    def test_salva_cpf_valido_normalizado(self, admin_client):
+        client, _ = admin_client
+
+        response = client.post(
+            reverse("rh-colaboradores-list"),
+            {
+                "matricula": "COL-CPF-OK",
+                "nome": "CPF Válido",
+                "documento": "390.533.447-05",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.content
+        colaborador = Colaborador.objects.get(matricula="COL-CPF-OK")
+        assert colaborador.documento == "39053344705"
+
+    def test_rejeita_cpf_duplicado(self, admin_client):
+        client, _ = admin_client
+        Colaborador.objects.create(
+            matricula="EXISTENTE",
+            nome="Primeiro",
+            documento="39053344705",
+        )
+
+        response = client.post(
+            reverse("rh-colaboradores-list"),
+            {
+                "matricula": "OUTRO",
+                "nome": "Segundo",
+                "documento": "39053344705",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "documento" in response.data

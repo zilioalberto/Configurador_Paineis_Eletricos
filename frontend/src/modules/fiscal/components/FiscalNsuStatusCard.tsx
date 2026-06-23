@@ -5,6 +5,9 @@ import { fiscalPaths } from '../fiscalPaths'
 import { useControleNsuQuery } from '../hooks/useControleNsuQuery'
 import { useFiscalConfigQuery } from '../hooks/useFiscalConfigQuery'
 import { formatCnpjExibicao, formatDataIso } from '../utils/fiscalDisplay'
+import { isSefazSyncDisponivel } from '../types/fiscalConfig'
+import SefazControleNsuAlert from './SefazControleNsuAlert'
+import SefazSyncIndisponivelAlert from './SefazSyncIndisponivelAlert'
 import SincronizarNfesSefazButton from './SincronizarNfesSefazButton'
 
 /** Resumo do NSU da empresa (sincronização SEFAZ no servidor) na home fiscal. */
@@ -33,6 +36,8 @@ export default function FiscalNsuStatusCard() {
     return () => window.clearInterval(timer)
   }, [nsu?.bloqueado_ate])
 
+  const aguardandoJanela = bloqueado && nsu?.ultimo_cstat === '137'
+
   if (configPending) {
     return null
   }
@@ -54,11 +59,15 @@ export default function FiscalNsuStatusCard() {
             <h2 className="h6 mb-1">Sincronização SEFAZ (NSU)</h2>
             <p className="small text-muted mb-0">
               Empresa {formatCnpjExibicao(cnpj)}
-              {config?.sefaz_sync_configurado ?? config?.agente_ponte_configurado ? (
-                <span className="badge bg-success ms-2">SEFAZ configurado</span>
-              ) : (
-                <span className="badge bg-warning text-dark ms-2">Certificado A1 ausente no servidor</span>
-              )}
+              {(() => {
+                if (isSefazSyncDisponivel(config)) {
+                  return <span className="badge bg-success ms-2">SEFAZ pronta</span>
+                }
+                if (config?.sefaz_sync_modo === 'stub') {
+                  return <span className="badge bg-warning text-dark ms-2">Modo simulado (stub)</span>
+                }
+                return <span className="badge bg-warning text-dark ms-2">Certificado A1 ausente</span>
+              })()}
             </p>
           </div>
           <div className="d-flex flex-wrap gap-2">
@@ -66,15 +75,16 @@ export default function FiscalNsuStatusCard() {
               cnpj={cnpj}
               className="btn btn-primary"
               size="sm"
-              disabled={
-                bloqueado || !(config?.sefaz_sync_configurado ?? config?.agente_ponte_configurado)
-              }
+              disabled={bloqueado || !isSefazSyncDisponivel(config)}
             />
             <Link to={fiscalPaths.nsu} className="btn btn-sm btn-outline-secondary">
               Detalhes
             </Link>
           </div>
         </div>
+
+        <SefazSyncIndisponivelAlert config={config} />
+        <SefazControleNsuAlert nsu={nsu} />
 
         {isFetching && <p className="small text-muted mb-0">A carregar estado…</p>}
         {isError && (
@@ -99,7 +109,9 @@ export default function FiscalNsuStatusCard() {
             <dd className="col-sm-9 col-md-4">{formatDataIso(nsu.ultima_consulta)}</dd>
             {bloqueado ? (
               <>
-                <dt className="col-sm-3 col-md-2">Bloqueado até</dt>
+                <dt className="col-sm-3 col-md-2">
+                  {aguardandoJanela ? 'Consultar após' : 'Bloqueado até'}
+                </dt>
                 <dd className="col-sm-9 col-md-4 text-warning">
                   {formatDataIso(nsu.bloqueado_ate)}
                 </dd>
@@ -109,8 +121,9 @@ export default function FiscalNsuStatusCard() {
         )}
         {bloqueado ? (
           <p className="small text-warning mt-2 mb-0">
-            Consulta temporariamente bloqueada pela SEFAZ (consumo indevido). Aguarde o horário
-            indicado em &quot;Bloqueado até&quot;.
+            {aguardandoJanela
+              ? 'A SEFAZ não encontrou documentos nesta janela. Aguarde o horário indicado para consultar novamente.'
+              : 'Consulta temporariamente bloqueada pela SEFAZ (consumo indevido). Aguarde o horário indicado em "Bloqueado até".'}
           </p>
         ) : null}
       </div>

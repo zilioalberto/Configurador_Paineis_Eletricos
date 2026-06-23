@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type SyntheticEvent, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -134,15 +134,16 @@ export default function ProjecaoDasSimplesPage() {
     },
   })
 
+  const perfil = data?.perfil
   const valoresPerfil = useMemo(() => {
-    if (!data?.perfil) return null
+    if (!perfil) return null
     return {
-      folha: data.perfil.folha_salarios_12m,
-      encargos: data.perfil.encargos_folha_12m,
+      folha: perfil.folha_salarios_12m,
+      encargos: perfil.encargos_folha_12m,
     }
-  }, [data?.perfil])
+  }, [perfil])
 
-  const onSalvarPerfil = (e: FormEvent) => {
+  const onSalvarPerfil = (e: SyntheticEvent) => {
     e.preventDefault()
     perfilSalvar.mutate()
   }

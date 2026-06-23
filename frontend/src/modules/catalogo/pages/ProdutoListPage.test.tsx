@@ -153,7 +153,7 @@ describe('ProdutoListPage', () => {
             descricao: 'Item um',
             categoria_display: 'PLC',
             fabricante_parceiro_nome: 'Fab',
-            preco_base: '9,99',
+            custo_referencia: '9,99',
             ativo: true,
           },
         ],
@@ -189,7 +189,7 @@ describe('ProdutoListPage', () => {
             descricao: 'Item encontrado',
             categoria_display: 'Minidisjuntor',
             fabricante_parceiro_nome: 'Fabricante',
-            preco_base: '6.98',
+            custo_referencia: '6.98',
             ativo: true,
           },
         ],
@@ -237,7 +237,7 @@ describe('ProdutoListPage', () => {
             codigo: 'X',
             descricao: 'Apagar isto',
             ativo: true,
-            preco_base: '0',
+            custo_referencia: '0',
           },
         ],
         total: 1,
@@ -267,7 +267,7 @@ describe('ProdutoListPage', () => {
     useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.MATERIAL_EDITAR_LISTA]) })
     useProdutoListQueryMock.mockReturnValue(
       pageVazio({
-        items: [{ id: 'e1', codigo: 'E1', descricao: '', ativo: true, preco_base: '1' }],
+        items: [{ id: 'e1', codigo: 'E1', descricao: '', ativo: true, custo_referencia: '1' }],
         total: 1,
       })
     )
@@ -292,7 +292,7 @@ describe('ProdutoListPage', () => {
     useAuthMock.mockReturnValue({ user: authUser([PERMISSION_KEYS.MATERIAL_EDITAR_LISTA]) })
     useProdutoListQueryMock.mockReturnValue(
       pageVazio({
-        items: [{ id: 'z', codigo: 'SÓ-CÓD', descricao: '  ', ativo: false, preco_base: '0' }],
+        items: [{ id: 'z', codigo: 'SÓ-CÓD', descricao: '  ', ativo: false, custo_referencia: '0' }],
         total: 1,
       })
     )

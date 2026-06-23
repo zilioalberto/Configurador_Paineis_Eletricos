@@ -32,7 +32,7 @@ const produto = {
   categoria: 'CONTATORA',
   unidade_medida: 'UN',
   ativo: true,
-  preco_base: '10.00',
+  custo_referencia: '10.00',
 }
 
 function renderProdutoDetailPage(id: string) {

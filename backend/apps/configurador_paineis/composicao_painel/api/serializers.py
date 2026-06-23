@@ -272,7 +272,7 @@ class ProdutoAlternativaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Produto
-        fields = ("id", "codigo", "descricao", "fabricante", "preco_base")
+        fields = ("id", "codigo", "descricao", "fabricante", "custo_referencia")
 
     def get_fabricante(self, obj: Produto) -> str:
         return nome_fabricante_produto(obj)

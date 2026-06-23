@@ -295,7 +295,7 @@ def sincronizar_composicao_painel(
 
     for offset, linha in enumerate(linhas, start=1):
         produto = linha["produto"]
-        custo = produto.preco_base or Decimal("0")
+        custo = produto.custo_referencia or Decimal("0")
         ipi = p_ipi_referencia_produto(produto)
         preco = calcular_preco_unitario_linha(custo, margem, ipi)
         criados.append(

@@ -18,3 +18,4 @@ cryptography>=42.0
 signxml>=3.2
 requests>=2.31
 lxml>=5.0
+pypdf>=5.0

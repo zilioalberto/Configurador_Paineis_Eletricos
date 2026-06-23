@@ -32,6 +32,7 @@ services:
     command: ["sh", "-c", "tr -d '\\r' < /app/entrypoint.backend.sh | sh -s"]
     volumes:
       - ../../backend:/app
+      - "D:/ZFW_NAS/Administração/Certificados Receita/Certificado 2026/ZFW ENGENHARIA EM CONTROLE E SISTEMAS LTDA 06-2026 A 06-2027.pfx:/run/secrets/zfw-certificado-a1.pfx:ro"
     ports:
       - "8000:8000"
     env_file:
@@ -39,6 +40,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  backend-scheduler:
+    build:
+      context: ../../backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+    container_name: configurador_painel_backend_scheduler
+    restart: unless-stopped
+    environment:
+      DJANGO_ENV: development
+    command: ["sh", "-c", "tr -d '\\r' < /app/entrypoint.scheduler.sh | sh -s"]
+    volumes:
+      - ../../backend:/app
+      - "D:/ZFW_NAS/Administração/Certificados Receita/Certificado 2026/ZFW ENGENHARIA EM CONTROLE E SISTEMAS LTDA 06-2026 A 06-2027.pfx:/run/secrets/zfw-certificado-a1.pfx:ro"
+    env_file:
+      - ../../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
 
   frontend:
     build:

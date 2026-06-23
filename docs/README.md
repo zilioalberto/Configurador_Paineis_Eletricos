@@ -14,6 +14,9 @@
 | [Mapa API wizard](portfolio/mapa-api-wizard.md) | Endpoints do caminho crítico |
 | [Relatório de conformidade](portfolio/relatorio-conformidade.md) | Modelo RNF-15 por projeto |
 | [Checklist de testes](checklist-testes.md) | Caminho crítico para demo/avaliação |
+| [**Evidências de testes/cobertura**](portfolio/evidencias-testes.md) | Cobertura backend/frontend vs. metas |
+| [**Decisões de arquitetura (ADRs)**](adr/README.md) | Registro de decisões técnicas |
+| [Conteúdo do pôster](portfolio/poster-conteudo.md) | Texto-base para o pôster A0 do Demo Day |
 | [**Roteiro de demo (M7)**](portfolio/roteiro-demo.md) | Gravação / apresentação passo a passo |
 | [Configurador / wizard](modulos/configurador-paineis/README.md) | Entregável principal no código |
 
@@ -21,6 +24,7 @@
 
 - [Escopo do portfólio](visao-geral/escopo-portfolio.md) — wizard (RFC) vs. evolução ERP
 - [Arquitetura](visao-geral/arquitetura.md) — camadas, pastas e integração backend ↔ frontend
+- [Decisões de arquitetura (ADRs)](adr/README.md) — decisões técnicas, alternativas e desvios do RFC
 - [**Estrutura do código**](visao-geral/estrutura-codigo.md) — mapa de pastas, APIs, registries e correspondência frontend ↔ backend
 - [Módulos do ERP](visao-geral/modulos-erp.md) — mapa do monorepo (inclui itens **fora** do portfólio)
 - [Glossário](visao-geral/glossario.md) — termos do domínio
@@ -62,6 +66,8 @@
 | Suprimentos | Compras | [compras.md](modulos/compras.md) |
 | Suprimentos | Estoque | [estoque.md](modulos/estoque.md) |
 | Suprimentos | Fiscal | [fiscal.md](modulos/fiscal.md) |
+| Suprimentos | Fiscal · NFS-e ADN | [fiscal-nfse-adn.md](modulos/fiscal-nfse-adn.md) |
+| Controle | Fiscal · Obrigações | [fiscal-obrigacoes.md](modulos/fiscal-obrigacoes.md) |
 | Controle | Financeiro | [financeiro.md](modulos/financeiro.md) |
 | Controle | Qualidade | [qualidade.md](modulos/qualidade.md) |
 | Controle | Conformidade | [conformidade.md](modulos/conformidade.md) |

@@ -149,22 +149,6 @@ export function extrairSecoesDocumento(texto: string): SecaoDocumentoOferta[] {
   return secoes
 }
 
-export function indiceSecoesDocumento(
-  texto: string
-): ReadonlyArray<{ titulo: string; posicao: number }> {
-  const normalizado = String(texto || '').replace(/\r\n/g, '\n')
-  const indice: { titulo: string; posicao: number }[] = []
-  let offset = 0
-  for (const linha of normalizado.split('\n')) {
-    const tituloHeading = extrairTituloHeadingLinha(linha)
-    if (tituloHeading) {
-      indice.push({ titulo: tituloHeading, posicao: offset })
-    }
-    offset += linha.length + 1
-  }
-  return indice
-}
-
 export function blocosParaDocumento(blocos: OrcamentoOfertaBlocoDto[]): string {
   const partes: string[] = []
   const ordenados = [...blocos]

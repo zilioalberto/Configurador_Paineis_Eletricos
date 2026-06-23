@@ -5,10 +5,11 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.fiscal.choices import (
+    StatusDocumentoSefazDistribuidoChoices,
     StatusManifestacaoDestinatarioChoices,
     TipoManifestacaoDestinatarioChoices,
 )
-from apps.fiscal.models import DocumentoFiscalRecebido
+from apps.fiscal.models import DocumentoFiscalRecebido, DocumentoSefazDistribuido
 
 _JUSTIFICATIVA_MIN = 15
 
@@ -30,14 +31,17 @@ class ManifestacaoDestinatarioError(Exception):
     """Erro de validação ou negócio na manifestação."""
 
 
-def _tipo_ja_manifestado(documento: DocumentoFiscalRecebido, tipo: str) -> bool:
+DocumentoManifestavel = DocumentoFiscalRecebido | DocumentoSefazDistribuido
+
+
+def _tipo_ja_manifestado(documento: DocumentoManifestavel, tipo: str) -> bool:
     return (
         documento.manifestacao_status == StatusManifestacaoDestinatarioChoices.MANIFESTADA
         and documento.manifestacao_tipo == tipo
     )
 
 
-def _validar_transicao(documento: DocumentoFiscalRecebido, tipo: str) -> None:
+def _validar_transicao(documento: DocumentoManifestavel, tipo: str) -> None:
     if documento.manifestacao_status == StatusManifestacaoDestinatarioChoices.PENDENTE:
         raise ManifestacaoDestinatarioError(
             "Já existe manifestação pendente. Aguarde a sincronização SEFAZ (fiscal_sync_nsu)."
@@ -58,11 +62,11 @@ def _validar_transicao(documento: DocumentoFiscalRecebido, tipo: str) -> None:
 
 @transaction.atomic
 def solicitar_manifestacao_destinatario(
-    documento: DocumentoFiscalRecebido,
+    documento: DocumentoManifestavel,
     *,
     tipo: str,
     justificativa: str = "",
-) -> DocumentoFiscalRecebido:
+) -> DocumentoManifestavel:
     if tipo not in TipoManifestacaoDestinatarioChoices.values:
         raise ManifestacaoDestinatarioError("Tipo de manifestação inválido.")
     if not (documento.chave_acesso or "").strip():
@@ -85,31 +89,37 @@ def solicitar_manifestacao_destinatario(
     documento.manifestacao_cstat = ""
     documento.manifestacao_motivo = ""
     documento.manifestacao_solicitada_em = timezone.now()
-    documento.save(
-        update_fields=[
-            "manifestacao_status",
-            "manifestacao_tipo",
-            "manifestacao_justificativa",
-            "manifestacao_protocolo",
-            "manifestacao_cstat",
-            "manifestacao_motivo",
-            "manifestacao_solicitada_em",
-            "atualizada_em",
-        ]
-    )
+    update_fields = [
+        "manifestacao_status",
+        "manifestacao_tipo",
+        "manifestacao_justificativa",
+        "manifestacao_protocolo",
+        "manifestacao_cstat",
+        "manifestacao_motivo",
+        "manifestacao_solicitada_em",
+    ]
+    if isinstance(documento, DocumentoSefazDistribuido):
+        update_fields.append("atualizado_em")
+    else:
+        update_fields.append("atualizada_em")
+    documento.save(update_fields=update_fields)
+    if isinstance(documento, DocumentoSefazDistribuido):
+        documento.status = StatusDocumentoSefazDistribuidoChoices.AGUARDANDO_MANIFESTACAO
+        documento.ultimo_erro = ""
+        documento.save(update_fields=["status", "ultimo_erro", "atualizado_em"])
     return documento
 
 
 @transaction.atomic
 def registrar_resultado_manifestacao(
-    documento: DocumentoFiscalRecebido,
+    documento: DocumentoManifestavel,
     *,
     sucesso: bool,
     protocolo: str = "",
     cstat: str = "",
     motivo: str = "",
     mensagem_erro: str = "",
-) -> DocumentoFiscalRecebido:
+) -> DocumentoManifestavel:
     if documento.manifestacao_status != StatusManifestacaoDestinatarioChoices.PENDENTE:
         raise ManifestacaoDestinatarioError("Documento não está com manifestação pendente.")
 
@@ -122,12 +132,18 @@ def registrar_resultado_manifestacao(
         documento.manifestacao_registrada_em = agora
         from apps.fiscal.choices import StatusImportacaoFiscalChoices
 
-        if documento.status_importacao == StatusImportacaoFiscalChoices.RECEBIDA:
+        if isinstance(documento, DocumentoSefazDistribuido):
+            documento.status = StatusDocumentoSefazDistribuidoChoices.MANIFESTADO
+            documento.ultimo_erro = ""
+        elif documento.status_importacao == StatusImportacaoFiscalChoices.RECEBIDA:
             documento.status_importacao = StatusImportacaoFiscalChoices.PROCESSADA
     else:
         documento.manifestacao_status = StatusManifestacaoDestinatarioChoices.ERRO
         documento.manifestacao_motivo = (mensagem_erro or motivo or "Erro na manifestação")[:255]
         documento.manifestacao_cstat = (cstat or "")[:10]
+        if isinstance(documento, DocumentoSefazDistribuido):
+            documento.status = StatusDocumentoSefazDistribuidoChoices.ERRO
+            documento.ultimo_erro = documento.manifestacao_motivo
 
     documento.save()
     return documento

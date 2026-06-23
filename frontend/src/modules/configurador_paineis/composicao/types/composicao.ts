@@ -10,7 +10,7 @@ export type ProdutoMini = {
 }
 
 export type ProdutoAlternativa = ProdutoMini & {
-  preco_base?: string
+  custo_referencia?: string
 }
 
 export type CargaDetalhe = {

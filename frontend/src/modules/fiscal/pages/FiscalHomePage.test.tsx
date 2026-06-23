@@ -27,7 +27,7 @@ function produtoStub(overrides: Partial<ProdutoListItem> = {}): ProdutoListItem 
     descricao: 'D0',
     categoria: '',
     unidade_medida: 'UN',
-    preco_base: '0',
+    custo_referencia: '0',
     ativo: true,
     ...overrides,
   }

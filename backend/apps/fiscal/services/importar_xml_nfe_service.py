@@ -8,11 +8,16 @@ from typing import Any, TypedDict
 from django.db import transaction
 
 from apps.fiscal.choices import (
+    ClassificacaoFiscalOrigemChoices,
     ObjetivoEntradaFiscalChoices,
     OrigemImportacaoFiscalChoices,
     StatusImportacaoFiscalChoices,
 )
 from apps.fiscal.models import DocumentoFiscalRecebido, ItemDocumentoFiscal
+from apps.fiscal.services.cfop_classificacao_entrada import (
+    classificar_cfop_entrada,
+    cfop_predominante_por_itens,
+)
 from apps.fiscal.services.nfe_parser import NFeParserError, parse_nfe_xml
 from apps.fiscal.services.validar_destinatario_nfe_recebida import (
     validar_destinatario_nfe_recebida,
@@ -32,10 +37,14 @@ def importar_xml_nfe(
     nsu: str | None = None,
     cnpj_destinatario: str | None = None,
     origem_importacao: str = OrigemImportacaoFiscalChoices.MANUAL,
-    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+    objetivo_entrada: str | None = None,
 ) -> ResultadoImportacaoNFe:
     """
     Importa NF-e a partir do XML. Evita duplicidade pela chave de acesso.
+
+    Quando ``objetivo_entrada`` não é informado, a destinação da nota e de cada
+    item é classificada automaticamente pelo CFOP (revisão manual posterior).
+    Quando informado, vale como classificação manual da nota.
     """
     if not (xml or "").strip():
         raise NFeParserError("XML não informado.")
@@ -61,6 +70,19 @@ def importar_xml_nfe(
         raise NFeParserError("CNPJ do destinatário deve conter 14 dígitos.")
 
     nsu_norm = normalizar_nsu(nsu) if nsu else None
+    itens_payload: list[dict[str, Any]] = dados.get("itens") or []
+
+    cfop_predominante = cfop_predominante_por_itens(itens_payload)
+    if objetivo_entrada:
+        objetivo_nota = objetivo_entrada
+        classificacao_origem = ClassificacaoFiscalOrigemChoices.MANUAL
+    else:
+        objetivo_nota = (
+            classificar_cfop_entrada(cfop_predominante).objetivo_entrada
+            if cfop_predominante
+            else ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS
+        )
+        classificacao_origem = ClassificacaoFiscalOrigemChoices.AUTOMATICA
 
     with transaction.atomic():
         documento = DocumentoFiscalRecebido.objects.create(
@@ -75,18 +97,21 @@ def importar_xml_nfe(
             data_emissao=dados.get("data_emissao"),
             valor_total=dados["valor_total"],
             natureza_operacao=dados.get("natureza_operacao") or "",
+            finalidade_nfe=dados.get("finalidade_nfe") or "",
+            cfop_predominante=cfop_predominante,
+            classificacao_origem=classificacao_origem,
             status_importacao=StatusImportacaoFiscalChoices.RECEBIDA,
             origem_importacao=origem_importacao,
-            objetivo_entrada=objetivo_entrada or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+            objetivo_entrada=objetivo_nota or ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
             xml_original=xml,
         )
-        itens_payload: list[dict[str, Any]] = dados.get("itens") or []
         ItemDocumentoFiscal.objects.bulk_create(
             [
                 ItemDocumentoFiscal(
                     documento=documento,
                     numero_item=item["numero_item"],
                     codigo_fornecedor=item.get("codigo_fornecedor") or "",
+                    gtin=item.get("gtin") or "",
                     descricao=item.get("descricao") or "",
                     ncm=item.get("ncm") or "",
                     cfop=item.get("cfop") or "",
@@ -94,6 +119,10 @@ def importar_xml_nfe(
                     quantidade=item["quantidade"],
                     valor_unitario=item["valor_unitario"],
                     valor_total=item["valor_total"],
+                    objetivo_entrada=classificar_cfop_entrada(
+                        item.get("cfop") or ""
+                    ).objetivo_entrada,
+                    classificacao_origem=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
                 )
                 for item in itens_payload
             ]

@@ -47,7 +47,7 @@ def test_create_servico_catalogo(admin_client):
             "codigo": "SRV-MONT-01",
             "descricao": "Montagem de painel",
             "categoria": "Montagem",
-            "preco_base": "450.00",
+            "custo_referencia": "450.00",
         },
         format="json",
     )
@@ -65,7 +65,7 @@ def test_busca_servico_autocomplete(admin_client):
         codigo="SRV-ENG-01",
         descricao="Engenharia detalhada",
         categoria="Engenharia",
-        preco_base="120.00",
+        custo_referencia="120.00",
         ativo=True,
     )
     Servico.objects.create(

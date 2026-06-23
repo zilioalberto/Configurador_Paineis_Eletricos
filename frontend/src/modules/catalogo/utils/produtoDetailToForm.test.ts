@@ -21,7 +21,7 @@ describe('produtoDetailToForm', () => {
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
       unidade_medida: 'UN',
-      preco_base: '12',
+      custo_referencia: '12',
       ativo: true,
     } satisfies ProdutoDetail
     const form = produtoDetailToForm(p, categorias)
@@ -48,7 +48,7 @@ describe('produtoDetailToForm', () => {
       fabricante_parceiro_nome: 'Fabricante LTDA',
       fabricante_parceiro_documento: '123',
       unidade_medida: 'UN',
-      preco_base: '12',
+      custo_referencia: '12',
       ativo: true,
     } satisfies ProdutoDetail
     const form = produtoDetailToForm(p, categorias)
@@ -68,7 +68,7 @@ describe('produtoDetailToForm', () => {
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
       unidade_medida: 'kg',
-      preco_base: '12',
+      custo_referencia: '12',
       ativo: true,
     } satisfies ProdutoDetail
     const form = produtoDetailToForm(p, categorias)
@@ -86,7 +86,7 @@ describe('produtoDetailToForm', () => {
       categoria: 'c1',
       categoria_nome: 'GATEWAY' as const,
       unidade_medida: 'UN',
-      preco_base: '12',
+      custo_referencia: '12',
       ativo: true,
       especificacao_gateway: { ip: '192.0.2.1' }, // TEST-NET-1 (RFC 5737), só mock
     } as ProdutoDetail

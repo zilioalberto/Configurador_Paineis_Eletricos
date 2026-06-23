@@ -318,7 +318,7 @@ class ProdutoAdmin(admin.ModelAdmin):
         "categoria",
         "fabricante_parceiro",
         "fornecedor_parceiro",
-        "preco_base",
+        "custo_referencia",
         "ativo",
     )
     list_filter = ("ativo", "categoria", "fabricante_parceiro", "fornecedor_parceiro")
@@ -352,7 +352,7 @@ class ProdutoAdmin(admin.ModelAdmin):
             "Dados comerciais",
             {
                 "fields": (
-                    ("unidade_medida", "preco_base"),
+                    ("unidade_medida", "custo_referencia"),
                     "fabricante_parceiro",
                     "fornecedor_parceiro",
                 ),
@@ -904,7 +904,7 @@ class ServicoAdmin(admin.ModelAdmin):
         "descricao",
         "categoria",
         "unidade_medida",
-        "preco_base",
+        "custo_referencia",
         "ativo",
     )
     list_filter = ("ativo", "unidade_medida")

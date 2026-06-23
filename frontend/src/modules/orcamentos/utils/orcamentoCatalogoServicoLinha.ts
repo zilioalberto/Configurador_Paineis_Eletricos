@@ -8,7 +8,7 @@ export function criarLinhaDeServicoCatalogo(
   margemServicos: string,
   extras?: Partial<LinhaEditavelOrcamento>
 ): LinhaEditavelOrcamento {
-  const custo = String(servico.preco_base ?? '0')
+  const custo = String(servico.custo_referencia ?? '0')
   const margem = margemServicos || '0'
   return {
     ordem: 0,

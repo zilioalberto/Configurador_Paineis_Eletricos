@@ -118,7 +118,7 @@ class Colaborador(BaseModel):
     nome = models.CharField(max_length=180)
     email = models.EmailField(blank=True)
     telefone = models.CharField(max_length=30, blank=True)
-    documento = models.CharField(max_length=20, blank=True, db_index=True)
+    documento = models.CharField("CPF", max_length=20, blank=True, db_index=True)
     cargo = models.ForeignKey(
         Cargo,
         on_delete=models.PROTECT,

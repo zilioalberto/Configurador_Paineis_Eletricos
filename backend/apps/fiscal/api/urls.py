@@ -4,12 +4,19 @@ from rest_framework.routers import DefaultRouter
 
 from apps.fiscal.api.fiscal_config_views import FiscalModuloConfigView
 from apps.fiscal.api.manifestacao_views import (
-    ManifestacoesPendentesAgentView,
-    RegistrarManifestacaoAgentView,
+    SolicitarManifestacaoDocumentoSefazView,
     SolicitarManifestacaoView,
 )
 from apps.fiscal.api.relatorio_faturamento_views import RelatorioFaturamentoView
-from apps.fiscal.api.sefaz_sync_views import SincronizarNfesSefazView
+from apps.fiscal.api.sefaz_sync_views import (
+    ImportarNfePorChaveSefazView,
+    SincronizarNfesSefazView,
+)
+from apps.fiscal.api.nfse_recebida_views import (
+    ControleNsuNfseAdnView,
+    DocumentoNfseRecebidoViewSet,
+    SincronizarNfseAdnView,
+)
 from apps.fiscal.api.simples_views import (
     ClassificacaoDocumentoEmitidoView,
     FaturamentoMensalAjusteView,
@@ -20,13 +27,33 @@ from apps.fiscal.api.simples_views import (
     ReclassificarDocumentosEmitidosView,
 )
 from apps.fiscal.api.nfe_views import (
+    ControleNSUEditarView,
     ControleNSUView,
     DocumentoFiscalEmitidoViewSet,
     DocumentoFiscalRecebidoViewSet,
+    DocumentoSefazDistribuidoViewSet,
     ImportarXMLDocumentoEmitidoPortalView,
+    ImportarCatalogoNFeView,
     ImportarXMLNFePortalView,
-    ImportarXMLNFeView,
+    PreviewCatalogoNFeView,
+    ReclassificarEntradaView,
     RelatorioNFeView,
+    VincularProdutoItemView,
+)
+from apps.fiscal.api.obrigacoes_views import (
+    AnexoObrigacaoFiscalDetailView,
+    ConciliarHoleritesRhPacoteView,
+    CriarColaboradoresHoleritesPacoteView,
+    CriarPacoteObrigacaoView,
+    DashboardObrigacoesView,
+    ExcluirTodosAnexosPacoteView,
+    HoleriteCompetenciaDetailView,
+    ObrigacaoFiscalDetailView,
+    PacoteObrigacaoFiscalViewSet,
+    ReconciliarPacoteView,
+    ReconciliacaoContabilidadeView,
+    UploadAnexoPacoteView,
+    UploadLotePacoteView,
 )
 from apps.fiscal.api.views import ItemFiscalProdutoViewSet
 
@@ -46,6 +73,21 @@ router.register(
     DocumentoFiscalEmitidoViewSet,
     basename="fiscal-nfes-emitidas",
 )
+router.register(
+    r"fiscal/sefaz-distribuicao",
+    DocumentoSefazDistribuidoViewSet,
+    basename="fiscal-sefaz-distribuicao",
+)
+router.register(
+    r"fiscal/obrigacoes/pacotes",
+    PacoteObrigacaoFiscalViewSet,
+    basename="fiscal-obrigacoes-pacotes",
+)
+router.register(
+    r"fiscal/nfse-recebidas",
+    DocumentoNfseRecebidoViewSet,
+    basename="fiscal-nfse-recebidas",
+)
 
 urlpatterns = [
     path(
@@ -54,24 +96,34 @@ urlpatterns = [
         name="fiscal-config",
     ),
     path(
-        "fiscal/nfes/manifestacoes-pendentes/",
-        ManifestacoesPendentesAgentView.as_view(),
-        name="fiscal-nfes-manifestacoes-pendentes",
-    ),
-    path(
         "fiscal/nfes/<int:documento_id>/solicitar-manifestacao/",
         SolicitarManifestacaoView.as_view(),
         name="fiscal-nfe-solicitar-manifestacao",
     ),
     path(
-        "fiscal/nfes/<int:documento_id>/registrar-manifestacao/",
-        RegistrarManifestacaoAgentView.as_view(),
-        name="fiscal-nfe-registrar-manifestacao",
+        "fiscal/sefaz-distribuicao/<int:documento_id>/solicitar-manifestacao/",
+        SolicitarManifestacaoDocumentoSefazView.as_view(),
+        name="fiscal-sefaz-distribuicao-solicitar-manifestacao",
     ),
     path(
-        "fiscal/nfes/importar-xml/",
-        ImportarXMLNFeView.as_view(),
-        name="fiscal-nfes-importar-xml",
+        "fiscal/nfes/<int:documento_id>/reclassificar/",
+        ReclassificarEntradaView.as_view(),
+        name="fiscal-nfe-reclassificar",
+    ),
+    path(
+        "fiscal/nfes/<int:documento_id>/preview-catalogo/",
+        PreviewCatalogoNFeView.as_view(),
+        name="fiscal-nfe-preview-catalogo",
+    ),
+    path(
+        "fiscal/nfes/<int:documento_id>/importar-catalogo/",
+        ImportarCatalogoNFeView.as_view(),
+        name="fiscal-nfe-importar-catalogo",
+    ),
+    path(
+        "fiscal/itens-nfe/<int:item_id>/vincular-produto/",
+        VincularProdutoItemView.as_view(),
+        name="fiscal-item-nfe-vincular-produto",
     ),
     path(
         "fiscal/nfes/importar-manual/",
@@ -94,6 +146,11 @@ urlpatterns = [
         name="fiscal-relatorio-faturamento",
     ),
     path(
+        "fiscal/nsu/<str:cnpj>/editar/",
+        ControleNSUEditarView.as_view(),
+        name="fiscal-nsu-editar",
+    ),
+    path(
         "fiscal/nsu/<str:cnpj>/",
         ControleNSUView.as_view(),
         name="fiscal-nsu",
@@ -102,6 +159,21 @@ urlpatterns = [
         "fiscal/nfes/sincronizar-sefaz/",
         SincronizarNfesSefazView.as_view(),
         name="fiscal-nfes-sincronizar-sefaz",
+    ),
+    path(
+        "fiscal/nfes/importar-por-chave/",
+        ImportarNfePorChaveSefazView.as_view(),
+        name="fiscal-nfes-importar-por-chave",
+    ),
+    path(
+        "fiscal/nfse-recebidas/sincronizar-adn/",
+        SincronizarNfseAdnView.as_view(),
+        name="fiscal-nfse-recebidas-sincronizar-adn",
+    ),
+    path(
+        "fiscal/nsu-nfse-adn/<str:cnpj_raw>/",
+        ControleNsuNfseAdnView.as_view(),
+        name="fiscal-nsu-nfse-adn",
     ),
     path(
         "fiscal/nfes-emitidas/importar-lote/",
@@ -137,6 +209,66 @@ urlpatterns = [
         "fiscal/simples/faturamento-ajuste/",
         FaturamentoMensalAjusteView.as_view(),
         name="fiscal-simples-faturamento-ajuste",
+    ),
+    path(
+        "fiscal/obrigacoes/dashboard/",
+        DashboardObrigacoesView.as_view(),
+        name="fiscal-obrigacoes-dashboard",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/criar/",
+        CriarPacoteObrigacaoView.as_view(),
+        name="fiscal-obrigacoes-pacotes-criar",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/upload/",
+        UploadAnexoPacoteView.as_view(),
+        name="fiscal-obrigacoes-pacote-upload",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/upload-lote/",
+        UploadLotePacoteView.as_view(),
+        name="fiscal-obrigacoes-pacote-upload-lote",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/reconciliar/",
+        ReconciliarPacoteView.as_view(),
+        name="fiscal-obrigacoes-pacote-reconciliar",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/reconciliacoes/<str:tipo>/contabilidade/",
+        ReconciliacaoContabilidadeView.as_view(),
+        name="fiscal-obrigacoes-reconciliacao-contabilidade",
+    ),
+    path(
+        "fiscal/obrigacoes/itens/<uuid:public_id>/",
+        ObrigacaoFiscalDetailView.as_view(),
+        name="fiscal-obrigacao-detail",
+    ),
+    path(
+        "fiscal/obrigacoes/anexos/<uuid:public_id>/",
+        AnexoObrigacaoFiscalDetailView.as_view(),
+        name="fiscal-obrigacao-anexo-detail",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/anexos/",
+        ExcluirTodosAnexosPacoteView.as_view(),
+        name="fiscal-obrigacoes-pacote-anexos-excluir-todos",
+    ),
+    path(
+        "fiscal/obrigacoes/holerites/<int:holerite_id>/",
+        HoleriteCompetenciaDetailView.as_view(),
+        name="fiscal-obrigacao-holerite-detail",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/holerites/conciliar-rh/",
+        ConciliarHoleritesRhPacoteView.as_view(),
+        name="fiscal-obrigacoes-holerites-conciliar-rh",
+    ),
+    path(
+        "fiscal/obrigacoes/pacotes/<uuid:public_id>/holerites/criar-colaboradores/",
+        CriarColaboradoresHoleritesPacoteView.as_view(),
+        name="fiscal-obrigacoes-holerites-criar-colaboradores",
     ),
     path("", include(router.urls)),
 ]

@@ -40,7 +40,7 @@ export function produtoDetailToForm(
     descricao: p.descricao ?? '',
     categoria: p.categoria ?? '',
     unidade_medida: _unidadeMedidaApiParaForm(p.unidade_medida),
-    preco_base: String(p.preco_base ?? '0'),
+    custo_referencia: String(p.custo_referencia ?? '0'),
     aliquota_ipi: strDecApi(p.aliquota_ipi),
     fabricante_parceiro: p.fabricante_parceiro ?? '',
     fabricante_parceiro_nome: p.fabricante_parceiro_nome ?? '',

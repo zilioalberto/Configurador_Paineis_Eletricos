@@ -96,7 +96,7 @@ export function ComposicaoAlterarSugestaoModal({
                         <th>Código</th>
                         <th>Descrição</th>
                         <th>Fabricante</th>
-                        <th className="text-end">Preço base</th>
+                        <th className="text-end">Custo de referência</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -129,7 +129,7 @@ export function ComposicaoAlterarSugestaoModal({
                           <td className="font-monospace fw-semibold">{a.codigo}</td>
                           <td className="small">{a.descricao}</td>
                           <td className="small">{em(a.fabricante)}</td>
-                          <td className="text-end small">{em(a.preco_base)}</td>
+                          <td className="text-end small">{em(a.custo_referencia)}</td>
                         </tr>
                       ))}
                     </tbody>

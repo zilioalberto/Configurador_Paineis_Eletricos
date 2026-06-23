@@ -33,6 +33,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - /opt/zfw/secrets/certificado-a1.pfx:/run/secrets/zfw-certificado-a1.pfx:ro
     ports:
       - "127.0.0.1:8000:8000"
     command: >
@@ -40,6 +42,26 @@ services:
       python manage.py migrate &&
       python manage.py runserver 0.0.0.0:8000
       "
+
+  backend-scheduler:
+    build:
+      context: ../../backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+    container_name: configurador_painel_backend_scheduler
+    restart: always
+    environment:
+      DJANGO_ENV: production
+      DJANGO_DEBUG: "false"
+    env_file:
+      - /opt/zfw/shared/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    volumes:
+      - /opt/zfw/secrets/certificado-a1.pfx:/run/secrets/zfw-certificado-a1.pfx:ro
+    command: ["python", "manage.py", "fiscal_sync_scheduler"]
 
   frontend:
     build:

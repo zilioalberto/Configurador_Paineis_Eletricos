@@ -69,7 +69,7 @@ def itens_com_preco_catalogo_desatualizado(
         if referencia is None:
             continue
 
-        preco_atualizado_em = getattr(referencia, "preco_atualizado_em", None)
+        preco_atualizado_em = getattr(referencia, "custo_atualizado_em", None)
         if preco_atualizado_em is None or preco_atualizado_em < limite:
             problemas.append(
                 ItemPrecoCatalogoDesatualizado(
@@ -95,7 +95,7 @@ def preco_catalogo_item_desatualizado(item) -> bool:
 
     if referencia is None:
         return False
-    preco_atualizado_em = getattr(referencia, "preco_atualizado_em", None)
+    preco_atualizado_em = getattr(referencia, "custo_atualizado_em", None)
     return preco_atualizado_em is None or preco_atualizado_em < limite
 
 

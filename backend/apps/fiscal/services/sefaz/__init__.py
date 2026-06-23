@@ -1,4 +1,4 @@
-"""Integração nativa com webservices SEFAZ (certificado A1, sem ACBr)."""
+"""Integração nativa com webservices SEFAZ (certificado A1)."""
 
 from .config import SefazConfig, get_sefaz_config
 from .distribuicao_dfe import consultar_distribuicao_por_nsu

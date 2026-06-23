@@ -5,7 +5,10 @@ import base64
 import gzip
 import re
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from xml.etree import ElementTree as ET
+
+from django.utils.dateparse import parse_datetime
 
 from apps.fiscal.utils import normalizar_nsu
 
@@ -22,12 +25,30 @@ class DistDfeDocumento:
 
 
 @dataclass
+class DistDfeResumoNfe:
+    xml: str
+    nsu: str | None
+    schema: str
+    chave_acesso: str
+    cnpj_emitente: str
+    nome_emitente: str
+    data_emissao: object | None
+    valor_total: Decimal
+    protocolo: str
+    situacao_nfe: str
+    recebido_em_sefaz: object | None
+
+
+@dataclass
 class DistDfeResultado:
     cstat: str
     xmotivo: str
     ultimo_nsu: str
     max_nsu: str
     documentos: list[DistDfeDocumento] = field(default_factory=list)
+    resumos_nfe: list[DistDfeResumoNfe] = field(default_factory=list)
+    documentos_ignorados: int = 0
+    schemas_ignorados: dict[str, int] = field(default_factory=dict)
     resposta_bruta: str = ""
 
 
@@ -44,6 +65,17 @@ def _buscar_filho_por_nome(pai: ET.Element, nome: str) -> ET.Element | None:
         if _local(filho.tag) == nome:
             return filho
     return None
+
+
+def _texto_por_nome(pai: ET.Element, nome: str) -> str:
+    return _texto(_buscar_filho_por_nome(pai, nome))
+
+
+def _parse_decimal(valor: str) -> Decimal:
+    try:
+        return Decimal((valor or "").strip() or "0")
+    except (InvalidOperation, ValueError):
+        return Decimal("0")
 
 
 def _extrair_corpo_ret_dist_dfe(soap_xml: str) -> ET.Element | None:
@@ -95,15 +127,75 @@ def _parse_doczip_element(elem: ET.Element) -> DistDfeDocumento | None:
     )
 
 
-def _extrair_documentos_doczip(ret: ET.Element) -> list[DistDfeDocumento]:
+def _parse_res_nfe(xml: str, *, nsu: str | None, schema: str) -> DistDfeResumoNfe | None:
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return None
+    if _local(root.tag) != "resNFe":
+        return None
+
+    chave = "".join(ch for ch in _texto_por_nome(root, "chNFe") if ch.isdigit())[:44]
+    if len(chave) != 44:
+        return None
+
+    cnpj_emitente = "".join(ch for ch in _texto_por_nome(root, "CNPJ") if ch.isdigit())[:14]
+    if not cnpj_emitente:
+        cnpj_emitente = "".join(ch for ch in _texto_por_nome(root, "CPF") if ch.isdigit())[:11]
+
+    return DistDfeResumoNfe(
+        xml=xml,
+        nsu=normalizar_nsu(nsu) if nsu else None,
+        schema=schema,
+        chave_acesso=chave,
+        cnpj_emitente=cnpj_emitente,
+        nome_emitente=_texto_por_nome(root, "xNome")[:255],
+        data_emissao=parse_datetime(_texto_por_nome(root, "dhEmi")),
+        valor_total=_parse_decimal(_texto_por_nome(root, "vNF")),
+        protocolo=_texto_por_nome(root, "nProt")[:60],
+        situacao_nfe=_texto_por_nome(root, "cSitNFe")[:10],
+        recebido_em_sefaz=parse_datetime(_texto_por_nome(root, "dhRecbto")),
+    )
+
+
+def _schema_doczip(elem: ET.Element) -> str:
+    return (elem.attrib.get("schema") or "desconhecido").strip() or "desconhecido"
+
+
+def _xml_de_doczip(elem: ET.Element) -> str:
+    conteudo = (elem.text or "").strip()
+    if not conteudo:
+        return ""
+    try:
+        return _descompactar_doc_zip(conteudo)
+    except Exception:
+        return ""
+
+
+def _extrair_documentos_doczip(
+    ret: ET.Element,
+) -> tuple[list[DistDfeDocumento], list[DistDfeResumoNfe], int, dict[str, int]]:
     documentos: list[DistDfeDocumento] = []
+    resumos: list[DistDfeResumoNfe] = []
+    ignorados = 0
+    schemas_ignorados: dict[str, int] = {}
     for elem in ret.iter():
         if _local(elem.tag) != "docZip":
+            continue
+        schema = _schema_doczip(elem)
+        nsu_attr = elem.attrib.get("NSU") or elem.attrib.get("nsu")
+        xml = _xml_de_doczip(elem)
+        resumo = _parse_res_nfe(xml, nsu=nsu_attr, schema=schema) if xml else None
+        if resumo is not None:
+            resumos.append(resumo)
             continue
         documento = _parse_doczip_element(elem)
         if documento is not None:
             documentos.append(documento)
-    return documentos
+            continue
+        ignorados += 1
+        schemas_ignorados[schema] = schemas_ignorados.get(schema, 0) + 1
+    return documentos, resumos, ignorados, schemas_ignorados
 
 
 def _resultado_sem_ret_dist_dfe(soap_xml: str, ultimo_nsu_consulta: str) -> DistDfeResultado:
@@ -129,11 +221,16 @@ def parse_resposta_distribuicao_dfe(soap_xml: str, *, ultimo_nsu_consulta: str) 
     )
     maximo = normalizar_nsu(_texto(_buscar_filho_por_nome(ret, "maxNSU"))) or ultimo
 
+    documentos, resumos, ignorados, schemas_ignorados = _extrair_documentos_doczip(ret)
+
     return DistDfeResultado(
         cstat=cstat,
         xmotivo=xmotivo,
         ultimo_nsu=ultimo or "000000000000000",
         max_nsu=maximo or ultimo or "000000000000000",
-        documentos=_extrair_documentos_doczip(ret),
+        documentos=documentos,
+        resumos_nfe=resumos,
+        documentos_ignorados=ignorados,
+        schemas_ignorados=schemas_ignorados,
         resposta_bruta=soap_xml,
     )

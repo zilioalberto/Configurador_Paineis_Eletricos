@@ -33,7 +33,7 @@ describe('ServicoEditPage', () => {
         descricao: 'Instalação',
         categoria: '',
         unidade_medida: 'UN',
-        preco_base: '100.00',
+        custo_referencia: '100.00',
         ativo: true,
       },
       isPending: false,

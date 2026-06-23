@@ -154,7 +154,7 @@ export default function ProdutoDetailPage() {
                   value={p.categoria_display ?? p.categoria_nome}
                 />
                 <Row label="Unidade" value={p.unidade_medida_display ?? p.unidade_medida} />
-                <Row label="Preço base" value={p.preco_base} />
+                <Row label="Custo de referência" value={p.custo_referencia} />
                 <Row label="Ativo" value={p.ativo ? 'Sim' : 'Não'} />
               </SpecBlock>
 

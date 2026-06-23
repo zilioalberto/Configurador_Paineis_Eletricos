@@ -123,7 +123,7 @@ const colaboradorBase = {
   nome: 'Maria Silva',
   email: 'maria@empresa.com',
   telefone: '11999990000',
-  documento: '12345678900',
+  documento: '39053344705',
   cargo: 'cargo-1',
   cargo_nome: 'Projetista',
   departamento: 'dep-1',
@@ -140,6 +140,27 @@ const colaboradorBase = {
 
 function setupRhPage() {
   showToastMock.mockClear()
+  listarDepartamentosMock.mockClear()
+  listarCargosMock.mockClear()
+  listarJornadasMock.mockClear()
+  listarEquipesMock.mockClear()
+  listarColaboradoresMock.mockClear()
+  listarUsuariosParaVinculoMock.mockClear()
+  atualizarColaboradorMock.mockClear()
+  atualizarDepartamentoMock.mockClear()
+  atualizarCargoMock.mockClear()
+  atualizarEquipeMock.mockClear()
+  atualizarJornadaMock.mockClear()
+  criarColaboradorMock.mockClear()
+  criarDepartamentoMock.mockClear()
+  criarCargoMock.mockClear()
+  criarEquipeMock.mockClear()
+  criarJornadaMock.mockClear()
+  excluirColaboradorMock.mockClear()
+  excluirDepartamentoMock.mockClear()
+  excluirCargoMock.mockClear()
+  excluirEquipeMock.mockClear()
+  excluirJornadaMock.mockClear()
   lastConfirmModalProps.current = null
   listarDepartamentosMock.mockResolvedValue([departamentoBase])
   listarCargosMock.mockResolvedValue([cargoBase])
@@ -198,8 +219,31 @@ describe('RhPage', () => {
         matricula: 'M001',
         nome: 'Maria Santos',
         departamento: 'dep-1',
+        documento: '39053344705',
       })
     )
+  })
+
+  it('bloqueia salvar colaborador com cpf invalido', async () => {
+    renderRhPage()
+
+    await screen.findByText('Maria Silva')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0])
+    fireEvent.change(screen.getByLabelText('CPF'), {
+      target: { value: '123.456.789-00' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'danger',
+          title: 'Colaborador',
+        })
+      )
+    })
+    expect(atualizarColaboradorMock).not.toHaveBeenCalled()
+    expect(screen.getByText('CPF inválido (dígitos verificadores).')).toBeInTheDocument()
   })
 
   it('alterna para departamentos e salva registro simples', async () => {

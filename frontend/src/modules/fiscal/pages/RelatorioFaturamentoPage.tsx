@@ -48,15 +48,18 @@ export default function RelatorioFaturamentoPage() {
 
   const { data, isPending, isError, error, refetch } = useRelatorioFaturamentoQuery(filtrosDebounced)
 
+  const porMes = data?.por_mes
+  const porCliente = data?.por_cliente
+
   const maxMes = useMemo(() => {
-    if (!data?.por_mes.length) return 0
-    return Math.max(...data.por_mes.map((m) => parseMoeda(m.valor_total)))
-  }, [data?.por_mes])
+    if (!porMes?.length) return 0
+    return Math.max(...porMes.map((m) => parseMoeda(m.valor_total)))
+  }, [porMes])
 
   const maxCliente = useMemo(() => {
-    if (!data?.por_cliente.length) return 0
-    return Math.max(...data.por_cliente.map((c) => parseMoeda(c.valor_total)))
-  }, [data?.por_cliente])
+    if (!porCliente?.length) return 0
+    return Math.max(...porCliente.map((c) => parseMoeda(c.valor_total)))
+  }, [porCliente])
 
   const onFiltroChange =
     (field: keyof RelatorioFaturamentoFiltros) =>

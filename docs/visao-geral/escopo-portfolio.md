@@ -36,7 +36,9 @@ Documentos de apoio:
 - [Rastreabilidade RF/RNF](../portfolio/rastreabilidade-requisitos.md)  
 - [Mapa de API](../portfolio/mapa-api-wizard.md)  
 - [Relatório de conformidade](../portfolio/relatorio-conformidade.md)  
-- [Checklist de testes](../checklist-testes.md)
+- [Checklist de testes](../checklist-testes.md)  
+- [Evidências de testes/cobertura](../portfolio/evidencias-testes.md)  
+- [ADR 0007 — Escopo do portfólio limitado ao CPQ](../adr/0007-escopo-portfolio-cpq.md)
 
 ## O que NÃO é entregável do portfólio
 

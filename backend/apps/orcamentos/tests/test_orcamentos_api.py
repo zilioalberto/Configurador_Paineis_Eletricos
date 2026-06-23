@@ -829,10 +829,10 @@ def test_patch_orcamento_finalizado_rejeita_preco_catalogo_desatualizado(
         codigo="CAT-VENCIDO-01",
         descricao="Produto vencido",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="100.00",
+        custo_referencia="100.00",
     )
     Produto.objects.filter(pk=produto.pk).update(
-        preco_atualizado_em=timezone.now() - timedelta(days=45)
+        custo_atualizado_em=timezone.now() - timedelta(days=45)
     )
     orc = Orcamento.objects.create(
         codigo_base="O-PRECO-VENCIDO",
@@ -883,10 +883,10 @@ def test_revisar_preco_catalogo_pelo_orcamento_atualiza_catalogo_e_linha(
         codigo="CAT-REV-001",
         descricao="Produto revisão",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="100.00",
+        custo_referencia="100.00",
     )
     Produto.objects.filter(pk=produto.pk).update(
-        preco_atualizado_em=timezone.now() - timedelta(days=45)
+        custo_atualizado_em=timezone.now() - timedelta(days=45)
     )
     orc = Orcamento.objects.create(
         codigo_base="O-REV-PRECO",
@@ -912,15 +912,15 @@ def test_revisar_preco_catalogo_pelo_orcamento_atualiza_catalogo_e_linha(
             "erp-orcamento-revisar-preco-catalogo-item",
             kwargs={"pk": orc.pk, "item_id": item.pk},
         ),
-        {"preco_base": "150.00", "justificativa": "Cotação atualizada do fornecedor."},
+        {"custo_referencia": "150.00", "justificativa": "Cotação atualizada do fornecedor."},
         format="json",
     )
 
     assert resp.status_code == 200, resp.content
     produto.refresh_from_db()
     item.refresh_from_db()
-    assert produto.preco_base == Decimal("150.00")
-    assert produto.preco_atualizado_em is not None
+    assert produto.custo_referencia == Decimal("150.00")
+    assert produto.custo_atualizado_em is not None
     assert item.custo_unitario == Decimal("150.00")
     assert item.preco_unitario == Decimal("180.0000")
     assert resp.json()["itens"][0]["catalogo_preco_desatualizado"] is False
@@ -938,10 +938,10 @@ def test_revisar_preco_catalogo_mantendo_valor_renova_data(
         codigo="CAT-REVALIDA-001",
         descricao="Produto revalidado",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="100.00",
+        custo_referencia="100.00",
     )
     data_antiga = timezone.now() - timedelta(days=45)
-    Produto.objects.filter(pk=produto.pk).update(preco_atualizado_em=data_antiga)
+    Produto.objects.filter(pk=produto.pk).update(custo_atualizado_em=data_antiga)
     orc = Orcamento.objects.create(
         codigo_base="O-REVALIDA",
         titulo="Revalidar preço",
@@ -966,15 +966,15 @@ def test_revisar_preco_catalogo_mantendo_valor_renova_data(
             "erp-orcamento-revisar-preco-catalogo-item",
             kwargs={"pk": orc.pk, "item_id": item.pk},
         ),
-        {"preco_base": "100.00", "justificativa": "Preço conferido e mantido."},
+        {"custo_referencia": "100.00", "justificativa": "Preço conferido e mantido."},
         format="json",
     )
 
     assert resp.status_code == 200, resp.content
     produto.refresh_from_db()
     item.refresh_from_db()
-    assert produto.preco_base == Decimal("100.00")
-    assert produto.preco_atualizado_em > data_antiga
+    assert produto.custo_referencia == Decimal("100.00")
+    assert produto.custo_atualizado_em > data_antiga
     assert item.custo_unitario == Decimal("100.00")
     assert resp.json()["itens"][0]["catalogo_preco_desatualizado"] is False
 
@@ -1228,7 +1228,7 @@ def test_create_orcamento_item_produto_catalogo_preco_e_ipi(user_admin, cliente_
         codigo="CAT-ORC-001",
         descricao="Produto lista IPI",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="150.00",
+        custo_referencia="150.00",
         ncm="85381000",
     )
     ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="5.2500")
@@ -1268,7 +1268,7 @@ def test_create_orcamento_item_servico_com_produto_rejeita(user_admin, cliente_c
         codigo="CAT-ORC-002",
         descricao="X",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="1.00",
+        custo_referencia="1.00",
     )
     client = _auth_client(user, raw)
     resp = client.post(
@@ -1294,7 +1294,7 @@ def test_create_orcamento_item_servico_catalogo_aplica_margem(user_admin, client
         descricao="Montagem de painel",
         categoria="Montagem",
         unidade_medida="HORAS",
-        preco_base="180.00",
+        custo_referencia="180.00",
     )
     client = _auth_client(user, raw)
 
@@ -1338,7 +1338,7 @@ def test_atualizar_oferta_reaplica_margens_e_catalogo(user_admin, cliente_com_co
         codigo="CAT-ATU-001",
         descricao="Produto atualizado",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="100.00",
+        custo_referencia="100.00",
     )
     ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="5.0000")
     servico = Servico.objects.create(
@@ -1346,7 +1346,7 @@ def test_atualizar_oferta_reaplica_margens_e_catalogo(user_admin, cliente_com_co
         descricao="Serviço atualizado",
         categoria="Engenharia",
         unidade_medida="HORAS",
-        preco_base="200.00",
+        custo_referencia="200.00",
     )
     orc = Orcamento.objects.create(
         codigo_base="O-ATU",
@@ -1410,7 +1410,7 @@ def test_patch_orcamento_ignora_ipi_informado_na_linha(user_admin, cliente_com_c
         codigo="CAT-IPI-LOCK",
         descricao="Produto IPI fixo",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="100.00",
+        custo_referencia="100.00",
     )
     ItemFiscalProduto.objects.create(produto=produto, ordem=0, rotulo="", p_ipi="7.5000")
     client = _auth_client(user, raw)
@@ -1465,7 +1465,7 @@ def test_patch_orcamento_preserva_origem_configurador_com_produto(
         codigo="CONF-PROD-01",
         descricao="Contator do painel",
         categoria=CategoriaProdutoNomeChoices.OUTROS,
-        preco_base="80.00",
+        custo_referencia="80.00",
     )
     client = _auth_client(user, raw)
     orc = Orcamento.objects.create(

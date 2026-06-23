@@ -69,8 +69,8 @@ export type ProdutoFormData = {
   descricao: string
   categoria: string
   unidade_medida: UnidadeMedidaProduto
-  preco_base: string
-  /** Alíquota IPI (%) de referência, ao lado do preço base. */
+  custo_referencia: string
+  /** Alíquota IPI (%) de referência, ao lado do custo de referência. */
   aliquota_ipi: string
   /** UUID do parceiro fabricante ou vazio. */
   fabricante_parceiro: string
@@ -101,8 +101,8 @@ export type ProdutoListItem = {
   categoria_display?: string
   unidade_medida: string
   unidade_medida_display?: string
-  preco_base: string
-  preco_atualizado_em?: string | null
+  custo_referencia: string
+  custo_atualizado_em?: string | null
   aliquota_ipi?: string | null
   fabricante_parceiro?: string | null
   fabricante_parceiro_nome?: string | null

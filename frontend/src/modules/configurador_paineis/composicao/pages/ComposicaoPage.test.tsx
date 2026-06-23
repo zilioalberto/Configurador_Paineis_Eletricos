@@ -669,7 +669,7 @@ describe('ComposicaoPage', () => {
           codigo: 'K2',
           descricao: 'Contator 12A',
           fabricante: 'ACME',
-          preco_base: '123.45',
+          custo_referencia: '123.45',
         },
       ],
       isPending: false,

@@ -16,6 +16,7 @@ class SefazConfig:
     cert_password: str
     provider: str  # native | stub
     max_ciclos_nsu: int = 20
+    auto_ciencia: bool = False
 
     def validate(self) -> None:
         if len(self.cnpj) != 14 or not self.cnpj.isdigit():
@@ -39,6 +40,7 @@ def get_sefaz_config() -> SefazConfig:
     cert_password = getattr(settings, "FISCAL_CERT_PASSWORD", "") or ""
     provider = (getattr(settings, "FISCAL_SEFAZ_PROVIDER", "native") or "native").strip().lower()
     max_ciclos = int(getattr(settings, "FISCAL_SYNC_MAX_CICLOS", 20) or 20)
+    auto_ciencia = bool(getattr(settings, "FISCAL_AUTO_CIENCIA", False))
     return SefazConfig(
         cnpj=cnpj,
         uf=uf or "35",
@@ -47,4 +49,5 @@ def get_sefaz_config() -> SefazConfig:
         cert_password=cert_password,
         provider=provider,
         max_ciclos_nsu=max(1, max_ciclos),
+        auto_ciencia=auto_ciencia,
     )
