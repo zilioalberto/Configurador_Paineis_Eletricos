@@ -120,7 +120,7 @@ export function formatMoedaInput(valor: string | number | null | undefined): str
 export function parseMoedaPt(valor: string): number {
   const semEspacos = valor.trim().replaceAll(/\s/g, '')
   const normalizado = semEspacos.includes(',')
-    ? semEspacos.replaceAll(/\./g, '').replace(',', '.')
+    ? semEspacos.replaceAll('.', '').replace(',', '.')
     : semEspacos
   const n = Number(normalizado)
   return Number.isFinite(n) ? n : Number.NaN

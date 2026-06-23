@@ -127,7 +127,7 @@ describe('ReconciliacaoContabilidadeEditModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(onClose).toHaveBeenCalledTimes(1)
 
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 

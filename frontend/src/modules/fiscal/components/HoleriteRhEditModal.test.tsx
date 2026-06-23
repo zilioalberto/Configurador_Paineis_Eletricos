@@ -148,7 +148,7 @@ describe('HoleriteRhEditModal', () => {
     await screen.findByRole('option', { name: 'Ana (001)' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     expect(onClose).toHaveBeenCalledTimes(2)
   })

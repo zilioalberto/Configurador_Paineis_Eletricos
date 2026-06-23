@@ -772,14 +772,14 @@ export default function ObrigacoesFiscaisCompetenciaPage() {
             }
             if (pendencias.length === 0) return null
             return (
-              <div className="alert alert-info py-2 small mb-3" role="status">
+              <output className="alert alert-info py-2 small mb-3 d-block">
                 <strong>PDFs pendentes para conciliação completa:</strong>
                 <ul className="mb-0 mt-1">
                   {pendencias.map((p) => (
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
-              </div>
+              </output>
             )
           })()}
           <div className="card mb-4">

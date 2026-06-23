@@ -188,7 +188,7 @@ class ControleNSU(models.Model):
 
     cnpj = models.CharField(max_length=14, unique=True)
     ultimo_nsu = models.CharField(max_length=15, default="000000000000000")
-    max_nsu = models.CharField(max_length=15, blank=True, null=True)
+    max_nsu = models.CharField(max_length=15, blank=True)
     ultimo_cstat = models.CharField(max_length=10, blank=True)
     ultimo_motivo = models.CharField(max_length=255, blank=True)
     bloqueado_ate = models.DateTimeField(null=True, blank=True)
@@ -206,8 +206,7 @@ class ControleNSU(models.Model):
     def save(self, *args, **kwargs):
         self.cnpj = normalizar_cnpj(self.cnpj)
         self.ultimo_nsu = normalizar_nsu(self.ultimo_nsu) or "000000000000000"
-        if self.max_nsu:
-            self.max_nsu = normalizar_nsu(self.max_nsu)
+        self.max_nsu = normalizar_nsu(self.max_nsu) or ""
         super().save(*args, **kwargs)
 
 
@@ -309,7 +308,7 @@ class DocumentoSefazDistribuido(models.Model):
     """Documento descoberto pela Distribuição DFe antes/depois do XML completo."""
 
     chave_acesso = models.CharField(max_length=44, unique=True)
-    nsu = models.CharField(max_length=15, blank=True, null=True, db_index=True)
+    nsu = models.CharField(max_length=15, blank=True, db_index=True)
     schema = models.CharField(max_length=80, blank=True)
     tipo_documento = models.CharField(
         max_length=30,
@@ -377,8 +376,7 @@ class DocumentoSefazDistribuido(models.Model):
         self.chave_acesso = "".join(ch for ch in (self.chave_acesso or "") if ch.isdigit())[:44]
         self.cnpj_emitente = normalizar_cnpj(self.cnpj_emitente)
         self.cnpj_destinatario = normalizar_cnpj(self.cnpj_destinatario)
-        if self.nsu:
-            self.nsu = normalizar_nsu(self.nsu)
+        self.nsu = normalizar_nsu(self.nsu) or ""
         super().save(*args, **kwargs)
 
     def clean(self) -> None:
@@ -607,7 +605,7 @@ class ControleNsuNfseAdn(models.Model):
 
     cnpj = models.CharField(max_length=14, unique=True)
     ultimo_nsu = models.CharField(max_length=15, default="000000000000000")
-    max_nsu = models.CharField(max_length=15, blank=True, null=True)
+    max_nsu = models.CharField(max_length=15, blank=True)
     ultimo_status = models.CharField(max_length=80, blank=True)
     ultimo_motivo = models.CharField(max_length=255, blank=True)
     bloqueado_ate = models.DateTimeField(null=True, blank=True)
@@ -625,8 +623,7 @@ class ControleNsuNfseAdn(models.Model):
     def save(self, *args, **kwargs):
         self.cnpj = normalizar_cnpj(self.cnpj)
         self.ultimo_nsu = normalizar_nsu(self.ultimo_nsu) or "000000000000000"
-        if self.max_nsu:
-            self.max_nsu = normalizar_nsu(self.max_nsu)
+        self.max_nsu = normalizar_nsu(self.max_nsu) or ""
         super().save(*args, **kwargs)
 
 
@@ -636,7 +633,7 @@ class DocumentoNfseRecebido(models.Model):
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, editable=False)
     identificador = models.CharField(max_length=120, unique=True)
     chave_acesso = models.CharField(max_length=50, blank=True, db_index=True)
-    nsu_adn = models.CharField(max_length=15, blank=True, null=True)
+    nsu_adn = models.CharField(max_length=15, blank=True)
 
     cnpj_prestador = models.CharField(max_length=14)
     nome_prestador = models.CharField(max_length=255, blank=True)
@@ -681,8 +678,7 @@ class DocumentoNfseRecebido(models.Model):
     def save(self, *args, **kwargs):
         self.cnpj_prestador = normalizar_cnpj(self.cnpj_prestador)
         self.cnpj_tomador = normalizar_cnpj(self.cnpj_tomador)
-        if self.nsu_adn:
-            self.nsu_adn = normalizar_nsu(self.nsu_adn)
+        self.nsu_adn = normalizar_nsu(self.nsu_adn) or ""
         super().save(*args, **kwargs)
 
 

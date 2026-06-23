@@ -358,9 +358,6 @@ export default function NfeImportarManualPage() {
       erros: valores.filter((r) => r.status === 'erro').length,
     }
   }, [resultados])
-  const progressoPct = progresso && progresso.total > 0
-    ? Math.round((progresso.atual / progresso.total) * 100)
-    : 0
 
   return (
     <div className="container-fluid" style={{ maxWidth: '48rem' }}>
@@ -477,15 +474,11 @@ export default function NfeImportarManualPage() {
               </div>
 
               {progresso ? (
-                <div className="mb-2">
-                  <div className="progress" role="progressbar" aria-valuenow={progressoPct} aria-valuemin={0} aria-valuemax={100}>
-                    <div
-                      className={`progress-bar ${importandoLote ? 'progress-bar-striped progress-bar-animated' : ''}`}
-                      style={{ width: `${progressoPct}%` }}
-                    >
-                      {progresso.atual}/{progresso.total}
-                    </div>
-                  </div>
+                <div className="mb-2 d-flex align-items-center gap-2">
+                  <progress className="flex-grow-1" value={progresso.atual} max={progresso.total} />
+                  <small className="text-muted">
+                    {progresso.atual}/{progresso.total}
+                  </small>
                 </div>
               ) : null}
 
@@ -538,7 +531,7 @@ export default function NfeImportarManualPage() {
           ) : null}
 
           {loteConcluido ? (
-            <div className={`alert ${totalResumo.erros ? 'alert-warning' : 'alert-success'} mb-0`} role="status">
+            <output className={`alert ${totalResumo.erros ? 'alert-warning' : 'alert-success'} mb-0 d-block`}>
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span>
                   Lote concluído: <strong>{totalResumo.novos}</strong> nova(s),{' '}
@@ -549,7 +542,7 @@ export default function NfeImportarManualPage() {
                   Ver NF-es recebidas
                 </Link>
               </div>
-            </div>
+            </output>
           ) : null}
 
           {!isLote ? (

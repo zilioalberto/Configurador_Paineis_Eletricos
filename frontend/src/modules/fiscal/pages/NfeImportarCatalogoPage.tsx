@@ -582,14 +582,16 @@ export default function NfeImportarCatalogoPage() {
         o de-para fornecedor↔produto é gravado automaticamente.
       </p>
 
-      {previewQuery.isPending ? (
-        <p className="text-muted">Carregando preview…</p>
-      ) : previewQuery.isError ? (
+      {previewQuery.isPending && <p className="text-muted">Carregando preview…</p>}
+
+      {previewQuery.isError && (
         <div className="alert alert-danger">
           {extrairMensagemErroApi(previewQuery.error) ||
             'Não foi possível carregar o preview desta NF-e.'}
         </div>
-      ) : previewQuery.data ? (
+      )}
+
+      {previewQuery.data && (
         <>
           <div className="card mb-3">
             <div className="card-body">
@@ -770,7 +772,7 @@ export default function NfeImportarCatalogoPage() {
 
           <ResultadoImportacao resultado={resultado} />
         </>
-      ) : null}
+      )}
     </div>
   )
 }
