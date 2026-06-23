@@ -32,7 +32,9 @@ A regra de negócio fica **fora** das views; selectors/query objects isolam cons
 
 ## Consequências
 
-- ✅ Serviços testáveis isoladamente — sustenta a meta de cobertura de testes.
-- ✅ Separação clara de responsabilidades (critério obrigatório da linha Web Apps).
-- ✅ Frontend espelha a organização modular do backend.
-- ⚠️ Exige disciplina para não vazar lógica para as views; revisado em code review.
+- Serviços testáveis isoladamente — sustenta a meta de cobertura de testes.
+- Separação clara de responsabilidades (critério obrigatório da linha Web Apps).
+- Frontend espelha a organização modular do backend.
+- Ponto de atenção: Exige disciplina para não vazar lógica para as views; revisado em code review.
+
+

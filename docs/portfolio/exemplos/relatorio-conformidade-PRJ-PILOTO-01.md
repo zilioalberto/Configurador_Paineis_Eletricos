@@ -1,7 +1,6 @@
-# Relatório de conformidade — PRJ-PILOTO-01
+# Relatório de conformidade - PRJ-PILOTO-01
 
-> **Exemplo preenchido** para demo e entrega do portfólio (PAC). Cenário alinhado ao fluxo do wizard e aos testes automatizados do repositório.  
-> Substituir identificadores e datas após percorrer o fluxo no ambiente local ou deploy.
+Exemplo preenchido para a entrega do portfólio. Este relatório usa a execução realizada no ambiente de produção em 2026-06-23, com evidências salvas em [evidencias-producao](../evidencias-producao/README.md).
 
 ---
 
@@ -9,14 +8,14 @@
 
 | Campo | Valor |
 |-------|-------|
-| Projeto / proposta | **PRJ-PILOTO-01** (`05004-26`) |
-| Cliente | ZFW Engenharia — piloto acadêmico |
-| Data | 2026-05-23 |
-| Responsável técnico | *(preencher na demo)* |
-| Versão do sistema | commit `f740b69` |
-| Usuário que configurou | `demo@zfw.local` (validação API Docker) |
-| Ambiente | Desenvolvimento local — Docker Compose |
-| **UUID projeto (validado)** | `79bc11b9-1386-4b29-9064-203017da734c` |
+| Projeto / proposta | **PRJ-PILOTO-01** (`06001-26`) |
+| Cliente | Cliente piloto portfolio |
+| Data da execução | 2026-06-23 |
+| Responsável técnico | A preencher na revisão final |
+| Versão do sistema | commit `509d2c8` / branch `resolve-dev-main-pr` no momento da validação local |
+| Usuário que configurou | `demopac@zfw.com.br` |
+| Ambiente | Produção - `https://portal.zfw.com.br` |
+| UUID projeto validado | `ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa` |
 
 ---
 
@@ -26,74 +25,77 @@
 
 | Norma | Cobertura neste piloto | Evidência |
 |-------|------------------------|-----------|
-| **NR-10** | Checklist essencial no fluxo de dimensionamento/composição | Wizard exige confirmação de condutores antes de exportar |
-| **ABNT NBR 5410** | Dimensionamento de condutores (seção comercial, Iz, neutro, PE) | `validar_escolhas_circuito_carga`, `validar_escolhas_alimentacao_geral`; testes `test_validar_escolhas*.py` |
+| **NR-10** | Checklist essencial no fluxo de dimensionamento/composição | Wizard exige revisão de condutores antes da composição final |
+| **ABNT NBR 5410** | Dimensionamento de condutores, corrente de projeto, seção comercial, neutro e PE | Serviços de dimensionamento e testes `test_validar_escolhas*.py` |
 
-### 1.2 Documentadas — verificação manual
+### 1.2 Documentadas - verificação manual
 
 | Norma | Status neste piloto | Observação |
 |-------|---------------------|------------|
-| **ABNT NBR 5419** (SPDA) | ☐ N/A | Painel indoor em ambiente seco — SPDA não aplicável ao escopo deste piloto |
-| **ABNT NBR IEC 61439** | ☐ Pendente revisão manual | Coordenação de proteção entre 2 circuitos motores — validar em mesa com engenheiro |
+| **ABNT NBR 5419** (SPDA) | Não aplicável ao piloto | Cenário de painel indoor em ambiente controlado |
+| **ABNT NBR IEC 61439** | Pendente revisão manual | Coordenação e verificação do conjunto devem ser revisadas por responsável técnico |
 
-### 1.3 Lacunas conhecidas (RFC § 2.7)
+### 1.3 Lacunas conhecidas
 
-- Simulação térmica / CAE: **não implementada** (regras aproximadas).
-- Snapshot versionado de catálogo/regras por proposta (RF-03): **parcial** — snapshot de composição por projeto, sem versão global imutável no cabeçalho do export.
-- Integração ERP/CRM: **fora do escopo** — apenas export XLSX/PDF.
+- Simulação térmica/CAE detalhada não faz parte do MVP.
+- Snapshot global imutável de catálogo/regras permanece como evolução de RF-03.
+- Integração direta com ERP/CRM não faz parte do escopo do MVP; o fluxo entrega exportação XLSX/PDF.
 
 ---
 
 ## 2. Resumo da configuração
 
-Cenário típico de painel BT trifásico **380 V**, alimentação com neutro/terra em bornes, **2 cargas motor** + alimentação geral.
+Cenário de painel BT trifásico 380 V, alimentação com neutro/terra em bornes e uma carga motor piloto.
 
 | Item | Valor |
 |------|-------|
-| Nome do projeto | Painel piloto — bombeamento |
-| Código | `05004-26` |
-| Tensão nominal | 380 V (trifásico, 60 Hz) |
-| Número de cargas | 1 motor M1 (piloto API; expandir na demo UI) |
-| Corrente total painel | **1,55 A** (dimensionamento validado) |
+| Nome do projeto | `PAINEL PILOTO PORTFOLIO PRODUCAO 20260623-1151` |
+| Código | `06001-26` |
+| Tensão nominal | 380 V, trifásico, 60 Hz |
+| Número de cargas | 1 motor (`M1`) |
+| Corrente total do painel | 1,55 A |
 | Dimensionamento recalculado | Sim |
-| Condutores confirmados no wizard | Sim |
-| Sugestões geradas | **2** |
-| Itens aprovados na BoM | 0 *(aprovar na UI antes do export final)* |
-| Pendências abertas | **2** |
+| Condutores confirmados | Sim |
+| Sugestões abertas | 1 |
+| Sugestões aprovadas / itens incorporados | 6 |
+| Itens aprovados na BoM | 6 |
+| Pendências abertas | 21 |
 
-**Totais esperados no snapshot** (`GET /api/v1/composicao/projeto/{id}/`):
+Totais atuais registrados em `metadata-producao.json` após a complementação do catálogo e reconfiguração do piloto:
 
-- `totais.sugestoes` > 0 após gerar sugestões  
-- `totais.composicao_itens` ≥ itens aprovados  
-- `totais.pendencias` = 0 para status “apto”
+```json
+{
+  "sugestoes": 1,
+  "pendencias": 21,
+  "composicao_itens": 6,
+  "inclusoes_manuais": 0
+}
+```
 
 ---
 
 ## 3. Validações executadas (RF-05)
 
-| Carga / circuito | Regra | Resultado | Referência (RNF-14) |
-|------------------|-------|-----------|---------------------|
-| Alimentação geral | Iz condutor fase ≥ corrente de projeto | OK | NBR 5410 — dimensionamento básico |
-| Alimentação geral | Seção neutro / PE comercial | OK | NBR 5410 — `validar_escolhas_alimentacao_geral` |
-| Motor M1 (1 CV, 220 V) | Proteção e condutores de comando | OK | Regras em `dimensionamento/services/circuitos/` |
-| Motor M2 | Idem M1 | OK | |
-| Escolha inválida (teste) | Seção não comercial rejeitada | Bloqueado | `test_validar_escolhas_circuito_rejeita_secao_nao_comercial` |
+| Carga / circuito | Regra | Resultado | Referência |
+|------------------|-------|-----------|------------|
+| Alimentação geral | Corrente de projeto e condutores mínimos | Validado | NBR 5410 - dimensionamento básico |
+| Alimentação geral | Neutro e PE em seção comercial | Validado | Serviços de validação de condutores |
+| Motor M1 | Cálculo de corrente e circuito de carga | Validado | Dimensionamento retornou 1 circuito de carga |
+| Condutores | Confirmação de revisão no fluxo | Confirmado | `condutores_revisao_confirmada = true` |
 
 ---
 
 ## 4. Sugestões e decisões (RF-06 / auditoria)
 
-| Ordem | Ação | Usuário | Detalhe |
-|-------|------|---------|---------|
-| 1 | Projeto criado | Admin | Código `21001-26` |
-| 2 | Cargas cadastradas | Admin | 2× motor + AG |
-| 3 | Dimensionamento recalculado | Sistema | Evento registrado no histórico do projeto |
-| 4 | Condutores confirmados | Admin | Wizard — etapa dimensionamento |
-| 5 | Sugestões geradas | Sistema | Orquestrador `gerar_sugestoes_painel` |
-| 6 | Sugestões aprovadas | Admin | Disjuntores/contatores do catálogo |
-| 7 | *(opcional)* Inclusão manual | Admin | Item de bornes via catálogo |
-
-**Histórico:** `GET /api/v1/projetos/{id}/historico/` — exibido em `ProjetoWizardHistoricoCard`.
+| Ordem | Ação | Usuário / origem | Detalhe |
+|-------|------|------------------|---------|
+| 1 | Projeto criado | `demopac@zfw.com.br` | Código `06001-26` |
+| 2 | Carga cadastrada | `demopac@zfw.com.br` | Motor `M1` |
+| 3 | Dimensionamento recalculado | Sistema | Corrente total 1,55 A |
+| 4 | Condutores confirmados | `demopac@zfw.com.br` | Revisão confirmada via API/fluxo |
+| 5 | Composição reavaliada | Sistema | 1 sugestão permanece aberta após a reconfiguração |
+| 6 | Itens aprovados | `demopac@zfw.com.br` | 6 itens consolidados na BoM |
+| 7 | Ressalvas abertas | Sistema | 21 pendências permanecem documentadas para revisão de catálogo/composição |
 
 ---
 
@@ -101,39 +103,35 @@ Cenário típico de painel BT trifásico **380 V**, alimentação com neutro/ter
 
 | Artefato | Gerado? | Evidência |
 |----------|---------|-----------|
-| Snapshot BoM | Sim | `ComposicaoProjetoSnapshotView` |
-| Export **XLSX** | Sim | `GET .../export/xlsx/` — teste `test_export_xlsx` |
-| Export **PDF** | Sim | `GET .../export/pdf/` — teste `test_export_pdf_anexo` |
-| Frontend download | Sim | `composicaoService.test.ts` — export XLSX/PDF |
+| Snapshot BoM | Sim | `metadata-producao.json` e tela de composição |
+| Export XLSX | Sim | [composicao-06001-26.xlsx](../evidencias-producao/exports/composicao-06001-26.xlsx) |
+| Export PDF | Sim | [composicao-06001-26.pdf](../evidencias-producao/exports/composicao-06001-26.pdf) |
+| Prints do fluxo | Sim | [evidencias-producao/README.md](../evidencias-producao/README.md) |
 
-**Conferência do export:**
+Conferência do export:
 
-- [x] Código/descrição dos componentes  
-- [x] Quantidades  
-- [x] Identificação do projeto no nome do arquivo  
-- [ ] Versão catálogo/regras no cabeçalho (RF-03 — pendente)
+- Código e descrição dos componentes: presente no export.
+- Quantidades: presente no export.
+- Identificação do projeto: presente no nome dos arquivos gerados.
+- Versão catálogo/regras no cabeçalho: evolução pendente vinculada ao RF-03.
 
 ---
 
 ## 6. Conclusão
 
-| Classificação | **Apto com ressalvas** |
-|---------------|------------------------|
-| Motivo | Revisão manual IEC 61439 recomendada para coordenação entre motores; RF-03 (snapshot global) ainda parcial |
+| Classificação | Apto com ressalvas |
+|---------------|--------------------|
+| Motivo | O fluxo principal foi executado em produção, com projeto, carga, dimensionamento, composição, 6 itens aprovados na BoM e exports atualizados. As ressalvas são as 21 pendências abertas indicadas pela composição e a revisão manual IEC 61439. |
 
 **Assinatura / validação humana:** _________________________  
-*Declaro que revisei os itens de verificação manual e assumo responsabilidade técnica conforme NR-10.*
+Declaro que revisei os itens de verificação manual e assumo responsabilidade técnica conforme NR-10.
 
 ---
 
-## Roteiro para reproduzir na demo (M7)
+## Evidências vinculadas
 
-1. Subir ambiente: [setup-local.md](../../desenvolvimento/setup-local.md)  
-2. Login → criar projeto `21001-26`  
-3. Cadastrar cargas → dimensionar → confirmar condutores no wizard  
-4. Gerar sugestões → aprovar → exportar PDF/XLSX  
-5. Atualizar este arquivo com UUID real do projeto e totais do snapshot  
+- [Evidências de produção](../evidencias-producao/README.md)
+- [Roteiro de demo](../roteiro-demo.md)
+- [Mapa da API do wizard](../mapa-api-wizard.md)
+- [Checklist de testes](../../checklist-testes.md)
 
-**Checklist de testes:** [checklist-testes.md](../../checklist-testes.md)  
-**Roteiro de demo:** [roteiro-demo.md](../roteiro-demo.md)  
-**API:** [mapa-api-wizard.md](../mapa-api-wizard.md)

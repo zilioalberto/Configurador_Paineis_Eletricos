@@ -47,7 +47,7 @@ Preencher no cabeçalho de cada instância:
 | **ABNT NBR 5419** (SPDA) | Seção “Verificação manual recomendada” — invólucro/aterramento |
 | **ABNT NBR IEC 61439** | Seção “Coordenação / verificação de conjunto” — checagem manual |
 
-Marcar cada item como: ☑ Verificado manualmente · ☐ Não aplicável · ☐ Pendente
+Marcar cada item como: Verificado manualmente · Não aplicável · Pendente
 
 ### 1.3 Lacunas conhecidas (honestidade acadêmica)
 
@@ -164,3 +164,5 @@ Ver arquivo completo: exemplos/relatorio-conformidade-PRJ-PILOTO-01.md
 - [ ] Tabela máquina-legível `Regra ↔ Norma` gerada a partir do código.
 
 **Rastreabilidade:** [rastreabilidade-requisitos.md](rastreabilidade-requisitos.md) · **Checklist:** [checklist-testes.md](../checklist-testes.md)
+
+

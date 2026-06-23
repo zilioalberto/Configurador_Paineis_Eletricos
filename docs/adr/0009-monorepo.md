@@ -29,7 +29,9 @@ Ambiente de desenvolvimento orquestrado por **Docker Compose**
 
 ## Consequências
 
-- ✅ Mudanças que cruzam backend/frontend ficam num único PR, com histórico coeso.
-- ✅ CI/CD e documentação centralizados.
-- ✅ Onboarding mais simples (um clone, um Compose).
-- ⚠️ Repositório maior; pipelines precisam de filtros por área quando convém.
+- Mudanças que cruzam backend/frontend ficam num único PR, com histórico coeso.
+- CI/CD e documentação centralizados.
+- Onboarding mais simples (um clone, um Compose).
+- Ponto de atenção: Repositório maior; pipelines precisam de filtros por área quando convém.
+
+
