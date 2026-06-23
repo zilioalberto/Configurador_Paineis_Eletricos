@@ -14,10 +14,7 @@ Material alinhado ao **RFC** da disciplina de Projeto de Aprendizagem Colaborati
 | [Decisões de arquitetura (ADRs)](../adr/README.md) | Registro de decisões técnicas e desvios do RFC |
 | [Evidências de testes/cobertura](evidencias-testes.md) | Cobertura backend/frontend vs. metas obrigatórias |
 | [Evidências de produção](evidencias-producao/README.md) | Prints, metadados e exports do roteiro executado no servidor remoto |
-| [Conteúdo do pôster](poster-conteudo.md) | Texto-base para o pôster A0 do Demo Day |
 | [Checklist de testes](../checklist-testes.md) | Caminho crítico para avaliação |
-| [**Narração (teleprompter)**](narracao-demo.md) | Texto completo para gravar áudio ou falar ao vivo |
-| [**Como gravar a demo**](gravacao-demo.md) | Ferramentas Windows, checklist, ensaio |
-| [**Roteiro de demo (M7)**](roteiro-demo.md) | Script UI + API para gravação/apresentação |
+| [**Roteiro de apresentação (M7)**](roteiro-demo.md) | Script UI + API para apresentação/avaliação |
 | Script `scripts/validar-demo-api.ps1` | Validação automatizada de apoio para ambiente local/Docker |
 

@@ -134,6 +134,8 @@ class UnidadeMedidaChoices(models.TextChoices):
     G = "G", "Gramas"
     L = "L", "Litro"
     HORAS = "HORAS", "Horas"
+    CT = "CT", "Cento"
+
 
 class TipoModuloExpansaoPLCChoices(models.TextChoices):
     DI = "DI", "Entradas digitais"
@@ -473,6 +475,7 @@ class TipoConexaoBorneChoices(models.TextChoices):
 
 class TipoTerminalChoices(models.TextChoices):
     TUBULAR = "TUBULAR", "Tubular"
+    TUBULAR_DUPLO = "TUBULAR_DUPLO", "Tubular duplo"
     OLHAL_PRE_ISOLADO = "OLHAL_PRE_ISOLADO", "Olhal pré-isolado"
     OLHAL_NAO_ISOLADO = "OLHAL_NAO_ISOLADO", "Olhal não isolado"
 

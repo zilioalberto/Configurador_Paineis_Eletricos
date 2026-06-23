@@ -16,8 +16,7 @@
 | [Checklist de testes](checklist-testes.md) | Caminho crítico para demo/avaliação |
 | [**Evidências de testes/cobertura**](portfolio/evidencias-testes.md) | Cobertura backend/frontend vs. metas |
 | [**Decisões de arquitetura (ADRs)**](adr/README.md) | Registro de decisões técnicas |
-| [Conteúdo do pôster](portfolio/poster-conteudo.md) | Texto-base para o pôster A0 do Demo Day |
-| [**Roteiro de demo (M7)**](portfolio/roteiro-demo.md) | Gravação / apresentação passo a passo |
+| [**Roteiro de apresentação (M7)**](portfolio/roteiro-demo.md) | Apresentação passo a passo para avaliação |
 | [Configurador / wizard](modulos/configurador-paineis/README.md) | Entregável principal no código |
 
 ## Visão geral

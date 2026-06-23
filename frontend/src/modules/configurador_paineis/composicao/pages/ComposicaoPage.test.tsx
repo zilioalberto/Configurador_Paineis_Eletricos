@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppPageToolbar from '@/components/layout/AppPageToolbar'
@@ -197,14 +198,19 @@ describe('ComposicaoPage', () => {
   })
 
   function renderPage(initialEntries = ['/composicao']) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
     return render(
-      <MemoryRouter initialEntries={initialEntries}>
-        <AppPageToolbarProvider>
-          <ToolbarProbe />
-          <ComposicaoPage />
-          <LocationProbe />
-        </AppPageToolbarProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <AppPageToolbarProvider>
+            <ToolbarProbe />
+            <ComposicaoPage />
+            <LocationProbe />
+          </AppPageToolbarProvider>
+        </MemoryRouter>
+      </QueryClientProvider>
     )
   }
 

@@ -110,7 +110,7 @@ npm test -- configurador_paineis catalogo auth
 
 ---
 
-## Antes do Demo Day (M7)
+## Antes da apresentação final (M7)
 
 - [x] Relatório piloto preenchido com UUID e totais reais de produção
 - [x] Prints e exports do roteiro salvos em `docs/portfolio/evidencias-producao/`

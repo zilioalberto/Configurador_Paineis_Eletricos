@@ -1,6 +1,7 @@
 """Endpoints REST da composição do painel (snapshot, sugestões, aprovação, exportação)."""
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError
 from django.db.models import Max
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -293,6 +294,16 @@ class SugestaoAprovarView(APIView):
         except DjangoValidationError as exc:
             detail = exc.messages if hasattr(exc, "messages") else [str(exc)]
             return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {
+                    "detail": [
+                        "Não foi possível aprovar a sugestão porque já existe um item "
+                        "equivalente na composição. Atualize a página e tente novamente."
+                    ]
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
         projeto = item.projeto
         registrar_evento_projeto(
@@ -430,6 +441,16 @@ class ComposicaoItemReabrirView(APIView):
         except DjangoValidationError as exc:
             detail = exc.messages if hasattr(exc, "messages") else [str(exc)]
             return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {
+                    "detail": [
+                        "Não foi possível reabrir o item porque já existe uma sugestão "
+                        "equivalente pendente. Atualize a página e tente novamente."
+                    ]
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
         projeto = sugestao.projeto
         registrar_evento_projeto(

@@ -3,6 +3,7 @@
 Data de preparação: 2026-06-23  
 Projeto: Configurador de Painéis Elétricos  
 Linha de projeto: Web Apps  
+Professor orientador: Diogo Winck  
 Repositório: https://github.com/zilioalberto/Configurador_Paineis_Eletricos
 
 Este documento reúne os acessos, evidências e referências técnicas necessários para a avaliação do projeto. A organização abaixo prioriza o que o avaliador precisa para acessar a aplicação, validar o repositório, consultar a documentação e conferir a estratégia de qualidade, CI/CD e observabilidade.
@@ -29,7 +30,6 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
 | README do projeto | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/README.md |
 | Índice da documentação | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/README.md |
 | Roteiro de uso/demo | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/roteiro-demo.md |
-| Como gravar a demo | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/gravacao-demo.md |
 | Resumo do RFC | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/rfc.md |
 | RFC completo em PDF | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/rfc.pdf |
 | Rastreabilidade dos requisitos | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/rastreabilidade-requisitos.md |
@@ -81,7 +81,7 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
 - O Prometheus coleta métricas do Django em `/metrics`, o healthcheck `/api/v1/health/` e métricas do PostgreSQL.
 - Os alertas documentados cobrem falha no healthcheck do backend e indisponibilidade do exporter do PostgreSQL.
 
-## 5. Verificação do checklist do professor
+## 5. Verificação do checklist de avaliação
 
 | Requisito | Situação | Evidência / observação |
 |-----------|----------|------------------------|
@@ -116,5 +116,5 @@ O arquivo `Nginx.txt` define os hosts públicos usados na avaliação:
 
 ## 8. Observação final
 
-A entrega reúne aplicação pública, repositório, documentação técnica, RFC, CI/CD, cobertura de testes, análise SonarCloud, observabilidade, credencial de avaliação e evidências do roteiro executado em produção. Antes do envio ao professor, falta apenas anexar evidências visuais dos painéis técnicos quando algum painel não estiver público para o avaliador.
+A entrega reúne aplicação pública, repositório, documentação técnica, RFC, CI/CD, cobertura de testes, análise SonarCloud, observabilidade, credencial de avaliação e evidências do roteiro executado em produção. Antes do envio final, falta apenas anexar evidências visuais dos painéis técnicos quando algum painel não estiver público para o avaliador.
 
