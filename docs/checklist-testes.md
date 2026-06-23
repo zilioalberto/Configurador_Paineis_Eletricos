@@ -2,9 +2,9 @@
 
 Checklist mínimo para avaliação do **MVP** conforme [RFC](rfc.pdf). Foco no **wizard** e catálogo.
 
-> **Última execução automatizada:** 2026-05-23 — commit `f740b69`  
-> Backend: **467 passed** (configurador_paineis + catalogo + auth)  
-> Frontend: **356 passed** (configurador_paineis + catalogo + auth)
+> **Última validação documentada:** 2026-06-23 — ambiente de produção (`https://portal.zfw.com.br`)  
+> Projeto piloto: `06001-26` (`ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa`)  
+> Evidências: [docs/portfolio/evidencias-producao](portfolio/evidencias-producao/README.md)
 
 Testes automatizados **não substituem** walkthrough manual na UI antes da demo (M7).
 
@@ -13,8 +13,8 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 ## Pré-requisitos
 
 - [x] Ambiente documentado — [setup-local](desenvolvimento/setup-local.md)
-- [ ] Usuário de teste (perfil Engenharia ou Admin) criado no ambiente de demo
-- [ ] Catálogo com conjunto mínimo de componentes carregado
+- [x] Usuário de teste criado: `demopac@zfw.com.br`
+- [x] Catálogo suficiente para gerar 6 itens aprovados e registrar as ressalvas abertas no projeto piloto
 
 ---
 
@@ -23,7 +23,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] Login JWT — `POST /api/v1/auth/token/` (`config/tests/test_auth_views.py`)
 - [x] Endpoint `/auth/me/` — testes auth
 - [x] Guards UI — `RequireAuth.test.tsx`, `RequirePermission.test.tsx`
-- [ ] Walkthrough manual: login → logout no navegador
+- [x] Walkthrough em produção: login registrado em `evidencias-producao/screenshots/01-login.png` e pós-login em `02-dashboard-pos-login.png`
 
 ---
 
@@ -47,7 +47,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] Validações normativas — `test_validar_escolhas*.py`
 - [x] Composição + sugestões + alternativas — `test_composicao_api_views.py`
 - [x] UI composição — `ComposicaoPage.test.tsx`
-- [ ] Walkthrough manual: fluxo completo `/projetos/:id/fluxo/cargas` → composição
+- [x] Walkthrough em produção: fluxo de cargas, dimensionamento e composição registrado em `docs/portfolio/evidencias-producao/`
 
 ---
 
@@ -56,7 +56,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] Snapshot composição — `test_get_snapshot_estrutura`
 - [x] Totais no wizard — `useProjetoWizardFluxo` (testes indiretos via `ProjetoWizardPage`)
 - [ ] Totais/preços comerciais integrados ao orçamento (RF-07 parcial)
-- [ ] Walkthrough manual: revisar lista de materiais na composição
+- [x] Walkthrough em produção: composição do projeto `06001-26` com 6 itens aprovados na BoM
 
 ---
 
@@ -64,7 +64,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 
 - [x] Export XLSX — `test_export_xlsx` (backend) + `composicaoService.test.ts`
 - [x] Export PDF — `test_export_pdf_anexo` (backend) + `composicaoService.test.ts`
-- [ ] Walkthrough manual: baixar PDF/XLSX na UI e abrir arquivos
+- [x] Exports gerados em produção: `composicao-06001-26.pdf` e `composicao-06001-26.xlsx`
 - [ ] Cabeçalho com versão catálogo/regras (RF-03 — pendente)
 
 ---
@@ -74,16 +74,16 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] CRUD projeto — `test_projetos_api_views.py`
 - [x] Histórico projeto — `test_historico_projeto_retorna_eventos`
 - [ ] Estados comercial (rascunho/revisão/aprovado) no orçamento
-- [ ] Walkthrough manual: criar e reabrir projeto piloto
+- [x] Projeto piloto criado e reaberto em produção: `06001-26`
 
 ---
 
 ## RNF — smoke não funcional
 
 - [x] Healthcheck — `GET /api/v1/health/` (`config/health_views.py`)
-- [x] CI verde — pytest + vitest (2026-05-23, commit `f740b69`)
+- [x] CI documentado em GitHub Actions; evidências funcionais de produção registradas em 2026-06-23
 - [ ] p95 ≤ 500 ms medido em ambiente de avaliação
-- [ ] Deploy público HTTPS documentado no README
+- [x] Deploy público HTTPS documentado: `https://portal.zfw.com.br` e `https://api.zfw.com.br/api/v1/health/`
 
 ---
 
@@ -106,12 +106,13 @@ npm test -- configurador_paineis catalogo auth
 
 | Data | Ambiente | Executor | Automatizado | Manual UI | Observações |
 |------|----------|----------|--------------|-----------|-------------|
-| 2026-05-23 | local / Docker | validação API (`validar-demo-api.ps1`) | ☑ Sim (823 testes CI + fluxo API) | ☐ Pendente UI | Projeto `79bc11b9-…`; export PDF/XLSX OK |
+| 2026-06-23 | produção / VPS | portal público + API | Sim (fluxo API produção) | Sim (prints em `docs/portfolio/evidencias-producao/`) | Projeto `06001-26`; 6 itens BoM; PDF/XLSX gerados; 21 pendências documentadas |
 
 ---
 
-## Antes do Demo Day (M7)
+## Antes da apresentação final (M7)
 
-- [ ] Preencher relatório piloto com UUID e totais reais
-- [ ] Gravar ou scriptar demo de 5–10 min (wizard → export)
-- [ ] Publicar URL de deploy no README (item Tabela 1 RFC)
+- [x] Relatório piloto preenchido com UUID e totais reais de produção
+- [x] Prints e exports do roteiro salvos em `docs/portfolio/evidencias-producao/`
+- [ ] Publicar documentação atualizada na branch `main` antes do envio final
+

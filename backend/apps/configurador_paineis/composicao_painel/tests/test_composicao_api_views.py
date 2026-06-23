@@ -293,6 +293,35 @@ class TestSugestaoAprovarView:
         assert not SugestaoItem.objects.filter(pk=sugestao.id).exists()
         assert ComposicaoItem.objects.filter(projeto=projeto, carga=carga).exists()
 
+    @patch("apps.configurador_paineis.composicao_painel.api.views.aprovar_sugestao_item")
+    def test_integrity_error_retorna_409_amigavel(
+        self, mock_aprovar, admin_client, criar_projeto
+    ):
+        from django.db import IntegrityError
+
+        mock_aprovar.side_effect = IntegrityError("UNIQUE constraint failed")
+        client, _ = admin_client
+        projeto = criar_projeto(nome="ApC", codigo="09503-26", tensao_nominal=TensaoChoices.V380)
+        produto = Produto.objects.create(
+            codigo="APR-C1",
+            descricao="Conflito",
+            categoria=CategoriaProdutoNomeChoices.SECCIONADORA,
+            unidade_medida=UnidadeMedidaChoices.UN,
+        )
+        sugestao = SugestaoItem.objects.create(
+            projeto=projeto,
+            carga=None,
+            produto=produto,
+            parte_painel=PartesPainelChoices.SECCIONAMENTO,
+            categoria_produto=CategoriaProdutoNomeChoices.SECCIONADORA,
+            quantidade=Decimal("1"),
+            ordem=1,
+        )
+        url = reverse("composicao-sugestao-aprovar", kwargs={"sugestao_id": sugestao.id})
+        response = client.post(url, {}, format="json")
+        assert response.status_code == 409
+        assert "detail" in response.json()
+
     def test_aprova_com_substituto_mesma_categoria(self, admin_client, criar_projeto):
         client, _ = admin_client
         projeto = criar_projeto(nome="Ap2", codigo="09502-26", tensao_nominal=TensaoChoices.V380)
@@ -392,3 +421,34 @@ class TestComposicaoItemReabrirView:
         data = response.json()
         assert "sugestao_item" in data
         assert not ComposicaoItem.objects.filter(pk=item.id).exists()
+
+    @patch(
+        "apps.configurador_paineis.composicao_painel.api.views.reabrir_composicao_item_para_sugestao"
+    )
+    def test_integrity_error_retorna_409_amigavel(
+        self, mock_reabrir, admin_client, criar_projeto
+    ):
+        from django.db import IntegrityError
+
+        mock_reabrir.side_effect = IntegrityError("UNIQUE constraint failed")
+        client, _ = admin_client
+        projeto = criar_projeto(nome="ReC", codigo="09702-26", tensao_nominal=TensaoChoices.V380)
+        produto = Produto.objects.create(
+            codigo="RE-C1",
+            descricao="Conflito",
+            categoria=CategoriaProdutoNomeChoices.CONTATORA,
+            unidade_medida=UnidadeMedidaChoices.UN,
+        )
+        item = ComposicaoItem.objects.create(
+            projeto=projeto,
+            carga=None,
+            produto=produto,
+            parte_painel=PartesPainelChoices.ACIONAMENTO_CARGA,
+            categoria_produto=CategoriaProdutoNomeChoices.CONTATORA,
+            quantidade=Decimal("1"),
+            ordem=1,
+        )
+        url = reverse("composicao-item-reabrir", kwargs={"composicao_item_id": item.id})
+        response = client.post(url, {}, format="json")
+        assert response.status_code == 409
+        assert "detail" in response.json()

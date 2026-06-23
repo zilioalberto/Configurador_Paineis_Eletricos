@@ -27,8 +27,10 @@ boa documentação, dentro de um contexto acadêmico/MVP.
 
 ## Consequências
 
-- ✅ Aderência total à stack proposta no RFC.
-- ✅ ORM, migrações e admin do Django aceleram o desenvolvimento do catálogo e das regras.
-- ✅ Tipagem do TypeScript reduz erros no frontend.
-- ⚠️ Dois runtimes (Python + Node) exigem orquestração — mitigada via Docker Compose
+- Aderência total à stack proposta no RFC.
+- ORM, migrações e admin do Django aceleram o desenvolvimento do catálogo e das regras.
+- Tipagem do TypeScript reduz erros no frontend.
+- Ponto de atenção: Dois runtimes (Python + Node) exigem orquestração — mitigada via Docker Compose
   (ver [ADR 0009](0009-monorepo.md)).
+
+

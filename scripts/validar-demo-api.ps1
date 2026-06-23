@@ -1,7 +1,7 @@
 # Validação do roteiro de demo (API) — uso interno
 $ErrorActionPreference = 'Stop'
 $BaseUrl = 'http://localhost:8000/api/v1'
-$Email = 'demo@zfw.local'
+$Email = 'demopac@zfw.com.br'
 $Senha = 'DemoPac2026!'
 
 Write-Host '=== 1. Health ==='
@@ -118,3 +118,4 @@ Write-Host "eventos: $($hist.Count)"
 Write-Host '=== SUCESSO ==='
 Write-Host "ProjetoId=$ProjetoId"
 Write-Host "Exports=$outDir"
+

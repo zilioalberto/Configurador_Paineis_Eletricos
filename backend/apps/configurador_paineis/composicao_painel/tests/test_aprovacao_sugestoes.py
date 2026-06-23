@@ -104,6 +104,48 @@ def test_aprovar_sugestao_sem_carga_com_lock(criar_projeto):
 
 
 @pytest.mark.django_db
+def test_aprovar_dois_itens_sem_carga_mesma_categoria_indices_distintos(criar_projeto):
+    """Itens globais (carga nula) da mesma parte/categoria só diferem pelo índice de escopo.
+
+    Aprovar o segundo não pode violar o unique constraint do ComposicaoItem (regressão do 500).
+    """
+    projeto = criar_projeto(
+        nome="Ap cabos", codigo="10105-26", tensao_nominal=TensaoChoices.V380
+    )
+    produto = Produto.objects.create(
+        codigo="AP-CB1",
+        descricao="Cabo",
+        categoria=CategoriaProdutoNomeChoices.CABO,
+        unidade_medida=UnidadeMedidaChoices.MT,
+    )
+    sugestoes = [
+        SugestaoItem.objects.create(
+            projeto=projeto,
+            carga=None,
+            produto=produto,
+            parte_painel=PartesPainelChoices.ACESSORIOS,
+            categoria_produto=CategoriaProdutoNomeChoices.CABO,
+            quantidade=Decimal("2"),
+            indice_escopo=indice,
+            ordem=indice,
+        )
+        for indice in (700, 701)
+    ]
+
+    for sugestao in sugestoes:
+        aprovar_sugestao_item(sugestao, usuario_nome="Tester")
+
+    itens = ComposicaoItem.objects.filter(
+        projeto=projeto,
+        carga__isnull=True,
+        parte_painel=PartesPainelChoices.ACESSORIOS,
+        categoria_produto=CategoriaProdutoNomeChoices.CABO,
+    )
+    assert itens.count() == 2
+    assert set(itens.values_list("indice_escopo", flat=True)) == {700, 701}
+
+
+@pytest.mark.django_db
 def test_reabrir_composicao_cria_sugestao(criar_projeto):
     projeto = criar_projeto(nome="Rb", codigo="10102-26", tensao_nominal=TensaoChoices.V380)
     produto = Produto.objects.create(

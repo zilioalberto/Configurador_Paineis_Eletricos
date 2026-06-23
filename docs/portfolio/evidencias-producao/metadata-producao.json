@@ -1,0 +1,96 @@
+{
+  "data": "2026-06-23 14:23:46",
+  "ambiente": "producao",
+  "portal": "https://portal.zfw.com.br",
+  "api": "https://api.zfw.com.br/api/v1",
+  "usuario": "demopac@zfw.com.br",
+  "health": "ok",
+  "projeto_id": "ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa",
+  "projeto_codigo": "06001-26",
+  "projeto_nome": "PAINEL PILOTO PORTFOLIO PRODUCAO 20260623-1151",
+  "carga_id": "68395470-1274-4f0c-a542-83c232b486e2",
+  "carga_tag": "M1",
+  "corrente_total_painel_a": "1.55",
+  "circuitos_carga": 1,
+  "condutores_revisao_confirmada": true,
+  "totais": {
+    "sugestoes": 1,
+    "pendencias": 21,
+    "composicao_itens": 6,
+    "inclusoes_manuais": 0
+  },
+  "itens_bom": [
+    {
+      "parte": "Proteção geral",
+      "categoria": "Minidisjuntor",
+      "codigo": "5SJ13107MB",
+      "descricao": "DISJ 3P C 10A 5SJ1 310-7MB",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Seccionamento",
+      "categoria": "Seccionadora",
+      "codigo": "3LD30540TK53",
+      "descricao": "SECC. 3P 16A VM 3LD3054-0TK53",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Proteção de carga",
+      "categoria": "Disjuntor Motor",
+      "codigo": "3MV81001MG00",
+      "descricao": "DISJUNTOR MOTOR 3MV8 1,0-1,6A 1NA+1NF",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Acionamento de carga",
+      "categoria": "Contatora",
+      "codigo": "3TS29100AN2",
+      "descricao": "CONTATOR AC3:6A 1NA 220VCA",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Bornes",
+      "categoria": "Borne",
+      "codigo": "1521850000",
+      "descricao": "#CONECTOR DE PASSAGEM A2C 2.5 (1521850000)",
+      "quantidade": "3.00"
+    },
+    {
+      "parte": "Bornes",
+      "categoria": "Borne",
+      "codigo": "1521680000",
+      "descricao": "#CONECTOR DE PASSAGEM A2C 2.5 PE (1521680000)",
+      "quantidade": "1.00"
+    }
+  ],
+  "sugestoes_abertas": [
+    {
+      "parte": "Canaletas",
+      "categoria": "Canaleta",
+      "codigo": "19270",
+      "descricao": "DND30030 660, CANALETA (RECORTE ABERTO), 30X30MM (ALTURA X BASE), PVC RIGIDO, AZUL PETROLEO, BASE PERFURADA/DIN",
+      "quantidade": "0.12",
+      "status": "Pendente"
+    }
+  ],
+  "pendencias_resumo": [
+    {
+      "grupo": "Identificação, Identificação",
+      "quantidade": 10
+    },
+    {
+      "grupo": "Acessórios, Cabo",
+      "quantidade": 5
+    },
+    {
+      "grupo": "Acessórios, Terminais",
+      "quantidade": 5
+    },
+    {
+      "grupo": "Acessórios, Acessórios Gerais",
+      "quantidade": 1
+    }
+  ],
+  "export_xlsx": "exports/composicao-06001-26.xlsx",
+  "export_pdf": "exports/composicao-06001-26.pdf"
+}

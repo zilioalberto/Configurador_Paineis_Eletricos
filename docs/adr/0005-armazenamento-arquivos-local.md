@@ -24,8 +24,10 @@ arquivos, com servidor de arquivos pelo backend/Nginx em produção.
 
 ## Consequências
 
-- ✅ Menos dependências e configuração; adequado a um deploy single-VPS.
-- ✅ Backups do volume cobrem os artefatos junto com o restante.
-- ⚠️ Acoplamento ao disco do servidor dificulta escalar horizontalmente — aceitável no MVP.
-- ⚠️ **Desvio em relação ao RFC** — registrado para a banca; migrar para S3 é evolução direta
+- Menos dependências e configuração; adequado a um deploy single-VPS.
+- Backups do volume cobrem os artefatos junto com o restante.
+- Ponto de atenção: Acoplamento ao disco do servidor dificulta escalar horizontalmente — aceitável no MVP.
+- Ponto de atenção: **Desvio em relação ao RFC** — registrado para a banca; migrar para S3 é evolução direta
   (basta trocar o storage backend do Django).
+
+

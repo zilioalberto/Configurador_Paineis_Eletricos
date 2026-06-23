@@ -1,6 +1,9 @@
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
+import { ApiError } from '@/services/http/ApiError'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
+import { composicaoQueryKeys } from '../composicaoQueryKeys'
 import { montarNomeArquivoProjeto } from '../utils/composicaoDisplay'
 import { useAprovarSugestaoMutation } from './useAprovarSugestaoMutation'
 import { useGerarSugestoesMutation } from './useGerarSugestoesMutation'
@@ -57,6 +60,7 @@ export function useComposicaoPageActions({
   autoGerarKey = 'default',
   filtrarSugestaoAprovar,
 }: Params) {
+  const queryClient = useQueryClient()
   const gerarMutation = useGerarSugestoesMutation(projetoId || null)
   const gerarMutateAsyncRef = useRef(gerarMutation.mutateAsync)
   gerarMutateAsyncRef.current = gerarMutation.mutateAsync
@@ -64,6 +68,27 @@ export function useComposicaoPageActions({
   const reavaliarPendenciasMutation = useReavaliarPendenciasMutation(projetoId || null)
   const aprovarMutation = useAprovarSugestaoMutation(projetoId || null)
   const reabrirComposicaoItemMutation = useReabrirComposicaoItemMutation(projetoId || null)
+
+  // Conflito (HTTP 409): a composição mudou no servidor desde o carregamento da
+  // página. Recarrega o snapshot e usa um toast de aviso (não é falha grave).
+  const tratarErroAprovacao = useCallback(
+    (err: unknown, tituloFallback: string) => {
+      console.error(err)
+      const ehConflito = ApiError.isApiError(err) && err.status === 409
+      if (ehConflito && projetoId) {
+        void queryClient.invalidateQueries({
+          queryKey: composicaoQueryKeys.snapshot(projetoId),
+        })
+      }
+      showToast({
+        variant: ehConflito ? 'warning' : 'danger',
+        title: ehConflito ? 'Composição desatualizada' : tituloFallback,
+        message: extrairMensagemErroApi(err) || 'Tente novamente.',
+      })
+      return ehConflito
+    },
+    [projetoId, queryClient, showToast]
+  )
 
   const notificarResultadoGeracao = useCallback(
     (data: ComposicaoSnapshot) => {
@@ -199,15 +224,10 @@ export function useComposicaoPageActions({
         showToast({ variant: 'success', message: 'Item aprovado na composição.' })
         setAlterarSugestao(null)
       } catch (err) {
-        console.error(err)
-        showToast({
-          variant: 'danger',
-          title: 'Não foi possível aprovar',
-          message: extrairMensagemErroApi(err) || 'Tente novamente.',
-        })
+        tratarErroAprovacao(err, 'Não foi possível aprovar')
       }
     },
-    [podeEditar, aprovarMutation, showToast, setAlterarSugestao]
+    [podeEditar, aprovarMutation, showToast, setAlterarSugestao, tratarErroAprovacao]
   )
 
   const onReabrirItemAprovado = useCallback(async () => {
@@ -220,14 +240,15 @@ export function useComposicaoPageActions({
       })
       setItemReabrir(null)
     } catch (err) {
-      console.error(err)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível reabrir item aprovado',
-        message: extrairMensagemErroApi(err) || 'Tente novamente.',
-      })
+      tratarErroAprovacao(err, 'Não foi possível reabrir item aprovado')
     }
-  }, [itemReabrir, podeEditar, reabrirComposicaoItemMutation, showToast, setItemReabrir])
+  }, [
+    itemReabrir,
+    podeEditar,
+    reabrirComposicaoItemMutation,
+    setItemReabrir,
+    tratarErroAprovacao,
+  ])
 
   const onAprovarTodas = useCallback(async () => {
     const sugestoesParaAprovar = snapshot?.sugestoes.filter(
@@ -241,12 +262,7 @@ export function useComposicaoPageActions({
       }
       showToast({ variant: 'success', message: 'Todas as sugestões foram aprovadas.' })
     } catch (err) {
-      console.error(err)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível aprovar todas',
-        message: extrairMensagemErroApi(err) || 'Tente novamente.',
-      })
+      tratarErroAprovacao(err, 'Não foi possível aprovar todas')
     } finally {
       setAprovandoTodas(false)
     }
@@ -257,6 +273,7 @@ export function useComposicaoPageActions({
     showToast,
     snapshot?.sugestoes,
     setAprovandoTodas,
+    tratarErroAprovacao,
   ])
 
   const executarExportacao = useCallback(

@@ -25,7 +25,7 @@ de painéis** (`configurador_paineis`) + suporte de `catalogo` e `accounts`:
 
 - Wizard (RF-04) → cargas → dimensionamento (RF-05) → composição/BoM (RF-07) → proposta (RF-09).
 - README, `escopo-portfolio.md` e a documentação destacam o recorte do RFC.
-- **Pôster e demo focam exclusivamente no fluxo CPQ.** Os módulos fiscal/ERP **não** são
+- **A apresentação final foca exclusivamente no fluxo CPQ.** Os módulos fiscal/ERP **não** são
   apresentados como produto.
 
 Garantias técnicas que sustentam o recorte:
@@ -45,6 +45,8 @@ Garantias técnicas que sustentam o recorte:
 
 ## Consequências
 
-- ✅ Narrativa de avaliação alinhada ao RFC e à linha de projeto.
-- ✅ Risco de "tema impedido" neutralizado: estoque/financeiro são inertes; fiscal é roadmap.
-- ⚠️ Exige manter a disciplina de só demonstrar o CPQ no Demo Day.
+- Narrativa de avaliação alinhada ao RFC e à linha de projeto.
+- Risco de "tema impedido" neutralizado: estoque/financeiro são inertes; fiscal é roadmap.
+- Ponto de atenção: Exige manter a disciplina de só demonstrar o CPQ na apresentação final.
+
+
