@@ -19,7 +19,7 @@ powershell -ExecutionPolicy Bypass -File scripts/down.ps1 -Volumes
 
 ## `validar-demo-api.ps1`
 
-**Para que serve:** validar, em ambiente local/Docker, que a API do wizard está funcionando de ponta a ponta — **sem usar a interface gráfica**. Para a entrega final, a evidência principal está em `docs/portfolio/evidencias-producao/`.
+**Para que serve:** validar, em ambiente local/Docker, que a API do wizard está funcionando de ponta a ponta - **sem usar a interface gráfica**. Para a entrega final, a evidência principal está em `docs/portfolio/evidencias-producao/`.
 
 **O que o script faz, em sequência:**
 
@@ -36,8 +36,8 @@ powershell -ExecutionPolicy Bypass -File scripts/down.ps1 -Volumes
 
 | Situação | Usar o script? |
 |----------|----------------|
-| Antes de gravar o vídeo da demo | **Opcional** — útil como checagem técnica local; a gravação principal deve usar o portal público |
-| Substituir a demo na UI no vídeo | **Não** — o professor espera ver o **navegador** e o wizard |
+| Antes da apresentação final | **Opcional** - útil como checagem técnica local; a evidência principal deve usar o portal público |
+| Substituir a apresentação na UI | **Não** - a avaliação deve mostrar o **navegador** e o wizard |
 | Provar RF-01…RF-08 com evidência técnica | **Sim** — saída no terminal + arquivos em `%TEMP%\demo-pac-validacao` |
 | Criar/atualizar usuário `demopac@zfw.com.br` | **Sim** — senha padrão `DemoPac2026!` (demo do portfólio) |
 

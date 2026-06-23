@@ -1,6 +1,6 @@
-# Roteiro de demo - Portfólio (M7)
+# Roteiro de apresentação - Portfólio (M7)
 
-Roteiro para apresentação ou gravação da entrega final. Esta versão considera o ambiente de produção já publicado e validado em 2026-06-23.
+Roteiro para apresentação da entrega final. Esta versão considera o ambiente de produção já publicado e validado em 2026-06-23.
 
 - Portal: https://portal.zfw.com.br
 - API: https://api.zfw.com.br/api/v1
