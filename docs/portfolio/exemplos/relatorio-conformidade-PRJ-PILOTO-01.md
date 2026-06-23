@@ -12,7 +12,7 @@ Exemplo preenchido para a entrega do portfólio. Este relatório usa a execuçã
 | Cliente | Cliente piloto portfolio |
 | Data da execução | 2026-06-23 |
 | Responsável técnico | A preencher na revisão final |
-| Versão do sistema | commit `509d2c8` / branch `resolve-dev-main-pr` no momento da validação local |
+| Versão do sistema | commit `509d2c8` / branch `resolve-dev-main-pr` no momento da validação em produção |
 | Usuário que configurou | `demopac@zfw.com.br` |
 | Ambiente | Produção - `https://portal.zfw.com.br` |
 | UUID projeto validado | `ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa` |
