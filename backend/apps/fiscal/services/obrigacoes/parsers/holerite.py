@@ -25,22 +25,38 @@ def _extrair_nome_bloco(bloco: str) -> str:
     return "Colaborador"
 
 
+def _extrair_tipo_holerite(bloco: str) -> str:
+    if re.search(r"Pro-Labore", bloco, re.IGNORECASE):
+        return TipoHoleriteFiscalChoices.PRO_LABORE
+    if re.search(r"Horas Normais|Sal[aá]rio", bloco, re.IGNORECASE):
+        return TipoHoleriteFiscalChoices.CLT
+    return TipoHoleriteFiscalChoices.OUTRO
+
+
+def _extrair_fgts_mes(bloco: str) -> Decimal:
+    m_fgts = re.search(r"FGTS M[eê]s\s+([\d.,]+)", bloco)
+    if m_fgts:
+        return parse_moeda_br(m_fgts.group(1)) or Decimal("0")
+    linhas = bloco.splitlines()
+    for idx, linha in enumerate(linhas):
+        if "FGTS M" in linha and idx + 1 < len(linhas):
+            cols = linhas[idx + 1].split()
+            if len(cols) >= 4:
+                return parse_moeda_br(cols[3]) or Decimal("0")
+            break
+    return Decimal("0")
+
+
 def _parse_bloco_holerite(bloco: str) -> dict | None:
     cpf_m = re.search(r"CPF:\s*([\d.\-/]+)", bloco)
     if not cpf_m:
         return None
     nome = _extrair_nome_bloco(bloco)
     cpf = parse_cpf(cpf_m.group(1))
+    tipo = _extrair_tipo_holerite(bloco)
 
     proventos = Decimal("0")
     desconto_inss = Decimal("0")
-    if re.search(r"Pro-Labore", bloco, re.IGNORECASE):
-        tipo = TipoHoleriteFiscalChoices.PRO_LABORE
-    elif re.search(r"Horas Normais|Sal[aá]rio", bloco, re.IGNORECASE):
-        tipo = TipoHoleriteFiscalChoices.CLT
-    else:
-        tipo = TipoHoleriteFiscalChoices.OUTRO
-
     m_total = re.search(r"Total\s+([\d.,]+)\s+([\d.,]+)", bloco)
     if m_total:
         proventos = parse_moeda_br(m_total.group(1)) or Decimal("0")
@@ -52,18 +68,7 @@ def _parse_bloco_holerite(bloco: str) -> dict | None:
 
     m_base = re.search(r"Bas C[aá]lc FGTS\s+([\d.,]+)", bloco)
     base_fgts = parse_moeda_br(m_base.group(1)) if m_base else Decimal("0")
-    m_fgts = re.search(r"FGTS M[eê]s\s+([\d.,]+)", bloco)
-    fgts_mes = Decimal("0")
-    if m_fgts:
-        fgts_mes = parse_moeda_br(m_fgts.group(1)) or Decimal("0")
-    else:
-        linhas = bloco.splitlines()
-        for idx, linha in enumerate(linhas):
-            if "FGTS M" in linha and idx + 1 < len(linhas):
-                cols = linhas[idx + 1].split()
-                if len(cols) >= 4:
-                    fgts_mes = parse_moeda_br(cols[3]) or Decimal("0")
-                break
+    fgts_mes = _extrair_fgts_mes(bloco)
     m_liq = re.search(r"([\d.,]{1,20})\s{0,12}Total L[ií]quido", bloco)
     liquido = parse_moeda_br(m_liq.group(1)) if m_liq else None
 

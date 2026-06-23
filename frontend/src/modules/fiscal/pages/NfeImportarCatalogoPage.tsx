@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { useToast } from '@/components/feedback'
 import { useCategoriaListQuery } from '@/modules/catalogo/hooks/useCategoriaListQuery'
+import type { CategoriaProduto } from '@/modules/catalogo/types/categoria'
 import { listarFornecedoresNfe } from '@/modules/catalogo/services/nfeImportService'
 import type {
   NfeFornecedorOption,
@@ -240,6 +241,126 @@ function ResultadoImportacao({
         </div>
       ) : null}
     </div>
+  )
+}
+
+function NfeCatalogoItemRow({
+  item,
+  sel,
+  aberto,
+  categorias,
+  catPending,
+  vincularPendente,
+  onAlterarSelecao,
+  onToggleDetalhe,
+  onVincular,
+  categoriaLabel,
+}: Readonly<{
+  item: PreviewCatalogoItem
+  sel: SelecaoItem
+  aberto: boolean
+  categorias: readonly CategoriaProduto[]
+  catPending: boolean
+  vincularPendente: boolean
+  onAlterarSelecao: (nItem: number, patch: Partial<SelecaoItem>) => void
+  onToggleDetalhe: (nItem: number) => void
+  onVincular: (item: PreviewCatalogoItem, produtoId: string) => void
+  categoriaLabel: (cid: string) => string
+}>) {
+  const diverge = Boolean(
+    item.produto_existente &&
+      nfeItemLinhaDivergeDoCatalogo(
+        item as unknown as NfeItemPreview,
+        sel.categoria,
+        item.produto_existente as unknown as NfeProdutoExistenteResumo,
+      ),
+  )
+  return (
+    <Fragment>
+      <tr className={diverge ? 'table-warning' : ''}>
+        <td>
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={sel.importar}
+            onChange={(e) => onAlterarSelecao(item.n_item, { importar: e.target.checked })}
+            aria-label={`Importar item ${item.n_item}`}
+          />
+        </td>
+        <td>{item.n_item}</td>
+        <td style={{ minWidth: '10rem' }}>
+          <input
+            className="form-control form-control-sm"
+            maxLength={60}
+            value={sel.codigo}
+            onChange={(e) => onAlterarSelecao(item.n_item, { codigo: e.target.value })}
+            aria-label={`Código do item ${item.n_item}`}
+          />
+        </td>
+        <td className="small">{item.x_prod}</td>
+        <td>
+          <code>{item.ncm || '—'}</code>
+        </td>
+        <td style={{ minWidth: '11rem' }}>
+          <select
+            className={`form-select form-select-sm ${sel.importar && !sel.categoria ? 'is-invalid' : ''}`}
+            value={sel.categoria}
+            disabled={!sel.importar || catPending}
+            onChange={(e) => onAlterarSelecao(item.n_item, { categoria: e.target.value })}
+            aria-label={`Categoria do item ${item.n_item}`}
+          >
+            <option value="">Selecione...</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome_display ?? c.nome}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td style={{ minWidth: '14rem' }}>
+          <MatchSituacao item={item} vincularPendente={vincularPendente} onVincular={onVincular} />
+          {item.produto_existente && (
+            <div className="mt-1">
+              {diverge && (
+                <div className="form-check d-inline-block me-2">
+                  <input
+                    id={`atualizar-${item.n_item}`}
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={sel.atualizar_se_existir}
+                    disabled={!sel.importar}
+                    onChange={(e) =>
+                      onAlterarSelecao(item.n_item, { atualizar_se_existir: e.target.checked })
+                    }
+                  />
+                  <label className="form-check-label small" htmlFor={`atualizar-${item.n_item}`}>
+                    Atualizar
+                  </label>
+                </div>
+              )}
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 align-baseline"
+                onClick={() => onToggleDetalhe(item.n_item)}
+              >
+                {aberto ? 'Ocultar campos' : 'Ver campos'}
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+      {aberto && item.produto_existente && (
+        <tr className={diverge ? 'table-warning' : ''}>
+          <td colSpan={7} className="p-0">
+            <ComparacaoDivergencia
+              item={item}
+              categoria={sel.categoria}
+              categoriaLabel={categoriaLabel(sel.categoria)}
+            />
+          </td>
+        </tr>
+      )}
+    </Fragment>
   )
 }
 
@@ -617,127 +738,23 @@ export default function NfeImportarCatalogoPage() {
                 </tr>
               </thead>
               <tbody>
-                {itens.map((item) => {
-                  const sel = selecoes[item.n_item] ?? selecaoPadrao(item)
-                  const diverge = Boolean(
-                    item.produto_existente &&
-                      nfeItemLinhaDivergeDoCatalogo(
-                        item as unknown as NfeItemPreview,
-                        sel.categoria,
-                        item.produto_existente as unknown as NfeProdutoExistenteResumo,
-                      ),
-                  )
-                  const aberto = Boolean(detalheAberto[item.n_item])
-                  return (
-                    <Fragment key={item.n_item}>
-                      <tr className={diverge ? 'table-warning' : ''}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            checked={sel.importar}
-                            onChange={(e) =>
-                              alterarSelecao(item.n_item, { importar: e.target.checked })
-                            }
-                            aria-label={`Importar item ${item.n_item}`}
-                          />
-                        </td>
-                        <td>{item.n_item}</td>
-                        <td style={{ minWidth: '10rem' }}>
-                          <input
-                            className="form-control form-control-sm"
-                            maxLength={60}
-                            value={sel.codigo}
-                            onChange={(e) =>
-                              alterarSelecao(item.n_item, { codigo: e.target.value })
-                            }
-                            aria-label={`Código do item ${item.n_item}`}
-                          />
-                        </td>
-                        <td className="small">{item.x_prod}</td>
-                        <td>
-                          <code>{item.ncm || '—'}</code>
-                        </td>
-                        <td style={{ minWidth: '11rem' }}>
-                          <select
-                            className={`form-select form-select-sm ${
-                              sel.importar && !sel.categoria ? 'is-invalid' : ''
-                            }`}
-                            value={sel.categoria}
-                            disabled={!sel.importar || catPending}
-                            onChange={(e) =>
-                              alterarSelecao(item.n_item, { categoria: e.target.value })
-                            }
-                            aria-label={`Categoria do item ${item.n_item}`}
-                          >
-                            <option value="">Selecione...</option>
-                            {categorias.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.nome_display ?? c.nome}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td style={{ minWidth: '14rem' }}>
-                          <MatchSituacao
-                            item={item}
-                            vincularPendente={vincularMutation.isPending}
-                            onVincular={handleVincular}
-                          />
-                          {item.produto_existente ? (
-                            <div className="mt-1">
-                              {diverge ? (
-                                <div className="form-check d-inline-block me-2">
-                                  <input
-                                    id={`atualizar-${item.n_item}`}
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    checked={sel.atualizar_se_existir}
-                                    disabled={!sel.importar}
-                                    onChange={(e) =>
-                                      alterarSelecao(item.n_item, {
-                                        atualizar_se_existir: e.target.checked,
-                                      })
-                                    }
-                                  />
-                                  <label
-                                    className="form-check-label small"
-                                    htmlFor={`atualizar-${item.n_item}`}
-                                  >
-                                    Atualizar
-                                  </label>
-                                </div>
-                              ) : null}
-                              <button
-                                type="button"
-                                className="btn btn-link btn-sm p-0 align-baseline"
-                                onClick={() =>
-                                  setDetalheAberto((prev) => ({
-                                    ...prev,
-                                    [item.n_item]: !prev[item.n_item],
-                                  }))
-                                }
-                              >
-                                {aberto ? 'Ocultar campos' : 'Ver campos'}
-                              </button>
-                            </div>
-                          ) : null}
-                        </td>
-                      </tr>
-                      {aberto && item.produto_existente ? (
-                        <tr className={diverge ? 'table-warning' : ''}>
-                          <td colSpan={7} className="p-0">
-                            <ComparacaoDivergencia
-                              item={item}
-                              categoria={sel.categoria}
-                              categoriaLabel={categoriaLabel(sel.categoria)}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  )
-                })}
+                {itens.map((item) => (
+                  <NfeCatalogoItemRow
+                    key={item.n_item}
+                    item={item}
+                    sel={selecoes[item.n_item] ?? selecaoPadrao(item)}
+                    aberto={Boolean(detalheAberto[item.n_item])}
+                    categorias={categorias}
+                    catPending={catPending}
+                    vincularPendente={vincularMutation.isPending}
+                    onAlterarSelecao={alterarSelecao}
+                    onToggleDetalhe={(nItem) =>
+                      setDetalheAberto((prev) => ({ ...prev, [nItem]: !prev[nItem] }))
+                    }
+                    onVincular={handleVincular}
+                    categoriaLabel={categoriaLabel}
+                  />
+                ))}
               </tbody>
             </table>
           </div>

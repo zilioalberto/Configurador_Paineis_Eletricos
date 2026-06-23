@@ -195,6 +195,18 @@ def _aplicar_resposta_distribuicao(
     return True
 
 
+def _bloqueio_pos_distribuicao(dist, agora):
+    if dist.cstat in _CSTAT_AGUARDAR_UMA_HORA:
+        return agora + timedelta(hours=1)
+    return None
+
+
+def _proximo_max_nsu(dist, max_nsu_atual: str, controle: ControleNSU, ultimo_nsu: str) -> str:
+    if dist.cstat == "656" and normalizar_nsu(dist.max_nsu) == "000000000000000":
+        return max_nsu_atual or controle.max_nsu or ultimo_nsu
+    return dist.max_nsu
+
+
 def _executar_ciclos_distribuicao(
     *,
     config: SefazConfig,
@@ -221,31 +233,19 @@ def _executar_ciclos_distribuicao(
             _registrar_falha_comunicacao(resultado, exc)
             break
 
-        bloqueado_ate = (
-            agora + timedelta(hours=1)
-            if dist.cstat in _CSTAT_AGUARDAR_UMA_HORA
-            else None
-        )
         continuar = _aplicar_resposta_distribuicao(dist=dist, config=config, resultado=resultado)
-
         ultimo_nsu = dist.ultimo_nsu
-        if dist.cstat == "656" and normalizar_nsu(dist.max_nsu) == "000000000000000":
-            max_nsu = max_nsu or controle.max_nsu or ultimo_nsu
-        else:
-            max_nsu = dist.max_nsu
+        max_nsu = _proximo_max_nsu(dist, max_nsu, controle, ultimo_nsu)
         _atualizar_controle(
             controle,
             ultimo_nsu=ultimo_nsu,
             max_nsu=max_nsu,
             cstat=dist.cstat,
             motivo=dist.xmotivo,
-            bloqueado_ate=bloqueado_ate,
+            bloqueado_ate=_bloqueio_pos_distribuicao(dist, agora),
         )
 
-        if not continuar:
-            break
-
-        if dist.cstat == "137" or ultimo_nsu >= max_nsu:
+        if not continuar or dist.cstat == "137" or ultimo_nsu >= max_nsu:
             break
 
     return ultimo_nsu, max_nsu, resultado
@@ -261,6 +261,37 @@ def _processar_manifestacoes_pos_sync(config: SefazConfig, resultado: SyncNsuRes
             logger.warning("Manifestações com erro: %s", man.detalhes)
     except Exception:
         logger.exception("Falha ao processar manifestações pendentes")
+
+
+def _resultado_bloqueado(controle: ControleNSU, agora) -> SyncNsuResult | None:
+    if not (controle.bloqueado_ate and controle.bloqueado_ate > agora):
+        return None
+    if controle.ultimo_cstat == "137":
+        alerta = (
+            "A SEFAZ não localizou documentos na última consulta. "
+            f"Aguarde até {controle.bloqueado_ate.isoformat()} para consultar novamente."
+        )
+    else:
+        alerta = f"Consulta bloqueada pela SEFAZ até {controle.bloqueado_ate.isoformat()}."
+    return SyncNsuResult(
+        sucesso=False,
+        mensagem=alerta,
+        alertas=[alerta],
+        ultimo_cstat=controle.ultimo_cstat,
+        ultimo_motivo=controle.ultimo_motivo,
+        ultimo_nsu=controle.ultimo_nsu,
+        max_nsu=controle.max_nsu or controle.ultimo_nsu,
+    )
+
+
+def _aplicar_erros_importacao(resultado: SyncNsuResult) -> None:
+    if not resultado.erros_importacao:
+        return
+    resultado.sucesso = False
+    resultado.mensagem = "Sincronização com erros de importação"
+    for erro in resultado.erros_importacao[:5]:
+        if erro not in resultado.alertas:
+            resultado.alertas.append(erro)
 
 
 def executar_sincronizacao_nsu(
@@ -281,23 +312,9 @@ def executar_sincronizacao_nsu(
     controle = _obter_ou_criar_controle(config.cnpj)
     agora = timezone.now()
 
-    if controle.bloqueado_ate and controle.bloqueado_ate > agora:
-        if controle.ultimo_cstat == "137":
-            alerta = (
-                "A SEFAZ não localizou documentos na última consulta. "
-                f"Aguarde até {controle.bloqueado_ate.isoformat()} para consultar novamente."
-            )
-        else:
-            alerta = f"Consulta bloqueada pela SEFAZ até {controle.bloqueado_ate.isoformat()}."
-        return SyncNsuResult(
-            sucesso=False,
-            mensagem=alerta,
-            alertas=[alerta],
-            ultimo_cstat=controle.ultimo_cstat,
-            ultimo_motivo=controle.ultimo_motivo,
-            ultimo_nsu=controle.ultimo_nsu,
-            max_nsu=controle.max_nsu or controle.ultimo_nsu,
-        )
+    bloqueado = _resultado_bloqueado(controle, agora)
+    if bloqueado is not None:
+        return bloqueado
 
     ultimo_nsu = normalizar_nsu(controle.ultimo_nsu) or "000000000000000"
     ultimo_nsu, max_nsu, resultado = _executar_ciclos_distribuicao(
@@ -307,12 +324,7 @@ def executar_sincronizacao_nsu(
         agora=agora,
     )
 
-    if resultado.erros_importacao:
-        resultado.sucesso = False
-        resultado.mensagem = "Sincronização com erros de importação"
-        for erro in resultado.erros_importacao[:5]:
-            if erro not in resultado.alertas:
-                resultado.alertas.append(erro)
+    _aplicar_erros_importacao(resultado)
 
     if processar_manifestacoes:
         _processar_manifestacoes_pos_sync(config, resultado)

@@ -308,6 +308,49 @@ def criar_colaborador_de_holerite(
     return colaborador
 
 
+def _registrar_sugestao_holerite(holerite, extra: dict, colaborador, score: float) -> str:
+    aviso = extra.get("aviso_rh") or ""
+    sugerido_nome = extra.get("colaborador_sugerido_nome")
+    if colaborador and score >= float(LIMIAR_SUGESTAO) and not sugerido_nome:
+        extra["colaborador_sugerido_id"] = str(colaborador.id)
+        extra["colaborador_sugerido_nome"] = colaborador.nome
+        extra["aviso_rh"] = (
+            f"Confirme o colaborador correto: {colaborador.nome}. "
+            "Os valores do PDF só entram na conciliação após vincular no RH."
+        )
+        holerite.dados_extra = extra
+        holerite.save(update_fields=["dados_extra"])
+        aviso = extra["aviso_rh"]
+    return aviso
+
+
+def _processar_holerite_rh(holerite) -> tuple[bool, bool, dict | None]:
+    """Retorna (vinculado, auto_vinculado, pendente)."""
+    extra = holerite.dados_extra or {}
+    if holerite.colaborador_id and extra.get("valores_aplicados"):
+        return True, False, None
+    if holerite.colaborador_id and aplicar_valores_pendentes(holerite):
+        return True, False, None
+
+    colaborador, score, via = melhor_colaborador_por_nome(holerite.nome, cpf=holerite.cpf)
+    if via == "cpf" and colaborador:
+        vincular_holerite(holerite, colaborador)
+        return True, True, None
+    if colaborador and score >= float(LIMIAR_VINCULO_AUTOMATICO):
+        vincular_holerite(holerite, colaborador)
+        return True, True, None
+
+    aviso = _registrar_sugestao_holerite(holerite, extra, colaborador, score)
+    pendente = {
+        "id": holerite.id,
+        "nome": holerite.nome,
+        "cpf": holerite.cpf,
+        "aviso": aviso,
+        "colaborador_sugerido_nome": extra.get("colaborador_sugerido_nome"),
+    }
+    return False, False, pendente
+
+
 def conciliar_holerites_rh_pacote(pacote: PacoteObrigacaoFiscal) -> dict:
     holerites = list(pacote.holerites.select_related("colaborador").order_by("nome"))
     vinculados = 0
@@ -315,49 +358,13 @@ def conciliar_holerites_rh_pacote(pacote: PacoteObrigacaoFiscal) -> dict:
     pendentes: list[dict] = []
 
     for holerite in holerites:
-        extra = holerite.dados_extra or {}
-        if holerite.colaborador_id and extra.get("valores_aplicados"):
+        vinculado, auto, pendente = _processar_holerite_rh(holerite)
+        if vinculado:
             vinculados += 1
-            continue
-
-        if holerite.colaborador_id and aplicar_valores_pendentes(holerite):
-            vinculados += 1
-            continue
-
-        colaborador, score, via = melhor_colaborador_por_nome(holerite.nome, cpf=holerite.cpf)
-        if via == "cpf" and colaborador:
-            vincular_holerite(holerite, colaborador)
-            vinculados += 1
-            auto_vinculados += 1
-            continue
-        if colaborador and score >= float(LIMIAR_VINCULO_AUTOMATICO):
-            vincular_holerite(holerite, colaborador)
-            vinculados += 1
-            auto_vinculados += 1
-            continue
-
-        aviso = extra.get("aviso_rh") or ""
-        sugerido_nome = extra.get("colaborador_sugerido_nome")
-        if colaborador and score >= float(LIMIAR_SUGESTAO) and not sugerido_nome:
-            extra["colaborador_sugerido_id"] = str(colaborador.id)
-            extra["colaborador_sugerido_nome"] = colaborador.nome
-            extra["aviso_rh"] = (
-                f"Confirme o colaborador correto: {colaborador.nome}. "
-                "Os valores do PDF só entram na conciliação após vincular no RH."
-            )
-            holerite.dados_extra = extra
-            holerite.save(update_fields=["dados_extra"])
-            aviso = extra["aviso_rh"]
-
-        pendentes.append(
-            {
-                "id": holerite.id,
-                "nome": holerite.nome,
-                "cpf": holerite.cpf,
-                "aviso": aviso,
-                "colaborador_sugerido_nome": extra.get("colaborador_sugerido_nome"),
-            }
-        )
+            if auto:
+                auto_vinculados += 1
+        elif pendente is not None:
+            pendentes.append(pendente)
 
     return {
         "total": len(holerites),

@@ -28,23 +28,7 @@ def _cnpj_empresa() -> str:
     return normalizar_cnpj(raw)
 
 
-def importar_xml_nfse_recebida(
-    *,
-    xml: str,
-    nsu_adn: str | None = None,
-    chave_acesso: str | None = None,
-    origem_importacao: str = OrigemImportacaoFiscalChoices.MANUAL,
-    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
-) -> ResultadoImportacaoNfseRecebida:
-    if not (xml or "").strip():
-        raise NfseRecebidaParserError("XML não informado.")
-
-    dados = parse_nfse_recebida(xml)
-    if chave_acesso:
-        dados["chave_acesso"] = chave_acesso.strip()
-        dados["identificador"] = f"NFSE-NAC:{dados['chave_acesso']}"
-
-    cnpj_empresa = _cnpj_empresa()
+def _validar_tomador_origem(dados: dict, *, cnpj_empresa: str, origem_importacao: str) -> None:
     if origem_importacao != OrigemImportacaoFiscalChoices.ADN_SYNC:
         validar_tomador_nfse_recebida(
             {"cnpj": dados["cnpj_tomador"], "nome": dados["nome_tomador"]},
@@ -53,20 +37,19 @@ def importar_xml_nfse_recebida(
     elif cnpj_empresa and dados["cnpj_tomador"] and dados["cnpj_tomador"] != cnpj_empresa:
         raise NfseRecebidaParserError("NFS-e ADN com tomador divergente do CNPJ configurado.")
 
-    identificador = dados["identificador"]
-    existente = DocumentoNfseRecebido.objects.filter(identificador=identificador).first()
-    if existente is not None:
-        return {
-            "created": False,
-            "documento": existente,
-            "message": "NFS-e já cadastrada.",
-        }
 
-    nsu_norm = normalizar_nsu(nsu_adn) if nsu_adn else None
-
+def _criar_documento_nfse_recebida(
+    *,
+    dados: dict,
+    xml: str,
+    nsu_norm: str | None,
+    cnpj_empresa: str,
+    origem_importacao: str,
+    objetivo_entrada: str,
+) -> DocumentoNfseRecebido:
     with transaction.atomic():
         documento = DocumentoNfseRecebido.objects.create(
-            identificador=identificador,
+            identificador=dados["identificador"],
             chave_acesso=(dados.get("chave_acesso") or "")[:50],
             nsu_adn=nsu_norm,
             cnpj_prestador=dados["cnpj_prestador"],
@@ -90,6 +73,44 @@ def importar_xml_nfse_recebida(
                 descricao=item.get("descricao") or "Serviço",
                 valor_total=item["valor_total"],
             )
+    return documento
+
+
+def importar_xml_nfse_recebida(
+    *,
+    xml: str,
+    nsu_adn: str | None = None,
+    chave_acesso: str | None = None,
+    origem_importacao: str = OrigemImportacaoFiscalChoices.MANUAL,
+    objetivo_entrada: str = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS,
+) -> ResultadoImportacaoNfseRecebida:
+    if not (xml or "").strip():
+        raise NfseRecebidaParserError("XML não informado.")
+
+    dados = parse_nfse_recebida(xml)
+    if chave_acesso:
+        dados["chave_acesso"] = chave_acesso.strip()
+        dados["identificador"] = f"NFSE-NAC:{dados['chave_acesso']}"
+
+    cnpj_empresa = _cnpj_empresa()
+    _validar_tomador_origem(dados, cnpj_empresa=cnpj_empresa, origem_importacao=origem_importacao)
+
+    existente = DocumentoNfseRecebido.objects.filter(identificador=dados["identificador"]).first()
+    if existente is not None:
+        return {
+            "created": False,
+            "documento": existente,
+            "message": "NFS-e já cadastrada.",
+        }
+
+    documento = _criar_documento_nfse_recebida(
+        dados=dados,
+        xml=xml,
+        nsu_norm=normalizar_nsu(nsu_adn) if nsu_adn else None,
+        cnpj_empresa=cnpj_empresa,
+        origem_importacao=origem_importacao,
+        objetivo_entrada=objetivo_entrada,
+    )
 
     return {
         "created": True,

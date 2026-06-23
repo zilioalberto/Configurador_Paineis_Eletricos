@@ -78,6 +78,71 @@ function BadgeResultado({ status }: Readonly<{ status?: ResultadoStatus }>) {
   }
 }
 
+async function lerArquivosXml(
+  xmlFiles: File[],
+  cnpjEmpresa: string,
+): Promise<{ selecionados: XmlArquivoSelecionado[]; rejeitados: ArquivoRejeitado[] }> {
+  const selecionados: XmlArquivoSelecionado[] = []
+  const rejeitados: ArquivoRejeitado[] = []
+  for (const file of xmlFiles) {
+    const conteudo = (await file.text()).trim()
+    const validacao = validarXmlRecebidoParaImportacao(conteudo, cnpjEmpresa)
+    if (!validacao.valido) {
+      rejeitados.push({ id: uid(), nome: file.name, motivo: validacao.motivo })
+      continue
+    }
+    selecionados.push({
+      id: uid(),
+      nome: file.name,
+      caminho: file.webkitRelativePath || file.name,
+      tamanho: file.size,
+      xml: conteudo,
+    })
+  }
+  selecionados.sort((a, b) => a.caminho.localeCompare(b.caminho, 'pt-BR'))
+  return { selecionados, rejeitados }
+}
+
+async function importarArquivosEmLote(
+  arquivos: readonly XmlArquivoSelecionado[],
+  cnpjDest: string,
+  objetivoEntrada: ObjetivoEntradaFiscal,
+  cb: {
+    onResultado: (id: string, resultado: ResultadoLote) => void
+    onProgresso: (atual: number) => void
+  },
+): Promise<{ novos: number; duplicados: number; erros: number }> {
+  let novos = 0
+  let duplicados = 0
+  let erros = 0
+  for (let i = 0; i < arquivos.length; i += 1) {
+    const arquivo = arquivos[i]
+    cb.onResultado(arquivo.id, { status: 'enviando' })
+    try {
+      const r = await importarNfeXmlManual({
+        xml: arquivo.xml,
+        cnpj_destinatario: cnpjDest.replace(/\D/g, '') || undefined,
+        objetivo_entrada: objetivoEntrada,
+      })
+      if (r.created) {
+        novos += 1
+        cb.onResultado(arquivo.id, { status: 'novo', mensagem: r.message })
+      } else {
+        duplicados += 1
+        cb.onResultado(arquivo.id, { status: 'duplicado', mensagem: r.message })
+      }
+    } catch (err) {
+      erros += 1
+      cb.onResultado(arquivo.id, {
+        status: 'erro',
+        mensagem: extrairMensagemErroApi(err) || 'Falha ao importar este XML.',
+      })
+    }
+    cb.onProgresso(i + 1)
+  }
+  return { novos, duplicados, erros }
+}
+
 /** Envio de XML para o armazenamento fiscal (NF-e recebida no servidor). */
 export default function NfeImportarManualPage() {
   const navigate = useNavigate()
@@ -162,24 +227,7 @@ export default function NfeImportarManualPage() {
         return
       }
 
-      const selecionados: XmlArquivoSelecionado[] = []
-      const novosRejeitados: ArquivoRejeitado[] = []
-      for (const file of xmlFiles) {
-        const conteudo = (await file.text()).trim()
-        const validacao = validarXmlRecebidoParaImportacao(conteudo, cnpjEmpresa)
-        if (!validacao.valido) {
-          novosRejeitados.push({ id: uid(), nome: file.name, motivo: validacao.motivo })
-          continue
-        }
-        selecionados.push({
-          id: uid(),
-          nome: file.name,
-          caminho: file.webkitRelativePath || file.name,
-          tamanho: file.size,
-          xml: conteudo,
-        })
-      }
-      selecionados.sort((a, b) => a.caminho.localeCompare(b.caminho, 'pt-BR'))
+      const { selecionados, rejeitados: novosRejeitados } = await lerArquivosXml(xmlFiles, cnpjEmpresa)
       setArquivos(selecionados)
       setRejeitados(novosRejeitados)
       setResultados({})
@@ -245,44 +293,16 @@ export default function NfeImportarManualPage() {
     setProgresso({ atual: 0, total: arquivos.length })
     setResultados(Object.fromEntries(arquivos.map((a) => [a.id, { status: 'pendente' as const }])))
 
-    let novos = 0
-    let duplicados = 0
-    let erros = 0
     try {
-      for (let i = 0; i < arquivos.length; i += 1) {
-        const arquivo = arquivos[i]
-        setResultados((prev) => ({ ...prev, [arquivo.id]: { status: 'enviando' } }))
-        try {
-          const r = await importarNfeXmlManual({
-            xml: arquivo.xml,
-            cnpj_destinatario: cnpjDest.replace(/\D/g, '') || undefined,
-            objetivo_entrada: objetivoEntrada,
-          })
-          if (r.created) {
-            novos += 1
-            setResultados((prev) => ({
-              ...prev,
-              [arquivo.id]: { status: 'novo', mensagem: r.message },
-            }))
-          } else {
-            duplicados += 1
-            setResultados((prev) => ({
-              ...prev,
-              [arquivo.id]: { status: 'duplicado', mensagem: r.message },
-            }))
-          }
-        } catch (err) {
-          erros += 1
-          setResultados((prev) => ({
-            ...prev,
-            [arquivo.id]: {
-              status: 'erro',
-              mensagem: extrairMensagemErroApi(err) || 'Falha ao importar este XML.',
-            },
-          }))
-        }
-        setProgresso({ atual: i + 1, total: arquivos.length })
-      }
+      const { novos, duplicados, erros } = await importarArquivosEmLote(
+        arquivos,
+        cnpjDest,
+        objetivoEntrada,
+        {
+          onResultado: (id, resultado) => setResultados((prev) => ({ ...prev, [id]: resultado })),
+          onProgresso: (atual) => setProgresso({ atual, total: arquivos.length }),
+        },
+      )
       void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.all })
       setLoteConcluido(true)
       showToast({

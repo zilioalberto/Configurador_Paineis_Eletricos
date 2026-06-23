@@ -141,75 +141,96 @@ function ReconciliacaoTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((r) => {
-            const holeritesInss = holeritesInssConciliacao(r.detalhes)
-            const resumoHolerites = resumoHoleritesConciliacao(r.detalhes)
-            const dica = dicaReconciliacao(r.tipo)
-            const codigoDas = r.detalhes.codigo_das
-            const resumoIcms = r.tipo === 'ICMS' ? resumoIcmsConciliacao(r.detalhes) : null
-            return (
-            <tr key={r.tipo}>
-              <td>
-                <div>{r.tipo_label}</div>
-                <div className="small text-muted">{r.mensagem}</div>
-                {dica ? <div className="small text-info">{dica}</div> : null}
-                {resumoIcms ? <div className="small text-muted">{resumoIcms}</div> : null}
-                {typeof codigoDas === 'string' ? (
-                  <div className="small text-muted">Código DAS: {codigoDas}</div>
-                ) : null}
-                {resumoHolerites ? <div className="small text-muted">{resumoHolerites}</div> : null}
-                {holeritesInss.length > 0 ? (
-                  <ul className="small text-muted mb-0 ps-3 mt-1">
-                    {holeritesInss.map((h, index) => (
-                      <li key={`${h.nome ?? h.colaborador ?? 'h'}-${index}`}>
-                        {h.colaborador || h.nome || '—'}: {formatMoedaBrl(h.inss ?? null)}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </td>
-              <td className="text-end">{formatMoedaBrl(r.valor_interno)}</td>
-              <td className="text-end">
-                {formatMoedaBrl(r.valor_contabilidade)}
-                {r.fonte_contabilidade === 'manual' ? (
-                  <div className="small text-muted">manual</div>
-                ) : null}
-              </td>
-              <td className="text-end">{formatMoedaBrl(r.diferenca)}</td>
-              <td>
-                <span className={`badge bg-${badgeReconciliacao(r.status)}`}>{r.status_label}</span>
-              </td>
-              {podeEditar ? (
-                <td className="text-end">
-                  {(() => {
-                    if (r.tipo !== 'PACOTE' && r.editavel) {
-                      return (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => onEditarContabilidade(r)}
-                        >
-                          {r.valor_contabilidade == null ? 'Informar' : 'Editar'}
-                        </button>
-                      )
-                    }
-                    if (r.tipo !== 'PACOTE' && !r.editavel) {
-                      return (
-                        <span className="small text-muted" title="Valor definido pelo PDF importado">
-                          PDF
-                        </span>
-                      )
-                    }
-                    return null
-                  })()}
-                </td>
-              ) : null}
-            </tr>
-            )
-          })}
+          {items.map((r) => (
+            <ReconciliacaoRow
+              key={r.tipo}
+              r={r}
+              podeEditar={podeEditar}
+              onEditarContabilidade={onEditarContabilidade}
+            />
+          ))}
         </tbody>
       </table>
     </div>
+  )
+}
+
+function ReconciliacaoAcaoEditar({
+  r,
+  onEditarContabilidade,
+}: Readonly<{
+  r: ReconciliacaoFiscalDto
+  onEditarContabilidade: (item: ReconciliacaoFiscalDto) => void
+}>) {
+  if (r.tipo === 'PACOTE') return null
+  if (r.editavel) {
+    return (
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-primary"
+        onClick={() => onEditarContabilidade(r)}
+      >
+        {r.valor_contabilidade == null ? 'Informar' : 'Editar'}
+      </button>
+    )
+  }
+  return (
+    <span className="small text-muted" title="Valor definido pelo PDF importado">
+      PDF
+    </span>
+  )
+}
+
+function ReconciliacaoRow({
+  r,
+  podeEditar,
+  onEditarContabilidade,
+}: Readonly<{
+  r: ReconciliacaoFiscalDto
+  podeEditar: boolean
+  onEditarContabilidade: (item: ReconciliacaoFiscalDto) => void
+}>) {
+  const holeritesInss = holeritesInssConciliacao(r.detalhes)
+  const resumoHolerites = resumoHoleritesConciliacao(r.detalhes)
+  const dica = dicaReconciliacao(r.tipo)
+  const codigoDas = r.detalhes.codigo_das
+  const resumoIcms = r.tipo === 'ICMS' ? resumoIcmsConciliacao(r.detalhes) : null
+  return (
+    <tr>
+      <td>
+        <div>{r.tipo_label}</div>
+        <div className="small text-muted">{r.mensagem}</div>
+        {dica && <div className="small text-info">{dica}</div>}
+        {resumoIcms && <div className="small text-muted">{resumoIcms}</div>}
+        {typeof codigoDas === 'string' && (
+          <div className="small text-muted">Código DAS: {codigoDas}</div>
+        )}
+        {resumoHolerites && <div className="small text-muted">{resumoHolerites}</div>}
+        {holeritesInss.length > 0 && (
+          <ul className="small text-muted mb-0 ps-3 mt-1">
+            {holeritesInss.map((h, index) => (
+              <li key={`${h.nome ?? h.colaborador ?? 'h'}-${index}`}>
+                {h.colaborador || h.nome || '—'}: {formatMoedaBrl(h.inss ?? null)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </td>
+      <td className="text-end">{formatMoedaBrl(r.valor_interno)}</td>
+      <td className="text-end">
+        {formatMoedaBrl(r.valor_contabilidade)}
+        {r.fonte_contabilidade === 'manual' && <div className="small text-muted">manual</div>}
+      </td>
+      <td className="text-end">{formatMoedaBrl(r.diferenca)}</td>
+      <td>
+        <span className={`badge bg-${badgeReconciliacao(r.status)}`}>{r.status_label}</span>
+      </td>
+      {podeEditar && (
+        <td className="text-end">
+          <ReconciliacaoAcaoEditar r={r} onEditarContabilidade={onEditarContabilidade} />
+        </td>
+      )}
+    </tr>
   )
 }
 

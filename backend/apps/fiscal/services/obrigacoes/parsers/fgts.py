@@ -42,9 +42,13 @@ def parse_fgts(texto: str) -> dict:
 
     qtd_trabalhadores = None
     cauda_trab = (texto.split("Trabalhadores")[-1][:40] if "Trabalhadores" in texto else "").rstrip()
-    m_qtd = re.search(r"(\d+)$", cauda_trab)
-    if m_qtd:
-        qtd_trabalhadores = int(m_qtd.group(1))
+    digitos_finais = ""
+    for caractere in reversed(cauda_trab):
+        if not caractere.isdigit():
+            break
+        digitos_finais = caractere + digitos_finais
+    if digitos_finais:
+        qtd_trabalhadores = int(digitos_finais)
 
     identificador = ""
     m_id = re.search(r"Identificador\s*([\d\-]+)", texto, re.IGNORECASE)

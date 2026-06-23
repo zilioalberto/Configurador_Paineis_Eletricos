@@ -100,12 +100,35 @@ def _texto_busca_pdf(texto: str) -> str:
     return re.sub(r"\s+", " ", s)
 
 
+_CODIGOS_COMPOSICAO_SIMPLES_DAS = {"1001", "1002", "1004", "1005", "1006", "1008"}
+
+
 def _tem_composicao_simples(texto: str) -> bool:
     return bool(re.search(r"\b100[1245678]\b", texto or ""))
 
 
 def _tem_composicao_darf(texto: str) -> bool:
     return bool(re.search(r"\b(1082|1099|0561|1138)\b", texto or ""))
+
+
+def _parsed_indica_simples(parsed: dict | None) -> bool:
+    if not parsed:
+        return False
+    linhas = parsed.get("linhas_composicao") or []
+    return any(str(l.get("codigo") or "") in _CODIGOS_COMPOSICAO_SIMPLES_DAS for l in linhas)
+
+
+def _texto_indica_simples(t: str) -> bool:
+    return (
+        TXT_SIMPLES_NACIONAL in t
+        or "documento de arrecadacao do simples" in t
+        or "pgdas" in t
+        or "pg mei" in t
+    )
+
+
+def _nome_indica_simples(nome: str) -> bool:
+    return TXT_SIMPLES_NACIONAL in nome or ("simples" in nome and "nacional" in nome)
 
 
 def eh_documento_simples_nacional(nome_arquivo: str, texto: str, parsed: dict | None = None) -> bool:
@@ -116,18 +139,9 @@ def eh_documento_simples_nacional(nome_arquivo: str, texto: str, parsed: dict | 
         return False
     if "receitas federais" in t and TXT_SIMPLES_NACIONAL not in t:
         return False
-    if parsed:
-        linhas = parsed.get("linhas_composicao") or []
-        if any(str(l.get("codigo") or "") in {"1001", "1002", "1004", "1005", "1006", "1008"} for l in linhas):
-            return True
-    if (
-        TXT_SIMPLES_NACIONAL in t
-        or "documento de arrecadacao do simples" in t
-        or "pgdas" in t
-        or "pg mei" in t
-    ):
+    if _parsed_indica_simples(parsed):
         return True
-    if TXT_SIMPLES_NACIONAL in nome or ("simples" in nome and "nacional" in nome):
+    if _texto_indica_simples(t) or _nome_indica_simples(nome):
         return True
     return _tem_composicao_simples(texto) and not _tem_composicao_darf(texto)
 
@@ -152,28 +166,40 @@ def eh_documento_darf(nome_arquivo: str, texto: str) -> bool:
     return False
 
 
+def _nome_indica_dime(nome: str) -> bool:
+    return "demonstrativo icms" in nome or ("icms" in nome and "destda" not in nome)
+
+
+def _detectar_tipo_por_nome(nome: str) -> str:
+    if _nome_indica_simples(nome):
+        return "SIMPLES"
+    if "darf" in nome:
+        return "DARF"
+    if "fgts" in nome:
+        return "FGTS"
+    if "iss" in nome:
+        return "ISS"
+    if _nome_indica_dime(nome):
+        return "DIME_ICMS"
+    if "holerite" in nome or "recibo" in nome:
+        return "HOLERITE"
+    return "OUTRO"
+
+
+def _texto_indica_dime(t: str, nome: str) -> bool:
+    return (
+        "dime" in t
+        or "declaração de informações do icms" in t
+        or _nome_indica_dime(nome)
+    )
+
+
 def detectar_tipo_anexo(nome_arquivo: str, texto: str) -> str:
     nome = (nome_arquivo or "").lower()
     t = _texto_busca_pdf(texto)
     if not t.strip():
-        if TXT_SIMPLES_NACIONAL in nome or ("simples" in nome and "nacional" in nome):
-            return "SIMPLES"
-        if "darf" in nome:
-            return "DARF"
-        if "fgts" in nome:
-            return "FGTS"
-        if "iss" in nome:
-            return "ISS"
-        if "demonstrativo icms" in nome or ("icms" in nome and "destda" not in nome):
-            return "DIME_ICMS"
-        if "holerite" in nome or "recibo" in nome:
-            return "HOLERITE"
-        if "destda" in nome:
-            return "OUTRO"
-        return "OUTRO"
+        return _detectar_tipo_por_nome(nome)
     if "demonstrativo de pagamento" in t or ("holerite" in nome and "recibo" not in nome):
-        return "HOLERITE"
-    if "recibo" in nome and "demonstrativo de pagamento" in t:
         return "HOLERITE"
     if eh_documento_simples_nacional(nome_arquivo, texto):
         return "SIMPLES"
@@ -183,9 +209,7 @@ def detectar_tipo_anexo(nome_arquivo: str, texto: str) -> str:
         return "FGTS"
     if "iss vari" in t or "imposto sobre servi" in t or "iss" in nome:
         return "ISS"
-    if "dime" in t or "declaração de informações do icms" in t or "demonstrativo icms" in nome or (
-        "icms" in nome and "destda" not in nome
-    ):
+    if _texto_indica_dime(t, nome):
         return "DIME_ICMS"
     if "holerite" in nome or "recibo" in nome:
         return "HOLERITE"

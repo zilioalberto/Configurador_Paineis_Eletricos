@@ -162,6 +162,16 @@ def _schema_doczip(elem: ET.Element) -> str:
     return (elem.attrib.get("schema") or "desconhecido").strip() or "desconhecido"
 
 
+def _xml_de_doczip(elem: ET.Element) -> str:
+    conteudo = (elem.text or "").strip()
+    if not conteudo:
+        return ""
+    try:
+        return _descompactar_doc_zip(conteudo)
+    except Exception:
+        return ""
+
+
 def _extrair_documentos_doczip(
     ret: ET.Element,
 ) -> tuple[list[DistDfeDocumento], list[DistDfeResumoNfe], int, dict[str, int]]:
@@ -174,18 +184,11 @@ def _extrair_documentos_doczip(
             continue
         schema = _schema_doczip(elem)
         nsu_attr = elem.attrib.get("NSU") or elem.attrib.get("nsu")
-        conteudo = (elem.text or "").strip()
-        xml = ""
-        if conteudo:
-            try:
-                xml = _descompactar_doc_zip(conteudo)
-            except Exception:
-                xml = ""
-        if xml:
-            resumo = _parse_res_nfe(xml, nsu=nsu_attr, schema=schema)
-            if resumo is not None:
-                resumos.append(resumo)
-                continue
+        xml = _xml_de_doczip(elem)
+        resumo = _parse_res_nfe(xml, nsu=nsu_attr, schema=schema) if xml else None
+        if resumo is not None:
+            resumos.append(resumo)
+            continue
         documento = _parse_doczip_element(elem)
         if documento is not None:
             documentos.append(documento)

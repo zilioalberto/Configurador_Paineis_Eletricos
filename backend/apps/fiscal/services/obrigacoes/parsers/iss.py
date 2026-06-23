@@ -9,25 +9,34 @@ from apps.fiscal.choices import TipoObrigacaoFiscalChoices
 from ..pdf_util import parse_competencia_mes_ano, parse_data_br, parse_moeda_br
 
 
-def parse_iss(texto: str) -> dict:
-    erros: list[str] = []
-    competencia = None
+def _extrair_competencia_iss(texto: str) -> str | None:
     m_comp = re.search(r"Compet[eê]ncia\s*(\d{2}/\d{4})", texto, re.IGNORECASE)
     if m_comp:
         competencia = parse_competencia_mes_ano(m_comp.group(1))
-    if not competencia:
-        competencia = parse_competencia_mes_ano(texto)
-    if not competencia:
-        erros.append("Competência não identificada.")
+        if competencia:
+            return competencia
+    return parse_competencia_mes_ano(texto)
 
-    valor = None
+
+def _extrair_valor_iss(texto: str):
     m_iss = re.search(r"Imposto Sobre Servi[cç]os:\s*R\$\s*([\d.,]+)", texto, re.IGNORECASE)
     if m_iss:
         valor = parse_moeda_br(m_iss.group(1))
-    if valor is None:
-        m_cobrado = re.search(r"\(=\)\s*VALOR COBRADO\s*([\d.,]+)", texto, re.IGNORECASE)
-        if m_cobrado:
-            valor = parse_moeda_br(m_cobrado.group(1))
+        if valor is not None:
+            return valor
+    m_cobrado = re.search(r"\(=\)\s*VALOR COBRADO\s*([\d.,]+)", texto, re.IGNORECASE)
+    if m_cobrado:
+        return parse_moeda_br(m_cobrado.group(1))
+    return None
+
+
+def parse_iss(texto: str) -> dict:
+    erros: list[str] = []
+    competencia = _extrair_competencia_iss(texto)
+    if not competencia:
+        erros.append("Competência não identificada.")
+
+    valor = _extrair_valor_iss(texto)
     if valor is None:
         erros.append("Valor ISS não identificado.")
 

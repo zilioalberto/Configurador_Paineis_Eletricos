@@ -106,6 +106,13 @@ def _criar_ou_atualizar_obrigacao(
         },
     )
 
+    _aplicar_linhas_composicao(obrigacao, parsed)
+    _persistir_snapshot_icms(pacote, parsed.get("snapshot_icms"))
+    _vincular_nfse_iss(obrigacao, parsed.get("dados_extra") or {})
+    return obrigacao
+
+
+def _aplicar_linhas_composicao(obrigacao: ObrigacaoFiscal, parsed: dict) -> None:
     obrigacao.linhas_composicao.all().delete()
     for linha in parsed.get("linhas_composicao") or []:
         LinhaComposicaoObrigacao.objects.create(
@@ -115,26 +122,25 @@ def _criar_ou_atualizar_obrigacao(
             valor=Decimal(str(linha.get("valor") or "0")),
         )
 
-    snapshot = parsed.get("snapshot_icms")
-    if snapshot:
-        SnapshotApuracaoIcms.objects.update_or_create(
-            pacote=pacote,
-            defaults={
-                "saldo_credor_anterior": _dec(snapshot.get("saldo_credor_anterior")),
-                "debitos_saidas": _dec(snapshot.get("debitos_saidas")),
-                "creditos_entradas": _dec(snapshot.get("creditos_entradas")),
-                "total_debitos": _dec(snapshot.get("total_debitos")),
-                "total_creditos": _dec(snapshot.get("total_creditos")),
-                "saldo_credor": _dec(snapshot.get("saldo_credor")),
-                "imposto_a_recolher": _dec(snapshot.get("imposto_a_recolher")),
-                "valor_contabil_entradas": _dec(snapshot.get("valor_contabil_entradas")),
-                "valor_contabil_saidas": _dec(snapshot.get("valor_contabil_saidas")),
-                "dados_quadros": snapshot,
-            },
-        )
 
-    _vincular_nfse_iss(obrigacao, parsed.get("dados_extra") or {})
-    return obrigacao
+def _persistir_snapshot_icms(pacote: PacoteObrigacaoFiscal, snapshot: dict | None) -> None:
+    if not snapshot:
+        return
+    SnapshotApuracaoIcms.objects.update_or_create(
+        pacote=pacote,
+        defaults={
+            "saldo_credor_anterior": _dec(snapshot.get("saldo_credor_anterior")),
+            "debitos_saidas": _dec(snapshot.get("debitos_saidas")),
+            "creditos_entradas": _dec(snapshot.get("creditos_entradas")),
+            "total_debitos": _dec(snapshot.get("total_debitos")),
+            "total_creditos": _dec(snapshot.get("total_creditos")),
+            "saldo_credor": _dec(snapshot.get("saldo_credor")),
+            "imposto_a_recolher": _dec(snapshot.get("imposto_a_recolher")),
+            "valor_contabil_entradas": _dec(snapshot.get("valor_contabil_entradas")),
+            "valor_contabil_saidas": _dec(snapshot.get("valor_contabil_saidas")),
+            "dados_quadros": snapshot,
+        },
+    )
 
 
 def _dec(valor) -> Decimal | None:

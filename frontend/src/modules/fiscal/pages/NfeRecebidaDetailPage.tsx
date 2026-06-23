@@ -10,7 +10,11 @@ import { fiscalPaths } from '../fiscalPaths'
 import { fiscalQueryKeys } from '../fiscalQueryKeys'
 import { useNfeRecebidaDetailQuery } from '../hooks/useNfeRecebidaDetailQuery'
 import { reclassificarEntradaNfe } from '../services/fiscalNfeService'
-import type { ObjetivoEntradaFiscal } from '../types/documentoFiscalRecebido'
+import type {
+  DocumentoFiscalRecebidoDetail,
+  ItemDocumentoFiscalRow,
+  ObjetivoEntradaFiscal,
+} from '../types/documentoFiscalRecebido'
 import {
   formatChaveAcesso,
   formatCnpjExibicao,
@@ -113,30 +117,7 @@ export default function NfeRecebidaDetailPage() {
                 {data.serie ? ` · série ${data.serie}` : ''}
               </h1>
               <p className="text-muted font-monospace small mb-2">{formatChaveAcesso(data.chave_acesso)}</p>
-              <div className="d-flex flex-wrap gap-2">
-                <span className="badge bg-secondary">{labelStatusImportacao(data.status_importacao)}</span>
-                <span className="badge bg-light text-dark border">
-                  {labelOrigemImportacao(data.origem_importacao)}
-                </span>
-                <span className="badge bg-info text-dark">
-                  {data.objetivo_entrada_display || labelObjetivoEntrada(data.objetivo_entrada)}
-                </span>
-                <span
-                  className={`badge ${
-                    data.classificacao_origem === 'MANUAL' ? 'bg-warning text-dark' : 'bg-light text-dark border'
-                  }`}
-                >
-                  {data.classificacao_origem === 'MANUAL' ? 'Classificação manual' : 'Classificação automática'}
-                </span>
-                {data.finalidade_nfe_display ? (
-                  <span className="badge bg-light text-dark border">
-                    finNFe: {data.finalidade_nfe_display}
-                  </span>
-                ) : null}
-                {data.nsu ? (
-                  <span className="badge bg-light text-dark border">NSU {data.nsu}</span>
-                ) : null}
-              </div>
+              <NfeRecebidaBadges data={data} />
             </div>
             <div className="d-flex flex-wrap gap-2">
               {data.xml_original ? (
@@ -278,79 +259,11 @@ export default function NfeRecebidaDetailPage() {
           <NfeManifestacaoDestinatarioPanel documento={data} />
 
           <h2 className="h5 mb-3">Itens da nota ({data.itens.length})</h2>
-          <div className="card mb-4">
-            <div className="card-body p-0">
-              {data.itens.length === 0 ? (
-                <p className="text-muted p-3 mb-0">Nenhum item parseado.</p>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-sm align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Código</th>
-                        <th scope="col">Descrição</th>
-                        <th scope="col">NCM</th>
-                        <th scope="col">CFOP</th>
-                        <th scope="col">Un.</th>
-                        <th scope="col" className="text-end">
-                          Qtd
-                        </th>
-                        <th scope="col" className="text-end">
-                          Total
-                        </th>
-                        <th scope="col">Objetivo (entrada)</th>
-                        <th scope="col">Catálogo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.itens.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.numero_item}</td>
-                          <td className="text-break">{item.codigo_fornecedor || '—'}</td>
-                          <td className="text-break">{item.descricao || '—'}</td>
-                          <td>{item.ncm || '—'}</td>
-                          <td>{item.cfop || '—'}</td>
-                          <td>{item.unidade || '—'}</td>
-                          <td className="text-end">{item.quantidade}</td>
-                          <td className="text-end">{formatMoedaBrl(item.valor_total)}</td>
-                          <td style={{ minWidth: '12rem' }}>
-                            <select
-                              className="form-select form-select-sm"
-                              aria-label={`Objetivo do item ${item.numero_item}`}
-                              value={item.objetivo_entrada}
-                              onChange={(e) =>
-                                reclassificarItem(item.id, e.target.value as ObjetivoEntradaFiscal)
-                              }
-                              disabled={reclassificarMutation.isPending}
-                            >
-                              {objetivoEntradaOptions.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                            {item.classificacao_origem === 'MANUAL' ? (
-                              <span className="badge bg-warning text-dark mt-1">Manual</span>
-                            ) : null}
-                          </td>
-                          <td>
-                            {item.importado_para_produto ? (
-                              <span className="badge bg-success" title={item.produto_codigo ?? ''}>
-                                {item.produto_codigo || 'Sim'}
-                              </span>
-                            ) : (
-                              <span className="text-muted small">Não</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+          <NfeRecebidaItensCard
+            itens={data.itens}
+            onReclassificar={reclassificarItem}
+            disabled={reclassificarMutation.isPending}
+          />
 
           {xmlAberto && data.xml_original ? (
             <div className="card mb-4">
@@ -370,6 +283,129 @@ export default function NfeRecebidaDetailPage() {
           </p>
         </>
       )}
+    </div>
+  )
+}
+
+function NfeRecebidaBadges({ data }: Readonly<{ data: DocumentoFiscalRecebidoDetail }>) {
+  const classificacaoManual = data.classificacao_origem === 'MANUAL'
+  return (
+    <div className="d-flex flex-wrap gap-2">
+      <span className="badge bg-secondary">{labelStatusImportacao(data.status_importacao)}</span>
+      <span className="badge bg-light text-dark border">{labelOrigemImportacao(data.origem_importacao)}</span>
+      <span className="badge bg-info text-dark">
+        {data.objetivo_entrada_display || labelObjetivoEntrada(data.objetivo_entrada)}
+      </span>
+      <span className={`badge ${classificacaoManual ? 'bg-warning text-dark' : 'bg-light text-dark border'}`}>
+        {classificacaoManual ? 'Classificação manual' : 'Classificação automática'}
+      </span>
+      {data.finalidade_nfe_display && (
+        <span className="badge bg-light text-dark border">finNFe: {data.finalidade_nfe_display}</span>
+      )}
+      {data.nsu && <span className="badge bg-light text-dark border">NSU {data.nsu}</span>}
+    </div>
+  )
+}
+
+function NfeRecebidaItemRow({
+  item,
+  onReclassificar,
+  disabled,
+}: Readonly<{
+  item: ItemDocumentoFiscalRow
+  onReclassificar: (itemId: number, objetivo: ObjetivoEntradaFiscal) => void
+  disabled: boolean
+}>) {
+  return (
+    <tr>
+      <td>{item.numero_item}</td>
+      <td className="text-break">{item.codigo_fornecedor || '—'}</td>
+      <td className="text-break">{item.descricao || '—'}</td>
+      <td>{item.ncm || '—'}</td>
+      <td>{item.cfop || '—'}</td>
+      <td>{item.unidade || '—'}</td>
+      <td className="text-end">{item.quantidade}</td>
+      <td className="text-end">{formatMoedaBrl(item.valor_total)}</td>
+      <td style={{ minWidth: '12rem' }}>
+        <select
+          className="form-select form-select-sm"
+          aria-label={`Objetivo do item ${item.numero_item}`}
+          value={item.objetivo_entrada}
+          onChange={(e) => onReclassificar(item.id, e.target.value as ObjetivoEntradaFiscal)}
+          disabled={disabled}
+        >
+          {objetivoEntradaOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {item.classificacao_origem === 'MANUAL' && (
+          <span className="badge bg-warning text-dark mt-1">Manual</span>
+        )}
+      </td>
+      <td>
+        {item.importado_para_produto ? (
+          <span className="badge bg-success" title={item.produto_codigo ?? ''}>
+            {item.produto_codigo || 'Sim'}
+          </span>
+        ) : (
+          <span className="text-muted small">Não</span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
+function NfeRecebidaItensCard({
+  itens,
+  onReclassificar,
+  disabled,
+}: Readonly<{
+  itens: ItemDocumentoFiscalRow[]
+  onReclassificar: (itemId: number, objetivo: ObjetivoEntradaFiscal) => void
+  disabled: boolean
+}>) {
+  return (
+    <div className="card mb-4">
+      <div className="card-body p-0">
+        {itens.length === 0 ? (
+          <p className="text-muted p-3 mb-0">Nenhum item parseado.</p>
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-sm align-middle mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Código</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">NCM</th>
+                  <th scope="col">CFOP</th>
+                  <th scope="col">Un.</th>
+                  <th scope="col" className="text-end">
+                    Qtd
+                  </th>
+                  <th scope="col" className="text-end">
+                    Total
+                  </th>
+                  <th scope="col">Objetivo (entrada)</th>
+                  <th scope="col">Catálogo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {itens.map((item) => (
+                  <NfeRecebidaItemRow
+                    key={item.id}
+                    item={item}
+                    onReclassificar={onReclassificar}
+                    disabled={disabled}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

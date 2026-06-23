@@ -79,12 +79,7 @@ def _salvar_reconciliacao(
     detalhes: dict | None = None,
 ) -> ReconciliacaoFiscal:
     status, diff, pct = _status_diff(valor_interno, valor_contabilidade)
-    rec_existente = pacote.reconciliacoes.filter(tipo=tipo).first()
-    detalhes_finais = dict(detalhes or {})
-    if rec_existente:
-        for chave in CHAVES_DETALHES_MANUAL:
-            if chave in (rec_existente.detalhes or {}) and chave not in detalhes_finais:
-                detalhes_finais[chave] = rec_existente.detalhes[chave]
+    detalhes_finais = _mesclar_detalhes_manuais(pacote, tipo, dict(detalhes or {}))
     rec, _ = ReconciliacaoFiscal.objects.update_or_create(
         pacote=pacote,
         tipo=tipo,
@@ -107,6 +102,32 @@ def _competencia_bounds(competencia: str) -> tuple[date, date]:
 
     ultimo = monthrange(ano, mes)[1]
     return date(ano, mes, 1), date(ano, mes, ultimo)
+
+
+def _mesclar_detalhes_manuais(pacote: PacoteObrigacaoFiscal, tipo: str, detalhes: dict) -> dict:
+    """Preserva chaves manuais (valor/fonte/ICMS) já gravadas na reconciliação anterior."""
+    rec_existente = pacote.reconciliacoes.filter(tipo=tipo).first()
+    if rec_existente:
+        for chave in CHAVES_DETALHES_MANUAL:
+            if chave in (rec_existente.detalhes or {}) and chave not in detalhes:
+                detalhes[chave] = rec_existente.detalhes[chave]
+    return detalhes
+
+
+def _holerites_detalhe(holerites) -> list[dict]:
+    return [
+        {
+            "holerite_id": h.id,
+            "nome": h.nome,
+            "colaborador": h.colaborador.nome if h.colaborador_id else "",
+            "inss": str(h.desconto_inss),
+        }
+        for h in holerites
+    ]
+
+
+def _soma_valor_total(documentos) -> Decimal:
+    return sum((d.valor_total or Decimal("0") for d in documentos), Decimal("0"))
 
 
 def reconciliar_das(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
@@ -204,16 +225,6 @@ def reconciliar_das_inss_holerites(pacote: PacoteObrigacaoFiscal) -> Reconciliac
             },
         )
 
-    holerites_detalhe = [
-        {
-            "holerite_id": h.id,
-            "nome": h.nome,
-            "colaborador": h.colaborador.nome if h.colaborador_id else "",
-            "inss": str(h.desconto_inss),
-        }
-        for h in holerites
-    ]
-
     return _salvar_reconciliacao(
         pacote,
         TipoReconciliacaoFiscalChoices.DAS_INSS,
@@ -225,25 +236,34 @@ def reconciliar_das_inss_holerites(pacote: PacoteObrigacaoFiscal) -> Reconciliac
             "codigo_das": CODIGO_INSS_DAS_SIMPLES,
             "holerites_validos": len(holerites),
             "holerites_total": pacote.holerites.count(),
-            "holerites": holerites_detalhe,
+            "holerites": _holerites_detalhe(holerites),
         },
     )
+
+
+def _valor_contab_inss_da_obrigacao(pacote: PacoteObrigacaoFiscal, obrigacao) -> Decimal | None:
+    """Valor contábil do INSS DARF derivado da obrigação quando o PDF não trouxe valor."""
+    if not (obrigacao and obrigacao.valor > 0):
+        return None
+    extra = obrigacao.dados_extra or {}
+    if extra.get("valor_das_removido"):
+        return None
+    if extra.get("fonte_valor") in {"manual", "pdf_darf"}:
+        return obrigacao.valor
+    if not extra.get("fonte_valor") and not valor_parece_das_contaminado(
+        pacote,
+        {"valor": str(obrigacao.valor), "linhas_composicao": []},
+    ):
+        return obrigacao.valor
+    return None
 
 
 def reconciliar_inss(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
     garantir_inss_darf_do_pdf(pacote)
     obrigacao = pacote.obrigacoes.filter(tipo=TipoObrigacaoFiscalChoices.INSS_DARF).first()
     valor_contab, anexo_darf = valor_darf_pdf(pacote)
-    if valor_contab is None and obrigacao and obrigacao.valor > 0:
-        extra = obrigacao.dados_extra or {}
-        if not extra.get("valor_das_removido"):
-            if extra.get("fonte_valor") in {"manual", "pdf_darf"}:
-                valor_contab = obrigacao.valor
-            elif not extra.get("fonte_valor") and not valor_parece_das_contaminado(
-                pacote,
-                {"valor": str(obrigacao.valor), "linhas_composicao": []},
-            ):
-                valor_contab = obrigacao.valor
+    if valor_contab is None:
+        valor_contab = _valor_contab_inss_da_obrigacao(pacote, obrigacao)
     valor_contab = resolver_valor_contabil(
         pacote,
         TipoReconciliacaoFiscalChoices.INSS,
@@ -256,19 +276,10 @@ def reconciliar_inss(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
         obrigacao.valor_estimado = valor_interno
         obrigacao.save(update_fields=["valor_estimado", "atualizado_em"])
 
-    holerites_detalhe = [
-        {
-            "holerite_id": h.id,
-            "nome": h.nome,
-            "colaborador": h.colaborador.nome if h.colaborador_id else "",
-            "inss": str(h.desconto_inss),
-        }
-        for h in holerites
-    ]
     detalhes = {
         "holerites_total": pacote.holerites.count(),
         "holerites_validos": len(holerites),
-        "holerites": holerites_detalhe,
+        "holerites": _holerites_detalhe(holerites),
         "obrigacao_darf_id": str(obrigacao.public_id) if obrigacao else None,
         "anexo_darf": anexo_darf.nome_original if anexo_darf else None,
     }
@@ -358,66 +369,76 @@ def reconciliar_iss(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
     )
 
 
+def _status_mensagem_icms(
+    *,
+    snapshot,
+    valor_contab_ent: Decimal | None,
+    valor_contab_sai: Decimal | None,
+    diff_ent: Decimal | None,
+    diff_sai: Decimal | None,
+) -> tuple[str, str]:
+    dime_completa = valor_contab_ent is not None and valor_contab_sai is not None
+    if not dime_completa:
+        if snapshot is None and valor_contab_ent is None and valor_contab_sai is None:
+            return StatusReconciliacaoFiscalChoices.PENDENTE, "Importe a DIME ICMS para conciliação completa."
+        return (
+            StatusReconciliacaoFiscalChoices.PENDENTE,
+            "Informe os valores contábeis de entradas e saídas da DIME "
+            "(PDF ilegível ou valores não extraídos).",
+        )
+    status = StatusReconciliacaoFiscalChoices.OK
+    mensagem = "Movimento NF-e × DIME (valor contábil entradas/saídas)."
+    if diff_ent is not None and abs(diff_ent) > Decimal("500"):
+        status = StatusReconciliacaoFiscalChoices.ALERTA
+        mensagem += f" Entradas: diff R$ {diff_ent}."
+    if diff_sai is not None and abs(diff_sai) > Decimal("500"):
+        status = StatusReconciliacaoFiscalChoices.ALERTA
+        mensagem += f" Saídas: diff R$ {diff_sai}."
+    return status, mensagem
+
+
 def reconciliar_icms(pacote: PacoteObrigacaoFiscal) -> ReconciliacaoFiscal:
     snapshot = getattr(pacote, "snapshot_icms", None)
     inicio, fim = _competencia_bounds(pacote.competencia)
-    entradas = DocumentoFiscalRecebido.objects.filter(
-        cnpj_destinatario=pacote.cnpj,
-        data_emissao__date__gte=inicio,
-        data_emissao__date__lte=fim,
+    valor_entradas = _soma_valor_total(
+        DocumentoFiscalRecebido.objects.filter(
+            cnpj_destinatario=pacote.cnpj,
+            data_emissao__date__gte=inicio,
+            data_emissao__date__lte=fim,
+        )
     )
-    saidas = DocumentoFiscalEmitido.objects.filter(
-        cnpj_emitente=pacote.cnpj,
-        data_emissao__date__gte=inicio,
-        data_emissao__date__lte=fim,
+    valor_saidas = _soma_valor_total(
+        DocumentoFiscalEmitido.objects.filter(
+            cnpj_emitente=pacote.cnpj,
+            data_emissao__date__gte=inicio,
+            data_emissao__date__lte=fim,
+        )
     )
-    valor_entradas = sum((d.valor_total or Decimal("0") for d in entradas), Decimal("0"))
-    valor_saidas = sum((d.valor_total or Decimal("0") for d in saidas), Decimal("0"))
-    valor_contab_ent_pdf = snapshot.valor_contabil_entradas if snapshot else None
-    valor_contab_sai_pdf = snapshot.valor_contabil_saidas if snapshot else None
-    valor_contab_ent = resolver_valor_icms(pacote, "entradas", valor_contab_ent_pdf)
-    valor_contab_sai = resolver_valor_icms(pacote, "saidas", valor_contab_sai_pdf)
-    diff_ent = None
-    diff_sai = None
-    if valor_contab_ent is not None:
-        diff_ent = valor_contab_ent - valor_entradas
-    if valor_contab_sai is not None:
-        diff_sai = valor_contab_sai - valor_saidas
+    valor_contab_ent = resolver_valor_icms(pacote, "entradas", snapshot.valor_contabil_entradas if snapshot else None)
+    valor_contab_sai = resolver_valor_icms(pacote, "saidas", snapshot.valor_contabil_saidas if snapshot else None)
+    diff_ent = (valor_contab_ent - valor_entradas) if valor_contab_ent is not None else None
+    diff_sai = (valor_contab_sai - valor_saidas) if valor_contab_sai is not None else None
 
-    dime_completa = valor_contab_ent is not None and valor_contab_sai is not None
+    status, mensagem = _status_mensagem_icms(
+        snapshot=snapshot,
+        valor_contab_ent=valor_contab_ent,
+        valor_contab_sai=valor_contab_sai,
+        diff_ent=diff_ent,
+        diff_sai=diff_sai,
+    )
 
-    if not dime_completa:
-        status = StatusReconciliacaoFiscalChoices.PENDENTE
-        if snapshot is None and valor_contab_ent is None and valor_contab_sai is None:
-            mensagem = "Importe a DIME ICMS para conciliação completa."
-        else:
-            mensagem = (
-                "Informe os valores contábeis de entradas e saídas da DIME "
-                "(PDF ilegível ou valores não extraídos)."
-            )
-    else:
-        status = StatusReconciliacaoFiscalChoices.OK
-        mensagem = "Movimento NF-e × DIME (valor contábil entradas/saídas)."
-        if diff_ent is not None and abs(diff_ent) > Decimal("500"):
-            status = StatusReconciliacaoFiscalChoices.ALERTA
-            mensagem += f" Entradas: diff R$ {diff_ent}."
-        if diff_sai is not None and abs(diff_sai) > Decimal("500"):
-            status = StatusReconciliacaoFiscalChoices.ALERTA
-            mensagem += f" Saídas: diff R$ {diff_sai}."
-
-    detalhes_icms = {
-        "nf_entradas_total": str(valor_entradas),
-        "nf_saidas_total": str(valor_saidas),
-        "dime_entradas": str(valor_contab_ent) if valor_contab_ent is not None else None,
-        "dime_saidas": str(valor_contab_sai) if valor_contab_sai is not None else None,
-        "saldo_credor_dime": str(snapshot.saldo_credor) if snapshot and snapshot.saldo_credor else None,
-        "dime_importada": snapshot is not None,
-    }
-    rec_existente = pacote.reconciliacoes.filter(tipo=TipoReconciliacaoFiscalChoices.ICMS).first()
-    if rec_existente:
-        for chave in CHAVES_DETALHES_MANUAL:
-            if chave in (rec_existente.detalhes or {}):
-                detalhes_icms[chave] = rec_existente.detalhes[chave]
+    detalhes_icms = _mesclar_detalhes_manuais(
+        pacote,
+        TipoReconciliacaoFiscalChoices.ICMS,
+        {
+            "nf_entradas_total": str(valor_entradas),
+            "nf_saidas_total": str(valor_saidas),
+            "dime_entradas": str(valor_contab_ent) if valor_contab_ent is not None else None,
+            "dime_saidas": str(valor_contab_sai) if valor_contab_sai is not None else None,
+            "saldo_credor_dime": str(snapshot.saldo_credor) if snapshot and snapshot.saldo_credor else None,
+            "dime_importada": snapshot is not None,
+        },
+    )
 
     rec, _ = ReconciliacaoFiscal.objects.update_or_create(
         pacote=pacote,

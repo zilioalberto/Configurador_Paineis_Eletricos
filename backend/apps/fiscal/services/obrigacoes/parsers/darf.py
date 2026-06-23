@@ -9,33 +9,61 @@ from apps.fiscal.choices import TipoObrigacaoFiscalChoices
 from ..pdf_util import parse_competencia_mes_ano, parse_data_br, parse_moeda_br
 
 
-def parse_darf(texto: str) -> dict:
-    erros: list[str] = []
-    competencia = None
+CODIGOS_INSS_DARF = {"1082", "1099", "1138", "0561"}
+
+
+def _extrair_competencia_darf(texto: str) -> str | None:
     m_pa = re.search(r"PA:\s*(\d{2}/\d{4})", texto, re.IGNORECASE)
     if m_pa:
         competencia = parse_competencia_mes_ano(m_pa.group(1))
-    if not competencia:
-        m_per = re.search(r"Per[ií]odo de Apura[cç][aã]o", texto, re.IGNORECASE)
-        if m_per:
-            competencia = parse_competencia_mes_ano(texto[m_per.start() : m_per.start() + 80])
-    if not competencia:
-        competencia = parse_competencia_mes_ano(texto)
+        if competencia:
+            return competencia
+    m_per = re.search(r"Per[ií]odo de Apura[cç][aã]o", texto, re.IGNORECASE)
+    if m_per:
+        competencia = parse_competencia_mes_ano(texto[m_per.start() : m_per.start() + 80])
+        if competencia:
+            return competencia
+    return parse_competencia_mes_ano(texto)
+
+
+def _extrair_valor_total_darf(texto: str):
+    m_valor = re.search(r"Valor Total do Documento\s*([\d.,]+)", texto, re.IGNORECASE)
+    if m_valor:
+        valor = parse_moeda_br(m_valor.group(1))
+        if valor is not None:
+            return valor
+    m_tot = re.search(r"Totais\s+([\d.,]+)", texto, re.IGNORECASE)
+    if m_tot:
+        return parse_moeda_br(m_tot.group(1))
+    return None
+
+
+def _extrair_linha_darf(linha: str) -> dict | None:
+    m_cod = re.match(r"\s*(\d{4})\s+(.*)", linha)
+    if not m_cod:
+        return None
+    codigo = m_cod.group(1)
+    if codigo not in CODIGOS_INSS_DARF:
+        return None
+    resto = m_cod.group(2)
+    numeros = re.findall(r"[\d.,]+", resto)
+    if len(numeros) < 2:
+        return None
+    m_num = re.search(r"[\d.,]+", resto)
+    descricao = resto[: m_num.start()].strip() if m_num else resto.strip()
+    valor = parse_moeda_br(numeros[-1]) or parse_moeda_br(numeros[-2])
+    if valor is None:
+        return None
+    return {"codigo": codigo, "descricao": descricao, "valor": str(valor)}
+
+
+def parse_darf(texto: str) -> dict:
+    erros: list[str] = []
+    competencia = _extrair_competencia_darf(texto)
     if not competencia:
         erros.append("Competência não identificada.")
 
-    valor_total = None
-    m_valor = re.search(
-        r"Valor Total do Documento\s*([\d.,]+)",
-        texto,
-        re.IGNORECASE,
-    )
-    if m_valor:
-        valor_total = parse_moeda_br(m_valor.group(1))
-    if valor_total is None:
-        m_tot = re.search(r"Totais\s+([\d.,]+)", texto, re.IGNORECASE)
-        if m_tot:
-            valor_total = parse_moeda_br(m_tot.group(1))
+    valor_total = _extrair_valor_total_darf(texto)
     if valor_total is None:
         erros.append("Valor total não identificado.")
 
@@ -53,24 +81,9 @@ def parse_darf(texto: str) -> dict:
     if m_num:
         numero_doc = m_num.group(1).strip()
 
-    linhas: list[dict] = []
-    codigos_inss = {"1082", "1099", "1138", "0561"}
-    for linha in texto.splitlines():
-        m_cod = re.match(r"\s*(\d{4})\s+(.*)", linha)
-        if not m_cod:
-            continue
-        codigo = m_cod.group(1)
-        if codigo not in codigos_inss:
-            continue
-        resto = m_cod.group(2)
-        numeros = re.findall(r"[\d.,]+", resto)
-        if len(numeros) < 2:
-            continue
-        m_num = re.search(r"[\d.,]+", resto)
-        descricao = resto[: m_num.start()].strip() if m_num else resto.strip()
-        valor = parse_moeda_br(numeros[-1]) or parse_moeda_br(numeros[-2])
-        if valor is not None:
-            linhas.append({"codigo": codigo, "descricao": descricao, "valor": str(valor)})
+    linhas: list[dict] = [
+        linha for linha in (_extrair_linha_darf(l) for l in texto.splitlines()) if linha
+    ]
 
     return {
         "tipo_obrigacao": TipoObrigacaoFiscalChoices.INSS_DARF,

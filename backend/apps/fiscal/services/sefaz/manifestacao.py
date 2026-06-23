@@ -155,49 +155,58 @@ def _montar_envelope_recepcao_evento(dados_msg: str) -> str:
     return montar_envelope_soap12(body_inner_xml=corpo)
 
 
+@dataclass
+class _AcumuladorManifestacao:
+    lote_cstat: str = ""
+    lote_motivo: str = ""
+    evento_cstat: str = ""
+    evento_motivo: str = ""
+    protocolo: str = ""
+    dentro_ret_evento: bool = False
+
+    @property
+    def cstat(self) -> str:
+        return self.evento_cstat or self.lote_cstat
+
+    @property
+    def motivo(self) -> str:
+        return self.evento_motivo or self.lote_motivo
+
+
+def _processar_elemento_manifestacao(acc: _AcumuladorManifestacao, tag: str, valor: str) -> None:
+    if tag == "retEvento":
+        acc.dentro_ret_evento = True
+    elif tag == "cStat":
+        if acc.dentro_ret_evento and not acc.evento_cstat:
+            acc.evento_cstat = valor
+        elif not acc.lote_cstat:
+            acc.lote_cstat = valor
+    elif tag == "xMotivo":
+        if acc.dentro_ret_evento and not acc.evento_motivo:
+            acc.evento_motivo = valor
+        elif not acc.lote_motivo:
+            acc.lote_motivo = valor
+    elif tag == "nProt" and not acc.protocolo:
+        acc.protocolo = valor
+
+
 def _parse_resposta_manifestacao(soap_xml: str) -> ResultadoManifestacaoSefaz:
-    cstat = ""
-    motivo = ""
-    protocolo = ""
+    acc = _AcumuladorManifestacao()
+    motivo_erro = ""
     try:
         raiz = ET.fromstring(soap_xml)
-        lote_cstat = ""
-        lote_motivo = ""
-        evento_cstat = ""
-        evento_motivo = ""
-        dentro_ret_evento = False
-
         for elem in raiz.iter():
             tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
-            if tag == "retEvento":
-                dentro_ret_evento = True
-                continue
-            if tag == "cStat":
-                valor = (elem.text or "").strip()
-                if dentro_ret_evento and not evento_cstat:
-                    evento_cstat = valor
-                elif not lote_cstat:
-                    lote_cstat = valor
-            elif tag == "xMotivo":
-                valor = (elem.text or "").strip()
-                if dentro_ret_evento and not evento_motivo:
-                    evento_motivo = valor
-                elif not lote_motivo:
-                    lote_motivo = valor
-            elif tag == "nProt" and not protocolo:
-                protocolo = (elem.text or "").strip()
-
-        cstat = evento_cstat or lote_cstat
-        motivo = evento_motivo or lote_motivo
+            _processar_elemento_manifestacao(acc, tag, (elem.text or "").strip())
     except ET.ParseError:
-        motivo = "Resposta SEFAZ inválida"
+        motivo_erro = "Resposta SEFAZ inválida"
 
-    sucesso = cstat in _CSTAT_SUCESSO
+    cstat = acc.cstat
     return ResultadoManifestacaoSefaz(
-        sucesso=sucesso,
+        sucesso=cstat in _CSTAT_SUCESSO,
         cstat=cstat,
-        motivo=motivo,
-        protocolo=protocolo,
+        motivo=acc.motivo or motivo_erro,
+        protocolo=acc.protocolo,
         resposta_bruta=soap_xml[:4000],
     )
 
