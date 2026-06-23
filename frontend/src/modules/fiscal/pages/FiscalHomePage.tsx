@@ -1,14 +1,52 @@
-import { type ChangeEvent, useCallback, useEffect, useState } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { catalogoPaths } from '@/modules/catalogo/catalogoPaths'
 import FiscalNsuStatusCard from '../components/FiscalNsuStatusCard'
+import FiscalNfseAdnStatusCard from '../components/FiscalNfseAdnStatusCard'
+import FiscalObrigacoesDashboardCard from '../components/FiscalObrigacoesDashboardCard'
 import { fiscalPaths } from '../fiscalPaths'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { useFiscalProdutoBuscaQuery } from '../hooks/useFiscalProdutoBuscaQuery'
 
-/** Página inicial: busca de produtos e atalhos para NF-e e catálogo. */
+type Atalho = {
+  titulo: string
+  descricao: string
+  to: string
+  label: string
+  primario?: boolean
+  requerEdicao?: boolean
+}
+
+type GrupoAtalhos = {
+  titulo: string
+  itens: Atalho[]
+}
+
+function AtalhoCard({ atalho, podeEditar }: Readonly<{ atalho: Atalho; podeEditar: boolean }>) {
+  const bloqueado = Boolean(atalho.requerEdicao) && !podeEditar
+  const btnClass = atalho.primario ? 'btn btn-primary' : 'btn btn-outline-primary'
+  return (
+    <div className="col-sm-6 col-lg-4 col-xxl-3">
+      <div className="card h-100 shadow-sm">
+        <div className="card-body d-flex flex-column">
+          <h3 className="h6 card-title mb-1">{atalho.titulo}</h3>
+          <p className="card-text text-muted small flex-grow-1">{atalho.descricao}</p>
+          {bloqueado ? (
+            <span className="small text-muted">Requer permissão de edição fiscal.</span>
+          ) : (
+            <Link to={atalho.to} className={`${btnClass} btn-sm align-self-start`}>
+              {atalho.label}
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Página inicial: visão de status, busca de produtos e atalhos organizados. */
 export default function FiscalHomePage() {
   const { user } = useAuth()
   const [buscaInput, setBuscaInput] = useState('')
@@ -37,20 +75,135 @@ export default function FiscalHomePage() {
     buscaDebounced.length === 0 ||
     (isSuccess && !isFetching && resultados.length === 0 && buscaDebounced.length >= 1)
 
+  const grupos = useMemo<GrupoAtalhos[]>(
+    () => [
+      {
+        titulo: 'Documentos recebidos e emitidos',
+        itens: [
+          {
+            titulo: 'NF-es recebidas',
+            descricao: 'Notas importadas da SEFAZ ou por XML, com itens e objetivo fiscal da entrada.',
+            to: fiscalPaths.nfes,
+            label: 'Ver documentos',
+            primario: true,
+          },
+          {
+            titulo: 'Caixa SEFAZ',
+            descricao: 'Resumos da Distribuição DFe aguardando manifestação e importação do XML completo.',
+            to: fiscalPaths.sefazDistribuicao,
+            label: 'Abrir caixa',
+          },
+          {
+            titulo: 'NFS-es recebidas (serviço)',
+            descricao: 'Notas de serviço em que a empresa é tomadora, sincronizadas via ADN.',
+            to: fiscalPaths.nfseRecebidas,
+            label: 'Ver NFS-es',
+          },
+          {
+            titulo: 'NF-es emitidas',
+            descricao: 'Saídas importadas por XML, classificadas por CFOP para compor a RBT12.',
+            to: fiscalPaths.nfesEmitidas,
+            label: 'Ver emitidas',
+          },
+        ],
+      },
+      {
+        titulo: 'Impostos e relatórios',
+        itens: [
+          {
+            titulo: 'Obrigações fiscais',
+            descricao: 'Guias da contabilidade (DAS, INSS, FGTS, ISS, ICMS), vencimentos e conciliação.',
+            to: fiscalPaths.obrigacoes,
+            label: 'Gerir impostos',
+            primario: true,
+          },
+          {
+            titulo: 'Relatório de NF-es',
+            descricao: 'Fechamento por período e finalidade, com fornecedor, valores e itens.',
+            to: fiscalPaths.relatorioNfes,
+            label: 'Gerar relatório',
+          },
+          {
+            titulo: 'Faturamento por clientes',
+            descricao: 'Dashboard de faturamento por mês e por cliente, com base nas NF-es emitidas.',
+            to: fiscalPaths.relatorioFaturamento,
+            label: 'Ver dashboard',
+          },
+          {
+            titulo: 'Projeção DAS — Simples',
+            descricao: 'Estimativa do DAS com base no faturamento dos últimos 12 meses.',
+            to: fiscalPaths.projecaoDas,
+            label: 'Calcular projeção',
+          },
+        ],
+      },
+      {
+        titulo: 'Importação e cadastros',
+        itens: [
+          {
+            titulo: 'Importar XML (fiscal)',
+            descricao: 'Grava a NF-e no armazenamento fiscal sem alterar produtos; informe o objetivo da entrada.',
+            to: fiscalPaths.nfeImportarManual,
+            label: 'Enviar XML',
+            requerEdicao: true,
+          },
+          {
+            titulo: 'Buscar NF-e por chave',
+            descricao: 'Recupera notas retroativas na SEFAZ pela chave de 44 dígitos (sem mexer no NSU).',
+            to: fiscalPaths.nfeBuscarChave,
+            label: 'Buscar por chave',
+            requerEdicao: true,
+          },
+          {
+            titulo: 'Importar XMLs emitidos',
+            descricao: 'Envie um ou vários XMLs de saída; a classificação por CFOP é automática.',
+            to: fiscalPaths.nfeEmitidaImportar,
+            label: 'Importar lote',
+            requerEdicao: true,
+          },
+          {
+            titulo: 'Importar NF-e (catálogo)',
+            descricao: 'Cria ou atualiza produtos a partir do XML e grava a tributação de referência.',
+            to: catalogoPaths.produtoImportarNfe,
+            label: 'Ir para catálogo',
+          },
+          {
+            titulo: 'Itens fiscais',
+            descricao: 'Lista paginada de todos os registos fiscais, com filtro por produto.',
+            to: fiscalPaths.itensFiscais,
+            label: 'Abrir lista',
+          },
+          {
+            titulo: 'Catálogo',
+            descricao: 'Listagem completa de produtos por categoria.',
+            to: catalogoPaths.produtos,
+            label: 'Abrir catálogo',
+          },
+        ],
+      },
+    ],
+    [],
+  )
+
   return (
     <div className="container-fluid">
-      <div className="row mb-4">
-        <div className="col-lg-8">
-          <h1 className="h3 mb-2">Fiscal</h1>
-          <p className="text-muted mb-0">
-            Armazene NF-es recebidas (SEFAZ / XML manual), consulte o histórico no servidor e
-            gerencie a tributação de referência dos produtos. Use a busca abaixo para ir direto ao
-            produto (código, parte da descrição ou fabricante).
-          </p>
-        </div>
+      <div className="mb-4">
+        <h1 className="h3 mb-1">Fiscal</h1>
+        <p className="text-muted mb-0">
+          NF-es e NFS-es recebidas, obrigações fiscais e tributação de referência dos produtos —
+          tudo armazenado no servidor.
+        </p>
       </div>
 
-      <FiscalNsuStatusCard />
+      <section aria-label="Status" className="row g-3 mb-4">
+        <div className="col-12 col-xxl-6">
+          <FiscalNsuStatusCard />
+          <FiscalNfseAdnStatusCard />
+        </div>
+        <div className="col-12 col-xxl-6">
+          <FiscalObrigacoesDashboardCard />
+        </div>
+      </section>
 
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-4">
@@ -82,8 +235,7 @@ export default function FiscalHomePage() {
             />
           </div>
           <p id="fiscal-busca-produto-ajuda" className="form-text mb-0 mt-2">
-            A pesquisa usa o mesmo critério do catálogo (palavras em código, descrição ou fabricante).
-            Até 40 resultados ativos. Digite pelo menos uma letra ou número.
+            Mesmo critério do catálogo (código, descrição ou fabricante). Até 40 resultados ativos.
           </p>
 
           {isError && (
@@ -136,174 +288,22 @@ export default function FiscalHomePage() {
 
           {buscaDebounced.length === 0 && (
             <p className="text-muted small mt-3 mb-0">
-              Comece a escrever para ver sugestões. Para ver todos os itens fiscais em tabela, use a
-              lista dedicada.
+              Comece a escrever para ver sugestões.
             </p>
           )}
         </div>
       </div>
 
-      <h2 className="h5 text-muted mb-3">Atalhos</h2>
-      <div className="row g-3">
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">NF-es recebidas</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Lista de notas importadas da SEFAZ (ponte A3) ou manualmente, com XML, itens e
-                objetivo fiscal da entrada.
-              </p>
-              <Link to={fiscalPaths.nfes} className="btn btn-primary">
-                Ver documentos
-              </Link>
-            </div>
+      {grupos.map((grupo) => (
+        <section key={grupo.titulo} className="mb-4">
+          <h2 className="h6 text-uppercase text-muted fw-semibold mb-3">{grupo.titulo}</h2>
+          <div className="row g-3">
+            {grupo.itens.map((atalho) => (
+              <AtalhoCard key={atalho.titulo} atalho={atalho} podeEditar={podeEditar} />
+            ))}
           </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Relatório de NF-es</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Fechamento por período e finalidade, com fornecedor, chave, valores e visualização
-                rápida dos itens para contabilidade e gestão.
-              </p>
-              <Link to={fiscalPaths.relatorioNfes} className="btn btn-primary">
-                Gerar relatório
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Faturamento por clientes</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Dashboard e relatório de faturamento por mês e por cliente, com base nas NF-es
-                emitidas importadas.
-              </p>
-              <Link to={fiscalPaths.relatorioFaturamento} className="btn btn-primary">
-                Ver dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">NF-es emitidas</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Saídas importadas por XML, classificadas por CFOP (revenda, industrialização,
-                serviços) para compor a RBT12.
-              </p>
-              <Link to={fiscalPaths.nfesEmitidas} className="btn btn-outline-primary">
-                Ver emitidas
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Projeção DAS — Simples</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Estimativa do DAS com base no faturamento dos últimos 12 meses e nas notas emitidas
-                importadas.
-              </p>
-              <Link to={fiscalPaths.projecaoDas} className="btn btn-outline-primary">
-                Calcular projeção
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Importar XMLs emitidos</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Envie um ou vários XMLs de NF-e/NFS-e; a classificação por CFOP é automática.
-              </p>
-              {podeEditar ? (
-                <Link to={fiscalPaths.nfeEmitidaImportar} className="btn btn-outline-primary">
-                  Importar lote
-                </Link>
-              ) : (
-                <span className="small text-muted">Requer permissão de edição fiscal.</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Importar XML (fiscal)</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Grava a NF-e no armazenamento fiscal sem alterar produtos; informe se a entrada é
-                industrialização, revenda, uso/consumo, ativo etc.
-              </p>
-              {podeEditar ? (
-                <Link to={fiscalPaths.nfeImportarManual} className="btn btn-outline-primary">
-                  Enviar XML
-                </Link>
-              ) : (
-                <span className="small text-muted">Requer permissão de edição fiscal.</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Importar NF-e (catálogo)</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Cria ou atualiza produtos a partir do XML e grava tributação de referência com o
-                objetivo fiscal da entrada selecionado.
-              </p>
-              <Link to={catalogoPaths.produtoImportarNfe} className="btn btn-outline-primary">
-                Ir para catálogo
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Controle NSU</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Estado de sincronização com a SEFAZ (consulta pela ponte A3 no futuro).
-              </p>
-              <Link to={fiscalPaths.nsu} className="btn btn-outline-secondary">
-                Consultar NSU
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Itens fiscais</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Lista paginada de todos os registos fiscais; filtro opcional por produto.
-              </p>
-              <Link to={fiscalPaths.itensFiscais} className="btn btn-outline-primary">
-                Abrir lista
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-6 col-lg-4">
-          <div className="card h-100 shadow-sm">
-            <div className="card-body d-flex flex-column">
-              <h3 className="h5 card-title">Catálogo</h3>
-              <p className="card-text text-muted small flex-grow-1">
-                Listagem completa de produtos por categoria.
-              </p>
-              <Link to={catalogoPaths.produtos} className="btn btn-outline-secondary">
-                Abrir catálogo
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+        </section>
+      ))}
     </div>
   )
 }

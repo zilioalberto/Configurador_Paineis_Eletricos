@@ -130,6 +130,7 @@ def _parse_item_det(det: ET.Element) -> dict[str, Any] | None:
     return {
         "numero_item": _attr_nitem(det),
         "codigo_fornecedor": _text(prod, "cProd")[:100],
+        "gtin": _normalizar_gtin(_text(prod, "cEAN") or _text(prod, "cEANTrib")),
         "descricao": _text(prod, "xProd")[:500],
         "ncm": _text(prod, "NCM")[:20],
         "cfop": _text(prod, "CFOP")[:10],
@@ -138,6 +139,14 @@ def _parse_item_det(det: ET.Element) -> dict[str, Any] | None:
         "valor_unitario": _parse_decimal(_text(prod, "vUnCom"), "0"),
         "valor_total": _parse_decimal(_text(prod, "vProd"), "0"),
     }
+
+
+def _normalizar_gtin(valor: str) -> str:
+    """Retorna apenas o GTIN numérico válido; descarta 'SEM GTIN' e afins."""
+    digitos = somente_digitos(valor or "", 14)
+    if len(digitos) in (8, 12, 13, 14):
+        return digitos
+    return ""
 
 
 def _montar_itens(inf_nfe: ET.Element) -> list[dict[str, Any]]:
@@ -172,6 +181,7 @@ def parse_nfe_xml(xml: str) -> dict[str, Any]:
         "serie": _text(ide, "serie")[:10],
         "data_emissao": _parse_data_emissao(ide),
         "natureza_operacao": (_text(ide, "natOp") or "")[:255],
+        "finalidade_nfe": _text(ide, "finNFe")[:2],
         "valor_total": _extrair_valor_total(inf_nfe),
         "emitente": emitente,
         "destinatario": destinatario,

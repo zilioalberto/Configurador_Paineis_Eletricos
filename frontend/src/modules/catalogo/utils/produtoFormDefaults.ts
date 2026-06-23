@@ -10,7 +10,7 @@ export const produtoFormEmpty = (): ProdutoFormData => ({
   descricao: '',
   categoria: '',
   unidade_medida: 'UN',
-  preco_base: '0',
+  custo_referencia: '0',
   aliquota_ipi: '',
   fabricante_parceiro: '',
   fabricante_parceiro_nome: '',

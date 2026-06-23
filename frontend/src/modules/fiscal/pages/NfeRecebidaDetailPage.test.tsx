@@ -21,8 +21,11 @@ vi.mock('@/components/feedback', () => ({
   useToast: () => ({ showToast: showToastMock }),
 }))
 
+const reclassificarEntradaNfeMock = vi.hoisted(() => vi.fn())
+
 vi.mock('../services/fiscalNfeService', () => ({
   importarNfeXmlManual: (...args: unknown[]) => importarNfeXmlManualMock(...args),
+  reclassificarEntradaNfe: (...args: unknown[]) => reclassificarEntradaNfeMock(...args),
 }))
 
 vi.mock('../hooks/useFiscalConfigQuery', () => ({
@@ -58,6 +61,11 @@ describe('NfeRecebidaDetailPage', () => {
         status_importacao: 'PROCESSADA',
         origem_importacao: 'MANUAL',
         objetivo_entrada: 'INDUSTRIALIZACAO',
+        objetivo_entrada_display: 'Industrialização',
+        classificacao_origem: 'AUTOMATICA',
+        finalidade_nfe: '1',
+        finalidade_nfe_display: 'Normal',
+        cfop_predominante: '1101',
         manifestacao_status: 'NAO_SOLICITADA',
         manifestacao_tipo: '',
         manifestacao_justificativa: '',
@@ -77,32 +85,52 @@ describe('NfeRecebidaDetailPage', () => {
     })
   })
 
-  it('renderiza detalhe da NF-e', () => {
+  function renderDetail(path = '/fiscal/nfes/5') {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
     render(
-      <MemoryRouter initialEntries={['/fiscal/nfes/5']}>
-        <Routes>
-          <Route path="/fiscal/nfes/:id" element={<NfeRecebidaDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/fiscal/nfes/:id" element={<NfeRecebidaDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
     )
+  }
+
+  it('renderiza detalhe da NF-e', () => {
+    renderDetail()
 
     expect(screen.getByRole('heading', { name: /nf-e 500/i })).toBeInTheDocument()
     expect(screen.getAllByText(/Industrialização/i).length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: /importar itens no catálogo/i })).toHaveAttribute(
-      'href',
-      '/catalogo/produtos/importar-nfe?documentoFiscalId=5'
-    )
+    expect(
+      screen.getByRole('link', { name: /revisar e importar no catálogo/i }),
+    ).toHaveAttribute('href', '/fiscal/nfes/5/importar-catalogo')
+    expect(
+      screen.getByRole('link', { name: /importar \(assistente clássico\)/i }),
+    ).toHaveAttribute('href', '/catalogo/produtos/importar-nfe?documentoFiscalId=5')
     expect(useNfeRecebidaDetailQueryMock).toHaveBeenCalledWith(5, true)
   })
 
+  it('reclassifica o objetivo da nota', async () => {
+    reclassificarEntradaNfeMock.mockResolvedValue({})
+    renderDetail()
+
+    fireEvent.change(screen.getByLabelText(/objetivo da nota/i), {
+      target: { value: 'USO_CONSUMO' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /salvar classificação/i }))
+
+    await waitFor(() => expect(reclassificarEntradaNfeMock).toHaveBeenCalled())
+    expect(reclassificarEntradaNfeMock).toHaveBeenCalledWith(5, {
+      objetivo_entrada: 'USO_CONSUMO',
+    })
+  })
+
   it('mostra aviso para id inválido', () => {
-    render(
-      <MemoryRouter initialEntries={['/fiscal/nfes/abc']}>
-        <Routes>
-          <Route path="/fiscal/nfes/:id" element={<NfeRecebidaDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    )
+    renderDetail('/fiscal/nfes/abc')
 
     expect(screen.getByText(/identificador da nf-e inválido/i)).toBeInTheDocument()
   })
@@ -211,6 +239,11 @@ describe('NfeImportarManualPage', () => {
       2,
       expect.objectContaining({ xml: xml2, objetivo_entrada: 'USO_CONSUMO' }),
     )
-    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/fiscal/nfes'))
+    expect(await screen.findByText(/Lote concluído/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /ver nf-es recebidas/i })).toHaveAttribute(
+      'href',
+      '/fiscal/nfes',
+    )
+    expect(navigateMock).not.toHaveBeenCalled()
   })
 })

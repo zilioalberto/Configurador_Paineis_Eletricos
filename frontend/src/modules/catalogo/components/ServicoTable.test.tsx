@@ -29,7 +29,7 @@ describe('ServicoTable', () => {
               categoria: 'Campo',
               unidade_medida: 'UN',
               unidade_medida_display: 'Unidade',
-              preco_base: '100.00',
+              custo_referencia: '100.00',
               ativo: true,
             },
           ]}

@@ -1,4 +1,11 @@
-"""Regras CFOP → objetivo de saída e anexo do Simples Nacional."""
+"""Regras CFOP → objetivo de saída, anexo Simples e flag «compõe faturamento» (RBT12).
+
+Conceito «compõe faturamento»:
+- Verdadeiro apenas para receita bruta tributável no Simples (venda, industrialização
+  faturada, prestação de serviço).
+- Falso para movimentações sem receita (remessa, retorno, transferência, devolução,
+  bonificação, baixa de estoque etc.) e para CFOPs não mapeados (revisão manual).
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -74,28 +81,80 @@ _CFOPS_VENDA = {
     "6667",
 }
 
+# Venda / faturamento de industrialização por encomenda (receita).
 _CFOPS_INDUSTRIALIZACAO = {"5124", "6124"}
 
 _CFOPS_SERVICO = {"5933", "6933"}
 
-_CFOPS_DEVOLUCAO = {"5201", "5202", "5411", "6201", "6202", "6411"}
-
-_CFOPS_REMESSA = {
-    "5908",
-    "6908",
-    "5912",
-    "6912",
-    "5909",
-    "6909",
-    "5915",
-    "6915",
-    "5949",
-    "6949",
+_CFOPS_DEVOLUCAO = {
+    "5201",
+    "5202",
+    "5208",
+    "5209",
+    "5210",
+    "5410",
+    "5411",
+    "5412",
+    "5413",
+    "6201",
+    "6202",
+    "6208",
+    "6209",
+    "6210",
+    "6410",
+    "6411",
+    "6412",
+    "6413",
 }
 
-_CFOPS_TRANSFERENCIA = {"5151", "5152", "6151", "6152"}
+_CFOPS_TRANSFERENCIA = {"5151", "5152", "5153", "5155", "5156", "6151", "6152", "6153", "6155", "6156"}
 
 _CFOPS_BONIFICACAO = {"5910", "6910", "5911", "6911"}
+
+
+def _pares_interestaduais(*codigos: str) -> frozenset[str]:
+    """Inclui par 6xxx para cada código 5xxx informado."""
+    resultado: set[str] = set()
+    for codigo in codigos:
+        resultado.add(codigo)
+        if codigo.startswith("5") and len(codigo) == 4:
+            resultado.add(f"6{codigo[1:]}")
+    return frozenset(resultado)
+
+
+# Remessas, retornos, consignação, amostras, baixas — sem receita para RBT12.
+_CFOPS_MOVIMENTO_SEM_RECEITA = _pares_interestaduais(
+    "5901",  # remessa p/ industrialização
+    "5902",  # retorno de mercadoria usada na industrialização
+    "5903",  # retorno de mercadoria recebida p/ industrialização
+    "5904",  # remessa p/ venda fora do estabelecimento
+    "5905",  # remessa p/ conserto/reparo
+    "5906",  # retorno de mercadoria remetida p/ conserto
+    "5907",  # retorno simbólico
+    "5908",
+    "5909",
+    "5912",
+    "5913",  # retorno de amostra grátis
+    "5914",  # remessa p/ exportação
+    "5915",
+    "5916",  # retorno de consignação
+    "5917",  # remessa de consignação
+    "5918",  # devolução de consignação
+    "5919",  # devolução simbólica
+    "5920",  # remessa de vasilhame/embalagem
+    "5921",  # devolução de vasilhame
+    "5922",  # simples faturamento (ajuste — não somar de novo na RBT12)
+    "5923",  # remessa p/ triangulação
+    "5924",
+    "5925",
+    "5926",
+    "5927",  # baixa de estoque
+    "5928",
+    "5929",
+    "5931",  # perda
+    "5932",  # retorno por recusa
+    "5949",  # outra saída não especificada
+)
 
 
 @dataclass(frozen=True)
@@ -128,64 +187,63 @@ def cfop_predominante_por_itens(itens: list) -> str:
     return max(totais.items(), key=lambda row: row[1])[0]
 
 
+def _sem_faturamento(
+    *,
+    objetivo: str,
+    anexo: str = AnexoSimplesNacionalChoices.NENHUM,
+) -> ClassificacaoCfop:
+    return ClassificacaoCfop(
+        objetivo_saida=objetivo,
+        anexo_simples=anexo,
+        incluir_faturamento=False,
+    )
+
+
 def classificar_cfop(cfop: str) -> ClassificacaoCfop:
     codigo = normalizar_cfop(cfop)
     if not codigo:
         return ClassificacaoCfop(
             objetivo_saida=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
             anexo_simples="",
-            incluir_faturamento=True,
+            incluir_faturamento=False,
         )
+
     if codigo in _CFOPS_DEVOLUCAO:
-        return ClassificacaoCfop(
-            objetivo_saida=ObjetivoSaidaFiscalChoices.DEVOLUCAO_COMPRA,
-            anexo_simples=AnexoSimplesNacionalChoices.NENHUM,
-            incluir_faturamento=False,
-        )
-    if codigo in _CFOPS_REMESSA:
-        return ClassificacaoCfop(
-            objetivo_saida=ObjetivoSaidaFiscalChoices.REMESSA,
-            anexo_simples=AnexoSimplesNacionalChoices.NENHUM,
-            incluir_faturamento=False,
-        )
+        return _sem_faturamento(objetivo=ObjetivoSaidaFiscalChoices.DEVOLUCAO_COMPRA)
+
+    if codigo in _CFOPS_MOVIMENTO_SEM_RECEITA:
+        return _sem_faturamento(objetivo=ObjetivoSaidaFiscalChoices.REMESSA)
+
     if codigo in _CFOPS_TRANSFERENCIA:
-        return ClassificacaoCfop(
-            objetivo_saida=ObjetivoSaidaFiscalChoices.TRANSFERENCIA,
-            anexo_simples=AnexoSimplesNacionalChoices.NENHUM,
-            incluir_faturamento=False,
-        )
+        return _sem_faturamento(objetivo=ObjetivoSaidaFiscalChoices.TRANSFERENCIA)
+
     if codigo in _CFOPS_BONIFICACAO:
-        return ClassificacaoCfop(
-            objetivo_saida=ObjetivoSaidaFiscalChoices.BONIFICACAO_DOACAO_BRINDE,
-            anexo_simples=AnexoSimplesNacionalChoices.NENHUM,
-            incluir_faturamento=False,
-        )
+        return _sem_faturamento(objetivo=ObjetivoSaidaFiscalChoices.BONIFICACAO_DOACAO_BRINDE)
+
     if codigo in _CFOPS_INDUSTRIALIZACAO:
         return ClassificacaoCfop(
             objetivo_saida=ObjetivoSaidaFiscalChoices.INDUSTRIALIZACAO,
             anexo_simples=AnexoSimplesNacionalChoices.II,
             incluir_faturamento=True,
         )
+
     if codigo in _CFOPS_SERVICO:
         return ClassificacaoCfop(
             objetivo_saida=ObjetivoSaidaFiscalChoices.PRESTACAO_SERVICO,
             anexo_simples="",
             incluir_faturamento=True,
         )
+
     if codigo in _CFOPS_VENDA:
         return ClassificacaoCfop(
             objetivo_saida=ObjetivoSaidaFiscalChoices.VENDA_PRODUTO,
             anexo_simples=AnexoSimplesNacionalChoices.I,
             incluir_faturamento=True,
         )
-    if codigo[0] in {"5", "6", "7"}:
-        return ClassificacaoCfop(
-            objetivo_saida=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
-            anexo_simples="",
-            incluir_faturamento=True,
-        )
+
+    # CFOP não mapeado: não compõe até revisão manual (evita inflar RBT12).
     return ClassificacaoCfop(
         objetivo_saida=ObjetivoSaidaFiscalChoices.OUTRAS_SAIDAS,
         anexo_simples="",
-        incluir_faturamento=True,
+        incluir_faturamento=False,
     )

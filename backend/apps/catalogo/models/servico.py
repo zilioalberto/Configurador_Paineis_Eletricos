@@ -31,16 +31,16 @@ class Servico(BaseModel, UpperCaseMixin, AtivacaoMixin):
         choices=UnidadeMedidaChoices.choices,
         default=UnidadeMedidaChoices.HORAS,
     )
-    preco_base = models.DecimalField(
+    custo_referencia = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0,
-        help_text="Preço/custo de referência para propostas.",
+        help_text="Custo de referência para compor o preço das propostas (custo × margem).",
     )
-    preco_atualizado_em = models.DateTimeField(
+    custo_atualizado_em = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Data da última revisão comercial do preço de referência.",
+        help_text="Data da última atualização do custo de referência.",
     )
     observacoes = models.TextField(blank=True)
 
@@ -48,15 +48,17 @@ class Servico(BaseModel, UpperCaseMixin, AtivacaoMixin):
         return f"{self.codigo} — {self.descricao}"
 
     def save(self, *args, **kwargs):
-        preco_mudou = self._state.adding
+        custo_mudou = self._state.adding
         if not self._state.adding and self.pk:
-            preco_anterior = (
-                type(self).objects.filter(pk=self.pk).values_list("preco_base", flat=True).first()
+            custo_anterior = (
+                type(self).objects.filter(pk=self.pk)
+                .values_list("custo_referencia", flat=True)
+                .first()
             )
-            preco_mudou = preco_anterior != self.preco_base
-        if preco_mudou:
-            self.preco_atualizado_em = timezone.now()
+            custo_mudou = custo_anterior != self.custo_referencia
+        if custo_mudou:
+            self.custo_atualizado_em = timezone.now()
             update_fields = kwargs.get("update_fields")
             if update_fields is not None:
-                kwargs["update_fields"] = set(update_fields) | {"preco_atualizado_em"}
+                kwargs["update_fields"] = set(update_fields) | {"custo_atualizado_em"}
         super().save(*args, **kwargs)

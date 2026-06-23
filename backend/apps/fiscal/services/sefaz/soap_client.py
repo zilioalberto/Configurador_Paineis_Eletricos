@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 import requests
+from requests import HTTPError
 
 from .certificado import CertificadoA1
 
@@ -34,5 +35,10 @@ def post_soap(
             cert=(str(cert_file), str(key_file)),
             timeout=timeout_sec,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            detalhe = (response.text or "").strip().replace("\n", " ")[:1000]
+            mensagem = f"{exc}. Resposta SEFAZ: {detalhe}" if detalhe else str(exc)
+            raise HTTPError(mensagem, response=response) from exc
         return response.text

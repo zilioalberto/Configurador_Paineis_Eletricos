@@ -58,6 +58,7 @@ export type ColaboradorDto = {
   nome: string
   email: string
   telefone: string
+  /** CPF (11 dígitos; armazenado no campo `documento` da API). */
   documento: string
   cargo: string | null
   cargo_nome: string

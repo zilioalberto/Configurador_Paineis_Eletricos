@@ -92,7 +92,7 @@ export default function ServicoForm({
       </div>
       <div className="col-md-3">
         <label className="form-label" htmlFor="servico-preco">
-          Preço base
+          Custo de referência
         </label>
         <input
           id="servico-preco"
@@ -100,8 +100,8 @@ export default function ServicoForm({
           type="number"
           min="0"
           step="0.01"
-          value={form.preco_base}
-          onChange={(e) => patchField('preco_base', e.target.value)}
+          value={form.custo_referencia}
+          onChange={(e) => patchField('custo_referencia', e.target.value)}
           disabled={loading}
         />
       </div>

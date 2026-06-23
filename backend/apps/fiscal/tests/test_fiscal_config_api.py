@@ -32,31 +32,58 @@ def jwt_client():
 
 @pytest.mark.django_db
 class TestFiscalModuloConfigApi:
-    @override_settings(
-        FISCAL_EMPRESA_CNPJ="12.345.678/0001-99",
-        FISCAL_CERT_PATH="/secrets/cert.pfx",
-        FISCAL_CERT_PASSWORD="senha",
-        FISCAL_SEFAZ_PROVIDER="native",
-    )
-    def test_retorna_cnpj_e_sefaz_configurado(self, jwt_client):
-        resp = jwt_client.get(URL)
+    def test_retorna_cnpj_e_sefaz_disponivel_com_certificado(self, jwt_client, tmp_path):
+        cert = tmp_path / "cert.pfx"
+        cert.write_bytes(b"fake-cert")
+
+        with override_settings(
+            FISCAL_EMPRESA_CNPJ="12.345.678/0001-99",
+            FISCAL_CERT_PATH=str(cert),
+            FISCAL_CERT_PASSWORD="senha",
+            FISCAL_SEFAZ_PROVIDER="native",
+        ):
+            resp = jwt_client.get(URL)
+
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["cnpj_empresa"] == "12345678000199"
+        assert resp.data["sefaz_sync_disponivel"] is True
         assert resp.data["sefaz_sync_configurado"] is True
-        assert resp.data["agente_ponte_configurado"] is True
+        assert resp.data["certificado_a1_configurado"] is True
+        assert resp.data["sefaz_sync_modo"] == "producao"
+        assert "agente_ponte_configurado" not in resp.data
 
     @override_settings(
         FISCAL_EMPRESA_CNPJ="12.345.678/0001-99",
         FISCAL_SEFAZ_PROVIDER="stub",
     )
-    def test_stub_habilita_sync_sem_certificado(self, jwt_client):
+    def test_stub_nao_habilita_sync_real(self, jwt_client):
         resp = jwt_client.get(URL)
-        assert resp.data["sefaz_sync_configurado"] is True
+        assert resp.data["sefaz_sync_disponivel"] is False
+        assert resp.data["sefaz_sync_configurado"] is False
+        assert resp.data["sefaz_sync_modo"] == "stub"
+        assert "simulado" in resp.data["sefaz_sync_mensagem"].lower()
 
-    @override_settings(FISCAL_EMPRESA_CNPJ="", FISCAL_AGENT_TOKEN="")
+    @override_settings(
+        FISCAL_EMPRESA_CNPJ="12.345.678/0001-99",
+        FISCAL_SEFAZ_PROVIDER="native",
+        FISCAL_CERT_PATH="",
+        FISCAL_CERT_PASSWORD="",
+    )
+    def test_native_sem_certificado_indisponivel(self, jwt_client):
+        resp = jwt_client.get(URL)
+        assert resp.data["sefaz_sync_disponivel"] is False
+        assert resp.data["sefaz_sync_modo"] == "indisponivel"
+        assert "certificado" in resp.data["sefaz_sync_mensagem"].lower()
+
+    @override_settings(
+        FISCAL_EMPRESA_CNPJ="",
+        FISCAL_SEFAZ_PROVIDER="stub",
+        FISCAL_CERT_PATH="",
+        FISCAL_CERT_PASSWORD="",
+    )
     def test_cnpj_vazio_quando_nao_configurado(self, jwt_client):
         resp = jwt_client.get(URL)
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["cnpj_empresa"] == ""
+        assert resp.data["sefaz_sync_disponivel"] is False
         assert resp.data["sefaz_sync_configurado"] is False
-        assert resp.data["agente_ponte_configurado"] is False

@@ -193,7 +193,7 @@ class TestCatalogoProdutos:
             "descricao": "Novo via API",
             "categoria": CategoriaProdutoNomeChoices.BORNE,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "0",
+            "custo_referencia": "0",
         }
         r = client.post(url, payload, format="json")
         assert r.status_code == 201
@@ -209,7 +209,7 @@ class TestCatalogoProdutos:
             "descricao": "Com NCM",
             "categoria": CategoriaProdutoNomeChoices.BORNE,
             "unidade_medida": UnidadeMedidaChoices.UN,
-            "preco_base": "99.50",
+            "custo_referencia": "99.50",
             "informacao_comercial": {
                 "gtin": "7892904135529",
                 "ncm": "85381000",

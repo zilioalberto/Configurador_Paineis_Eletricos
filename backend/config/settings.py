@@ -32,6 +32,21 @@ def _env_or_dotenv(name: str, default: str = "") -> str:
     return default
 
 
+def _secret_env_or_file(name: str, file_name: str, default: str = "") -> str:
+    value = _env_or_dotenv(name, "")
+    if value.strip():
+        return value
+
+    file_path = _env_or_dotenv(file_name, "")
+    if not file_path.strip():
+        return default
+
+    try:
+        return Path(file_path).read_text(encoding="utf-8").strip()
+    except OSError:
+        return default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -213,13 +228,12 @@ REST_FRAMEWORK = {
 }
 
 # Consulta CNPJ (Brasil API) — validacao, sanitizacao e limites de seguranca.
-# Token Bearer para agente fiscal legado (ponte local). Opcional com sincronização nativa A1.
-FISCAL_AGENT_TOKEN = os.getenv("FISCAL_AGENT_TOKEN", "")
 # CNPJ da ZFW (14 dígitos) — DistDFe e portal fiscal.
 FISCAL_EMPRESA_CNPJ = _env_or_dotenv("FISCAL_EMPRESA_CNPJ", "")
-# Certificado A1 (.pfx) no servidor — sincronização SEFAZ nativa (sem ACBr).
+# Certificado A1 (.pfx) no servidor — sincronização SEFAZ nativa.
 FISCAL_CERT_PATH = os.getenv("FISCAL_CERT_PATH", "")
-FISCAL_CERT_PASSWORD = os.getenv("FISCAL_CERT_PASSWORD", "")
+FISCAL_CERT_PASSWORD_FILE = _env_or_dotenv("FISCAL_CERT_PASSWORD_FILE", "")
+FISCAL_CERT_PASSWORD = _secret_env_or_file("FISCAL_CERT_PASSWORD", "FISCAL_CERT_PASSWORD_FILE")
 # Código UF IBGE do autor (ex.: 35=SP, 42=SC). Usado em distDFeInt cUFAutor.
 FISCAL_SEFAZ_UF = os.getenv("FISCAL_SEFAZ_UF", "42")
 # 1=produção, 2=homologação
@@ -227,6 +241,14 @@ FISCAL_SEFAZ_AMBIENTE = os.getenv("FISCAL_SEFAZ_AMBIENTE", "2")
 # native | stub (stub = sem certificado, para testes)
 FISCAL_SEFAZ_PROVIDER = os.getenv("FISCAL_SEFAZ_PROVIDER", "native")
 FISCAL_SYNC_MAX_CICLOS = int(os.getenv("FISCAL_SYNC_MAX_CICLOS", "20"))
+# Manifesta Ciência automaticamente nos resumos novos (libera o XML completo da SEFAZ).
+FISCAL_AUTO_CIENCIA = os.getenv("FISCAL_AUTO_CIENCIA", "false").strip().lower() in {"1", "true", "yes", "on"}
+# Intervalo (segundos) entre execuções do agendador de sincronização SEFAZ.
+FISCAL_SYNC_INTERVAL_SECONDS = int(os.getenv("FISCAL_SYNC_INTERVAL_SECONDS", "3600"))
+# NFS-e Nacional — ADN (distribuição DFe para tomador)
+FISCAL_NFSE_ADN_AMBIENTE = os.getenv("FISCAL_NFSE_ADN_AMBIENTE", "")
+FISCAL_NFSE_ADN_PROVIDER = os.getenv("FISCAL_NFSE_ADN_PROVIDER", "native")
+FISCAL_NFSE_ADN_MAX_CICLOS = int(os.getenv("FISCAL_NFSE_ADN_MAX_CICLOS", "20"))
 
 CNPJ_CONSULTA = {
     "TIMEOUT_SEC": int(os.getenv("CNPJ_CONSULTA_TIMEOUT_SEC", "15")),

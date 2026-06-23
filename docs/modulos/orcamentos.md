@@ -50,6 +50,20 @@ Sugestão de dados no domínio de orçamentos:
 - A apresentação pode consolidar os itens em um resumo único, sem alterar o cálculo de origem.
 - Imagens e textos ricos devem ser tratados como conteúdo editorial, não como parte da lógica de cálculo.
 
+### Composição do preço (custo + margem + IPI)
+
+O preço de venda **não fica no catálogo**. Ele é composto na linha do orçamento a partir do
+**custo de referência** do item:
+
+```
+preco_unitario = custo_referencia × (1 + margem do cliente) × (1 + IPI)
+```
+
+- `custo_referencia` vem do catálogo (`Produto`/`Servico`) — ver [Catálogo › Custo de referência](catalogo.md#custo-de-referência-e-composição-do-preço). É atualizado pela NF-e de entrada, pelo cadastro ou pela revisão de preço na oferta.
+- A **margem** é configurada por cliente (`/erp/orcamentos/margens-clientes`).
+- O **IPI** vem do cadastro fiscal do produto (somente leitura na linha).
+- `OrcamentoItem.custo_unitario` guarda o custo no momento da inclusão (rastreabilidade); `custo_atualizado_em` no catálogo alimenta o alerta de "Preço vencido".
+
 ## Frontend
 
 - `OrcamentoListPage`, `OrcamentoDetailPage`

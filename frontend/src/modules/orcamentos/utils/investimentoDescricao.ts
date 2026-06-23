@@ -15,7 +15,3 @@ export function descricaoInvestimentoExibicao(
   const valor = (custom ?? '').trim()
   return valor || padrao
 }
-
-export function placeholderDescricaoInvestimento(_titulo: string): string {
-  return INVESTIMENTO_DESCRICAO_DEMAIS_PADRAO
-}

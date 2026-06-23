@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-
 export function BellIcon() {
   return (
     <svg width={22} height={22} viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -30,10 +28,3 @@ export function UserAvatarPlaceholder({ label }: Readonly<{ label: string }>) {
   )
 }
 
-export function ListaProjetosLink({ onNavigate }: Readonly<{ onNavigate?: () => void }>) {
-  return (
-    <Link to="/projetos" className="app-header-atalhos-footer-link" onClick={onNavigate}>
-      Lista de projetos
-    </Link>
-  )
-}

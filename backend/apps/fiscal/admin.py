@@ -5,6 +5,7 @@ from apps.fiscal.models import (
     ControleNSU,
     DocumentoFiscalEmitido,
     DocumentoFiscalRecebido,
+    DocumentoSefazDistribuido,
     ItemDocumentoFiscal,
     ItemDocumentoFiscalEmitido,
     ItemFiscalProduto,
@@ -40,6 +41,24 @@ class ControleNSUAdmin(admin.ModelAdmin):
     )
     search_fields = ("cnpj",)
     readonly_fields = ("criado_em", "atualizado_em")
+
+
+@admin.register(DocumentoSefazDistribuido)
+class DocumentoSefazDistribuidoAdmin(admin.ModelAdmin):
+    list_display = (
+        "chave_acesso",
+        "nsu",
+        "status",
+        "manifestacao_status",
+        "nome_emitente",
+        "valor_total",
+        "data_emissao",
+        "documento_recebido",
+    )
+    list_filter = ("status", "manifestacao_status", "tipo_documento", "schema")
+    search_fields = ("chave_acesso", "cnpj_emitente", "nome_emitente", "nsu")
+    readonly_fields = ("criado_em", "atualizado_em")
+    raw_id_fields = ("documento_recebido",)
 
 
 class ItemDocumentoFiscalInline(admin.TabularInline):

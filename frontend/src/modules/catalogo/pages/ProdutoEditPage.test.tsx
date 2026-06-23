@@ -97,7 +97,7 @@ const produtoApi = {
   categoria_nome: 'SEM_REGRA_SUGESTAO_AUTOMATICA',
   unidade_medida: 'UN',
   ativo: true,
-  preco_base: '1.00',
+  custo_referencia: '1.00',
 }
 
 describe('ProdutoEditPage', () => {

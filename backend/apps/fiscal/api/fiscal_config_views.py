@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.api.permissions import HasEffectivePermission
+from apps.fiscal.services.sefaz.status import montar_status_sefaz_sync
+from apps.fiscal.services.nfse_adn.status import montar_status_nfse_adn_sync
 from apps.fiscal.utils import normalizar_cnpj
 from core.permissions import PermissionKeys
 
@@ -19,20 +21,12 @@ class FiscalModuloConfigView(APIView):
     def get(self, request):
         raw = (getattr(settings, "FISCAL_EMPRESA_CNPJ", None) or "").strip()
         cnpj = normalizar_cnpj(raw) if raw else ""
-        cert_path = (getattr(settings, "FISCAL_CERT_PATH", None) or "").strip()
-        provider = (getattr(settings, "FISCAL_SEFAZ_PROVIDER", "native") or "native").lower()
-        sefaz_sync_configurado = bool(
-            cnpj
-            and (
-                provider in {"stub", "homolog"}
-                or (cert_path and (getattr(settings, "FISCAL_CERT_PASSWORD", None) or "").strip())
-            )
-        )
-        agente_legado = bool((getattr(settings, "FISCAL_AGENT_TOKEN", None) or "").strip())
+        sefaz_status = montar_status_sefaz_sync()
+        nfse_adn_status = montar_status_nfse_adn_sync()
         return Response(
             {
                 "cnpj_empresa": cnpj if len(cnpj) == 14 else "",
-                "sefaz_sync_configurado": sefaz_sync_configurado,
-                "agente_ponte_configurado": sefaz_sync_configurado or agente_legado,
+                **sefaz_status.as_api_dict(),
+                **nfse_adn_status.as_api_dict(),
             }
         )

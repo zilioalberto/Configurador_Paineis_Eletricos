@@ -1,1 +1,0 @@
-Precisamos criar um qudro geral para os gestores avaliar quanto cada colaborador trabalhou em cada dia.

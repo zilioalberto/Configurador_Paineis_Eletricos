@@ -46,12 +46,12 @@ def atualizar_oferta_rascunho(orcamento: Orcamento) -> list[OrcamentoItem]:
         aliquota_ipi = item.aliquota_ipi
 
         if item.tipo == TipoItemOrcamentoChoices.PRODUTO and item.produto_id:
-            item.produto.refresh_from_db(fields=("preco_base",))
-            custo = item.produto.preco_base
+            item.produto.refresh_from_db(fields=("custo_referencia",))
+            custo = item.produto.custo_referencia
             aliquota_ipi = p_ipi_referencia_produto(item.produto)
         elif item.tipo == TipoItemOrcamentoChoices.SERVICO and item.servico_id:
-            item.servico.refresh_from_db(fields=("preco_base",))
-            custo = item.servico.preco_base
+            item.servico.refresh_from_db(fields=("custo_referencia",))
+            custo = item.servico.custo_referencia
             aliquota_ipi = None
 
         item.custo_unitario = custo

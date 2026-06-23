@@ -718,11 +718,11 @@ export default function OrcamentoDetailPage() {
   async function revisarPrecoCatalogoAsync() {
     const linha = revisaoPrecoLinha
     if (!id || !linha || !linha.id || !podeRevisarPrecoCatalogo || !podeEditar) return
-    const precoBase = decimalPayload(revisaoPrecoValor, '')
-    if (!precoBase || parseDecimalPt(precoBase) < 0) {
+    const custoReferencia = decimalPayload(revisaoPrecoValor, '')
+    if (!custoReferencia || parseDecimalPt(custoReferencia) < 0) {
       showToast({
         variant: 'warning',
-        message: 'Informe um preço base válido.',
+        message: 'Informe um custo de referência válido.',
       })
       return
     }
@@ -740,7 +740,7 @@ export default function OrcamentoDetailPage() {
       const atualizado = await revisarPrecoCatalogoItemOrcamento(
         id,
         linha.id,
-        precoBase,
+        custoReferencia,
         justificativa
       )
       aplicarOrcamentoAtualizado(atualizado)
@@ -1165,7 +1165,7 @@ function RevisarPrecoCatalogoModal({
                   </thead>
                   <tbody>
                     <tr>
-                      <td>Preço base catálogo</td>
+                      <td>Custo de referência (catálogo)</td>
                       <td className="text-end">R$ {valorMonetarioTabela(custoAtual)}</td>
                       <td className="text-end">
                         <input
@@ -1174,7 +1174,7 @@ function RevisarPrecoCatalogoModal({
                           onChange={(e) => onChangeValor(e.target.value)}
                           inputMode="decimal"
                           disabled={salvando || manterAtual}
-                          aria-label="Novo preço base"
+                          aria-label="Novo custo de referência"
                         />
                       </td>
                     </tr>

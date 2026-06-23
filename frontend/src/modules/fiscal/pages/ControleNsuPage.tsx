@@ -1,20 +1,36 @@
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type ChangeEvent, type SyntheticEvent, useCallback, useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
+import { useToast } from '@/components/feedback'
+import { useAuth } from '@/modules/auth/AuthContext'
+import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
+import { hasPermission } from '@/modules/auth/permissions'
 import { aplicarMascaraCnpj, apenasDigitosCnpj } from '@/modules/cadastros/utils/cnpjMask'
+import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 
 import { fiscalPaths } from '../fiscalPaths'
+import { fiscalQueryKeys } from '../fiscalQueryKeys'
 import { useControleNsuQuery } from '../hooks/useControleNsuQuery'
 import { useFiscalConfigQuery } from '../hooks/useFiscalConfigQuery'
+import { atualizarControleNsu } from '../services/fiscalNfeService'
 import SincronizarNfesSefazButton from '../components/SincronizarNfesSefazButton'
+import SefazControleNsuAlert from '../components/SefazControleNsuAlert'
+import SefazSyncIndisponivelAlert from '../components/SefazSyncIndisponivelAlert'
+import { isSefazSyncDisponivel } from '../types/fiscalConfig'
 import { formatCnpjExibicao, formatDataIso } from '../utils/fiscalDisplay'
 
 /** Consulta o estado de sincronização NSU e permite busca manual na SEFAZ. */
 export default function ControleNsuPage() {
   const { data: fiscalConfig } = useFiscalConfigQuery()
+  const { user } = useAuth()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
+  const podeEditar = hasPermission(user, PERMISSION_KEYS.FISCAL_EDITAR)
   const [cnpjInput, setCnpjInput] = useState('')
   const [cnpjConsulta, setCnpjConsulta] = useState('')
   const [autoConsulta, setAutoConsulta] = useState(false)
+  const [nsuEdit, setNsuEdit] = useState('')
 
   useEffect(() => {
     const cnpj = fiscalConfig?.cnpj_empresa ?? ''
@@ -33,12 +49,33 @@ export default function ControleNsuPage() {
   }, [])
 
   const onConsultar = useCallback(
-    (e: FormEvent) => {
+    (e: SyntheticEvent) => {
       e.preventDefault()
       setCnpjConsulta(apenasDigitosCnpj(cnpjInput))
     },
     [cnpjInput],
   )
+
+  const atualizarNsuMutation = useMutation({
+    mutationFn: (novoNsu: string) => atualizarControleNsu(digits, novoNsu),
+    onSuccess: (res) => {
+      queryClient.setQueryData(fiscalQueryKeys.controleNsu(digits), res)
+      void queryClient.invalidateQueries({ queryKey: fiscalQueryKeys.controleNsu(digits) })
+      setNsuEdit('')
+      showToast({
+        variant: 'success',
+        title: 'NSU atualizado',
+        message: `Último NSU definido para ${res.ultimo_nsu}.`,
+      })
+    },
+    onError: (err) => {
+      showToast({
+        variant: 'danger',
+        title: 'NSU',
+        message: extrairMensagemErroApi(err) || 'Não foi possível atualizar o NSU.',
+      })
+    },
+  })
 
   return (
     <div className="container-fluid" style={{ maxWidth: '40rem' }}>
@@ -58,10 +95,11 @@ export default function ControleNsuPage() {
         Estado guardado no servidor (fonte de verdade do NSU). Use o botão abaixo para consultar a
         SEFAZ e importar NF-es emitidas contra o CNPJ da empresa (certificado A1 no servidor).
       </p>
+      <SefazSyncIndisponivelAlert config={fiscalConfig} />
       <div className="mb-4">
         <SincronizarNfesSefazButton
           cnpj={fiscalConfig?.cnpj_empresa ?? digits}
-          disabled={!(fiscalConfig?.sefaz_sync_configurado ?? fiscalConfig?.agente_ponte_configurado)}
+          disabled={!isSefazSyncDisponivel(fiscalConfig)}
         />
       </div>
       {fiscalConfig?.cnpj_empresa && !autoConsulta ? (
@@ -115,6 +153,8 @@ export default function ControleNsuPage() {
         </div>
       )}
 
+      <SefazControleNsuAlert nsu={data} />
+
       {data && (
         <div className="card">
           <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -124,9 +164,7 @@ export default function ControleNsuPage() {
                 cnpj={data.cnpj}
                 className="btn btn-primary"
                 size="sm"
-                disabled={
-                  !(fiscalConfig?.sefaz_sync_configurado ?? fiscalConfig?.agente_ponte_configurado)
-                }
+                disabled={!isSefazSyncDisponivel(fiscalConfig)}
               />
               <button
                 type="button"
@@ -167,6 +205,39 @@ export default function ControleNsuPage() {
               <span>{formatDataIso(data.atualizado_em)}</span>
             </li>
           </ul>
+          {podeEditar && (
+            <div className="card-footer">
+              <label className="form-label small fw-semibold mb-1" htmlFor="nsu-editar">
+                Definir último NSU
+              </label>
+              <div className="d-flex flex-wrap gap-2 align-items-center">
+                <input
+                  id="nsu-editar"
+                  type="text"
+                  inputMode="numeric"
+                  className="form-control form-control-sm font-monospace"
+                  style={{ maxWidth: '12rem' }}
+                  value={nsuEdit}
+                  onChange={(e) => setNsuEdit(e.target.value.replace(/\D/g, ''))}
+                  placeholder={data.ultimo_nsu || '0'}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  disabled={atualizarNsuMutation.isPending || nsuEdit.trim() === ''}
+                  onClick={() => atualizarNsuMutation.mutate(nsuEdit.trim())}
+                >
+                  Salvar NSU
+                </button>
+              </div>
+              <p className="form-text mb-0">
+                Ajuste avançado do NSU consumido (uso administrativo). Evite voltar o NSU
+                ou zerar: a SEFAZ rejeita reconsumo com cStat 656 (Consumo Indevido) e
+                bloqueia por 1 hora. A sincronização normal é incremental e automática.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -36,14 +36,6 @@ class ObservacoesTecnicasMixin(models.Model):
         abstract = True
 
 
-class FabricanteMixin(models.Model):
-    fabricante = models.CharField(max_length=100, blank=True)
-    referencia_fabricante = models.CharField(max_length=120, blank=True)
-
-    class Meta:
-        abstract = True
-        
-        
 class UpperCaseMixin:
     UPPERCASE_FIELDS = []
 

@@ -2,14 +2,14 @@
 
 ## Objetivo
 
-E-mail, WhatsApp, fiscal (ponte A3 local — ver [fiscal.md](fiscal.md#contrato-da-ponte-a3-futuro)), bancos, APIs futuras e logs.
+E-mail, WhatsApp, fiscal (sincronização SEFAZ nativa com certificado A1 — ver [fiscal.md](fiscal.md)), bancos, APIs futuras e logs.
 
 ## Status
 
 | Camada | Status |
 |--------|--------|
 | Backend | **Stub** — `apps.integracoes` |
-| Ponte fiscal A3 | **Parcial** — `tools/fiscal_ponte` (ver [fiscal.md](fiscal.md#ponte-a3-local-toolsfiscal_ponte)) |
+| Fiscal SEFAZ (A1) | **Ativo** — sincronização nativa no servidor (ver [fiscal.md](fiscal.md)) |
 | Frontend | *Planejado* |
 
 **ID ERP:** `integracoes` · **Área:** Transversal

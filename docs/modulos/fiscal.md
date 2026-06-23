@@ -2,12 +2,15 @@
 
 ## Objetivo
 
-O módulo fiscal cobre duas frentes no servidor central (VPS / Django):
+O módulo fiscal cobre, no servidor central (VPS / Django):
 
 1. **Tributação por produto do catálogo** — `ItemFiscalProduto` (referência de ICMS/IPI/PIS/COFINS, alimentado pela importação NF-e do catálogo).
-2. **NF-e recebidas contra o CNPJ da ZFW** — armazenamento do XML, itens da nota, controle de NSU, sincronização **SEFAZ nativa** (certificado A1 no servidor) e importação manual pelo portal.
+2. **NF-e recebidas contra o CNPJ da ZFW** — armazenamento do XML, itens da nota, controle de NSU, sincronização **SEFAZ nativa** (certificado A1 no servidor), consulta por chave e importação manual pelo portal.
+3. **NF-e emitidas + Simples Nacional** — importação de emitidas, classificação CFOP, faturamento 12 meses e projeção de DAS.
+4. **NFS-e recebidas (ADN)** — sincronização do Ambiente de Dados Nacional de NFS-e. Ver [fiscal-nfse-adn.md](fiscal-nfse-adn.md).
+5. **Obrigações fiscais (pacote mensal)** — upload de guias/PDFs (DARF, FGTS, ISS, DIME/ICMS, DAS, holerites), parsing, reconciliação ERP × contabilidade e baixa financeira. Ver [fiscal-obrigacoes.md](fiscal-obrigacoes.md).
 
-A sincronização automática roda no **próprio servidor Django** via `python manage.py fiscal_sync_nsu` (sem ACBr, sem máquina local). O certificado A1 (`.pfx`) fica em volume/secrets no VPS.
+A sincronização com a SEFAZ é **100% nativa no servidor Django** (certificado A1 `.pfx` em volume/secrets no VPS, mTLS e assinatura XML diretamente no backend). O scheduler nativo `fiscal_sync_scheduler` (serviço `backend-scheduler`) executa a consulta DistDFe periodicamente — sem máquina local nem componentes externos.
 
 ## Arquitetura
 
@@ -15,33 +18,33 @@ A sincronização automática roda no **próprio servidor Django** via `python m
 flowchart LR
   subgraph servidor["Servidor Django + PostgreSQL"]
     API["API REST /api/v1/fiscal/"]
+    Cert["Certificado A1 (.pfx)"]
+    SefazSvc["services/sefaz (DistDFe, manifestação)"]
     Parser["nfe_parser"]
     Import["importar_xml_nfe_service"]
     NSU["ControleNSU"]
     Doc["DocumentoFiscalRecebido"]
-    API --> Import --> Parser
+    Sched["fiscal_sync_scheduler"]
+    Sched --> SefazSvc
+    Cert --> SefazSvc
+    SefazSvc --> Import --> Parser
     Import --> Doc
+    SefazSvc --> NSU
+    API --> Import
     API --> NSU
   end
 
-  subgraph local["Máquina local (futuro)"]
-    Cert["Certificado A3"]
-    Ponte["Ponte / ACBrMonitor"]
-    Cert --> Ponte
-  end
-
-  SEFAZ["SEFAZ"] -.->|futuro| Ponte
-  Ponte -->|"Bearer FISCAL_AGENT_TOKEN"| API
+  SEFAZ["SEFAZ"] <-->|"mTLS + XML assinado (A1)"| SefazSvc
 ```
 
-| Responsabilidade | Servidor | Máquina local (futuro) |
-|------------------|----------|-------------------------|
-| Último NSU / maxNSU / cStat | Sim | Não |
-| XML original e histórico | Sim | Não |
-| Parser e itens da NF-e | Sim | Não |
-| Anti-duplicidade (chave 44) | Sim | Não |
-| Certificado físico A3 | Não | Sim |
-| Consulta/assinatura SEFAZ | Não (fase futura no local) | Sim |
+| Responsabilidade | Servidor (A1 nativo) |
+|------------------|----------------------|
+| Último NSU / maxNSU / cStat | Sim |
+| XML original e histórico | Sim |
+| Parser e itens da NF-e | Sim |
+| Anti-duplicidade (chave 44) | Sim |
+| Certificado A1 (.pfx) | Sim |
+| Consulta/assinatura SEFAZ | Sim |
 
 ## Status
 
@@ -50,7 +53,6 @@ flowchart LR
 | Backend — catálogo fiscal | **Parcial** — `ItemFiscalProduto` |
 | Backend — NF-e recebidas | **Implementado (servidor)** — modelos, parser, importação, API, NSU |
 | Backend — SEFAZ (A1 nativo) | **Implementado** — `apps/fiscal/services/sefaz/` + `fiscal_sync_nsu` |
-| Backend — ponte A3 legada | **Opcional** — `tools/fiscal_ponte` (ACBr); substituída pelo sync nativo |
 | Frontend — itens fiscais | **Parcial** — `src/modules/fiscal` |
 | Frontend — NF-e recebidas | **Implementado** — `src/modules/fiscal` (lista, detalhe, importação manual, NSU leitura) |
 
@@ -83,7 +85,8 @@ Backend: chaves em `core/permissions.py` e `PermissaoUsuarioChoices`; API valida
 | Recurso | Descrição |
 |---------|-----------|
 | Importação emitidas (lote) | `POST /api/v1/fiscal/nfes-emitidas/importar-lote/` — detecta NF-e/NFS-e, classifica CFOP |
-| Classificação CFOP | Revenda (5102 etc.) → Anexo I; industrialização → II; serviços → Fator R (III/V) |
+| Classificação CFOP | Revenda (5102 etc.) → Anexo I; industrialização faturada (5124) → II; serviços → Fator R (III/V) |
+| **Compõe faturamento** | Flag `incluir_faturamento` — só entra na RBT12/DAS se for receita tributável (ver seção abaixo) |
 | Faturamento 12 meses | `GET /api/v1/fiscal/simples/faturamento/` — soma NF-es emitidas + ajustes manuais |
 | Relatório faturamento | `GET /api/v1/fiscal/relatorios/faturamento/` — dashboard por mês, cliente, anexo e finalidade |
 | Projeção DAS | `GET /api/v1/fiscal/simples/projecao-das/?competencia=AAAA-MM` |
@@ -95,6 +98,37 @@ Parâmetros do relatório de faturamento: `data_inicio`, `data_fim`, `cliente` (
 
 Requer `FISCAL_EMPRESA_CNPJ` no `.env` (CNPJ da ZFW). Resultado é **estimativa** — conferir com PGDAS-D.
 
+#### Compõe faturamento (`incluir_faturamento`)
+
+Conceito alinhado à **RBT12** do Simples Nacional: só documentos de **saída com receita bruta** entram na projeção de DAS, no relatório de faturamento e no somatório dos últimos 12 meses.
+
+| Situação | Compõe? | Exemplos de CFOP | Finalidade (`objetivo_saida`) |
+|----------|---------|------------------|-------------------------------|
+| Venda de mercadoria | **Sim** | 5101, 5102, 5405, 6102… | `VENDA_PRODUTO` · Anexo I |
+| Industrialização **faturada** | **Sim** | 5124, 6124 | `INDUSTRIALIZACAO` · Anexo II |
+| Prestação de serviço (NF-e/NFS-e) | **Sim** | 5933, 6933 ou NFS-e | `PRESTACAO_SERVICO` · Fator R |
+| Remessa / retorno sem venda | **Não** | 5901–5907, 5912–5929, 5949 (+ pares 69xx) | `REMESSA` |
+| Devolução | **Não** | 5201, 5202, 5411, 6201… | `DEVOLUCAO_COMPRA` |
+| Transferência entre filiais | **Não** | 5151, 5152, 6151… | `TRANSFERENCIA` |
+| Bonificação / doação / brinde | **Não** | 5910, 5911… | `BONIFICACAO_DOACAO_BRINDE` |
+| CFOP ausente ou **não mapeado** | **Não** (revisar) | qualquer outro | `OUTRAS_SAIDAS` |
+
+Implementação: `apps/fiscal/services/cfop_classificacao.py` + `classificar_documento_emitido.py` (na importação e na reclassificação).
+
+**Revisão manual:** no detalhe da NF-e emitida, o switch «Compõe faturamento» (`PATCH …/classificacao/`) marca a nota como manual e preserva o valor escolhido.
+
+**Reclassificar notas já importadas** (aplica regras automáticas de novo, exceto classificação manual):
+
+```http
+POST /api/v1/fiscal/nfes-emitidas/reclassificar/
+Authorization: Bearer …
+Content-Type: application/json
+
+{"documento_ids": [1, 2, 3]}   // omitir para reclassificar todas
+```
+
+Ou pelo portal: após deploy, executar reclassificação em lote e conferir filtro «Compõe faturamento = Não» na listagem de emitidas.
+
 ### Validação de CNPJ na importação manual
 
 Variável de referência: **`FISCAL_EMPRESA_CNPJ`** (CNPJ da ZFW, 14 dígitos). O portal expõe o valor em `GET /api/v1/fiscal/config/` (`cnpj_empresa`).
@@ -102,7 +136,7 @@ Variável de referência: **`FISCAL_EMPRESA_CNPJ`** (CNPJ da ZFW, 14 dígitos). 
 | Fluxo | Campo validado no XML | Quando aplica | Serviço backend |
 |-------|----------------------|---------------|-----------------|
 | **NF-es emitidas** (saída) | Emitente (NF-e) ou prestador (NFS-e) | Importação manual e lote (`MANUAL`) | `validar_emitente_documento_emitido` |
-| **NF-es recebidas** (entrada) | Destinatário | Importação manual, agente e ponte (`≠ SEFAZ_SYNC`) | `validar_destinatario_nfe_recebida` |
+| **NF-es recebidas** (entrada) | Destinatário | Importação manual (`≠ SEFAZ_SYNC`) | `validar_destinatario_nfe_recebida` |
 
 Regras:
 
@@ -146,7 +180,7 @@ Lista emitidas cujo `cnpj_emitente ≠ FISCAL_EMPRESA_CNPJ` e/ou recebidas cujo 
 **Choices**
 
 - `status_importacao`: `RECEBIDA`, `PROCESSADA`, `ERRO`, `IGNORADA`
-- `origem_importacao`: `MANUAL`, `PONTE_A3`, `API`, `OUTRO`
+- `origem_importacao`: `MANUAL`, `SEFAZ_SYNC`, `ADN_SYNC`, `API`, `OUTRO`
 
 CNPJ e NSU são normalizados no `save()` (somente dígitos; NSU com 15 posições quando possível).
 
@@ -162,26 +196,9 @@ CNPJ e NSU são normalizados no `save()` (somente dígitos; NSU com 15 posiçõe
 | `services/documentos_fiscais_divergentes.py` | Querysets para auditoria de CNPJ divergente no banco |
 | `services/__init__.py` | Funções do catálogo (`p_ipi_referencia_produto`, `criar_item_fiscal_importacao_nfe`, …) |
 
-### Autenticação do agente (ponte A3)
+### Autenticação
 
-Variável de ambiente:
-
-```env
-FISCAL_AGENT_TOKEN=<token_longo_gerado>
-```
-
-Header em todas as rotas do agente:
-
-```http
-Authorization: Bearer <FISCAL_AGENT_TOKEN>
-```
-
-Implementação: `apps/fiscal/authentication.py` (`FiscalAgentAuthentication`).
-
-- Token ausente ou inválido → recusado (401/403).
-- `FISCAL_AGENT_TOKEN` vazio no servidor → 403 nas rotas do agente.
-
-Rotas de **listagem/detalhe** de NF-e usam **JWT** (usuário do portal), como o restante da API.
+Toda a API fiscal usa **JWT** (usuário do portal) com validação de permissão via `HasEffectivePermission`. Não há mais token de agente: a sincronização SEFAZ roda no servidor com o certificado A1.
 
 ## API REST
 
@@ -203,51 +220,27 @@ Permissão listagem/detalhe/NSU (GET): `fiscal.visualizar`. Importação manual:
 
 **Ordenação:** `-data_emissao`, `-criada_em`.
 
-### Importar XML (agente Bearer)
+### Importação manual de XML (portal)
 
 | Método | URL |
 |--------|-----|
-| `POST` | `/api/v1/fiscal/nfes/importar-xml/` |
+| `POST` | `/api/v1/fiscal/nfes/importar-manual/` |
 
 **Body (JSON):**
 
 ```json
 {
   "xml": "<nfeProc>...</nfeProc>",
-  "nsu": "000000000123456",
-  "cnpj_destinatario": "00000000000000",
-  "origem_importacao": "MANUAL"
+  "objetivo_entrada": "USO_CONSUMO"
 }
 ```
 
-| Campo | Obrigatório | Notas |
-|-------|-------------|-------|
-| `xml` | Sim | String completa da NF-e |
-| `nsu` | Não | Normalizado para 15 dígitos |
-| `cnpj_destinatario` | Não | 14 dígitos após limpeza; se omitido, usa o `dest` do XML |
-| `origem_importacao` | Não | Default `MANUAL`; ponte deve usar `PONTE_A3` |
+- A origem fica fixa em `MANUAL`; o destinatário do XML deve ser `FISCAL_EMPRESA_CNPJ`.
+- Reenviar o mesmo XML é seguro: o servidor responde `created: false` pela chave de 44 dígitos.
 
-**Resposta — nova NF-e (201):**
+**Resposta — nova NF-e (201):** `{ "created": true, "message": "...", "documento_id": 1, "chave_acesso": "3520..." }`
 
-```json
-{
-  "created": true,
-  "message": "NF-e importada com sucesso.",
-  "documento_id": 1,
-  "chave_acesso": "3520..."
-}
-```
-
-**Resposta — já cadastrada (200):**
-
-```json
-{
-  "created": false,
-  "message": "NF-e já cadastrada.",
-  "documento_id": 1,
-  "chave_acesso": "3520..."
-}
-```
+**Resposta — já cadastrada (200):** `created: false`.
 
 **Erro de XML (400):** `{ "detail": "..." }` (mensagem do parser/serviço ou CNPJ divergente).
 
@@ -267,16 +260,15 @@ Validação na importação: emitente/prestador do XML = `FISCAL_EMPRESA_CNPJ`.
 
 | Método | URL | Auth | Descrição |
 |--------|-----|------|-----------|
-| `GET` | `/api/v1/fiscal/nsu/{cnpj}/` | JWT ou agente | Retorna controle; cria com `ultimo_nsu=000000000000000` se não existir |
-| `PATCH` | `/api/v1/fiscal/nsu/{cnpj}/` | Agente Bearer | Atualização parcial dos campos de sincronização |
+| `GET` | `/api/v1/fiscal/nsu/{cnpj}/` | JWT (`fiscal.visualizar`) | Retorna controle; cria com `ultimo_nsu=000000000000000` se não existir |
+| `POST` | `/api/v1/fiscal/nsu/{cnpj}/editar/` | JWT (`fiscal.editar`) | Ajuste manual do NSU consumido (ver “Controle NSU (edição administrativa)”) |
 
 ### Manifestação do destinatário
 
 | Método | URL | Auth | Descrição |
 |--------|-----|------|-----------|
 | `POST` | `/api/v1/fiscal/nfes/{id}/solicitar-manifestacao/` | JWT | Enfileira evento (portal); requer `fiscal.editar` |
-| `GET` | `/api/v1/fiscal/nfes/manifestacoes-pendentes/` | Agente | Lista pendentes para a ponte A3 |
-| `POST` | `/api/v1/fiscal/nfes/{id}/registrar-manifestacao/` | Agente | Registra sucesso/erro após `NFe.EnviarEvento` no ACBr |
+| `POST` | `/api/v1/fiscal/sefaz-distribuicao/{id}/solicitar-manifestacao/` | JWT | Solicita/envia manifestação para um resumo da caixa SEFAZ |
 
 **Body solicitar (portal):**
 
@@ -291,36 +283,20 @@ Tipos: `CIENCIA` (210210), `CONFIRMACAO` (210200), `DESCONHECIMENTO` (210220), `
 
 Status no documento: `NAO_SOLICITADA`, `PENDENTE`, `MANIFESTADA`, `ERRO`.
 
-Filtro listagem: `manifestacao_status` (query).
-
-A ponte processa pendentes no fim de cada `fiscal-ponte sync` ou via `fiscal-ponte manifestar-pendentes` (modo `stub` simula sucesso em homologação).
-
-**PATCH — exemplo:**
-
-```json
-{
-  "ultimo_nsu": "000000000123456",
-  "max_nsu": "000000000123900",
-  "ultimo_cstat": "137",
-  "ultimo_motivo": "Nenhum documento localizado",
-  "bloqueado_ate": "2026-06-04T15:00:00-03:00",
-  "ultima_consulta": "2026-06-04T14:00:00-03:00"
-}
-```
+Filtro listagem: `manifestacao_status` (query). Os eventos pendentes são enviados à SEFAZ pelo job de sincronização (`fiscal_sync_nsu`) usando o certificado A1.
 
 ### Itens fiscais do catálogo (JWT)
 
 | Método | URL |
 |--------|-----|
 | `GET` | `/api/v1/fiscal/itens-fiscais/` |
-| `GET` | `/api/v1/fiscal/config/` | `cnpj_empresa`, `agente_ponte_configurado` (portal) |
+| `GET` | `/api/v1/fiscal/config/` (`cnpj_empresa`, status da sincronização SEFAZ/ADN) |
 
 Permissão: `fiscal.visualizar`.
 
 Variáveis servidor (`.env`):
 
 ```env
-FISCAL_AGENT_TOKEN=...
 FISCAL_EMPRESA_CNPJ=12345678000199
 ```
 
@@ -339,182 +315,92 @@ Código: `backend/apps/fiscal/services/sefaz/`
 
 ```env
 FISCAL_EMPRESA_CNPJ=07284171000139
-FISCAL_CERT_PATH=/opt/zfw/secrets/certificado-a1.pfx
+FISCAL_CERT_PATH=/run/secrets/zfw-certificado-a1.pfx
 FISCAL_CERT_PASSWORD=...
+# Alternativa recomendada em Docker:
+# FISCAL_CERT_PASSWORD_FILE=/run/secrets/zfw-certificado-a1.password
 FISCAL_SEFAZ_UF=42
 FISCAL_SEFAZ_AMBIENTE=1
 FISCAL_SEFAZ_PROVIDER=native
 FISCAL_SYNC_MAX_CICLOS=20
+# Automação
+FISCAL_AUTO_CIENCIA=false
+FISCAL_SYNC_INTERVAL_SECONDS=3600
 ```
 
 - `FISCAL_SEFAZ_AMBIENTE`: `1` produção, `2` homologação.
 - `FISCAL_SEFAZ_PROVIDER=stub` — testes sem certificado (cStat 137).
+- `FISCAL_AUTO_CIENCIA`: `true` solicita **Ciência da Operação** automática para resumos novos (ver abaixo).
+- `FISCAL_SYNC_INTERVAL_SECONDS`: intervalo do agendador automático (padrão 3600 = 1 h).
 - **Não** commitar o `.pfx` nem a senha.
 
 ### Portal (manual)
 
-Botão **Buscar NF-es na SEFAZ** na home fiscal e em **Controle NSU** — chama `POST /api/v1/fiscal/nfes/sincronizar-sefaz/` (JWT, permissão `fiscal.editar`).
+Botão **Buscar NF-es na SEFAZ** na home fiscal e em **Controle NSU** — chama `POST /api/v1/fiscal/nfes/sincronizar-sefaz/` (JWT, permissão `fiscal.editar`). A resposta inclui `documentos_novos`, `resumos_novos`, `ciencias_solicitadas` e `manifestacoes_processadas`.
 
-### Comando (opcional / agendamento futuro)
+### Auto-ciência (opcional)
+
+Com `FISCAL_AUTO_CIENCIA=true`, ao final de cada sincronização o serviço marca **Ciência da Operação** (210210) para resumos (`DocumentoSefazDistribuido` do tipo `RESUMO_NFE`) ainda com manifestação `NAO_SOLICITADA`. Implementação: `services/sefaz/manifestacao_worker.solicitar_ciencia_automatica` chamada por `nsu_sync._processar_manifestacoes_pos_sync`.
+
+### Agendamento automático (scheduler nativo) — recomendado
+
+Comando de loop que roda no **próprio servidor**, em processo dedicado:
 
 ```bash
-python manage.py fiscal_sync_nsu
+python manage.py fiscal_sync_scheduler                 # loop infinito (intervalo padrão)
+python manage.py fiscal_sync_scheduler --intervalo 3600 --initial-delay 15
+python manage.py fiscal_sync_scheduler --once          # uma execução (para cron externo)
+```
+
+- Intervalo: `--intervalo` ou `FISCAL_SYNC_INTERVAL_SECONDS` (mínimo 60 s).
+- Respeita o bloqueio temporário da SEFAZ (cStat 137/656). **Rodar uma única instância** para não duplicar consultas (excesso → cStat 656, *Consumo Indevido*).
+
+No Docker, há um serviço dedicado **`backend-scheduler`** (em `docker-compose.yml` e `docker-compose.prod.yml`) que executa `fiscal_sync_scheduler` compartilhando volumes/certificado com o `backend`.
+
+### Comandos avulsos
+
+```bash
+python manage.py fiscal_sync_nsu                 # uma sincronização
 python manage.py fiscal_sync_nsu --dry-run
 python manage.py fiscal_sync_nsu --sem-manifestacao
 python manage.py fiscal_listar_documentos_cnpj_divergente --tipo emitidas
 ```
 
-### Agendamento (cron no VPS)
+Alternativa via cron (em vez do scheduler nativo):
 
 ```cron
-*/15 * * * * cd /opt/zfw/app/backend && /opt/zfw/venv/bin/python manage.py fiscal_sync_nsu >> /var/log/zfw/fiscal_sync.log 2>&1
+*/15 * * * * cd /opt/zfw/app/backend && /opt/zfw/venv/bin/python manage.py fiscal_sync_scheduler --once >> /var/log/zfw/fiscal_sync.log 2>&1
 ```
 
-No Docker, monte o certificado como volume read-only e passe as variáveis via `.env`.
+No Docker, monte o certificado como volume read-only fora do repositório:
+
+```yaml
+volumes:
+  - /opt/zfw/secrets/certificado-a1.pfx:/run/secrets/zfw-certificado-a1.pfx:ro
+```
+
+Para evitar senha em variável de ambiente, monte também um arquivo read-only com a senha e use `FISCAL_CERT_PASSWORD_FILE`.
+
+### Consulta por chave (consChNFe) — notas retroativas
+
+A DistDFe é **incremental por NSU**: só entrega documentos a partir do último NSU consumido. Para recuperar uma NF-e antiga **sem mexer no NSU**, use a consulta direta pela chave de 44 dígitos (`consChNFe`):
+
+| Método | URL | Auth | Descrição |
+|--------|-----|------|-----------|
+| `POST` | `/api/v1/fiscal/nfes/importar-por-chave/` | JWT (`fiscal.editar`) | Importa 1+ NF-es pela chave; body `{ "chaves": ["<44 dígitos>", …] }` |
+
+- Implementação: `services/sefaz/distribuicao_dfe.consultar_distribuicao_por_chave` + `services/sefaz/importar_por_chave.importar_nfe_por_chave`.
+- Resposta por chave: `status` ∈ `importada | duplicada | resumo | nao_encontrada | erro`, com `documento_id`, `cstat` e `motivo`.
+- Não avança o cursor NSU; em modo `stub`/`homolog` não faz chamada real.
+- Portal: página **Buscar NF-e por chave** (`/fiscal/nfes/buscar-chave`), botão na listagem de NF-es recebidas e atalho na home fiscal.
+
+### Controle NSU (edição administrativa)
+
+Além do `GET`/`PATCH` em `/api/v1/fiscal/nsu/{cnpj}/`, há `POST /api/v1/fiscal/nsu/{cnpj}/editar/` (JWT, `fiscal.editar`) para ajuste manual do NSU consumido. O botão **“Zerar (0)”** foi **removido** da tela de NSU: voltar o NSU/zerar dispara cStat 656 (bloqueio de 1 h). A sincronização normal é incremental e automática.
 
 ### Origem de importação
 
-NF-es obtidas pelo job usam `origem_importacao=SEFAZ_SYNC` (distinto de `PONTE_A3` legado e `MANUAL`).
-
----
-
-## Ponte A3 local (`tools/fiscal_ponte`) — legado
-
-Agente Python na máquina com certificado. Código: [tools/fiscal_ponte/README.md](../../tools/fiscal_ponte/README.md).
-
-| Comando | Função |
-|---------|--------|
-| `fiscal-ponte ping-api` | Valida `FISCAL_AGENT_TOKEN` e GET NSU |
-| `fiscal-ponte ping-acbr` | Testa TCP ACBrMonitor (`ACBr.Status`) |
-| `fiscal-ponte sync` | Ciclo DistDFe → POST XML → PATCH NSU |
-
-Provedores SEFAZ (`FISCAL_PONTE_SEFAZ_PROVIDER`): `stub`, `acbr` (ACBrMonitor TCP 3434), `folder` (XMLs de pasta).
-
-## Contrato da ponte A3
-
-### Princípios
-
-1. A ponte **lê** o estado do NSU no servidor antes de consultar a SEFAZ.
-2. A ponte **envia** XML bruto ao servidor; o servidor faz parse, validação e persistência.
-3. A ponte **atualiza** o NSU no servidor após cada ciclo SEFAZ (sucesso, vazio, bloqueio, erro).
-4. Nenhum XML definitivo, histórico ou item de produto fica armazenado na máquina local.
-
-### Fluxo recomendado
-
-```mermaid
-sequenceDiagram
-  participant Ponte as Ponte local
-  participant API as API Django
-  participant DB as PostgreSQL
-
-  Ponte->>API: GET /fiscal/nsu/{cnpj} (Bearer)
-  API->>DB: get_or_create ControleNSU
-  API-->>Ponte: ultimo_nsu, bloqueado_ate, ...
-
-  alt bloqueado_ate no futuro
-    Ponte-->>Ponte: aguardar / abortar
-  else liberado
-    Ponte-->>Ponte: DistDFe / manifestação (futuro, com cert A3)
-    loop cada documento
-      Ponte->>API: POST /fiscal/nfes/importar-xml (xml, nsu, PONTE_A3)
-      API->>DB: importar ou ignorar duplicata
-      API-->>Ponte: created, chave_acesso
-    end
-    Ponte->>API: PATCH /fiscal/nsu/{cnpj}
-    API->>DB: atualiza ultimo_nsu, cStat, ...
-  end
-```
-
-### Operações obrigatórias da ponte
-
-| # | Operação | Endpoint | Quando |
-|---|----------|----------|--------|
-| 1 | Obter estado NSU | `GET .../nsu/{cnpj}/` | Início de cada ciclo |
-| 2 | Importar documento | `POST .../nfes/importar-xml/` | Para cada XML obtido na SEFAZ |
-| 3 | Persistir estado NSU | `PATCH .../nsu/{cnpj}/` | Fim do ciclo (sucesso ou erro SEFAZ) |
-
-### Payloads que a ponte envia
-
-#### 1. Importação de documento
-
-```http
-POST /api/v1/fiscal/nfes/importar-xml/
-Authorization: Bearer <FISCAL_AGENT_TOKEN>
-Content-Type: application/json
-```
-
-```json
-{
-  "xml": "<conteúdo integral do nfeProc ou proc vinculado>",
-  "nsu": "000000000000789",
-  "origem_importacao": "PONTE_A3"
-}
-```
-
-Regras:
-
-- Enviar o XML **exatamente** como retornado (o servidor grava em `xml_original`).
-- Repetir o POST com o mesmo XML é seguro: o servidor responde `created: false` pela chave de 44 dígitos.
-- Não interpretar CFOP/NCM/produtos na ponte.
-
-#### 2. Atualização do controle NSU
-
-```http
-PATCH /api/v1/fiscal/nsu/12345678000199/
-Authorization: Bearer <FISCAL_AGENT_TOKEN>
-Content-Type: application/json
-```
-
-Campos típicos após consulta DistDFe:
-
-| Campo | Origem sugerida (SEFAZ) |
-|-------|-------------------------|
-| `ultimo_nsu` | Maior NSU processado com sucesso |
-| `max_nsu` | `maxNSU` da última resposta |
-| `ultimo_cstat` | `cStat` da última resposta |
-| `ultimo_motivo` | `xMotivo` |
-| `bloqueado_ate` | Quando `cStat` indicar consumo indevido (ex. 656) |
-| `ultima_consulta` | Timestamp ISO 8601 do ciclo |
-
-A ponte **não** deve manter cópia autoritativa desses valores; o PostgreSQL no servidor é a fonte da verdade.
-
-### Respostas que a ponte deve tratar
-
-| HTTP | Situação | Ação sugerida na ponte |
-|------|----------|------------------------|
-| 201 | NF-e nova | Log local opcional; seguir próximo documento |
-| 200 | Duplicata | Ignorar; considerar NSU/documento já sincronizado |
-| 400 | XML inválido | Log + não reenviar o mesmo XML sem correção |
-| 401/403 | Token | Verificar `FISCAL_AGENT_TOKEN` e relógio; não gravar estado local |
-| 5xx | Servidor | Retry com backoff; não avançar `ultimo_nsu` localmente |
-
-### Configuração mínima da ponte (checklist)
-
-- [ ] URL base da API: `https://api.zfw.com.br/api/v1/`
-- [ ] `FISCAL_AGENT_TOKEN` em variável segura (não no repositório)
-- [ ] CNPJ da ZFW (14 dígitos) para rotas `/nsu/{cnpj}/`
-- [ ] Certificado A3 conectado na máquina local
-- [ ] Serviço técnico (ex. ACBrMonitorPLUS) apenas para operações com certificado
-- [ ] Sem PostgreSQL / sem fila de negócio local
-
-### O que fica explicitamente fora da ponte
-
-- Manifestação do destinatário via portal e ponte A3 (`solicitar-manifestacao`, `manifestar-pendentes`).
-- Vínculo `ItemDocumentoFiscal` → `catalogo.Produto` (`importado_para_produto`).
-- Regras de CFOP, estoque, compras ou orçamentos.
-
-## Configuração (servidor)
-
-```env
-# .env do backend (Docker / VPS)
-FISCAL_AGENT_TOKEN=<gerar_token_longo_aleatorio>
-```
-
-Gerar token (exemplo):
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+NF-es obtidas pelo job usam `origem_importacao=SEFAZ_SYNC` (distinto de `MANUAL` e do `ADN_SYNC` das NFS-e).
 
 ## Admin Django
 
@@ -528,7 +414,12 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 | `/fiscal/nfes` | `NfesRecebidasListPage` — lista filtrada | `fiscal.visualizar` |
 | `/fiscal/nfes/:id` | `NfeRecebidaDetailPage` — itens + XML | `fiscal.visualizar` |
 | `/fiscal/nfes/importar` | `NfeImportarManualPage` — POST `importar-manual` | `fiscal.editar` |
-| `/fiscal/nsu` | `ControleNsuPage` — leitura NSU (JWT) | `fiscal.visualizar` |
+| `/fiscal/nfes/buscar-chave` | `NfeBuscarChavePage` — consulta por chave (consChNFe) | `fiscal.editar` |
+| `/fiscal/nfse-recebidas` | `NfseRecebidasListPage` — NFS-e recebidas (ADN) | `fiscal.visualizar` |
+| `/fiscal/nfse-recebidas/:publicId` | `NfseRecebidaDetailPage` | `fiscal.visualizar` |
+| `/fiscal/obrigacoes` | `ObrigacoesFiscaisListPage` — pacotes mensais + dashboard | `fiscal.visualizar` |
+| `/fiscal/obrigacoes/:id` | `ObrigacoesFiscaisCompetenciaPage` — competência (`public_id`) | `fiscal.visualizar` |
+| `/fiscal/nsu` | `ControleNsuPage` — leitura/edição NSU (JWT) | `fiscal.visualizar` |
 | `/fiscal/itens-fiscais` | `ItensFiscaisListPage` | `fiscal.visualizar` |
 | `/fiscal/relatorios/nfes` | `RelatorioNfesPage` — NF-es recebidas por período | `fiscal.visualizar` |
 | `/fiscal/relatorios/faturamento` | `RelatorioFaturamentoPage` — dashboard por cliente | `fiscal.visualizar` |
@@ -545,7 +436,7 @@ Serviços HTTP: `fiscalNfeService.ts`, `fiscalSimplesService.ts`. Importação d
 |--------|---------|
 | [Catálogo](catalogo.md) | Importação NF-e de **entrada** (fornecedor) → produtos + `ItemFiscalProduto` |
 | [Orçamentos](orcamentos.md) | IPI % de referência via `p_ipi_referencia_produto` |
-| [Integrações](integracoes.md) | Ponte A3 listada como integração externa futura |
+| [Integrações](integracoes.md) | Sincronização SEFAZ nativa (certificado A1) |
 
 ## Testes
 
@@ -554,21 +445,13 @@ cd backend
 pytest apps/fiscal/tests/ -q
 ```
 
-Cobertura principal: parser (`nfeProc` / `NFe`), serviço de importação, validação de CNPJ (emitidas/recebidas), API JWT + agente Bearer, NSU GET/PATCH, auditoria `documentos_fiscais_divergentes`.
+Cobertura principal: parser (`nfeProc` / `NFe`), serviço de importação, validação de CNPJ (emitidas/recebidas), API JWT, NSU GET, consulta por chave, auditoria `documentos_fiscais_divergentes`.
 
 ## Roadmap (servidor)
 
-- [x] Frontend: listagem/detalhe NF-e recebidas, importação manual, NSU (leitura)
-- [x] Manifestação do destinatário
+- [x] Frontend: listagem/detalhe NF-e recebidas, importação manual, NSU (leitura/edição)
+- [x] Manifestação do destinatário (SEFAZ A1 nativo)
+- [x] Sincronização SEFAZ nativa (DistDFe) + scheduler (`fiscal_sync_scheduler` / `backend-scheduler`)
+- [x] Consulta por chave (consChNFe) para notas retroativas
 - [ ] Integração itens NF-e → catálogo (`importado_para_produto`)
-- [ ] Consulta SEFAZ (somente se orquestrada no servidor com ponte retornando XML bruto)
-
-## Roadmap (ponte local)
-
-- [x] Cliente HTTP (GET/PATCH NSU, POST importar-xml)
-- [x] Ciclo `sync` (orquestração no servidor como fonte de verdade do NSU)
-- [x] Adaptador ACBrMonitor `NFe.DistribuicaoDFePorUltNSU`
-- [x] Manifestação do destinatário na SEFAZ (portal + ponte)
-- [x] Agendamento (tarefa Windows) e serviço NSSM — `scripts/fiscal-ponte-install-*.ps1`, [PRODUCAO.md](../../tools/fiscal_ponte/PRODUCAO.md)
-- [x] Retry/backoff 5xx na API central
-- [ ] Alertas operacionais (e-mail/Telegram) quando sync falhar
+- [ ] Alertas operacionais (e-mail/Telegram) quando o sync falhar

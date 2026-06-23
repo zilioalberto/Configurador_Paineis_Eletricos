@@ -2,19 +2,6 @@ import type { OrcamentoPreviewOfertaDto } from '../types/orcamentos'
 
 export type SecaoPreview = OrcamentoPreviewOfertaDto['secoes'][number]
 
-const ORDEM_SECOES_COMERCIAIS: readonly string[] = [
-  'INTRODUCAO',
-  'ESCOPO',
-  'ITENS_FORNECIMENTO',
-  'SERVICOS',
-  'EXCLUSOES',
-  'PRAZO_ENTREGA',
-  'CONDICOES_PAGAMENTO',
-  'CONDICOES_GERAIS',
-  'GARANTIA',
-  'OBSERVACOES',
-]
-
 const TIPOS_CONDICOES_COMERCIAIS = new Set([
   'PRAZO_ENTREGA',
   'CONDICOES_PAGAMENTO',
@@ -25,14 +12,6 @@ const TIPOS_CONDICOES_COMERCIAIS = new Set([
 
 /** Renderizadas após a tabela de investimento na proposta ao cliente. */
 const TIPOS_APOS_INVESTIMENTO = new Set(['EXCLUSOES'])
-
-export function ordenarSecoesComerciais(secoes: SecaoPreview[]): SecaoPreview[] {
-  const indice = (tipo: string) => {
-    const pos = ORDEM_SECOES_COMERCIAIS.indexOf(tipo)
-    return pos >= 0 ? pos : ORDEM_SECOES_COMERCIAIS.length + 1
-  }
-  return [...secoes].sort((a, b) => indice(a.tipo) - indice(b.tipo))
-}
 
 export function secaoIntroducao(secoes: SecaoPreview[]): SecaoPreview | null {
   return secoes.find((s) => s.tipo === 'INTRODUCAO' && (s.conteudo || '').trim()) ?? null
@@ -63,10 +42,6 @@ export function secoesAposInvestimento(secoes: SecaoPreview[]): SecaoPreview[] {
   return secoes.filter(
     (s) => TIPOS_APOS_INVESTIMENTO.has(s.tipo) && (s.titulo || s.conteudo || '').trim()
   )
-}
-
-export function rotuloPerfilProposta(perfil: OrcamentoPreviewOfertaDto['perfil_oferta']): string {
-  return perfil === 'SOLUCAO_COMPLETA' ? 'Solução completa' : 'Materiais e valores unitários'
 }
 
 export function textoSaudacaoPadrao(perfil: OrcamentoPreviewOfertaDto['perfil_oferta']): string {
@@ -233,13 +208,6 @@ export function numeroPropostaExibicao(
   return c
 }
 
-export function formatarDataProposta(valor: string | null): string {
-  if (!valor) return '—'
-  const [ano, mes, dia] = valor.slice(0, 10).split('-')
-  if (!ano || !mes || !dia) return valor
-  return `${dia}/${mes}/${ano}`
-}
-
 /** Formato curto estilo Figma: 04 Jun 2026 */
 export function formatarDataCurta(iso: string | null): string {
   if (!iso) return '—'
@@ -247,27 +215,6 @@ export function formatarDataCurta(iso: string | null): string {
   if (!ano || !mes || !dia) return iso
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   return `${String(dia).padStart(2, '0')} ${meses[mes - 1]} ${ano}`
-}
-
-export function formatarDataExtensoBr(iso: string | null): string {
-  if (!iso) return '—'
-  const [ano, mes, dia] = iso.slice(0, 10).split('-').map(Number)
-  if (!ano || !mes || !dia) return iso
-  const meses = [
-    'janeiro',
-    'fevereiro',
-    'março',
-    'abril',
-    'maio',
-    'junho',
-    'julho',
-    'agosto',
-    'setembro',
-    'outubro',
-    'novembro',
-    'dezembro',
-  ]
-  return `${String(dia).padStart(2, '0')} de ${meses[mes - 1]} de ${ano}`
 }
 
 export function tituloSecaoFigma(titulo: string): string {

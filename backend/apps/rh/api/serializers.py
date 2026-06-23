@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.rh.models import Cargo, Colaborador, Departamento, Equipe, JornadaTrabalho
+from core.validators.documentos import DocumentoInvalidoError, validar_cpf_digitos
 
 User = get_user_model()
 
@@ -190,6 +191,21 @@ class ColaboradorSerializer(serializers.ModelSerializer):
                 "Este utilizador já está vinculado a outro colaborador."
             )
         return value
+
+    def validate_documento(self, value):
+        raw = (value or "").strip()
+        if not raw:
+            return ""
+        try:
+            cpf = validar_cpf_digitos(raw)
+        except DocumentoInvalidoError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        qs = Colaborador.objects.filter(documento=cpf)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este CPF já está cadastrado para outro colaborador.")
+        return cpf
 
     def validate(self, attrs):
         data_admissao = attrs.get("data_admissao", getattr(self.instance, "data_admissao", None))
