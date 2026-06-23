@@ -30,9 +30,11 @@ Não há Celery nem Redis no projeto.
 
 ## Consequências
 
-- ✅ Infraestrutura mais simples (menos serviços no Compose), adequada ao MVP.
-- ✅ Menos pontos de falha; deploy e operação mais fáceis.
-- ⚠️ Documentos muito grandes podem aproximar o limite de tempo de requisição — aceitável no
+- Infraestrutura mais simples (menos serviços no Compose), adequada ao MVP.
+- Menos pontos de falha; deploy e operação mais fáceis.
+- Ponto de atenção: Documentos muito grandes podem aproximar o limite de tempo de requisição — aceitável no
   escopo atual (BoM/proposta de tamanho típico).
-- ⚠️ **Desvio em relação ao RFC** — registrado explicitamente para a banca; o RFC já listava o
+- Ponto de atenção: **Desvio em relação ao RFC** — registrado explicitamente para a banca; o RFC já listava o
   modo síncrono como alternativa considerada.
+
+

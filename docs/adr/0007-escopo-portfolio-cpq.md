@@ -45,6 +45,8 @@ Garantias técnicas que sustentam o recorte:
 
 ## Consequências
 
-- ✅ Narrativa de avaliação alinhada ao RFC e à linha de projeto.
-- ✅ Risco de "tema impedido" neutralizado: estoque/financeiro são inertes; fiscal é roadmap.
-- ⚠️ Exige manter a disciplina de só demonstrar o CPQ no Demo Day.
+- Narrativa de avaliação alinhada ao RFC e à linha de projeto.
+- Risco de "tema impedido" neutralizado: estoque/financeiro são inertes; fiscal é roadmap.
+- Ponto de atenção: Exige manter a disciplina de só demonstrar o CPQ no Demo Day.
+
+

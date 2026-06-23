@@ -28,7 +28,9 @@ Stack de observabilidade baseada em **Prometheus + Grafana + Alertmanager**, com
 
 ## Consequências
 
-- ✅ Atende ao requisito obrigatório de observabilidade.
-- ✅ Permite evidenciar o p95 das operações do wizard (métrica de sucesso do RFC).
-- ✅ Alertas configuráveis para disponibilidade.
-- ⚠️ Mais containers para operar — isolados em um Compose próprio de monitoramento.
+- Atende ao requisito obrigatório de observabilidade.
+- Permite evidenciar o p95 das operações do wizard (métrica de sucesso do RFC).
+- Alertas configuráveis para disponibilidade.
+- Ponto de atenção: Mais containers para operar — isolados em um Compose próprio de monitoramento.
+
+

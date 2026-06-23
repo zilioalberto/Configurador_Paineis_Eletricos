@@ -1,6 +1,9 @@
 # Mapa de API — caminho crítico do wizard
 
-Referência rápida para demo, testes e portfólio. Base URL: **`http://localhost:8000/api/v1/`** (ajustar em produção).
+Referência rápida para demo, testes e portfólio.
+
+- Produção: **`https://api.zfw.com.br/api/v1/`**
+- Desenvolvimento local: **`http://localhost:8000/api/v1/`**
 
 Autenticação: header `Authorization: Bearer <access_token>` após `POST auth/token/`.
 
@@ -104,3 +107,4 @@ GET /api/v1/health/
 | Catálogo | `.../catalogo/services/produtoService.ts` |
 
 Ver também [rastreabilidade-requisitos.md](rastreabilidade-requisitos.md).
+

@@ -26,7 +26,9 @@ complexidade de um provedor de identidade externo no MVP.
 
 ## Consequências
 
-- ✅ Atende RF-01 e os requisitos mínimos de segurança (ASVS L1).
-- ✅ Controle por rota/escopo antes de acessar recursos.
-- ⚠️ Tokens no cliente exigem cuidado (TTL curto, refresh controlado) — mitigado no `apiClient`.
-- ⚠️ MFA e login social ficam como evolução (fora do escopo do MVP).
+- Atende RF-01 e os requisitos mínimos de segurança (ASVS L1).
+- Controle por rota/escopo antes de acessar recursos.
+- Ponto de atenção: Tokens no cliente exigem cuidado (TTL curto, refresh controlado) — mitigado no `apiClient`.
+- Ponto de atenção: MFA e login social ficam como evolução (fora do escopo do MVP).
+
+

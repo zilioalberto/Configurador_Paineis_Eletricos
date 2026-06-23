@@ -19,12 +19,12 @@ powershell -ExecutionPolicy Bypass -File scripts/down.ps1 -Volumes
 
 ## `validar-demo-api.ps1`
 
-**Para que serve:** validar **antes da gravação** ou da apresentação que o ambiente Docker + API do wizard estão funcionando de ponta a ponta — **sem usar a interface gráfica**.
+**Para que serve:** validar, em ambiente local/Docker, que a API do wizard está funcionando de ponta a ponta — **sem usar a interface gráfica**. Para a entrega final, a evidência principal está em `docs/portfolio/evidencias-producao/`.
 
 **O que o script faz, em sequência:**
 
 1. Verifica `GET /api/v1/health/`
-2. Faz login JWT (`demo@zfw.local`)
+2. Faz login JWT (`demopac@zfw.com.br`)
 3. Cria um projeto de teste (código alocado automaticamente)
 4. Cadastra uma carga motor
 5. Executa dimensionamento e confirma revisão de condutores
@@ -36,10 +36,10 @@ powershell -ExecutionPolicy Bypass -File scripts/down.ps1 -Volumes
 
 | Situação | Usar o script? |
 |----------|----------------|
-| Antes de gravar o vídeo da demo | **Sim** — garante que Docker e API respondem |
+| Antes de gravar o vídeo da demo | **Opcional** — útil como checagem técnica local; a gravação principal deve usar o portal público |
 | Substituir a demo na UI no vídeo | **Não** — o professor espera ver o **navegador** e o wizard |
 | Provar RF-01…RF-08 com evidência técnica | **Sim** — saída no terminal + arquivos em `%TEMP%\demo-pac-validacao` |
-| Criar/atualizar usuário `demo@zfw.local` | **Sim** — senha padrão `DemoPac2026!` (só local) |
+| Criar/atualizar usuário `demopac@zfw.com.br` | **Sim** — senha padrão `DemoPac2026!` (demo do portfólio) |
 
 **Como executar:**
 
@@ -49,3 +49,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validar-demo-api.ps1
 ```
 
 **Não commitar** alterações com senhas reais de produção; o script usa credenciais apenas para ambiente de desenvolvimento.
+

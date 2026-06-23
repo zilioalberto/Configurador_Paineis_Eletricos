@@ -30,7 +30,9 @@ documentação.
 
 ## Consequências
 
-- ✅ Operação 100% no backend, sem agente externo nem hardware dedicado.
-- ✅ Menos superfície de autenticação (somente JWT).
-- ✅ Base de código mais simples e testável.
-- ⚠️ O certificado A1 deve ser protegido (variáveis de ambiente / segredos), nunca versionado.
+- Operação 100% no backend, sem agente externo nem hardware dedicado.
+- Menos superfície de autenticação (somente JWT).
+- Base de código mais simples e testável.
+- Ponto de atenção: O certificado A1 deve ser protegido (variáveis de ambiente / segredos), nunca versionado.
+
+
