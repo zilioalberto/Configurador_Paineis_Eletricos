@@ -238,7 +238,7 @@ FISCAL_CERT_PASSWORD_FILE = _env_or_dotenv("FISCAL_CERT_PASSWORD_FILE", "")
 FISCAL_CERT_PASSWORD = _secret_env_or_file("FISCAL_CERT_PASSWORD", "FISCAL_CERT_PASSWORD_FILE")
 # Código UF IBGE do autor (São Paulo trinta e cinco, Santa Catarina quarenta e dois). Usado em distDFeInt cUFAutor.
 FISCAL_SEFAZ_UF = os.getenv("FISCAL_SEFAZ_UF", "42")
-# 1=produção, 2=homologação
+# Ambiente SEFAZ: valor 1 para produção e valor 2 para homologação.
 FISCAL_SEFAZ_AMBIENTE = os.getenv("FISCAL_SEFAZ_AMBIENTE", "2")
 # native | stub (stub = sem certificado, para testes)
 FISCAL_SEFAZ_PROVIDER = os.getenv("FISCAL_SEFAZ_PROVIDER", "native")

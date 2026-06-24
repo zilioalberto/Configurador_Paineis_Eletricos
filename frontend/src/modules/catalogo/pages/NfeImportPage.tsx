@@ -150,8 +150,12 @@ function mensagemResultadoImportacao(
   resultado: NfeAplicarResponse,
   resFiscal: Awaited<ReturnType<typeof importarNfeXmlManual>> | null
 ) {
+  let textoFiscal = ''
+  if (resFiscal) {
+    textoFiscal = resFiscal.created ? 'NF-e registrada no fiscal.' : 'NF-e já existia no fiscal.'
+  }
   return [
-    resFiscal ? (resFiscal.created ? 'NF-e registrada no fiscal.' : 'NF-e já existia no fiscal.') : '',
+    textoFiscal,
     resultado.fornecedor_criado ? 'Fornecedor criado.' : '',
     resultado.produtos_criados.length
       ? `${resultado.produtos_criados.length} produto(s) criado(s).`

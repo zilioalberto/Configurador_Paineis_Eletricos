@@ -731,7 +731,7 @@ export default function OrcamentoDetailPage() {
 
   async function revisarPrecoCatalogoAsync() {
     const linha = revisaoPrecoLinha
-    if (!id || !linha || !linha.id || !podeRevisarPrecoCatalogo || !podeEditar) return
+    if (!id || !linha?.id || !podeRevisarPrecoCatalogo || !podeEditar) return
     const custoReferencia = decimalPayload(revisaoPrecoValor, '')
     if (!custoReferencia || parseDecimalPt(custoReferencia) < 0) {
       showToast({

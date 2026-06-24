@@ -79,12 +79,12 @@ function ComposicaoTabelaPendencias({
   vazio,
   dimensionamento,
   projeto,
-}: {
+}: Readonly<{
   grupos: GrupoItensPorTag<PendenciaItem>[]
   vazio: boolean
   dimensionamento: ResumoDimensionamento | undefined
   projeto: Projeto | undefined
-}) {
+}>) {
   if (vazio) {
     return <p className="text-muted small mb-0">Nenhuma pendência aberta.</p>
   }

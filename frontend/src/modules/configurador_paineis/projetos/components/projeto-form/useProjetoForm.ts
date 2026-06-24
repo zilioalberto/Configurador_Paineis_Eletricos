@@ -16,7 +16,7 @@ type UseProjetoFormParams = {
   initialData?: ProjetoFormData
 }
 
-const numericFields = ['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia']
+const numericFields = new Set(['tensao_nominal', 'tensao_comando', 'numero_fases', 'frequencia'])
 
 function aplicarDependenciasCheckbox(
   data: ProjetoFormData,
@@ -41,7 +41,7 @@ function valorCampoProjeto(name: string, value: string) {
   if (name === 'responsavel') return value === '' ? null : Number(value)
   if (name === 'familia_plc') return value === '' ? null : value
   if (value === '') return ''
-  return numericFields.includes(name) ? Number(value) : value
+  return numericFields.has(name) ? Number(value) : value
 }
 
 function aplicarDependenciasCampo(

@@ -5,6 +5,8 @@
 
 import {
   type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
   type SyntheticEvent,
   type KeyboardEvent,
   useCallback,
@@ -106,6 +108,84 @@ function aplicarMudancaCampoCarga(
   return { ...prev, [name]: value }
 }
 
+type CargaFormSyncOptions = {
+  initialData: CargaFormData
+  suggestedTag: string | undefined
+  projetos: Projeto[]
+  formData: CargaFormData
+  lastAutoTag: string
+  mostrarOcupacaoIo: boolean
+  setFormData: Dispatch<SetStateAction<CargaFormData>>
+  setLastAutoTag: Dispatch<SetStateAction<string>>
+}
+
+/** Sincroniza estado do formulário com props/projeto e recalcula ocupação de I/O. */
+function useCargaFormSync(opts: CargaFormSyncOptions): void {
+  const {
+    initialData,
+    suggestedTag,
+    projetos,
+    formData,
+    lastAutoTag,
+    mostrarOcupacaoIo,
+    setFormData,
+    setLastAutoTag,
+  } = opts
+
+  useEffect(() => {
+    setFormData(initialData)
+    setLastAutoTag(initialData.tag)
+  }, [initialData, setFormData, setLastAutoTag])
+
+  useEffect(() => {
+    if (!suggestedTag) return
+    if (formData.tag === suggestedTag) return
+    if (formData.tag.trim() && formData.tag !== lastAutoTag) return
+    setFormData((prev) => ({ ...prev, tag: suggestedTag }))
+    setLastAutoTag(suggestedTag)
+  }, [formData.tag, lastAutoTag, suggestedTag, setFormData, setLastAutoTag])
+
+  useEffect(() => {
+    if (!formData.projeto) return
+    const p = projetos.find((x) => x.id === formData.projeto)
+    if (p && !p.possui_plc) {
+      setFormData((prev) => ({
+        ...prev,
+        quantidade_entradas_digitais: 0,
+        quantidade_entradas_analogicas: 0,
+        quantidade_saidas_digitais: 0,
+        quantidade_saidas_analogicas: 0,
+        quantidade_entradas_rapidas: 0,
+      }))
+    }
+  }, [formData.projeto, projetos, setFormData])
+
+  useEffect(() => {
+    if (!mostrarOcupacaoIo) {
+      setFormData((prev) => ({
+        ...prev,
+        ...calcularOcupacaoIoCarga({ ...prev, exige_comando: false }),
+      }))
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ...calcularOcupacaoIoCarga(prev, calcularSaidasDigitaisMotor),
+    }))
+  }, [
+    mostrarOcupacaoIo,
+    formData.exige_comando,
+    formData.tipo,
+    formData.motor,
+    formData.valvula,
+    formData.resistencia,
+    formData.sensor,
+    formData.transdutor,
+    setFormData,
+  ])
+}
+
 export default function CargaForm({
   projetos,
   onSubmit,
@@ -133,21 +213,8 @@ export default function CargaForm({
   const [lastAutoTag, setLastAutoTag] = useState('')
 
   useEffect(() => {
-    setFormData(initialData)
-    setLastAutoTag(initialData.tag)
-  }, [initialData])
-
-  useEffect(() => {
     onChange?.(formData)
   }, [formData, onChange])
-
-  useEffect(() => {
-    if (!suggestedTag) return
-    if (formData.tag === suggestedTag) return
-    if (formData.tag.trim() && formData.tag !== lastAutoTag) return
-    setFormData((prev) => ({ ...prev, tag: suggestedTag }))
-    setLastAutoTag(suggestedTag)
-  }, [formData.tag, lastAutoTag, suggestedTag])
 
   const projetoSelecionado = useMemo(
     () => projetos.find((p) => p.id === formData.projeto),
@@ -161,44 +228,16 @@ export default function CargaForm({
       formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
   const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !formData.exige_comando
 
-  useEffect(() => {
-    if (!formData.projeto) return
-    const p = projetos.find((x) => x.id === formData.projeto)
-    if (p && !p.possui_plc) {
-      setFormData((prev) => ({
-        ...prev,
-        quantidade_entradas_digitais: 0,
-        quantidade_entradas_analogicas: 0,
-        quantidade_saidas_digitais: 0,
-        quantidade_saidas_analogicas: 0,
-        quantidade_entradas_rapidas: 0,
-      }))
-    }
-  }, [formData.projeto, projetos])
-
-  useEffect(() => {
-    if (!mostrarOcupacaoIo) {
-      setFormData((prev) => ({
-        ...prev,
-        ...calcularOcupacaoIoCarga({ ...prev, exige_comando: false }),
-      }))
-      return
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      ...calcularOcupacaoIoCarga(prev, calcularSaidasDigitaisMotor),
-    }))
-  }, [
+  useCargaFormSync({
+    initialData,
+    suggestedTag,
+    projetos,
+    formData,
+    lastAutoTag,
     mostrarOcupacaoIo,
-    formData.exige_comando,
-    formData.tipo,
-    formData.motor,
-    formData.valvula,
-    formData.resistencia,
-    formData.sensor,
-    formData.transdutor,
-  ])
+    setFormData,
+    setLastAutoTag,
+  })
 
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

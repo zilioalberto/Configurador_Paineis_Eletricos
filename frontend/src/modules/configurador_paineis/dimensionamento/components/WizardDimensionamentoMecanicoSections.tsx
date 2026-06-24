@@ -321,7 +321,7 @@ export function PlacaPreviewCard({
           }}
           onLayoutChange={onLayoutPlacaChange}
         />
-        {!validacaoDisposicao.ok ? (
+        {validacaoDisposicao.ok ? null : (
           <div className="alert alert-danger mt-3 mb-0" role="alert">
             <p className="mb-1 fw-semibold">Conflito na disposição dos componentes</p>
             <p className="small mb-2">
@@ -335,7 +335,7 @@ export function PlacaPreviewCard({
               ))}
             </ul>
           </div>
-        ) : null}
+        )}
         {disposicaoDirty ? (
           <p className="text-warning small mb-0 mt-2">
             Disposição alterada — use &quot;Salvar escolhas&quot; para persistir.

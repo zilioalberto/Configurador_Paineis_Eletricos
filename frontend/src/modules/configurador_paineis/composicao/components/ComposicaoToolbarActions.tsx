@@ -80,7 +80,7 @@ export function ComposicaoToolbarActions({
           type="button"
           className="btn btn-success btn-sm"
           disabled={!botaoExportarPropostaHabilitado}
-          title={!botaoExportarPropostaHabilitado ? motivoBloqueioRetornoOrcamento : undefined}
+          title={botaoExportarPropostaHabilitado ? undefined : motivoBloqueioRetornoOrcamento}
           onClick={() => onRetornarOrcamento().catch(() => undefined)}
         >
           {sincronizandoOrcamento ? 'Exportando…' : 'Exportar sugestões para proposta'}
