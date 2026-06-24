@@ -71,6 +71,40 @@ function gridColMd3(isPanel: boolean, compact: boolean): string {
   return 'col-md-3'
 }
 
+type LayoutCargaForm = 'default' | 'compact' | 'panel'
+
+/** Deriva flags e classes de grid/seção a partir do layout do formulário. */
+function derivarLayoutCargaForm(layout: LayoutCargaForm) {
+  const compact = layout === 'compact' || layout === 'panel'
+  const isPanel = layout === 'panel'
+  return {
+    compact,
+    isPanel,
+    colSm: gridColSm(isPanel, compact),
+    colMd: gridColMd(isPanel, compact),
+    colMd3: gridColMd3(isPanel, compact),
+    colMd6: compact ? 'col-sm-6' : 'col-md-6',
+    colMd8: compact ? 'col-sm-6 col-lg-8' : 'col-md-8',
+    sectionTitleClass: compact ? 'h6 text-muted mb-0' : 'h5',
+    rowGap: compact ? 'g-2' : 'g-3',
+    controlClass: compact ? 'form-control form-control-sm' : 'form-control',
+    selectClass: compact ? 'form-select form-select-sm' : 'form-select',
+  }
+}
+
+/** Esconde campos analógicos de I/O para motores com partida direta/estrela-triângulo. */
+function deveEsconderCamposAnalogicosIo(
+  mostrarOcupacaoIo: boolean,
+  formData: CargaFormData
+): boolean {
+  return (
+    mostrarOcupacaoIo &&
+    formData.tipo === 'MOTOR' &&
+    (formData.motor?.tipo_partida === 'DIRETA' ||
+      formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
+  )
+}
+
 const CAMPOS_QUANTIDADE_IO = new Set([
   'quantidade_entradas_digitais',
   'quantidade_entradas_analogicas',
@@ -200,15 +234,19 @@ export default function CargaForm({
   hideFooterSubmit = false,
   hideOptionalFields = false,
 }: CargaFormProps) {
-  const compact = layout === 'compact' || layout === 'panel'
-  const isPanel = layout === 'panel'
-  const colSm = gridColSm(isPanel, compact)
-  const colMd = gridColMd(isPanel, compact)
-  const colMd6 = compact ? 'col-sm-6' : 'col-md-6'
-  const colMd8 = compact ? 'col-sm-6 col-lg-8' : 'col-md-8'
-  const colMd3 = gridColMd3(isPanel, compact)
-  const sectionTitleClass = compact ? 'h6 text-muted mb-0' : 'h5'
-  const rowGap = compact ? 'g-2' : 'g-3'
+  const {
+    compact,
+    isPanel,
+    colSm,
+    colMd,
+    colMd3,
+    colMd6,
+    colMd8,
+    sectionTitleClass,
+    rowGap,
+    controlClass,
+    selectClass,
+  } = derivarLayoutCargaForm(layout)
   const [formData, setFormData] = useState<CargaFormData>(initialData)
   const [lastAutoTag, setLastAutoTag] = useState('')
 
@@ -221,11 +259,7 @@ export default function CargaForm({
     [projetos, formData.projeto]
   )
   const mostrarOcupacaoIo = projetoSelecionado?.possui_plc === true
-  const esconderCamposAnalogicosIo =
-    mostrarOcupacaoIo &&
-    formData.tipo === 'MOTOR' &&
-    (formData.motor?.tipo_partida === 'DIRETA' ||
-      formData.motor?.tipo_partida === 'ESTRELA_TRIANGULO')
+  const esconderCamposAnalogicosIo = deveEsconderCamposAnalogicosIo(mostrarOcupacaoIo, formData)
   const desabilitarQuantidadesIo = !mostrarOcupacaoIo || !formData.exige_comando
 
   useCargaFormSync({
@@ -472,9 +506,6 @@ export default function CargaForm({
     </>
     )
   }
-
-  const controlClass = compact ? 'form-control form-control-sm' : 'form-control'
-  const selectClass = compact ? 'form-select form-select-sm' : 'form-select'
 
   const tipoSectionHeader = (title: string) =>
     isPanel ? null : (

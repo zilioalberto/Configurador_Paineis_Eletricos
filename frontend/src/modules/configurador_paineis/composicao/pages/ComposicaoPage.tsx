@@ -1,5 +1,5 @@
 import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { ConfirmModal, useToast } from '@/components/feedback'
 import { useAuth } from '@/modules/auth/AuthContext'
@@ -16,6 +16,7 @@ import { orcamentoDetalhePath } from '@/modules/orcamentos/utils/orcamentoUi'
 import { sincronizarComposicaoPainel } from '@/modules/orcamentos/services/orcamentosApi'
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ComposicaoAlterarSugestaoModal } from '../components/ComposicaoAlterarSugestaoModal'
+import { ComposicaoSeletorProjeto } from '../components/ComposicaoSeletorProjeto'
 import { ComposicaoSnapshotContent } from '../components/ComposicaoSnapshotContent'
 import { ComposicaoToolbarActions } from '../components/ComposicaoToolbarActions'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
@@ -547,40 +548,14 @@ export default function ComposicaoPage() {
         }}
         onConfirm={confirmarModalComposicao}
       />
-      {projetoId ? null : (
-        <div className="card mb-3">
-          <div className="card-body">
-            <label className="form-label fw-semibold" htmlFor="comp-projeto">
-              Projeto
-            </label>
-            <select
-              id="comp-projeto"
-              className="form-select"
-              style={{ maxWidth: '28rem' }}
-              value={projetoId}
-              onChange={onProjetoChange}
-              disabled={loadingProjetos}
-            >
-              <option value="">Selecione um projeto</option>
-              {projetos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.codigo} — {p.nome}
-                </option>
-              ))}
-            </select>
-            <p className="small text-muted mt-2 mb-0">
-              Antes de gerar, confira as{' '}
-              {canViewCargas ? <Link to={configuradorPaths.cargas()}>cargas</Link> : 'cargas'} e o{' '}
-              {canViewDimensionamento ? (
-                <Link to={configuradorPaths.dimensionamento()}>dimensionamento</Link>
-              ) : (
-                'dimensionamento'
-              )}{' '}
-              (corrente total de entrada).
-            </p>
-          </div>
-        </div>
-      )}
+      <ComposicaoSeletorProjeto
+        projetoId={projetoId}
+        projetos={projetos}
+        loadingProjetos={loadingProjetos}
+        onProjetoChange={onProjetoChange}
+        canViewCargas={canViewCargas}
+        canViewDimensionamento={canViewDimensionamento}
+      />
 
       {!projetoId && (
         <p className="text-muted">Selecione um projeto para ver a composição sugerida.</p>
