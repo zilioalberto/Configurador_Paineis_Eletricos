@@ -13,27 +13,26 @@ export type SecaoDocumentoOferta = {
   conteudo: string
 }
 
-/** Extrai título de linha `## Título` ou `1. Título` sem regex (evita ReDoS). */
-function extrairTituloHeadingLinha(linha: string): string | null {
-  if (!linha) return null
-
-  if (linha.charAt(0) === '#') {
-    let hashes = 0
-    while (hashes < linha.length && hashes < 3 && linha.charAt(hashes) === '#') {
-      hashes += 1
-    }
-    if (hashes < 1 || hashes > 3) return null
-
-    let espacos = hashes
-    while (espacos < linha.length && (linha.charAt(espacos) === ' ' || linha.charAt(espacos) === '\t')) {
-      espacos += 1
-    }
-    if (espacos === hashes) return null
-
-    const titulo = linha.slice(espacos).trim()
-    return titulo || null
+/** Extrai título de linha `## Título` (1 a 3 `#`) sem regex (evita ReDoS). */
+function extrairTituloHeadingHash(linha: string): string | null {
+  let hashes = 0
+  while (hashes < linha.length && hashes < 3 && linha.charAt(hashes) === '#') {
+    hashes += 1
   }
+  if (hashes < 1 || hashes > 3) return null
 
+  let espacos = hashes
+  while (espacos < linha.length && (linha.charAt(espacos) === ' ' || linha.charAt(espacos) === '\t')) {
+    espacos += 1
+  }
+  if (espacos === hashes) return null
+
+  const titulo = linha.slice(espacos).trim()
+  return titulo || null
+}
+
+/** Extrai título de linha `1. Título` sem regex (evita ReDoS). */
+function extrairTituloListaNumerada(linha: string): string | null {
   let digitos = 0
   while (digitos < linha.length) {
     const caractere = linha.charAt(digitos)
@@ -47,6 +46,15 @@ function extrairTituloHeadingLinha(linha: string): string | null {
 
   const titulo = linha.slice(digitos + 2).trim()
   return titulo || null
+}
+
+/** Extrai título de linha `## Título` ou `1. Título` sem regex (evita ReDoS). */
+function extrairTituloHeadingLinha(linha: string): string | null {
+  if (!linha) return null
+  if (linha.startsWith('#')) {
+    return extrairTituloHeadingHash(linha)
+  }
+  return extrairTituloListaNumerada(linha)
 }
 
 function normalizarChaveTitulo(valor: string): string {
@@ -103,7 +111,7 @@ export function tipoBlocoPorTituloSecao(titulo: string): TipoBlocoOferta | null 
 
 /** Extrai seções a partir de títulos `## Título` ou `1. Título`. */
 export function extrairSecoesDocumento(texto: string): SecaoDocumentoOferta[] {
-  const normalizado = String(texto || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const normalizado = String(texto || '').replaceAll('\r\n', '\n').replaceAll('\r', '\n')
   if (!normalizado.trim()) return []
 
   const secoes: SecaoDocumentoOferta[] = []

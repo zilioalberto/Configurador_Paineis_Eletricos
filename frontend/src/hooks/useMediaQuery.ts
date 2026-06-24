@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react'
 /** Observa uma media query CSS (ex.: `(max-width: 1199.98px)`). */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.matchMedia(query).matches
+    if (typeof globalThis.window === 'undefined') return false
+    return globalThis.matchMedia(query).matches
   })
 
   useEffect(() => {
-    const mq = window.matchMedia(query)
+    const mq = globalThis.matchMedia(query)
     const onChange = () => setMatches(mq.matches)
     onChange()
     mq.addEventListener('change', onChange)

@@ -165,7 +165,7 @@ export function tarefaToFormState(tarefa: TarefaKanbanItem): TarefaFormState {
     descricao: tarefa.descricao,
     coluna: tarefa.coluna,
     responsavel: tarefa.responsavel ? String(tarefa.responsavel) : '',
-    colaboradores: (tarefa.colaboradores ?? []).map((colaborador) => String(colaborador)),
+    colaboradores: (tarefa.colaboradores ?? []).map(String),
     prioridade: tarefa.prioridade,
     prazo: toDatetimeLocalValue(tarefa.prazo),
     tipo_etapa: tarefa.tipo_etapa ?? 'NAO_CLASSIFICADA',

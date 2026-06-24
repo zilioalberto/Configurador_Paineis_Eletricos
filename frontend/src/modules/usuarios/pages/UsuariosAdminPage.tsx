@@ -3,7 +3,7 @@
  * Consome a API `accounts` (`/auth/users/`); vínculo RH é somente leitura aqui.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from 'react'
+import { type SyntheticEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { groupPermissionOptions } from '@/modules/auth/permissionGroups'
 import { useToast } from '@/components/feedback'
@@ -186,7 +186,7 @@ export default function UsuariosAdminPage() {
     })
   }, [])
 
-  const onCreateSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
+  const onCreateSubmit = useCallback<(event: SyntheticEvent<HTMLFormElement>) => void>(
     (e) => {
       e.preventDefault()
       const tipo = createForm.tipo_usuario || defaultTipo
@@ -244,7 +244,7 @@ export default function UsuariosAdminPage() {
     setEditForm(null)
   }, [])
 
-  const onEditSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
+  const onEditSubmit = useCallback<(event: SyntheticEvent<HTMLFormElement>) => void>(
     (e) => {
       e.preventDefault()
       if (!editTarget || !editForm) return

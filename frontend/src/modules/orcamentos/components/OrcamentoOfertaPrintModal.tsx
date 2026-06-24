@@ -108,7 +108,8 @@ export default function OrcamentoOfertaPrintModal({
         <div className="proposta-cliente-modal__corpo">
           {loading ? (
             <p className="text-muted">Carregando pré-visualização…</p>
-          ) : preview ? (
+          ) : null}
+          {!loading && preview ? (
             <div className="row g-3">
               <div className="col-lg-7">
                 <div className="proposta-cliente-modal__preview">
@@ -188,9 +189,10 @@ export default function OrcamentoOfertaPrintModal({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : null}
+          {!loading && !preview ? (
             <p className="text-muted">Pré-visualização não disponível.</p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>,

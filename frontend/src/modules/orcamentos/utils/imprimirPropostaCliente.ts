@@ -4,8 +4,10 @@ import {
 } from './impressaoPropostaClienteDom'
 
 function obterNomeArquivoImpressaoNoDom(): string | null {
-  const el = document.querySelector('.proposta-cliente[data-nome-arquivo-impressao]')
-  const nome = el?.getAttribute('data-nome-arquivo-impressao')?.trim()
+  const el = document.querySelector<HTMLElement>(
+    '.proposta-cliente[data-nome-arquivo-impressao]'
+  )
+  const nome = el?.dataset.nomeArquivoImpressao?.trim()
   return nome || null
 }
 
@@ -25,11 +27,11 @@ export function imprimirPropostaCliente(): void {
       desativarImpressaoPropostaClienteDom()
     }
   }
-  window.addEventListener('afterprint', limpar, { once: true })
+  globalThis.addEventListener('afterprint', limpar, { once: true })
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      window.print()
+      globalThis.print()
     })
   })
 }

@@ -94,11 +94,11 @@ describe('NovaCargaModal', () => {
     )
 
     const potencia = document.querySelector('input[name="motor.potencia"]')
-    if (!potencia) {
+    if (potencia) {
+      fireEvent.keyDown(potencia, { key: 'Enter', code: 'Enter' })
+    } else {
       const descricao = document.querySelector('input[name="descricao"]')!
       fireEvent.keyDown(descricao, { key: 'Enter', code: 'Enter' })
-    } else {
-      fireEvent.keyDown(potencia, { key: 'Enter', code: 'Enter' })
     }
 
     expect(mutateAsync).not.toHaveBeenCalled()

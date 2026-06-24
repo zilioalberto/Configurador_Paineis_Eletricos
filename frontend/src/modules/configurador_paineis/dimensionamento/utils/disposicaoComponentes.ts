@@ -655,7 +655,7 @@ function mergeRecortesTrilhoX(recortes: RecorteTrilhoXMm[]): RecorteTrilhoXMm[] 
   const merged: RecorteTrilhoXMm[] = [ordenados[0]]
   for (let i = 1; i < ordenados.length; i += 1) {
     const cur = ordenados[i]
-    const last = merged[merged.length - 1]
+    const last = merged.at(-1)!
     if (cur.xInicio <= last.xFim) {
       last.xFim = Math.max(last.xFim, cur.xFim)
     } else {
@@ -908,7 +908,7 @@ function xAposUltimoNoTrilho(
   trilhoIndice: number | null
 ): number | undefined {
   const ultimo = resultado.at(-1)
-  if (!ultimo || ultimo.trilho_indice !== trilhoIndice) return undefined
+  if (ultimo?.trilho_indice !== trilhoIndice) return undefined
   return ultimo.x_mm + ultimo.largura_mm + GAP_COMPONENTES_MM
 }
 

@@ -8,11 +8,11 @@ import {
   WizardCondutoresToolbar,
 } from './WizardCondutoresSections'
 
-type Props = {
+type Props = Readonly<{
   projetoId: string
   /** Sem cartão azul nem título duplicado — usar com `DimensionamentoWizardShell`. */
   embedded?: boolean
-}
+}>
 
 export default function WizardCondutoresPanel({ projetoId, embedded = false }: Props) {
   const panel = useWizardCondutoresPanel(projetoId)

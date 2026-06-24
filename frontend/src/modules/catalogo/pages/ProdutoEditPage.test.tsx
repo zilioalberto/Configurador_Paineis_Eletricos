@@ -68,7 +68,7 @@ import ProdutoEditPage from '@/modules/catalogo/pages/ProdutoEditPage'
 
 function renderEdit(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  function W({ children }: { children: ReactNode }) {
+  function W({ children }: Readonly<{ children: ReactNode }>) {
     return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   }
   return render(

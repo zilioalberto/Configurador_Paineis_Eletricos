@@ -16,7 +16,7 @@ import { PROJETO_CONFIG_FORM_ID } from './projetoFormIds'
 import { ROTULOS_CAMPOS_PROJETO } from './projetoFormValidation'
 import { useProjetoForm } from './useProjetoForm'
 
-type ProjetoFormProps = {
+type ProjetoFormProps = Readonly<{
   onSubmit: (data: ProjetoFormData) => Promise<void>
   onSubmitError?: (error: unknown) => void
   loading?: boolean
@@ -33,19 +33,19 @@ type ProjetoFormProps = {
   showActionBar?: boolean
   /** Em `grid`, as seções usam duas colunas em telas largas (criação/edição compacta). */
   workspaceLayout?: 'stack' | 'grid'
-}
+}>
 
 function ProjetoFormSection({
   title,
   accent,
   spanFull,
   children,
-}: {
+}: Readonly<{
   title: string
   accent: string
   spanFull?: boolean
   children: ReactNode
-}) {
+}>) {
   return (
     <section
       className={`projeto-form-section${spanFull ? ' projeto-form-section--span-full' : ''}`}

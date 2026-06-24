@@ -76,6 +76,7 @@ export default function OrcamentoEnviarOfertaModal({
     () => orcamento.status === 'FINALIZADO' || orcamento.status === 'ENVIADO',
     [orcamento.status]
   )
+  const precisaFinalizarAntes = !prontoParaEnviar
 
   async function confirmarEnvio() {
     if (!prontoParaEnviar) return
@@ -103,14 +104,16 @@ export default function OrcamentoEnviarOfertaModal({
       })
       const link = atualizado.link_publico || ''
       const emailFalhou = enviarEmail && atualizado.email_erro?.trim()
+      let mensagemToast = 'Oferta registrada. Copie o link público para o cliente.'
+      if (emailFalhou) {
+        mensagemToast = `A oferta foi gerada e o link está disponível, mas o e-mail não pôde ser enviado: ${atualizado.email_erro}`
+      } else if (enviarEmail) {
+        mensagemToast = 'Oferta enviada. Verifique se o e-mail foi entregue.'
+      }
       showToast({
         variant: emailFalhou ? 'warning' : 'success',
         title: emailFalhou ? 'E-mail não enviado' : undefined,
-        message: emailFalhou
-          ? `A oferta foi gerada e o link está disponível, mas o e-mail não pôde ser enviado: ${atualizado.email_erro}`
-          : enviarEmail
-            ? 'Oferta enviada. Verifique se o e-mail foi entregue.'
-            : 'Oferta registrada. Copie o link público para o cliente.',
+        message: mensagemToast,
       })
       onEnviado(atualizado, link)
       onClose()
@@ -144,7 +147,7 @@ export default function OrcamentoEnviarOfertaModal({
             />
           </div>
           <div className="modal-body">
-            {!prontoParaEnviar ? (
+            {precisaFinalizarAntes ? (
               <div className="alert alert-warning">
                 <p className="mb-2">
                   A oferta precisa estar <strong>finalizada</strong> antes do envio (congela a
@@ -229,7 +232,7 @@ export default function OrcamentoEnviarOfertaModal({
                         checked={enviarEmail}
                         onChange={(e) => setEnviarEmail(e.target.checked)}
                         disabled={processando}
-                      />
+                      />{' '}
                       Enviar e-mail com PDF anexo e link da proposta
                     </label>
                     <p className="form-text mb-0">

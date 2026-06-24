@@ -28,12 +28,12 @@ const ETAPAS: {
   },
 ]
 
-type Props = {
+type Props = Readonly<{
   projetoId: string
   etapaAtual: ProjetoFluxoEtapaId
   /** Oculta texto longo em telas estreitas */
   compact?: boolean
-}
+}>
 
 /**
  * Barra de etapas do fluxo do painel — mesma ordem em todas as telas do projeto.
@@ -106,11 +106,11 @@ export function ProjetoFluxoStepper({ projetoId, etapaAtual, compact = false }: 
             const inner = (
               <>
                 <span className={`fw-semibold small ${ativa ? 'text-primary' : ''}`}>{etapa.label}</span>
-                {!compact ? (
+                {compact ? null : (
                   <span className="text-muted" style={{ fontSize: '0.7rem' }}>
                     {etapa.descricao}
                   </span>
-                ) : null}
+                )}
               </>
             )
 

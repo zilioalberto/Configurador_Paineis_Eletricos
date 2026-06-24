@@ -11,7 +11,7 @@ from django.conf import settings
 class SefazConfig:
     cnpj: str
     uf: str
-    ambiente: str  # 1=produção, 2=homologação
+    ambiente: str  # código do ambiente SEFAZ: produção ou homologação
     cert_path: Path
     cert_password: str
     provider: str  # native | stub

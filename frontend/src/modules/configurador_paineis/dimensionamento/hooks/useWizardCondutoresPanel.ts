@@ -15,7 +15,6 @@ import {
   overrideBitolaAgCoerente,
   parseNum,
   toPayloadNull,
-  type OverridesAg,
   type OverridesCircuito,
 } from '../utils/wizardCondutoresUtils'
 import { useDimensionamentoQuery } from './useDimensionamentoQuery'
@@ -39,7 +38,7 @@ export function useWizardCondutoresPanel(projetoId: string) {
   const ag = dim?.alimentacao_geral ?? null
 
   const [circuitoOv, setCircuitoOv] = useState<Record<string, OverridesCircuito>>({})
-  const [agOv, setAgOv] = useState<OverridesAg | null>(null)
+  const [agOv, setAgOv] = useState<OverridesCircuito | null>(null)
 
   useEffect(() => {
     if (!dim?.circuitos_carga) return

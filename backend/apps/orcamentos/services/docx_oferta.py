@@ -290,9 +290,9 @@ def _itens_tabela_investimento(preview: dict) -> list[dict]:
 
 def _contexto_docxtpl(preview: dict) -> dict:
     try:
-        from docxtpl import Listing
+        from docxtpl import Listing as listing_cls
     except ImportError:  # pragma: no cover
-        Listing = str
+        listing_cls = str
 
     hoje = timezone.localdate()
     cliente = preview["cliente"]
@@ -312,24 +312,24 @@ def _contexto_docxtpl(preview: dict) -> dict:
             "nossa oferta técnica/comercial para o fornecimento de:"
         ),
         "escopo_fornecimento": _rich_texto_paragrafos(texto_escopo),
-        "itens_considerados": Listing(
+        "itens_considerados": listing_cls(
             _texto_lista_capitalizada(_texto_secao(preview, "ITENS_FORNECIMENTO"))
         ),
-        "servicos_considerados": Listing(
+        "servicos_considerados": listing_cls(
             _texto_lista_capitalizada(_texto_secao(preview, "SERVICOS"))
         ),
         "investimento_itens": _itens_tabela_investimento(preview),
-        "exclusoes": Listing(_texto_lista(_texto_secao(preview, "EXCLUSOES"))),
-        "observacoes": Listing(_texto_secao(preview, "OBSERVACOES")),
-        "prazo_entrega": Listing(_texto_secao(preview, "PRAZO_ENTREGA", "À combinar.")),
-        "condicoes_pagamento": Listing(
+        "exclusoes": listing_cls(_texto_lista(_texto_secao(preview, "EXCLUSOES"))),
+        "observacoes": listing_cls(_texto_secao(preview, "OBSERVACOES")),
+        "prazo_entrega": listing_cls(_texto_secao(preview, "PRAZO_ENTREGA", "À combinar.")),
+        "condicoes_pagamento": listing_cls(
             _texto_lista(_texto_secao(preview, "CONDICOES_PAGAMENTO"))
         ),
-        "condicoes_gerais": Listing(_texto_lista(_texto_secao(preview, "CONDICOES_GERAIS"))),
+        "condicoes_gerais": listing_cls(_texto_lista(_texto_secao(preview, "CONDICOES_GERAIS"))),
         "validade_texto": (
             f"A validade desta proposta é até {_formatar_data_iso(preview.get('validade'))}."
         ),
-        "garantia_texto": Listing(_texto_secao(preview, "GARANTIA")),
+        "garantia_texto": listing_cls(_texto_secao(preview, "GARANTIA")),
         "total_proposta": f"R$ {_formatar_decimal(preview['totais']['total'])}",
     }
 

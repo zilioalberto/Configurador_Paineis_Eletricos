@@ -289,7 +289,6 @@ def _montar_candidato_disposicao(
 
 def _montar_candidato_trilho(
     inst: dict,
-    trilho: dict,
     trilho_indice: int,
     x_mm: int,
     y_mm: int,
@@ -318,14 +317,14 @@ def _buscar_posicao_valida_no_trilho(
 
     for x in range(x_inicio, x_max + 1, passo_mm):
         candidato = _montar_candidato_trilho(
-            inst, trilho, trilho_indice, x, base["y_mm"]
+            inst, trilho_indice, x, base["y_mm"]
         )
         if _posicao_valida(candidato, layout_placa, ja_posicionados):
             return candidato
 
     for x in range(x_min, x_inicio, passo_mm):
         candidato = _montar_candidato_trilho(
-            inst, trilho, trilho_indice, x, base["y_mm"]
+            inst, trilho_indice, x, base["y_mm"]
         )
         if _posicao_valida(candidato, layout_placa, ja_posicionados):
             return candidato
@@ -562,7 +561,7 @@ def _escolher_faixa_para_item_placa(inst: dict, faixas: list[dict]) -> dict | No
     return ordenadas[0] if ordenadas else None
 
 
-def ajustar_layout_placa_para_itens(layout_placa: dict, itens: list[dict]) -> dict:
+def ajustar_layout_placa_para_itens(layout_placa: dict, _itens: list[dict]) -> dict:
     """
     Mantém trilhos DIN no layout para disposição e validação.
 
@@ -871,7 +870,7 @@ def _distribuir_multiplos_trilhos(
     if posicionados_disj:
         pos_corrente = _proxima_posicao_trilho(pos_disj, len(indices_superiores))
 
-    posicionados_contatoras, pos_contatoras = _distribuir_grupo_preferindo_mesmo_trilho(
+    posicionados_contatoras, _pos_contatoras = _distribuir_grupo_preferindo_mesmo_trilho(
         trilhos,
         indices_superiores,
         grupos["contatoras"],
@@ -880,8 +879,6 @@ def _distribuir_multiplos_trilhos(
         indice_minimo=pos_corrente,
     )
     resultado.extend(posicionados_contatoras)
-    if posicionados_contatoras:
-        pos_corrente = _proxima_posicao_trilho(pos_contatoras, len(indices_superiores))
 
     _distribuir_outros_trilho(
         trilhos,

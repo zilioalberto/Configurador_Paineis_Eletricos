@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type SyntheticEvent, useState } from 'react'
 import { unidadeMedidaOptionsComValorAtual } from '../constants/catalogoChoiceOptions'
 import type { ServicoFormData } from '../types/servico'
 
@@ -21,7 +21,7 @@ export default function ServicoForm({
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SyntheticEvent) {
     e.preventDefault()
     await onSubmit(form)
   }

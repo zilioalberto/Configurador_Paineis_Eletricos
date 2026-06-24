@@ -32,7 +32,7 @@ function isCombiningDiacritic(code: number): boolean {
 }
 
 function isSlugFilenameChar(ch: string): boolean {
-  const c = ch.charCodeAt(0)
+  const c = ch.codePointAt(0) ?? 0
   return (
     (c >= 0x61 && c <= 0x7a) ||
     (c >= 0x41 && c <= 0x5a) ||
@@ -49,17 +49,15 @@ export function slugNomeArquivo(valor: string | undefined): string {
   let out = ''
   let prevWasSep = false
   for (let i = 0; i < nfd.length; i++) {
-    const code = nfd.charCodeAt(i)
+    const code = nfd.codePointAt(i) ?? 0
     if (isCombiningDiacritic(code)) continue
     const ch = nfd[i]
     if (isSlugFilenameChar(ch)) {
       out += ch
       prevWasSep = false
-    } else {
-      if (!prevWasSep) {
-        out += '_'
-        prevWasSep = true
-      }
+    } else if (!prevWasSep) {
+      out += '_'
+      prevWasSep = true
     }
   }
   let start = 0

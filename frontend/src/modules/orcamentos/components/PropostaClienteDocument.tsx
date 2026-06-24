@@ -70,11 +70,11 @@ function ConteudoSecaoEditavel({
   conteudo,
   tipo,
   edicao,
-}: {
+}: Readonly<{
   conteudo: string
   tipo: TipoBlocoOferta
   edicao: PropostaClienteEdicao
-}) {
+}>) {
   if (!edicao.podeEditar) {
     return (
       <div className="proposta-cliente__texto-leitura">
@@ -98,7 +98,7 @@ function numeroProposta(preview: OrcamentoPreviewOfertaDto): string {
   return numeroPropostaExibicao(preview.codigo, preview.revisao, preview.codigo_base)
 }
 
-function CabecalhoInicio({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function CabecalhoInicio({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   return (
     <header className="proposta-cliente__cabecalho-inicio">
       <div className="proposta-cliente__cabecalho-inicio-esq">
@@ -144,7 +144,7 @@ function CabecalhoInicio({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
   )
 }
 
-function CabecalhoResumido({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function CabecalhoResumido({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   return (
     <header className="proposta-cliente__cabecalho-resumido">
       <img
@@ -159,7 +159,7 @@ function CabecalhoResumido({ preview }: { preview: OrcamentoPreviewOfertaDto }) 
   )
 }
 
-function BlocoDestinatario({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function BlocoDestinatario({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   const empresa = formatarNomeEmpresaExibicao(preview.cliente.nome)
   const contato = preview.cliente.contato?.trim() || '—'
   const telefone = preview.cliente.telefone?.trim() || '—'
@@ -206,11 +206,11 @@ function BlocoDestinatario({ preview }: { preview: OrcamentoPreviewOfertaDto }) 
 }
 
 /** Título de seção no estilo Figma (verde, caps). */
-function TituloSecaoVerde({ children }: { children: string }) {
+function TituloSecaoVerde({ children }: Readonly<{ children: string }>) {
   return <h2 className="proposta-cliente__secao-titulo">{children}</h2>
 }
 
-function LinhaRodapeEmpresa({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function LinhaRodapeEmpresa({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   return (
     <span className="proposta-cliente__folha-rodape-empresa">
       {EMPRESA.razao} · CNPJ {EMPRESA.cnpj} · {numeroProposta(preview)} ·{' '}
@@ -220,7 +220,7 @@ function LinhaRodapeEmpresa({ preview }: { preview: OrcamentoPreviewOfertaDto })
 }
 
 /** Rodapé fixo na impressão — repete em cada página física com contador CSS. */
-function RodapeImpressao({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function RodapeImpressao({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   return (
     <footer className="proposta-cliente__rodape-impressao" aria-hidden="true">
       <LinhaRodapeEmpresa preview={preview} />
@@ -230,7 +230,7 @@ function RodapeImpressao({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
 }
 
 /** Rodapé único na pré-visualização em tela (fim do documento). */
-function RodapeTela({ preview }: { preview: OrcamentoPreviewOfertaDto }) {
+function RodapeTela({ preview }: Readonly<{ preview: OrcamentoPreviewOfertaDto }>) {
   return (
     <footer className="proposta-cliente__folha-rodape proposta-cliente__folha-rodape--tela">
       <LinhaRodapeEmpresa preview={preview} />

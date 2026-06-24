@@ -335,7 +335,7 @@ describe('OrcamentoDetailPage', () => {
         },
       ],
     })
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+    vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(true)
 
     renderOrcamentoDetailPage()
 
@@ -548,7 +548,7 @@ describe('OrcamentoDetailPage', () => {
   })
 
   it('atualiza oferta em rascunho com padrões atuais', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     atualizarOfertaOrcamentoMock.mockResolvedValueOnce({
       itens_atualizados: 1,
       orcamento: {
@@ -585,7 +585,7 @@ describe('OrcamentoDetailPage', () => {
   })
 
   it('finaliza oferta sem marcar como enviada', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     atualizarOrcamentoMock.mockImplementationOnce(async (_id: string, payload: Record<string, unknown>) => ({
       ...orcamentoBase,
       ...payload,
@@ -763,7 +763,7 @@ describe('OrcamentoDetailPage', () => {
   })
 
   it('reabre oferta finalizada para edição em rascunho', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     obterOrcamentoMock.mockResolvedValueOnce({
       ...orcamentoBase,
       status: 'FINALIZADO',

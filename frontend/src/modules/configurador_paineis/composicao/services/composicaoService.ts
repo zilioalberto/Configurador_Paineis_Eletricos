@@ -117,7 +117,7 @@ function dispararDownloadBlob(blob: Blob, nome: string): void {
   document.body.appendChild(a)
   a.click()
   a.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 /** Lista completa: composição aprovada, sugestões finais, inclusões manuais e pendências (.xlsx). */

@@ -53,8 +53,8 @@ export function useNotificacoesInternas(pollMs = 60_000) {
 
   useEffect(() => {
     void atualizarContagem()
-    const id = window.setInterval(() => void atualizarContagem(), pollMs)
-    return () => window.clearInterval(id)
+    const id = globalThis.setInterval(() => void atualizarContagem(), pollMs)
+    return () => globalThis.clearInterval(id)
   }, [atualizarContagem, pollMs])
 
   return { naoLidas, atualizarContagem }
@@ -124,9 +124,11 @@ export default function NotificacoesHeaderPanel({
 
       {carregando ? (
         <p className="small text-muted mb-0">A carregar…</p>
-      ) : itens.length === 0 ? (
+      ) : null}
+      {!carregando && itens.length === 0 ? (
         <p className="small text-muted mb-0">Sem alertas no momento.</p>
-      ) : (
+      ) : null}
+      {!carregando && itens.length > 0 ? (
         <ul className="app-header-notif-list list-unstyled mb-0">
           {itens.map((item) => {
             const destino = linkInterno(item.link)
@@ -169,7 +171,7 @@ export default function NotificacoesHeaderPanel({
             )
           })}
         </ul>
-      )}
+      ) : null}
     </dialog>
   )
 }

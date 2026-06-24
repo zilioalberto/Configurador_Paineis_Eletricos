@@ -64,8 +64,11 @@ export function ProjetoFormDadosGeraisSection({
       ) : null}
 
       <div className="col-md-4">
-        <label className="form-label">Código</label>
+        <label className="form-label" htmlFor="projeto-form-codigo">
+          Código
+        </label>
         <input
+          id="projeto-form-codigo"
           type="text"
           name="codigo"
           className="form-control"
@@ -82,8 +85,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-8">
-        <label className="form-label">Nome</label>
+        <label className="form-label" htmlFor="projeto-form-nome">
+          Nome
+        </label>
         <input
+          id="projeto-form-nome"
           type="text"
           name="nome"
           className="form-control"
@@ -125,8 +131,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-6">
-        <label className="form-label">Responsável</label>
+        <label className="form-label" htmlFor="projeto-form-responsavel">
+          Responsável
+        </label>
         <select
+          id="projeto-form-responsavel"
           name="responsavel"
           className="form-select"
           value={formData.responsavel ?? ''}
@@ -143,8 +152,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">Tipo de painel</label>
+        <label className="form-label" htmlFor="projeto-form-tipo-painel">
+          Tipo de painel
+        </label>
         <select
+          id="projeto-form-tipo-painel"
           name="tipo_painel"
           className="form-select"
           value={formData.tipo_painel}
@@ -156,8 +168,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">Tipo de corrente</label>
+        <label className="form-label" htmlFor="projeto-form-tipo-corrente">
+          Tipo de corrente
+        </label>
         <select
+          id="projeto-form-tipo-corrente"
           name="tipo_corrente"
           className="form-select"
           value={formData.tipo_corrente}
@@ -169,8 +184,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">Tensão nominal</label>
+        <label className="form-label" htmlFor="projeto-form-tensao-nominal">
+          Tensão nominal
+        </label>
         <input
+          id="projeto-form-tensao-nominal"
           type="number"
           name="tensao_nominal"
           className="form-control"
@@ -184,8 +202,11 @@ export function ProjetoFormDadosGeraisSection({
       {formData.tipo_corrente === 'CA' && (
         <>
           <div className="col-md-3">
-            <label className="form-label">Número de fases</label>
+            <label className="form-label" htmlFor="projeto-form-numero-fases">
+              Número de fases
+            </label>
             <select
+              id="projeto-form-numero-fases"
               name="numero_fases"
               className="form-select"
               value={formData.numero_fases ?? ''}
@@ -197,8 +218,11 @@ export function ProjetoFormDadosGeraisSection({
           </div>
 
           <div className="col-md-3">
-            <label className="form-label">Frequência</label>
+            <label className="form-label" htmlFor="projeto-form-frequencia">
+              Frequência
+            </label>
             <select
+              id="projeto-form-frequencia"
               name="frequencia"
               className="form-select"
               value={formData.frequencia ?? ''}
@@ -212,8 +236,11 @@ export function ProjetoFormDadosGeraisSection({
       )}
 
       <div className="col-md-3">
-        <label className="form-label">Corrente de comando</label>
+        <label className="form-label" htmlFor="projeto-form-tipo-corrente-comando">
+          Corrente de comando
+        </label>
         <select
+          id="projeto-form-tipo-corrente-comando"
           name="tipo_corrente_comando"
           className="form-select"
           value={formData.tipo_corrente_comando}
@@ -225,8 +252,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">Tensão de comando</label>
+        <label className="form-label" htmlFor="projeto-form-tensao-comando">
+          Tensão de comando
+        </label>
         <input
+          id="projeto-form-tensao-comando"
           type="number"
           name="tensao_comando"
           className="form-control"
@@ -238,8 +268,11 @@ export function ProjetoFormDadosGeraisSection({
       </div>
 
       <div className="col-md-3">
-        <label className="form-label">Fator de demanda</label>
+        <label className="form-label" htmlFor="projeto-form-fator-demanda">
+          Fator de demanda
+        </label>
         <input
+          id="projeto-form-fator-demanda"
           type="text"
           name="fator_demanda"
           className="form-control"

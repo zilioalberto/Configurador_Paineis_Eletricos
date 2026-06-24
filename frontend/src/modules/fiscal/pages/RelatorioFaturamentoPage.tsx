@@ -235,7 +235,8 @@ export default function RelatorioFaturamentoPage() {
 
       {isPending ? (
         <p className="text-muted">Carregando relatório…</p>
-      ) : data ? (
+      ) : null}
+      {!isPending && data ? (
         <>
           <div className="row g-3 mb-4">
             <div className="col-6 col-md-3">

@@ -91,45 +91,30 @@ class DocumentoFiscalRecebidoViewSet(ReadOnlyModelViewSet):
             return DocumentoFiscalRecebidoDetailSerializer
         return DocumentoFiscalRecebidoSerializer
 
+    FILTROS_EXATOS = (
+        "chave_acesso",
+        "numero",
+        "serie",
+        "status_importacao",
+        "origem_importacao",
+        "objetivo_entrada",
+        "manifestacao_status",
+    )
+    FILTROS_CNPJ = ("cnpj_emitente", "cnpj_destinatario")
+
     def get_queryset(self):
         qs = super().get_queryset()
         params = self.request.query_params
 
-        chave = (params.get("chave_acesso") or "").strip()
-        if chave:
-            qs = qs.filter(chave_acesso=chave)
+        for campo in self.FILTROS_EXATOS:
+            valor = (params.get(campo) or "").strip()
+            if valor:
+                qs = qs.filter(**{campo: valor})
 
-        cnpj_emit = (params.get("cnpj_emitente") or "").strip()
-        if cnpj_emit:
-            qs = qs.filter(cnpj_emitente=normalizar_cnpj(cnpj_emit))
-
-        cnpj_dest = (params.get("cnpj_destinatario") or "").strip()
-        if cnpj_dest:
-            qs = qs.filter(cnpj_destinatario=normalizar_cnpj(cnpj_dest))
-
-        numero = (params.get("numero") or "").strip()
-        if numero:
-            qs = qs.filter(numero=numero)
-
-        serie = (params.get("serie") or "").strip()
-        if serie:
-            qs = qs.filter(serie=serie)
-
-        status_imp = (params.get("status_importacao") or "").strip()
-        if status_imp:
-            qs = qs.filter(status_importacao=status_imp)
-
-        origem = (params.get("origem_importacao") or "").strip()
-        if origem:
-            qs = qs.filter(origem_importacao=origem)
-
-        objetivo = (params.get("objetivo_entrada") or "").strip()
-        if objetivo:
-            qs = qs.filter(objetivo_entrada=objetivo)
-
-        manifestacao = (params.get("manifestacao_status") or "").strip()
-        if manifestacao:
-            qs = qs.filter(manifestacao_status=manifestacao)
+        for campo in self.FILTROS_CNPJ:
+            valor = (params.get(campo) or "").strip()
+            if valor:
+                qs = qs.filter(**{campo: normalizar_cnpj(valor)})
 
         return qs
 

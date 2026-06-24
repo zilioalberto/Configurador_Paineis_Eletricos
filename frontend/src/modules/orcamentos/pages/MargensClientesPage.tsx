@@ -204,9 +204,11 @@ export default function MargensClientesPage() {
         <div className="card-body">
           {carregando ? (
             <p className="text-muted mb-0">A carregar…</p>
-          ) : margens.length === 0 ? (
+          ) : null}
+          {!carregando && margens.length === 0 ? (
             <p className="text-muted mb-0">Nenhuma margem configurada.</p>
-          ) : (
+          ) : null}
+          {!carregando && margens.length > 0 ? (
             <div className="table-responsive">
               <table className="table table-sm align-middle">
                 <thead>
@@ -231,7 +233,7 @@ export default function MargensClientesPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

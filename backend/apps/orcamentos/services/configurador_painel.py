@@ -41,6 +41,9 @@ class OrcamentoOperacaoError(Exception):
     pass
 
 
+_ERRO_VINCULO_PAINEL_OUTRA_PROPOSTA = "Vínculo de painel não pertence a esta proposta."
+
+
 def _formatar_erro_validacao(exc: ValidationError) -> str:
     if hasattr(exc, "message_dict"):
         partes: list[str] = []
@@ -102,7 +105,7 @@ def iniciar_projeto_configurador(
 ) -> OrcamentoConfiguradorPainel:
     _exigir_orcamento_editavel(orcamento)
     if vinculo.orcamento_id != orcamento.id:
-        raise OrcamentoOperacaoError("Vínculo de painel não pertence a esta proposta.")
+        raise OrcamentoOperacaoError(_ERRO_VINCULO_PAINEL_OUTRA_PROPOSTA)
     if vinculo.modo != ModoConfiguradorPainelChoices.ATIVO:
         raise OrcamentoOperacaoError(
             "Somente painéis ativos podem abrir o configurador."
@@ -161,7 +164,7 @@ def vincular_projeto_configurador(
 ) -> OrcamentoConfiguradorPainel:
     _exigir_orcamento_editavel(orcamento)
     if vinculo.orcamento_id != orcamento.id:
-        raise OrcamentoOperacaoError("Vínculo de painel não pertence a esta proposta.")
+        raise OrcamentoOperacaoError(_ERRO_VINCULO_PAINEL_OUTRA_PROPOSTA)
     if vinculo.modo != ModoConfiguradorPainelChoices.ATIVO:
         raise OrcamentoOperacaoError(
             "Somente painéis ativos podem receber configuração."
@@ -250,7 +253,7 @@ def sincronizar_composicao_painel(
 ) -> list[OrcamentoItem]:
     _exigir_orcamento_editavel(orcamento)
     if vinculo.orcamento_id != orcamento.id:
-        raise OrcamentoOperacaoError("Vínculo de painel não pertence a esta proposta.")
+        raise OrcamentoOperacaoError(_ERRO_VINCULO_PAINEL_OUTRA_PROPOSTA)
     if vinculo.modo != ModoConfiguradorPainelChoices.ATIVO:
         raise OrcamentoOperacaoError(
             "Somente painéis ativos permitem sincronizar a composição."

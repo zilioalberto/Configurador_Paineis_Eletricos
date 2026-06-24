@@ -32,8 +32,8 @@ export default function FiscalNsuStatusCard() {
       setBloqueado(new Date(nsu.bloqueado_ate!).getTime() > Date.now())
     }
     atualizar()
-    const timer = window.setInterval(atualizar, 60_000)
-    return () => window.clearInterval(timer)
+    const timer = globalThis.setInterval(atualizar, 60_000)
+    return () => globalThis.clearInterval(timer)
   }, [nsu?.bloqueado_ate])
 
   const aguardandoJanela = bloqueado && nsu?.ultimo_cstat === '137'

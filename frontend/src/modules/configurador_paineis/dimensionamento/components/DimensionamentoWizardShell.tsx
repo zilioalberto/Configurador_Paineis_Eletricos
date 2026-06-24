@@ -1,11 +1,8 @@
 import type { ReactNode } from 'react'
 
-type Props = {
-  projetoId: string
-  projetoNome?: string | null
-  temCargas: boolean
+type Props = Readonly<{
   children: ReactNode
-}
+}>
 
 /**
  * Shell enxuto para a etapa de dimensionamento dentro do fluxo do configurador.

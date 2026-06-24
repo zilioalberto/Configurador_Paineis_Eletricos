@@ -82,7 +82,7 @@ function Row({ label, value }: Readonly<{ label: string; value: ReactNode }>) {
 }
 
 function tituloBlocoEspecificacao(apiKey: string): string {
-  const slug = apiKey.replace(/^especificacao_/, '').replace(/_/g, ' ')
+  const slug = apiKey.replace(/^especificacao_/, '').replaceAll('_', ' ')
   return slug.charAt(0).toUpperCase() + slug.slice(1)
 }
 

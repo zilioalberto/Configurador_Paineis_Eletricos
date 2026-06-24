@@ -3,7 +3,7 @@
 const DIM_COLOR = '#495057'
 const ARROW = 5
 
-type CotaLinearProps = {
+type CotaLinearProps = Readonly<{
   /** Coordenadas SVG já escaladas */
   x1: number
   y1: number
@@ -15,8 +15,7 @@ type CotaLinearProps = {
   refX2: number
   refY2: number
   label: string
-  offset?: number
-}
+}>
 
 function arrowHead(x: number, y: number, angleDeg: number) {
   const rad = (angleDeg * Math.PI) / 180
@@ -143,8 +142,7 @@ export function montarSegmentosAlturaPlaca(
   const segmentos: SegmentoCotaMm[] = []
   let cursor = 0
 
-  for (let i = 0; i < posicoes.length; i += 1) {
-    const yBarra = posicoes[i]
+  for (const yBarra of posicoes) {
     if (yBarra > cursor) {
       segmentos.push({
         inicio_mm: cursor,

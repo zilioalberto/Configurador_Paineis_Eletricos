@@ -2,6 +2,8 @@
 
 import {
   type ChangeEvent,
+  type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
@@ -16,7 +18,7 @@ import type { CargaModelo } from '../types/carga'
 
 const EMPTY_MODELOS: CargaModelo[] = []
 
-export type CargaModeloOpcionalSectionProps = {
+export type CargaModeloOpcionalSectionProps = Readonly<{
   /** Segmento estável para `queryKey` dos modelos (evita cache partilhado entre criar/editar). */
   modeloQueryScope: string
   onAplicarModelo: (modelo: CargaModelo) => void
@@ -24,6 +26,109 @@ export type CargaModeloOpcionalSectionProps = {
   compact?: boolean
   /** Página de CRUD de modelos (preserva query do fluxo quando aplicável). */
   gerenciarModelosHref?: string
+}>
+
+type ModeloPickerHeaderProps = Readonly<{
+  compact: boolean
+  gerenciarModelosHref?: string
+  inputId: string
+}>
+
+function ModeloPickerHeader({ compact, gerenciarModelosHref, inputId }: ModeloPickerHeaderProps) {
+  return (
+    <>
+      {compact && gerenciarModelosHref ? (
+        <div className="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-1">
+          <label className="form-label mb-0" htmlFor={inputId}>
+            Modelo pré-cadastrado
+          </label>
+          <Link to={gerenciarModelosHref} className="small text-nowrap">
+            Gerenciar modelos
+          </Link>
+        </div>
+      ) : (
+        <label className="form-label mb-1" htmlFor={inputId}>
+          {compact ? 'Modelo pré-cadastrado' : 'Modelos pré-cadastrados'}
+        </label>
+      )}
+      {!compact && gerenciarModelosHref ? (
+        <div className="mb-2">
+          <Link to={gerenciarModelosHref} className="small">
+            Gerenciar modelos
+          </Link>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+type ModeloDropdownListaProps = Readonly<{
+  listId: string
+  optPrefix: string
+  loadingModelos: boolean
+  modelos: CargaModelo[]
+  modeloResultadoAtivo: number
+  gerenciarModelosHref?: string
+  onSelecionar: (modelo: CargaModelo) => void
+  listRef: RefObject<HTMLUListElement | null>
+}>
+
+function ModeloDropdownLista({
+  listId,
+  optPrefix,
+  loadingModelos,
+  modelos,
+  modeloResultadoAtivo,
+  gerenciarModelosHref,
+  onSelecionar,
+  listRef,
+}: ModeloDropdownListaProps) {
+  let conteudo: ReactNode
+  if (loadingModelos) {
+    conteudo = <li className="list-group-item small text-muted">Carregando modelos...</li>
+  } else if (modelos.length === 0) {
+    conteudo = (
+      <li className="list-group-item small">
+        <span className="text-muted">Nenhum modelo encontrado.</span>
+        {gerenciarModelosHref ? (
+          <>
+            {' '}
+            <Link to={gerenciarModelosHref}>Cadastrar ou editar</Link>
+          </>
+        ) : null}
+      </li>
+    )
+  } else {
+    conteudo = modelos.map((modelo, index) => (
+      <li key={modelo.id} className="list-group-item list-group-item-action p-0">
+        <button
+          id={`${optPrefix}-opt-${index}`}
+          type="button"
+          role="option"
+          aria-selected={index === modeloResultadoAtivo}
+          className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
+            index === modeloResultadoAtivo ? 'bg-light' : ''
+          }`}
+          onClick={() => onSelecionar(modelo)}
+        >
+          <span className="fw-semibold me-2">{modelo.nome}</span>
+          <span className="small text-muted">({modelo.tipo})</span>
+        </button>
+      </li>
+    ))
+  }
+
+  return (
+    <ul
+      ref={listRef}
+      id={listId}
+      className="list-group position-absolute w-100 shadow-sm mt-1"
+      style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
+      role="listbox"
+    >
+      {conteudo}
+    </ul>
+  )
 }
 
 export default function CargaModeloOpcionalSection({
@@ -40,10 +145,10 @@ export default function CargaModeloOpcionalSection({
   const modeloBuscaId = useId()
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       setModeloBuscaDebounced(modeloBusca.trim())
     }, 250)
-    return () => window.clearTimeout(timer)
+    return () => globalThis.clearTimeout(timer)
   }, [modeloBusca])
 
   const { data: modelos = [], isPending: loadingModelos } = useQuery({
@@ -104,27 +209,11 @@ export default function CargaModeloOpcionalSection({
           : 'border rounded p-3 mb-3 bg-light-subtle'
       }
     >
-      {compact && gerenciarModelosHref ? (
-        <div className="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-1">
-          <label className="form-label mb-0" htmlFor={modeloBuscaId}>
-            Modelo pré-cadastrado
-          </label>
-          <Link to={gerenciarModelosHref} className="small text-nowrap">
-            Gerenciar modelos
-          </Link>
-        </div>
-      ) : (
-        <label className="form-label mb-1" htmlFor={modeloBuscaId}>
-          {compact ? 'Modelo pré-cadastrado' : 'Modelos pré-cadastrados'}
-        </label>
-      )}
-      {!compact && gerenciarModelosHref ? (
-        <div className="mb-2">
-          <Link to={gerenciarModelosHref} className="small">
-            Gerenciar modelos
-          </Link>
-        </div>
-      ) : null}
+      <ModeloPickerHeader
+        compact={compact}
+        gerenciarModelosHref={gerenciarModelosHref}
+        inputId={modeloBuscaId}
+      />
       <div ref={modeloBuscaWrapRef} className="position-relative">
         <div className="input-group input-group-sm">
           <input
@@ -169,53 +258,24 @@ export default function CargaModeloOpcionalSection({
             </div>
 
             {modeloDropdownAberto ? (
-              <ul
-                ref={modeloListRef}
-                id={`${modeloBuscaId}-listbox`}
-                className="list-group position-absolute w-100 shadow-sm mt-1"
-                style={{ zIndex: 20, maxHeight: '14rem', overflowY: 'auto' }}
-                role="listbox"
-              >
-                {loadingModelos ? (
-                  <li className="list-group-item small text-muted">Carregando modelos...</li>
-                ) : modelos.length === 0 ? (
-                  <li className="list-group-item small">
-                    <span className="text-muted">Nenhum modelo encontrado.</span>
-                    {gerenciarModelosHref ? (
-                      <>
-                        {' '}
-                        <Link to={gerenciarModelosHref}>Cadastrar ou editar</Link>
-                      </>
-                    ) : null}
-                  </li>
-                ) : (
-                  modelos.map((modelo, index) => (
-                    <li key={modelo.id} className="list-group-item list-group-item-action p-0">
-                      <button
-                        id={`${modeloBuscaId}-opt-${index}`}
-                        type="button"
-                        role="option"
-                        aria-selected={index === modeloResultadoAtivo}
-                        className={`btn btn-link text-start text-decoration-none w-100 py-2 px-3 rounded-0 ${
-                          index === modeloResultadoAtivo ? 'bg-light' : ''
-                        }`}
-                        onClick={() => onSelecionarModelo(modelo)}
-                      >
-                        <span className="fw-semibold me-2">{modelo.nome}</span>
-                        <span className="small text-muted">({modelo.tipo})</span>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
+              <ModeloDropdownLista
+                listId={`${modeloBuscaId}-listbox`}
+                optPrefix={modeloBuscaId}
+                loadingModelos={loadingModelos}
+                modelos={modelos}
+                modeloResultadoAtivo={modeloResultadoAtivo}
+                gerenciarModelosHref={gerenciarModelosHref}
+                onSelecionar={onSelecionarModelo}
+                listRef={modeloListRef}
+              />
             ) : null}
       </div>
-      {!compact ? (
+      {compact ? null : (
         <p className="form-text mb-0 mt-1">
           Digite para filtrar ou use ▾ para abrir a lista. Ao escolher um item, o modelo é aplicado ao
           formulário.
         </p>
-      ) : null}
+      )}
     </div>
   )
 }

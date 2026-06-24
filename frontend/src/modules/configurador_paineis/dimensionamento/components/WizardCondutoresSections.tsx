@@ -14,7 +14,6 @@ import {
   opcoesBitolaPeAlimentacaoGeral,
   parseNum,
   SUGESTAO_CONDUTOR,
-  type OverridesAg,
   type OverridesCircuito,
 } from '../utils/wizardCondutoresUtils'
 
@@ -50,13 +49,13 @@ export function WizardCondutoresToolbar({
   patchPending,
   canEditar,
   onAprovarTodas,
-}: {
+}: Readonly<{
   embedded: boolean
   podeAprovarTodas: boolean
   patchPending: boolean
   canEditar: boolean
   onAprovarTodas: () => void
-}) {
+}>) {
   const toolbarIntro = embedded ? null : (
     <>
       <h2 className="h5 mb-1">Condutores (revisão)</h2>
@@ -125,17 +124,17 @@ export function CircuitosAprovadosTable({
               <td>{c.corrente_referencia_a ?? '—'}</td>
               <td>{c.secao_condutor_fase_efetiva_mm2 ?? '—'} mm²</td>
               <td>
-                {!c.possui_neutro ? (
-                  <span className="text-muted">—</span>
-                ) : (
+                {c.possui_neutro ? (
                   <>{c.secao_condutor_neutro_efetiva_mm2 ?? '—'} mm²</>
+                ) : (
+                  <span className="text-muted">—</span>
                 )}
               </td>
               <td>
-                {!c.possui_pe ? (
-                  <span className="text-muted">—</span>
-                ) : (
+                {c.possui_pe ? (
                   <>{c.secao_condutor_pe_efetiva_mm2 ?? '—'} mm²</>
+                ) : (
+                  <span className="text-muted">—</span>
                 )}
               </td>
               {canEditar ? (
@@ -165,14 +164,14 @@ function CircuitoPendenteRow({
   setO,
   panel,
   actions,
-}: {
+}: Readonly<{
   c: CircuitoCargaCondutores
   tabela: TabelaReferenciaCondutor[]
   ov: OverridesCircuito
   setO: (patch: Partial<OverridesCircuito>) => void
   panel: PanelSlice
   actions: CircuitoActions
-}) {
+}>) {
   const opF = opcoesBitolaFase(tabela, c)
   const opN = opcoesBitolaNeutro(tabela, c)
   const opP = opcoesBitolaPe(tabela)
@@ -203,9 +202,7 @@ function CircuitoPendenteRow({
         </select>
       </td>
       <td>
-        {!c.possui_neutro ? (
-          <span className="text-muted">—</span>
-        ) : (
+        {c.possui_neutro ? (
           <select
             className="form-select form-select-sm"
             disabled={!canEditar || patchPending || bloquearEdicao}
@@ -221,12 +218,12 @@ function CircuitoPendenteRow({
               </option>
             ))}
           </select>
+        ) : (
+          <span className="text-muted">—</span>
         )}
       </td>
       <td>
-        {!c.possui_pe ? (
-          <span className="text-muted">—</span>
-        ) : (
+        {c.possui_pe ? (
           <select
             className="form-select form-select-sm"
             disabled={!canEditar || patchPending || bloquearEdicao}
@@ -242,6 +239,8 @@ function CircuitoPendenteRow({
               </option>
             ))}
           </select>
+        ) : (
+          <span className="text-muted">—</span>
         )}
       </td>
       {canEditar ? (
@@ -279,7 +278,7 @@ export function CircuitosPendentesTable({
   panel,
   actions,
   revisaoEfetivaOk,
-}: {
+}: Readonly<{
   lista: CircuitoCargaCondutores[]
   tabela: TabelaReferenciaCondutor[]
   circuitoOv: Record<string, OverridesCircuito>
@@ -287,7 +286,7 @@ export function CircuitosPendentesTable({
   panel: PanelSlice
   actions: CircuitoActions
   revisaoEfetivaOk: boolean
-}) {
+}>) {
   const { canEditar } = panel
   if (lista.length === 0) {
     return (
@@ -343,7 +342,7 @@ export function WizardCondutoresCircuitosBlock({
   panel,
   actions,
   revisaoEfetivaOk,
-}: {
+}: Readonly<{
   circuitos: CircuitoCargaCondutores[]
   aprovados: CircuitoCargaCondutores[]
   pendentes: CircuitoCargaCondutores[]
@@ -353,7 +352,7 @@ export function WizardCondutoresCircuitosBlock({
   panel: PanelSlice
   actions: CircuitoActions
   revisaoEfetivaOk: boolean
-}) {
+}>) {
   if (circuitos.length === 0) {
     return (
       <p className="text-muted small mb-0">
@@ -448,10 +447,10 @@ export function CorrentesPorFasePainelSection({
   )
 }
 
-type AlimentacaoGeralSectionProps = {
+type AlimentacaoGeralSectionProps = Readonly<{
   ag: AlimentacaoGeralCondutores
-  agOv: OverridesAg
-  setAgOv: React.Dispatch<React.SetStateAction<OverridesAg | null>>
+  agOv: OverridesCircuito
+  setAgOv: React.Dispatch<React.SetStateAction<OverridesCircuito | null>>
   agAprovado: boolean
   tabela: TabelaReferenciaCondutor[]
   ibPainel: number
@@ -459,7 +458,7 @@ type AlimentacaoGeralSectionProps = {
   onRevisar: () => void
   onUsarSugestao: () => void
   onAprovar: () => void
-}
+}>
 
 function AlimentacaoGeralAprovada({
   ag,
@@ -489,17 +488,17 @@ function AlimentacaoGeralAprovada({
             <td>{ag.corrente_total_painel_a}</td>
             <td>{ag.secao_condutor_fase_efetiva_mm2 ?? '—'} mm²</td>
             <td>
-              {!ag.possui_neutro ? (
-                <span className="text-muted">—</span>
-              ) : (
+              {ag.possui_neutro ? (
                 <>{ag.secao_condutor_neutro_efetiva_mm2 ?? '—'} mm²</>
+              ) : (
+                <span className="text-muted">—</span>
               )}
             </td>
             <td>
-              {!ag.possui_terra ? (
-                <span className="text-muted">—</span>
-              ) : (
+              {ag.possui_terra ? (
                 <>{ag.secao_condutor_pe_efetiva_mm2 ?? '—'} mm²</>
+              ) : (
+                <span className="text-muted">—</span>
               )}
             </td>
             {canEditar ? (
@@ -578,9 +577,7 @@ export function AlimentacaoGeralSection({
                   </select>
                 </td>
                 <td>
-                  {!ag.possui_neutro ? (
-                    <span className="text-muted">—</span>
-                  ) : (
+                  {ag.possui_neutro ? (
                     <select
                       className="form-select form-select-sm"
                       disabled={!canEditar || patchPending || bloquearEdicao}
@@ -598,12 +595,12 @@ export function AlimentacaoGeralSection({
                         </option>
                       ))}
                     </select>
+                  ) : (
+                    <span className="text-muted">—</span>
                   )}
                 </td>
                 <td>
-                  {!ag.possui_terra ? (
-                    <span className="text-muted">—</span>
-                  ) : (
+                  {ag.possui_terra ? (
                     <select
                       className="form-select form-select-sm"
                       disabled={!canEditar || patchPending || bloquearEdicao}
@@ -619,6 +616,8 @@ export function AlimentacaoGeralSection({
                         </option>
                       ))}
                     </select>
+                  ) : (
+                    <span className="text-muted">—</span>
                   )}
                 </td>
                 {canEditar ? (

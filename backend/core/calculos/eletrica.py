@@ -35,9 +35,7 @@ def calcular_corrente_monofasica(
     fator_potencia: Decimal,
     rendimento: Decimal,
 ) -> Decimal:
-    """
-    I = P / (V * fp * rendimento)
-    """
+    """Corrente monofásica: potência sobre tensão, fator de potência e rendimento."""
     if tensao_v <= 0 or fator_potencia <= 0 or rendimento <= 0:
         return Decimal("0")
 

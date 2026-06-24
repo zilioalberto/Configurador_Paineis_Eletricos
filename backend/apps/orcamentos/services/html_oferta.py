@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import base64
-import re
 from html import escape
 from pathlib import Path
 
@@ -30,6 +29,12 @@ TIPOS_CONDICOES_COMERCIAIS = {
 }
 TIPOS_APOS_INVESTIMENTO = {"EXCLUSOES"}
 
+_LOGO_FILENAME = "zfw-logo-engenharia.png"
+
+
+def _apenas_digitos(valor: str) -> str:
+    return "".join(ch for ch in valor if ch.isdigit())
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
@@ -38,7 +43,7 @@ def _repo_root() -> Path:
 def logo_oferta_path() -> Path | None:
     raw_config = getattr(settings, "ZFW_EMAIL_LOGO_PATH", "")
     candidates: list[Path] = [
-        Path(__file__).resolve().parent.parent / "assets" / "branding" / "zfw-logo-engenharia.png",
+        Path(__file__).resolve().parent.parent / "assets" / "branding" / _LOGO_FILENAME,
     ]
     if raw_config:
         configured = Path(raw_config)
@@ -47,8 +52,8 @@ def logo_oferta_path() -> Path | None:
             candidates.extend([_repo_root() / configured, Path(settings.BASE_DIR) / configured])
     candidates.extend(
         [
-            _repo_root() / "frontend" / "public" / "branding" / "zfw-logo-engenharia.png",
-            Path(settings.BASE_DIR).parent / "frontend" / "public" / "branding" / "zfw-logo-engenharia.png",
+            _repo_root() / "frontend" / "public" / "branding" / _LOGO_FILENAME,
+            Path(settings.BASE_DIR).parent / "frontend" / "public" / "branding" / _LOGO_FILENAME,
         ]
     )
     for path in candidates:
@@ -295,25 +300,22 @@ body { font-family: Inter, "Segoe UI", Arial, sans-serif; color: #2d3a4a; font-s
 """
 
 
-def gerar_html_oferta(preview: dict) -> str:
-    logo_uri = _asset_data_uri(logo_oferta_path())
-    logo = f'<img src="{logo_uri}" alt="ZFW Engenharia" class="proposta-cliente__cabecalho-logo">' if logo_uri else "<strong>ZFW Engenharia</strong>"
-    logo_resumido = f'<img src="{logo_uri}" alt="ZFW Engenharia" class="proposta-cliente__cabecalho-resumido-logo">' if logo_uri else "<strong>ZFW</strong>"
-    cliente = preview.get("cliente") or {}
-    secoes = preview.get("secoes") or []
-    intro = _secao_introducao(secoes)
-    saudacao = (intro or {}).get("conteudo") or _texto_saudacao_padrao(preview.get("perfil_oferta"))
-    numero = _numero_proposta(preview)
-
-    itens_html = ""
-    for index, item in enumerate((preview.get("investimento") or {}).get("itens") or []):
-        titulo, detalhe = _linhas_descricao(item.get("descricao") or "")
-        detalhe_html = f'<span class="proposta-cliente__item-detalhe">{_nl2br(detalhe)}</span>' if detalhe else ""
-        codigo_html = f'<span class="proposta-cliente__item-codigo">{_safe(item.get("codigo"))}</span>' if item.get("codigo") else ""
-        itens_html += f"""
+def _linha_item_tabela_html(item: dict) -> str:
+    titulo, detalhe = _linhas_descricao(item.get("descricao") or "")
+    detalhe_html = (
+        f'<span class="proposta-cliente__item-detalhe">{_nl2br(detalhe)}</span>'
+        if detalhe
+        else ""
+    )
+    codigo_html = (
+        f'<span class="proposta-cliente__item-codigo">{_safe(item.get("codigo"))}</span>'
+        if item.get("codigo")
+        else ""
+    )
+    return f"""
           <tr>
             <td><span class="proposta-cliente__item-titulo">{_safe(titulo)}</span>{detalhe_html}{codigo_html}</td>
-            <td class="proposta-cliente__tabela-ncm">{_safe(re.sub(r'\\D', '', item.get('ncm') or '') or '-')}</td>
+            <td class="proposta-cliente__tabela-ncm">{_safe(_apenas_digitos(item.get('ncm') or '') or '-')}</td>
             <td class="proposta-cliente__tabela-num">{_safe(item.get('quantidade') or '1')}</td>
             <td class="proposta-cliente__tabela-un">{_safe((item.get('unidade') or 'un').strip() or 'un')}</td>
             <td class="proposta-cliente__tabela-num">R$ {_fmt_brl(item.get('preco_unitario') or '0')}</td>
@@ -321,17 +323,26 @@ def gerar_html_oferta(preview: dict) -> str:
           </tr>
         """
 
-    totais = preview.get("totais") or {}
+
+def _itens_tabela_html(preview: dict) -> str:
+    itens = (preview.get("investimento") or {}).get("itens") or []
+    return "".join(_linha_item_tabela_html(item) for item in itens)
+
+
+def _resumo_financeiro_html(totais: dict) -> str:
     resumo_html = ""
     if totais.get("desconto_ativo"):
         resumo_html += f'<div class="resumo-financeiro-oferta__linha"><span>Subtotal</span><strong>R$ {_fmt_brl(totais.get("subtotal"))}</strong></div>'
         resumo_html += f'<div class="resumo-financeiro-oferta__linha resumo-financeiro-oferta__linha--detalhe"><span>Desconto</span><strong>- R$ {_fmt_brl(totais.get("desconto_valor"))}</strong></div>'
     resumo_html += f'<div class="resumo-financeiro-oferta__linha resumo-financeiro-oferta__linha--total"><span>Total geral</span><strong>R$ {_fmt_brl(totais.get("total"))}</strong></div>'
+    return resumo_html
 
-    investimento_html = ""
-    if itens_html:
-        titulo_tabela = _titulo_secao((preview.get("investimento") or {}).get("titulo") or "Investimento")
-        investimento_html = f"""
+
+def _investimento_html(preview: dict, itens_html: str, resumo_html: str) -> str:
+    if not itens_html:
+        return ""
+    titulo_tabela = _titulo_secao((preview.get("investimento") or {}).get("titulo") or "Investimento")
+    return f"""
           <section class="proposta-cliente__bloco proposta-cliente__bloco--tabela">
             <h2 class="proposta-cliente__secao-titulo">{_safe(titulo_tabela)}</h2>
             <div class="proposta-cliente__tabela-wrap">
@@ -350,23 +361,27 @@ def gerar_html_oferta(preview: dict) -> str:
           </section>
         """
 
-    condicoes_html = ""
-    condicoes = _secoes_condicoes(secoes)
-    if condicoes:
-        cards = "".join(
-            f'<div class="proposta-cliente__condicao-card"><h3>{_safe(_titulo_secao(s.get("titulo") or ""))}</h3>{_conteudo_formatado(s.get("conteudo") or "-")}</div>'
-            for s in condicoes
-        )
-        condicoes_html = f'<section class="proposta-cliente__bloco proposta-cliente__bloco--condicoes"><h2 class="proposta-cliente__secao-titulo">Condições comerciais</h2><div class="proposta-cliente__condicoes-lista">{cards}</div></section>'
 
+def _condicoes_html(secoes: list) -> str:
+    condicoes = _secoes_condicoes(secoes)
+    if not condicoes:
+        return ""
+    cards = "".join(
+        f'<div class="proposta-cliente__condicao-card"><h3>{_safe(_titulo_secao(s.get("titulo") or ""))}</h3>{_conteudo_formatado(s.get("conteudo") or "-")}</div>'
+        for s in condicoes
+    )
+    return f'<section class="proposta-cliente__bloco proposta-cliente__bloco--condicoes"><h2 class="proposta-cliente__secao-titulo">Condições comerciais</h2><div class="proposta-cliente__condicoes-lista">{cards}</div></section>'
+
+
+def _apendice_legal_html(preview: dict, logo_resumido: str, numero: str) -> str:
     apendice = (preview.get("apendice_legal") or {}).get("secoes") or []
-    apendice_html = ""
-    if apendice:
-        itens = "".join(
-            f'<div class="proposta-cliente__legal-item"><h3><span class="proposta-cliente__legal-num">{i}.</span>{_safe(b.get("titulo") or "")}</h3><p>{_safe(b.get("conteudo") or "-")}</p></div>'
-            for i, b in enumerate(apendice, start=1)
-        )
-        apendice_html = f"""
+    if not apendice:
+        return ""
+    itens = "".join(
+        f'<div class="proposta-cliente__legal-item"><h3><span class="proposta-cliente__legal-num">{i}.</span>{_safe(b.get("titulo") or "")}</h3><p>{_safe(b.get("conteudo") or "-")}</p></div>'
+        for i, b in enumerate(apendice, start=1)
+    )
+    return f"""
           <section class="proposta-cliente__folha proposta-cliente__folha--legal">
             <div class="proposta-cliente__cabecalho-resumido">{logo_resumido}<div class="proposta-cliente__cabecalho-resumido-texto"><strong>{_safe(numero)}</strong></div></div>
             <section class="proposta-cliente__bloco">
@@ -377,12 +392,21 @@ def gerar_html_oferta(preview: dict) -> str:
           </section>
         """
 
-    return f"""<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><style>{_css()}</style></head>
-<body class="proposta-cliente-impressao-ativa">
-  <div class="proposta-cliente proposta-cliente--pagina-impressao">
-    <article class="proposta-cliente__doc">
+
+def _folha_principal_html(
+    preview: dict,
+    *,
+    cliente: dict,
+    secoes: list,
+    saudacao: str,
+    numero: str,
+    logo: str,
+    investimento_html: str,
+    condicoes_html: str,
+) -> str:
+    corpo_html = "".join(_secao_textual(s) for s in _secoes_corpo(secoes))
+    pos_html = "".join(_secao_textual(s) for s in _secoes_pos_investimento(secoes))
+    return f"""
       <section class="proposta-cliente__folha proposta-cliente__folha--principal">
         <div class="proposta-cliente__cabecalho-principal">
           <header class="proposta-cliente__cabecalho-inicio">
@@ -426,11 +450,15 @@ def gerar_html_oferta(preview: dict) -> str:
           </section>
           <section class="proposta-cliente__bloco"><h2 class="proposta-cliente__secao-titulo">Apresentação</h2><p class="proposta-cliente__texto-leitura">{_nl2br(saudacao)}</p></section>
         </div>
-        {"".join(_secao_textual(s) for s in _secoes_corpo(secoes))}
+        {corpo_html}
         {investimento_html}
-        {"".join(_secao_textual(s) for s in _secoes_pos_investimento(secoes))}
+        {pos_html}
         {condicoes_html}
-      </section>
+      </section>"""
+
+
+def _folha_aceite_html(logo_resumido: str, numero: str, cliente: dict) -> str:
+    return f"""
       <section class="proposta-cliente__folha proposta-cliente__folha--aceite">
         <div class="proposta-cliente__cabecalho-resumido">{logo_resumido}<div class="proposta-cliente__cabecalho-resumido-texto"><strong>{_safe(numero)}</strong></div></div>
         <section class="proposta-cliente__bloco proposta-cliente__bloco--aceite">
@@ -444,7 +472,51 @@ def gerar_html_oferta(preview: dict) -> str:
             <p class="proposta-cliente__data-assinatura">Data: ___ / ___ / ______</p>
           </div>
         </section>
-      </section>
+      </section>"""
+
+
+def _logo_html(logo_uri: str, classe: str, fallback: str) -> str:
+    if not logo_uri:
+        return fallback
+    return f'<img src="{logo_uri}" alt="ZFW Engenharia" class="{classe}">'
+
+
+def gerar_html_oferta(preview: dict) -> str:
+    logo_uri = _asset_data_uri(logo_oferta_path())
+    logo = _logo_html(logo_uri, "proposta-cliente__cabecalho-logo", "<strong>ZFW Engenharia</strong>")
+    logo_resumido = _logo_html(
+        logo_uri, "proposta-cliente__cabecalho-resumido-logo", "<strong>ZFW</strong>"
+    )
+    cliente = preview.get("cliente") or {}
+    secoes = preview.get("secoes") or []
+    intro = _secao_introducao(secoes)
+    saudacao = (intro or {}).get("conteudo") or _texto_saudacao_padrao(preview.get("perfil_oferta"))
+    numero = _numero_proposta(preview)
+
+    itens_html = _itens_tabela_html(preview)
+    resumo_html = _resumo_financeiro_html(preview.get("totais") or {})
+    investimento_html = _investimento_html(preview, itens_html, resumo_html)
+    condicoes_html = _condicoes_html(secoes)
+    apendice_html = _apendice_legal_html(preview, logo_resumido, numero)
+
+    folha_principal = _folha_principal_html(
+        preview,
+        cliente=cliente,
+        secoes=secoes,
+        saudacao=saudacao,
+        numero=numero,
+        logo=logo,
+        investimento_html=investimento_html,
+        condicoes_html=condicoes_html,
+    )
+    folha_aceite = _folha_aceite_html(logo_resumido, numero, cliente)
+
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><style>{_css()}</style></head>
+<body class="proposta-cliente-impressao-ativa">
+  <div class="proposta-cliente proposta-cliente--pagina-impressao">
+    <article class="proposta-cliente__doc">{folha_principal}{folha_aceite}
       {apendice_html}
       <footer class="proposta-cliente__folha-rodape"><span>{EMPRESA["razao"]} · CNPJ {EMPRESA["cnpj"]} · {_safe(numero)} · {_safe(_rotulo_revisao(preview.get("revisao")))} · Emitido em {_safe(_fmt_data_curta(preview.get("emissao")))}</span></footer>
     </article>

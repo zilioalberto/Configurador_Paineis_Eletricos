@@ -9,10 +9,10 @@ import {
   textoDescricaoCarga,
 } from '../utils/composicaoDisplay'
 
-export function CelulaTensaoCarga({ carga }: { carga: CargaDetalhe | null | undefined }) {
+export function CelulaTensaoCarga({ carga }: Readonly<{ carga: CargaDetalhe | null | undefined }>) {
   const label =
     carga?.tensao_carga_display?.trim() ||
-    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '')
+    (carga?.tensao_carga_v == null ? '' : `${carga.tensao_carga_v} V`)
   if (!label) return <td>—</td>
   return <td className="small">{label}</td>
 }
@@ -22,14 +22,14 @@ export function LinhaSeparadoraGrupoPorTag({
   colSpan,
   tituloTag,
   carga,
-}: {
+}: Readonly<{
   colSpan: number
   tituloTag: string
   carga: CargaDetalhe | null
-}) {
+}>) {
   const tensao =
     carga?.tensao_carga_display?.trim() ||
-    (carga?.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
+    (carga?.tensao_carga_v == null ? '—' : `${carga.tensao_carga_v} V`)
   return (
     <tr className="table-secondary">
       <td colSpan={colSpan} className="py-2">
@@ -56,10 +56,10 @@ export function LinhaSeparadoraGrupoPorTag({
 export function CabecalhoGrupoCarga({
   tituloTag,
   carga,
-}: {
+}: Readonly<{
   tituloTag: string
   carga: CargaDetalhe | null
-}) {
+}>) {
   if (!carga) {
     return (
       <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
@@ -69,7 +69,7 @@ export function CabecalhoGrupoCarga({
   }
   const tensao =
     carga.tensao_carga_display?.trim() ||
-    (carga.tensao_carga_v != null ? `${carga.tensao_carga_v} V` : '—')
+    (carga.tensao_carga_v == null ? '—' : `${carga.tensao_carga_v} V`)
   return (
     <div className="d-flex flex-wrap align-items-center gap-2 py-2 px-3 bg-body-secondary border-bottom">
       <span className="badge text-bg-primary rounded-pill">{tituloTag}</span>

@@ -49,7 +49,7 @@ const FILTROS_INICIAIS: RelatorioNFeFiltros = {
   cnpj_destinatario: '',
   fornecedor: '',
   cliente: '',
-  ...(periodoDaCompetencia(competenciaAtualLocal()) ?? {}),
+  ...periodoDaCompetencia(competenciaAtualLocal()),
 }
 
 function labelObjetivoRelatorio(doc: RelatorioNFeDocumentoRow): string {
@@ -162,7 +162,8 @@ function TotaisObjetivoCard({
         <h2 className="h6">Totais por finalidade</h2>
         {isPending ? (
           <p className="text-muted mb-0">Carregando…</p>
-        ) : rows.length ? (
+        ) : null}
+        {!isPending && rows.length > 0 ? (
           <div className="table-responsive">
             <table className="table table-sm mb-0">
               <thead>
@@ -185,9 +186,10 @@ function TotaisObjetivoCard({
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : null}
+        {!isPending && rows.length === 0 ? (
           <p className="text-muted mb-0">Nenhum total para o período.</p>
-        )}
+        ) : null}
       </div>
     </div>
   )

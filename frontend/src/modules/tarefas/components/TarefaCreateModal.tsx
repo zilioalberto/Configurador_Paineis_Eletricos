@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type SyntheticEvent } from 'react'
 import { useToast } from '@/components/feedback'
 import { useTarefaResponsaveisQuery } from '../hooks/useTarefaResponsaveisQuery'
 import type { ColunaKanban, CriarTarefaPayload, PrioridadeTarefa, TipoTarefa } from '../types/tarefa'
@@ -50,7 +50,7 @@ export function TarefaCreateModal({
     }
   }, [isSubmitting, onClose])
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form.titulo.trim()) return
     if (!colunaPendentesId) {
@@ -328,9 +328,9 @@ export function TarefaCreateModal({
                     </select>
                   </div>
                   <div className="col-12">
-                    <label className="form-label" id="tarefa-colaboradores-label">
+                    <span className="form-label" id="tarefa-colaboradores-label">
                       Colaboradores
-                    </label>
+                    </span>
                     <ColaboradoresChecklist
                       labelId="tarefa-colaboradores-label"
                       colaboradores={form.colaboradores}

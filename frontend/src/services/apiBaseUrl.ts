@@ -2,11 +2,11 @@
 export function getApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
-  if (typeof window === 'undefined') {
+  if (typeof globalThis.window === 'undefined') {
     return configured
   }
 
-  return resolveApiBaseUrl(configured, window.location.hostname)
+  return resolveApiBaseUrl(configured, globalThis.location.hostname)
 }
 
 export function resolveApiBaseUrl(configured: string, pageHost: string): string {

@@ -30,13 +30,6 @@ export function calcularSaidasDigitaisMotor(
 
   if (partida === 'ESTRELA_TRIANGULO') {
     saidas = 3
-  } else if (
-    partida === 'DIRETA' ||
-    partida === 'SOFT_STARTER' ||
-    partida === 'INVERSOR' ||
-    partida === 'SERVO_DRIVE'
-  ) {
-    saidas = 1
   }
 
   if (reversivel) saidas += 1

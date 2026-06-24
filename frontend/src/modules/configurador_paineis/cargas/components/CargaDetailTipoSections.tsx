@@ -26,7 +26,7 @@ function tipoCorrenteLabel(v: string | undefined): string {
   return v || '—'
 }
 
-export function CargaDetailMotorSection({ motor }: { motor: NonNullable<CargaDetail['motor']> }) {
+export function CargaDetailMotorSection({ motor }: Readonly<{ motor: NonNullable<CargaDetail['motor']> }>) {
   return (
     <>
       <div className="col-12 mt-3">
@@ -92,9 +92,9 @@ export function CargaDetailMotorSection({ motor }: { motor: NonNullable<CargaDet
 
 export function CargaDetailValvulaSection({
   valvula,
-}: {
+}: Readonly<{
   valvula: NonNullable<CargaDetail['valvula']>
-}) {
+}>) {
   const mostraRele =
     (valvula.tipo_acionamento === 'RELE_INTERFACE' ||
       valvula.tipo_acionamento === 'RELE_ACOPLADOR') &&
@@ -129,9 +129,9 @@ export function CargaDetailValvulaSection({
 
 export function CargaDetailResistenciaSection({
   resistencia,
-}: {
+}: Readonly<{
   resistencia: NonNullable<CargaDetail['resistencia']>
-}) {
+}>) {
   return (
     <>
       <div className="col-12 mt-3">
@@ -171,9 +171,9 @@ export function CargaDetailResistenciaSection({
 
 export function CargaDetailSensorSection({
   sensor,
-}: {
+}: Readonly<{
   sensor: NonNullable<CargaDetail['sensor']>
-}) {
+}>) {
   return (
     <>
       <div className="col-12 mt-3">
@@ -231,9 +231,9 @@ export function CargaDetailSensorSection({
 
 export function CargaDetailTransdutorSection({
   transdutor,
-}: {
+}: Readonly<{
   transdutor: NonNullable<CargaDetail['transdutor']>
-}) {
+}>) {
   return (
     <>
       <div className="col-12 mt-3">
@@ -275,7 +275,7 @@ export function CargaDetailTransdutorSection({
   )
 }
 
-export function CargaDetailTipoEspecifico({ c }: { c: CargaDetail }) {
+export function CargaDetailTipoEspecifico({ c }: Readonly<{ c: CargaDetail }>) {
   if (c.tipo === 'MOTOR' && c.motor) {
     return <CargaDetailMotorSection motor={c.motor} />
   }

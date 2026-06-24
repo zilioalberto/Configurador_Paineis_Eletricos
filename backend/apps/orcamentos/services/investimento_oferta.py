@@ -30,16 +30,20 @@ def _subtotal(item: OrcamentoItem) -> Decimal:
     return item.quantidade * item.preco_unitario
 
 
+def _codigo_item(item: OrcamentoItem) -> str:
+    if item.servico_id:
+        return item.servico.codigo
+    if item.produto_id:
+        return item.produto.codigo
+    return ""
+
+
 def _item_linha(item: OrcamentoItem) -> dict:
     return {
         "id": str(item.id),
         "ordem": item.ordem,
         "tipo": item.tipo,
-        "codigo": item.servico.codigo
-        if item.servico_id
-        else item.produto.codigo
-        if item.produto_id
-        else "",
+        "codigo": _codigo_item(item),
         "descricao": item.descricao,
         "quantidade": _decimal_str(item.quantidade),
         "preco_unitario": _decimal_str(item.preco_unitario),

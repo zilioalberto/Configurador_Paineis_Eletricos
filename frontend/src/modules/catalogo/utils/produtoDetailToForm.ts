@@ -2,8 +2,7 @@
 
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
 import { unidadeMedidaProdutoOptions } from '../constants/catalogoChoiceOptions'
-import type { CategoriaProduto } from '../types/categoria'
-import type { CategoriaProdutoNome } from '../types/categoria'
+import type { CategoriaProduto, CategoriaProdutoNome } from '../types/categoria'
 import type { ProdutoDetail, ProdutoFormData } from '../types/produto'
 import {
   apiSpecParaFormState,
@@ -50,9 +49,9 @@ export function produtoDetailToForm(
     fornecedor_parceiro_documento:
       p.fornecedor_parceiro_documento ?? p.fabricante_parceiro_documento ?? '',
     referencia_fabricante: String(p.referencia_fabricante ?? ''),
-    largura_mm: p.largura_mm != null ? String(p.largura_mm) : '',
-    altura_mm: p.altura_mm != null ? String(p.altura_mm) : '',
-    profundidade_mm: p.profundidade_mm != null ? String(p.profundidade_mm) : '',
+    largura_mm: p.largura_mm == null ? '' : String(p.largura_mm),
+    altura_mm: p.altura_mm == null ? '' : String(p.altura_mm),
+    profundidade_mm: p.profundidade_mm == null ? '' : String(p.profundidade_mm),
     observacoes_tecnicas: String(p.observacoes_tecnicas ?? ''),
     ativo: p.ativo !== false,
     especificacao: null,

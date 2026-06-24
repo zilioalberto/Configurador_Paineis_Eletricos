@@ -33,11 +33,11 @@ function KpiCard({
   title,
   value,
   footer,
-}: {
+}: Readonly<{
   title: string
   value: number | string
   footer?: ReactNode
-}) {
+}>) {
   return (
     <div className="col-sm-6 col-xl-4">
       <div className="card h-100 shadow-sm">

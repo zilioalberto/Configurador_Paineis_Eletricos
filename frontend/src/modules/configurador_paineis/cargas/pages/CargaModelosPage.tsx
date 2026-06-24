@@ -40,6 +40,11 @@ import {
 } from '../utils/cargaFormDefaults'
 import { criarPayloadModeloCarga } from '../utils/cargaModelos'
 
+function rotuloBotaoSalvarModelo(saving: boolean, editando: boolean): string {
+  if (saving) return 'Salvando…'
+  return editando ? 'Salvar alterações' : 'Salvar modelo'
+}
+
 function modeloToFormData(modelo: CargaModelo): CargaFormData {
   const base = applyTipoChange(cargaFormInitial(''), modelo.tipo)
   const payload = modelo.payload as Record<string, unknown>
@@ -229,15 +234,15 @@ export default function CargaModelosPage() {
                     onClick={() => void handleSalvarModelo()}
                     disabled={saving}
                   >
-                    {saving ? 'Salvando…' : editingId ? 'Salvar alterações' : 'Salvar modelo'}
+                    {rotuloBotaoSalvarModelo(saving, Boolean(editingId))}
                   </button>
                 </div>
               </div>
 
           <div className="row g-3">
             <div className="col-md-6">
-              <label className="form-label">Nome do modelo</label>
-              <input
+              <label className="form-label" htmlFor="cmodelo-f1">Nome do modelo</label>
+              <input id="cmodelo-f1"
                 type="text"
                 className="form-control"
                 value={nome}
@@ -246,8 +251,8 @@ export default function CargaModelosPage() {
               />
             </div>
             <div className="col-md-3">
-              <label className="form-label">Tipo</label>
-              <select
+              <label className="form-label" htmlFor="cmodelo-f2">Tipo</label>
+              <select id="cmodelo-f2"
                 className="form-select"
                 value={base.tipo}
                 onChange={(event) =>
@@ -262,8 +267,8 @@ export default function CargaModelosPage() {
               </select>
             </div>
             <div className="col-md-3">
-              <label className="form-label">Quantidade padrão</label>
-              <input
+              <label className="form-label" htmlFor="cmodelo-f3">Quantidade padrão</label>
+              <input id="cmodelo-f3"
                 type="number"
                 min={1}
                 className="form-control"
@@ -279,8 +284,8 @@ export default function CargaModelosPage() {
             {base.tipo === 'MOTOR' && base.motor && (
               <CargaModeloTipoSection title="Parâmetros do motor">
                 <div className="col-md-4">
-                  <label className="form-label">Potência / corrente (valor)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f4">Potência / corrente (valor)</label>
+                  <input id="cmodelo-f4"
                     type="text"
                     className="form-control"
                     value={base.motor.potencia_corrente_valor}
@@ -290,8 +295,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Unidade</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f5">Unidade</label>
+                  <select id="cmodelo-f5"
                     className="form-select"
                     value={base.motor.potencia_corrente_unidade}
                     onChange={(event) =>
@@ -304,8 +309,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Rendimento (%)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f6">Rendimento (%)</label>
+                  <input id="cmodelo-f6"
                     type="text"
                     className="form-control"
                     value={base.motor.rendimento_percentual}
@@ -315,8 +320,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Fator de potência</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f7">Fator de potência</label>
+                  <input id="cmodelo-f7"
                     type="text"
                     className="form-control"
                     value={base.motor.fator_potencia}
@@ -324,8 +329,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de partida</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f8">Tipo de partida</label>
+                  <select id="cmodelo-f8"
                     className="form-select"
                     value={base.motor.tipo_partida}
                     onChange={(event) => patchMotor({ tipo_partida: event.target.value })}
@@ -334,8 +339,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de proteção</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f9">Tipo de proteção</label>
+                  <select id="cmodelo-f9"
                     className="form-select"
                     value={base.motor.tipo_protecao}
                     onChange={(event) => patchMotor({ tipo_protecao: event.target.value })}
@@ -344,8 +349,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Número de fases</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f10">Número de fases</label>
+                  <select id="cmodelo-f10"
                     className="form-select"
                     value={base.motor.numero_fases}
                     onChange={(event) =>
@@ -356,8 +361,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tensão do motor</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f11">Tensão do motor</label>
+                  <select id="cmodelo-f11"
                     className="form-select"
                     value={base.motor.tensao_motor}
                     onChange={(event) =>
@@ -368,8 +373,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Conexão ao painel</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f12">Conexão ao painel</label>
+                  <select id="cmodelo-f12"
                     className="form-select"
                     value={base.motor.tipo_conexao_painel}
                     onChange={(event) =>
@@ -414,8 +419,8 @@ export default function CargaModelosPage() {
             {base.tipo === 'VALVULA' && base.valvula && (
               <CargaModeloTipoSection title="Parâmetros da válvula">
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de válvula</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f13">Tipo de válvula</label>
+                  <select id="cmodelo-f13"
                     className="form-select"
                     value={base.valvula.tipo_valvula}
                     onChange={(event) => patchValvula({ tipo_valvula: event.target.value })}
@@ -424,8 +429,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Qtd. solenoides</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f14">Qtd. solenoides</label>
+                  <input id="cmodelo-f14"
                     type="number"
                     min={1}
                     className="form-control"
@@ -438,8 +443,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tensão de alimentação</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f15">Tensão de alimentação</label>
+                  <select id="cmodelo-f15"
                     className="form-select"
                     value={base.valvula.tensao_alimentacao}
                     onChange={(event) =>
@@ -450,8 +455,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de corrente</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f16">Tipo de corrente</label>
+                  <select id="cmodelo-f16"
                     className="form-select"
                     value={base.valvula.tipo_corrente}
                     onChange={(event) =>
@@ -462,8 +467,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Corrente consumida (mA)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f17">Corrente consumida (mA)</label>
+                  <input id="cmodelo-f17"
                     type="text"
                     className="form-control"
                     value={base.valvula.corrente_consumida_ma}
@@ -473,8 +478,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de proteção</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f18">Tipo de proteção</label>
+                  <select id="cmodelo-f18"
                     className="form-select"
                     value={base.valvula.tipo_protecao}
                     onChange={(event) => patchValvula({ tipo_protecao: event.target.value })}
@@ -483,8 +488,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de acionamento</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f19">Tipo de acionamento</label>
+                  <select id="cmodelo-f19"
                     className="form-select"
                     value={base.valvula.tipo_acionamento}
                     onChange={(event) => {
@@ -511,8 +516,8 @@ export default function CargaModelosPage() {
                 </div>
                 {base.valvula.tipo_acionamento === 'RELE_INTERFACE' && (
                   <div className="col-md-4">
-                    <label className="form-label">Tipo de relé de interface</label>
-                    <select
+                    <label className="form-label" htmlFor="cmodelo-f20">Tipo de relé de interface</label>
+                    <select id="cmodelo-f20"
                       className="form-select"
                       value={base.valvula.tipo_rele_interface || 'ELETROMECANICA'}
                       onChange={(event) =>
@@ -545,8 +550,8 @@ export default function CargaModelosPage() {
             {base.tipo === 'RESISTENCIA' && base.resistencia && (
               <CargaModeloTipoSection title="Parâmetros da resistência">
                 <div className="col-md-4">
-                  <label className="form-label">Número de fases</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f21">Número de fases</label>
+                  <select id="cmodelo-f21"
                     className="form-select"
                     value={base.resistencia.numero_fases}
                     onChange={(event) =>
@@ -557,8 +562,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tensão da resistência</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f22">Tensão da resistência</label>
+                  <select id="cmodelo-f22"
                     className="form-select"
                     value={base.resistencia.tensao_resistencia}
                     onChange={(event) =>
@@ -569,8 +574,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Conexão ao painel</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f23">Conexão ao painel</label>
+                  <select id="cmodelo-f23"
                     className="form-select"
                     value={base.resistencia.tipo_conexao_painel}
                     onChange={(event) =>
@@ -581,8 +586,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Potência (kW)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f24">Potência (kW)</label>
+                  <input id="cmodelo-f24"
                     type="text"
                     className="form-control"
                     value={base.resistencia.potencia_kw}
@@ -592,8 +597,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de proteção</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f25">Tipo de proteção</label>
+                  <select id="cmodelo-f25"
                     className="form-select"
                     value={base.resistencia.tipo_protecao}
                     onChange={(event) =>
@@ -604,8 +609,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de acionamento</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f26">Tipo de acionamento</label>
+                  <select id="cmodelo-f26"
                     className="form-select"
                     value={base.resistencia.tipo_acionamento}
                     onChange={(event) => {
@@ -631,8 +636,8 @@ export default function CargaModelosPage() {
                 </div>
                 {base.resistencia.tipo_acionamento === 'RELE_INTERFACE' && (
                   <div className="col-md-4">
-                    <label className="form-label">Tipo de relé de interface</label>
-                    <select
+                    <label className="form-label" htmlFor="cmodelo-f27">Tipo de relé de interface</label>
+                    <select id="cmodelo-f27"
                       className="form-select"
                       value={base.resistencia.tipo_rele_interface || 'ELETROMECANICA'}
                       onChange={(event) =>
@@ -649,8 +654,8 @@ export default function CargaModelosPage() {
             {base.tipo === 'SENSOR' && base.sensor && (
               <CargaModeloTipoSection title="Parâmetros do sensor">
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de sensor</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f28">Tipo de sensor</label>
+                  <select id="cmodelo-f28"
                     className="form-select"
                     value={base.sensor.tipo_sensor}
                     onChange={(event) => patchSensor({ tipo_sensor: event.target.value })}
@@ -659,8 +664,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de sinal</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f29">Tipo de sinal</label>
+                  <select id="cmodelo-f29"
                     className="form-select"
                     value={base.sensor.tipo_sinal}
                     onChange={(event) => {
@@ -677,8 +682,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Sinal analógico</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f30">Sinal analógico</label>
+                  <select id="cmodelo-f30"
                     className="form-select"
                     value={base.sensor.tipo_sinal_analogico}
                     onChange={(event) =>
@@ -694,8 +699,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Tensão de alimentação</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f31">Tensão de alimentação</label>
+                  <select id="cmodelo-f31"
                     className="form-select"
                     value={base.sensor.tensao_alimentacao}
                     onChange={(event) =>
@@ -706,8 +711,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Tipo de corrente</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f32">Tipo de corrente</label>
+                  <select id="cmodelo-f32"
                     className="form-select"
                     value={base.sensor.tipo_corrente}
                     onChange={(event) =>
@@ -718,8 +723,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Corrente consumida (mA)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f33">Corrente consumida (mA)</label>
+                  <input id="cmodelo-f33"
                     type="text"
                     className="form-control"
                     value={base.sensor.corrente_consumida_ma}
@@ -729,8 +734,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Quantidade de fios</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f34">Quantidade de fios</label>
+                  <input id="cmodelo-f34"
                     type="number"
                     min={0}
                     className="form-control"
@@ -811,8 +816,8 @@ export default function CargaModelosPage() {
             {base.tipo === 'TRANSDUTOR' && base.transdutor && (
               <CargaModeloTipoSection title="Parâmetros do transdutor">
                 <div className="col-md-4">
-                  <label className="form-label">Tipo</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f35">Tipo</label>
+                  <select id="cmodelo-f35"
                     className="form-select"
                     value={base.transdutor.tipo_transdutor}
                     onChange={(event) =>
@@ -823,8 +828,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Sinal analógico</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f36">Sinal analógico</label>
+                  <select id="cmodelo-f36"
                     className="form-select"
                     value={base.transdutor.tipo_sinal_analogico}
                     onChange={(event) =>
@@ -836,8 +841,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Faixa de medição</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f37">Faixa de medição</label>
+                  <input id="cmodelo-f37"
                     type="text"
                     className="form-control"
                     value={base.transdutor.faixa_medicao}
@@ -847,8 +852,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tensão de alimentação</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f38">Tensão de alimentação</label>
+                  <select id="cmodelo-f38"
                     className="form-select"
                     value={base.transdutor.tensao_alimentacao}
                     onChange={(event) =>
@@ -859,8 +864,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Tipo de corrente</label>
-                  <select
+                  <label className="form-label" htmlFor="cmodelo-f39">Tipo de corrente</label>
+                  <select id="cmodelo-f39"
                     className="form-select"
                     value={base.transdutor.tipo_corrente}
                     onChange={(event) =>
@@ -871,8 +876,8 @@ export default function CargaModelosPage() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Corrente consumida (mA)</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f40">Corrente consumida (mA)</label>
+                  <input id="cmodelo-f40"
                     type="text"
                     className="form-control"
                     value={base.transdutor.corrente_consumida_ma}
@@ -882,8 +887,8 @@ export default function CargaModelosPage() {
                   />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Quantidade de fios</label>
-                  <input
+                  <label className="form-label" htmlFor="cmodelo-f41">Quantidade de fios</label>
+                  <input id="cmodelo-f41"
                     type="number"
                     min={0}
                     className="form-control"

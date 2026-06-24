@@ -81,6 +81,55 @@ function toolbarDimensionamentoMecanico(
   }
 }
 
+type RedirecionamentoWizardParams = {
+  id?: string
+  projetoId: string
+  etapaAtual: WizardStepId
+  etapaInvalidaNaUrl: boolean
+  loadingCargas: boolean
+  temCargas: boolean
+  gatesLoading: boolean
+  podeAcessarDimensionamentoMecanico: boolean
+  searchParams: URLSearchParams
+}
+
+/** Resolve o destino de redirecionamento do wizard (ou `null` para renderizar a etapa). */
+function destinoRedirecionamentoWizard({
+  id,
+  projetoId,
+  etapaAtual,
+  etapaInvalidaNaUrl,
+  loadingCargas,
+  temCargas,
+  gatesLoading,
+  podeAcessarDimensionamentoMecanico,
+  searchParams,
+}: RedirecionamentoWizardParams): string | null {
+  if (!id) {
+    return configuradorPaths.configuracoes
+  }
+  if (etapaInvalidaNaUrl) {
+    return withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'cargas'), searchParams)
+  }
+  if (etapaAtual === 'composicao') {
+    return withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)
+  }
+  if (etapaAtual === 'composicao_final') {
+    return withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)
+  }
+  if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {
+    return withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)
+  }
+  if (
+    etapaAtual === 'dimensionamento_mecanico' &&
+    !gatesLoading &&
+    !podeAcessarDimensionamentoMecanico
+  ) {
+    return withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)
+  }
+  return null
+}
+
 /**
  * Shell do wizard por etapa (`/projetos/:id/fluxo/:etapa`):
  * overview, dimensionamento embutido ou redirecionamentos para cargas/composição.
@@ -198,37 +247,19 @@ export default function ProjetoWizardPage() {
     }
   }, [reavaliarMutation, showToast])
 
-  if (!id) {
-    return <Navigate to={configuradorPaths.configuracoes} replace />
-  }
-
-  if (etapaInvalidaNaUrl) {
-    return <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'cargas'), searchParams)} replace />
-  }
-
-  if (etapaAtual === 'composicao') {
-    return <Navigate to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)} replace />
-  }
-
-  if (etapaAtual === 'composicao_final') {
-    return <Navigate to={withFluxoOrigem(configuradorPaths.composicaoFinal(projetoId), searchParams)} replace />
-  }
-
-  if (etapaAtual === 'dimensionamento' && !loadingCargas && !temCargas) {
-    return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
-  }
-
-  if (
-    etapaAtual === 'dimensionamento_mecanico' &&
-    !gates.loading &&
-    !gates.podeAcessarDimensionamentoMecanico
-  ) {
-    return (
-      <Navigate
-        to={withFluxoOrigem(configuradorPaths.composicao(projetoId), searchParams)}
-        replace
-      />
-    )
+  const redirecionarPara = destinoRedirecionamentoWizard({
+    id,
+    projetoId,
+    etapaAtual,
+    etapaInvalidaNaUrl,
+    loadingCargas,
+    temCargas,
+    gatesLoading: gates.loading,
+    podeAcessarDimensionamentoMecanico: gates.podeAcessarDimensionamentoMecanico,
+    searchParams,
+  })
+  if (redirecionarPara) {
+    return <Navigate to={redirecionarPara} replace />
   }
 
   const mostrarOverviewCards =
@@ -254,11 +285,7 @@ export default function ProjetoWizardPage() {
       {loadingProjeto ? <p className="text-muted">Carregando projeto...</p> : null}
 
       {etapaAtual === 'dimensionamento' ? (
-        <DimensionamentoWizardShell
-          projetoId={projetoId}
-          projetoNome={projeto?.nome}
-          temCargas={temCargas}
-        >
+        <DimensionamentoWizardShell>
           {temCargas ? (
             <WizardCondutoresPanel projetoId={projetoId} embedded />
           ) : (

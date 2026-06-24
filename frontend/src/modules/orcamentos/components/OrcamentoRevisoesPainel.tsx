@@ -240,7 +240,7 @@ export default function OrcamentoRevisoesPainel({
 
   const podeNovaRevisao = podeCriarNovaRevisaoOrcamento(orcamento)
 
-  const ultimaDaLinha = linhas[linhas.length - 1]
+  const ultimaDaLinha = linhas.at(-1)
 
   const podeReabrir =
 

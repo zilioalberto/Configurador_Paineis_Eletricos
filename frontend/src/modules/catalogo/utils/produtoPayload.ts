@@ -1,8 +1,7 @@
 /** Monta payload JSON de criação/edição de produto para a API. */
 
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
-import type { CategoriaProduto } from '../types/categoria'
-import type { CategoriaProdutoNome } from '../types/categoria'
+import type { CategoriaProduto, CategoriaProdutoNome } from '../types/categoria'
 import type { ProdutoFormData } from '../types/produto'
 import { especFormParaPayload } from './specFormHelpers'
 
