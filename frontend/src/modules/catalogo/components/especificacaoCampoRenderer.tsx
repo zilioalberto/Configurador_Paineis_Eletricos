@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { selectOptionsParaCampo } from '../constants/specSelectRegistry'
 import type { CategoriaProdutoNome } from '../types/categoria'
 import { patchIntEspecField } from '../utils/especificacaoFieldPatch'
-import { labelCampoEspec } from '../utils/specFormHelpers'
+import { labelCampoEspec, type SpecFieldValue } from '../utils/specFormHelpers'
 import { PlcFamiliaCampo } from './PlcFamiliaCampo'
 
 const FUSIVEL_TAMANHOS_NH = [
@@ -86,7 +86,7 @@ function deveOcultarCampoDcm(
 function deveOcultarCampoReleEstadoSolido(
   categoria: CategoriaProdutoNome,
   campo: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ): boolean {
   if (categoria !== 'RELE_ESTADO_SOLIDO') return false
   if (campo === 'tipo_dissipador' && !value.possui_dissipador) return true
@@ -97,7 +97,7 @@ function deveOcultarCampoReleEstadoSolido(
 function deveOcultarCampoPainel(
   categoria: CategoriaProdutoNome,
   campo: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ): boolean {
   return (
     categoria === 'PAINEL' &&
@@ -151,7 +151,7 @@ function renderCampoPlcFamilia(
 function deveOcultarCampoAnalogico(
   categoria: CategoriaProdutoNome,
   name: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ): boolean {
   if (
     categoria === 'EXPANSAO_PLC' &&
@@ -172,7 +172,7 @@ function deveOcultarCampoAnalogico(
 function deveOcultarCampoTerminal(
   categoria: CategoriaProdutoNome,
   name: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ): boolean {
   if (categoria !== 'TERMINAIS' || name !== 'furo_olhal') return false
   return String(value.tipo_terminal ?? '') === 'TUBULAR'
@@ -181,7 +181,7 @@ function deveOcultarCampoTerminal(
 function deveOcultarCampoIdentificacao(
   categoria: CategoriaProdutoNome,
   name: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ): boolean {
   if (categoria !== 'IDENTIFICACAO') return false
   const tipo = String(value.tipo_identificacao ?? '')
@@ -198,8 +198,8 @@ function renderCampoBoolean(
   label: string,
   categoria: CategoriaProdutoNome,
   current: unknown,
-  patch: (k: string, v: string | number | boolean) => void,
-  onPatch: (patch: Record<string, string | number | boolean>) => void
+  patch: (k: string, v: SpecFieldValue) => void,
+  onPatch: (patch: Record<string, SpecFieldValue>) => void
 ): ReactNode {
   return (
     <div key={name} className="col-md-4 d-flex align-items-end">
@@ -237,8 +237,8 @@ function renderCampoSelect(
   categoria: CategoriaProdutoNome,
   current: unknown,
   opts: ReturnType<typeof selectOptionsParaCampo>,
-  patch: (k: string, v: string | number | boolean) => void,
-  onPatch: (patch: Record<string, string | number | boolean>) => void
+  patch: (k: string, v: SpecFieldValue) => void,
+  onPatch: (patch: Record<string, SpecFieldValue>) => void
 ): ReactNode {
   const numericOpts = opts!.every((o) => typeof o.value === 'number')
   const strVal = valorSelectEspecificacao(current, django, opts!, numericOpts)
@@ -321,7 +321,7 @@ function aplicarPatchEspecialSelect(
   categoria: CategoriaProdutoNome,
   name: string,
   v: string,
-  onPatch: (patch: Record<string, string | number | boolean>) => void
+  onPatch: (patch: Record<string, SpecFieldValue>) => void
 ): boolean {
   if (categoria === 'DISJUNTOR_CAIXA_MOLDADA' && name === 'configuracao_disparador') {
     onPatch(patchLimpezaDcmConfig(v))
@@ -349,7 +349,7 @@ function aplicarPatchEspecialSelect(
 function opcoesEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,
-  value: Record<string, string | number | boolean>
+  value: Record<string, SpecFieldValue>
 ) {
   if (categoria === 'FUSIVEL' && name === 'tamanho') {
     const formato = String(value.formato ?? '')
@@ -363,8 +363,8 @@ function opcoesEspecificacao(
 function renderCampoTextoLongo(
   name: string,
   label: string,
-  current: string | number | boolean | undefined,
-  patch: (k: string, v: string | number | boolean) => void
+  current: SpecFieldValue | undefined,
+  patch: (k: string, v: SpecFieldValue) => void
 ) {
   return (
     <div key={name} className="col-12">
@@ -387,10 +387,10 @@ type RenderCampoInputParams = Readonly<{
   name: string
   django: string
   label: string
-  current: string | number | boolean | undefined
-  value: Record<string, string | number | boolean>
-  onPatch: (patch: Record<string, string | number | boolean>) => void
-  patch: (k: string, v: string | number | boolean) => void
+  current: SpecFieldValue | undefined
+  value: Record<string, SpecFieldValue>
+  onPatch: (patch: Record<string, SpecFieldValue>) => void
+  patch: (k: string, v: SpecFieldValue) => void
 }>
 
 function renderCampoInput({
@@ -437,8 +437,8 @@ export function renderCampoEspecificacao(
   categoria: CategoriaProdutoNome,
   name: string,
   django: string,
-  value: Record<string, string | number | boolean>,
-  onPatch: (patch: Record<string, string | number | boolean>) => void
+  value: Record<string, SpecFieldValue>,
+  onPatch: (patch: Record<string, SpecFieldValue>) => void
 ): ReactNode | null {
   const configuracaoDcm = String(value.configuracao_disparador ?? '')
   if (deveOcultarCampoDcm(categoria, name, configuracaoDcm)) return null
@@ -451,7 +451,7 @@ export function renderCampoEspecificacao(
   const label = labelCampoEspec(name)
   const opts = opcoesEspecificacao(categoria, name, value)
   const current = value[name]
-  const patch = (k: string, v: string | number | boolean) => onPatch({ [k]: v })
+  const patch = (k: string, v: SpecFieldValue) => onPatch({ [k]: v })
 
   const plc = renderCampoPlcFamilia(categoria, name, label, current, (k, v) => patch(k, v))
   if (plc) return plc

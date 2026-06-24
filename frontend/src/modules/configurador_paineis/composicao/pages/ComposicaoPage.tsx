@@ -17,6 +17,7 @@ import { sincronizarComposicaoPainel } from '@/modules/orcamentos/services/orcam
 import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
 import { ComposicaoAlterarSugestaoModal } from '../components/ComposicaoAlterarSugestaoModal'
 import { ComposicaoSnapshotContent } from '../components/ComposicaoSnapshotContent'
+import { ComposicaoToolbarActions } from '../components/ComposicaoToolbarActions'
 import { useAlternativasSugestaoQuery } from '../hooks/useAlternativasSugestaoQuery'
 import { useComposicaoPageActions, useComposicaoProjetoChange } from '../hooks/useComposicaoPageActions'
 import { useComposicaoSnapshotQuery } from '../hooks/useComposicaoSnapshotQuery'
@@ -69,6 +70,50 @@ function modalComposicaoState(
 
 function statusSimNao(v: boolean): string {
   return v ? 'Sim' : 'Não'
+}
+
+function subtituloToolbarComposicao(
+  projetoSelecionado: { readonly codigo: string; readonly nome: string } | null | undefined,
+  composicaoFinal: boolean
+): string {
+  if (projetoSelecionado) return `${projetoSelecionado.codigo} · ${projetoSelecionado.nome}`
+  if (composicaoFinal) {
+    return 'Cabos, terminais, identificações, trilhos DIN, canaletas e acessórios'
+  }
+  return 'Sugestões, aprovações e pendências de materiais'
+}
+
+type FluxoGates = ReturnType<typeof useProjetoFluxoGates>
+
+/** Calcula o motivo pelo qual a exportação para a proposta está bloqueada. */
+function calcularMotivoBloqueioRetorno(
+  sincronizando: boolean,
+  pendenciasAbertas: number,
+  sugestoesPendentes: number
+): string {
+  if (sincronizando) return 'Exportação para a proposta em andamento.'
+  if (pendenciasAbertas > 0) return 'Resolva as pendências antes de exportar para a proposta.'
+  if (sugestoesPendentes > 0) return 'Aprove todas as sugestões antes de exportar para a proposta.'
+  return 'Conclua a composição antes de exportar para a proposta.'
+}
+
+/** Determina o destino de redirecionamento da etapa de composição, ou null. */
+function redirecionamentoComposicao(
+  projetoId: string,
+  composicaoFinal: boolean,
+  fluxoGates: FluxoGates
+): string | null {
+  if (!projetoId || fluxoGates.loading) return null
+  if (!fluxoGates.temCargas) return configuradorPaths.cargas(projetoId)
+  if (!fluxoGates.condutoresRevisaoOk) {
+    return configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento')
+  }
+  if (composicaoFinal && !fluxoGates.podeAcessarComposicaoFinal) {
+    return fluxoGates.podeAcessarDimensionamentoMecanico
+      ? configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico')
+      : configuradorPaths.composicao(projetoId)
+  }
+  return null
 }
 
 function ComposicaoRetornoOrcamentoMonitor({
@@ -302,14 +347,11 @@ export default function ComposicaoPage() {
     orcamentoId && vinculoId && snapshot && pendenciasAbertas === 0 && sugestoesPendentes === 0
   )
   const botaoExportarPropostaHabilitado = podeRetornarOrcamento && !sincronizandoOrcamento
-  const motivoBloqueioRetornoOrcamento =
-    sincronizandoOrcamento
-      ? 'Exportação para a proposta em andamento.'
-      : pendenciasAbertas > 0
-        ? 'Resolva as pendências antes de exportar para a proposta.'
-        : sugestoesPendentes > 0
-          ? 'Aprove todas as sugestões antes de exportar para a proposta.'
-          : 'Conclua a composição antes de exportar para a proposta.'
+  const motivoBloqueioRetornoOrcamento = calcularMotivoBloqueioRetorno(
+    sincronizandoOrcamento,
+    pendenciasAbertas,
+    sugestoesPendentes
+  )
 
   const modalComposicao = useMemo(
     () =>
@@ -357,75 +399,20 @@ export default function ComposicaoPage() {
 
   const toolbarActions = useMemo(
     () => (
-      <>
-        {projetoId ? (
-          <>
-            <Link
-              to={`${configuradorPaths.configuracaoEditar(projetoId)}?retorno=${encodeURIComponent(
-                withFluxoOrigem(composicaoAtualPath, searchParams)
-              )}`}
-              className="btn btn-outline-light btn-sm"
-            >
-              Editar configurações
-            </Link>
-            <Link
-              to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)}
-              className="btn btn-outline-light btn-sm"
-            >
-              Editar cargas
-            </Link>
-            <Link
-              to={withFluxoOrigem(
-                configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'),
-                searchParams
-              )}
-              className="btn btn-outline-light btn-sm"
-            >
-              Editar condutores
-            </Link>
-            {fluxoGates.podeAcessarDimensionamentoMecanico ? (
-              <Link
-                to={withFluxoOrigem(
-                  configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico'),
-                  searchParams
-                )}
-                className="btn btn-success btn-sm"
-              >
-                {composicaoFinal ? 'Revisar mecânico' : 'Dimensionamento mecânico'}
-              </Link>
-            ) : null}
-          </>
-        ) : null}
-        {fluxoVinculadoOrcamento ? (
-          <button
-            type="button"
-            className="btn btn-success btn-sm"
-            disabled={!botaoExportarPropostaHabilitado}
-            title={!botaoExportarPropostaHabilitado ? motivoBloqueioRetornoOrcamento : undefined}
-            onClick={() => onRetornarOrcamento().catch(() => undefined)}
-          >
-            {sincronizandoOrcamento ? 'Exportando…' : 'Exportar sugestões para proposta'}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="btn btn-outline-light btn-sm"
-          disabled={!projetoId || exportando !== null}
-          title="Lista completa do painel, incluindo composição final, inclusões manuais e pendências"
-          onClick={() => onExportLista('xlsx')}
-        >
-          {exportando === 'xlsx' ? 'Excel…' : 'Excel'}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-light btn-sm"
-          disabled={!projetoId || exportando !== null}
-          title="Lista completa do painel, incluindo composição final, inclusões manuais e pendências"
-          onClick={() => onExportLista('pdf')}
-        >
-          {exportando === 'pdf' ? 'PDF…' : 'PDF'}
-        </button>
-      </>
+      <ComposicaoToolbarActions
+        projetoId={projetoId}
+        composicaoAtualPath={composicaoAtualPath}
+        searchParams={searchParams}
+        composicaoFinal={composicaoFinal}
+        podeAcessarDimensionamentoMecanico={fluxoGates.podeAcessarDimensionamentoMecanico}
+        fluxoVinculadoOrcamento={fluxoVinculadoOrcamento}
+        botaoExportarPropostaHabilitado={botaoExportarPropostaHabilitado}
+        motivoBloqueioRetornoOrcamento={motivoBloqueioRetornoOrcamento}
+        sincronizandoOrcamento={sincronizandoOrcamento}
+        exportando={exportando}
+        onRetornarOrcamento={onRetornarOrcamento}
+        onExportLista={onExportLista}
+      />
     ),
     [
       composicaoAtualPath,
@@ -446,11 +433,7 @@ export default function ComposicaoPage() {
   const toolbarConfig = useMemo(
     () => ({
       title: composicaoFinal ? 'Composição final do painel' : 'Composição do painel',
-      subtitle: projetoSelecionado
-        ? `${projetoSelecionado.codigo} · ${projetoSelecionado.nome}`
-        : composicaoFinal
-          ? 'Cabos, terminais, identificações, trilhos DIN, canaletas e acessórios'
-          : 'Sugestões, aprovações e pendências de materiais',
+      subtitle: subtituloToolbarComposicao(projetoSelecionado, composicaoFinal),
       badges: undefined,
       actions: toolbarActions,
       actionsKey: [
@@ -481,19 +464,9 @@ export default function ComposicaoPage() {
 
   useAppPageToolbar(toolbarConfig)
 
-  if (projetoId && !fluxoGates.loading && !fluxoGates.temCargas) {
-    return <Navigate to={withFluxoOrigem(configuradorPaths.cargas(projetoId), searchParams)} replace />
-  }
-  if (projetoId && !fluxoGates.loading && fluxoGates.temCargas && !fluxoGates.condutoresRevisaoOk) {
-    return (
-      <Navigate to={withFluxoOrigem(configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento'), searchParams)} replace />
-    )
-  }
-  if (projetoId && composicaoFinal && !fluxoGates.loading && !fluxoGates.podeAcessarComposicaoFinal) {
-    const destino = fluxoGates.podeAcessarDimensionamentoMecanico
-      ? configuradorPaths.configuracaoFluxo(projetoId, 'dimensionamento_mecanico')
-      : configuradorPaths.composicao(projetoId)
-    return <Navigate to={withFluxoOrigem(destino, searchParams)} replace />
+  const destinoRedirecionamento = redirecionamentoComposicao(projetoId, composicaoFinal, fluxoGates)
+  if (destinoRedirecionamento) {
+    return <Navigate to={withFluxoOrigem(destinoRedirecionamento, searchParams)} replace />
   }
 
   return (
@@ -516,7 +489,7 @@ export default function ComposicaoPage() {
         }}
         onConfirm={confirmarModalComposicao}
       />
-      {!projetoId ? (
+      {projetoId ? null : (
         <div className="card mb-3">
           <div className="card-body">
             <label className="form-label fw-semibold" htmlFor="comp-projeto">
@@ -549,7 +522,7 @@ export default function ComposicaoPage() {
             </p>
           </div>
         </div>
-      ) : null}
+      )}
 
       {!projetoId && (
         <p className="text-muted">Selecione um projeto para ver a composição sugerida.</p>

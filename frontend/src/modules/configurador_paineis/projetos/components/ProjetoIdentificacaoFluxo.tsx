@@ -20,7 +20,7 @@ export function formatProjetoCodigoNome(
 
 const defaultId = 'projeto-identificacao-fluxo-valor'
 
-type ProjetoIdentificacaoFluxoProps = {
+type ProjetoIdentificacaoFluxoProps = Readonly<{
   projetoCodigo?: string | null
   projetoNome?: string | null
   /** Quando não há código/nome no catálogo (ex.: só UUID). */
@@ -34,7 +34,7 @@ type ProjetoIdentificacaoFluxoProps = {
   embedded?: boolean
   className?: string
   htmlId?: string
-}
+}>
 
 /**
  * Apresentação padronizada: rótulo «Projeto» + faixa com fundo neutro (`codigo — nome`).

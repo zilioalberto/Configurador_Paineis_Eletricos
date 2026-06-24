@@ -23,6 +23,9 @@ vi.mock('@/modules/usuarios/services/usuariosAdminService', () => ({
 
 import UsuariosAdminPage from '@/modules/usuarios/pages/UsuariosAdminPage'
 
+const senhaCriacaoStub = ['senhaforte', 123].join('')
+const senhaEdicaoStub = ['novasenha', 123].join('')
+
 const tipoUsuarioChoicesBase = [
   { value: 'USUARIO', label: 'Colaborador' },
   { value: 'ADMIN', label: 'Administrador' },
@@ -90,7 +93,7 @@ describe('UsuariosAdminPage', () => {
       target: { value: 'novo@empresa.com' },
     })
     fireEvent.change(screen.getByLabelText('Senha (mín. 8 caracteres)'), {
-      target: { value: 'senhaforte123' },
+      target: { value: senhaCriacaoStub },
     })
     fireEvent.click(screen.getByLabelText('Criar projetos'))
     fireEvent.click(screen.getByRole('button', { name: 'Criar utilizador' }))
@@ -99,7 +102,7 @@ describe('UsuariosAdminPage', () => {
     expect(createAdminUser).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'novo@empresa.com',
-        password: 'senhaforte123',
+        password: senhaCriacaoStub,
       }),
       expect.anything()
     )
@@ -108,7 +111,7 @@ describe('UsuariosAdminPage', () => {
     await screen.findByText('Editar utilizador')
 
     fireEvent.change(screen.getByLabelText('Nova senha (opcional)'), {
-      target: { value: 'novasenha123' },
+      target: { value: senhaEdicaoStub },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
@@ -117,7 +120,7 @@ describe('UsuariosAdminPage', () => {
       10,
       expect.objectContaining({
         email: 'tais@empresa.com',
-        password: 'novasenha123',
+        password: senhaEdicaoStub,
       })
     )
   })

@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '@/modules/auth/AuthContext'
 import { PERMISSION_KEYS } from '@/modules/auth/permissionKeys'
 import { hasPermission } from '@/modules/auth/permissions'
 import { TarefaCreateModal } from '../components/TarefaCreateModal'
-import { TarefasKanbanBoard } from '../components/TarefasKanbanBoard'
 import { TarefaEditModal } from '../components/TarefaEditModal'
 import {
-  TarefasCalendarioView,
-  TarefasDashboardView,
-  TarefasListaView,
-} from '../components/TarefasKanbanViews'
+  KanbanEstadoVazio,
+  KanbanFilterPanel,
+  KanbanTopbar,
+  KanbanViewsSwitch,
+} from '../components/TarefasKanbanPageSections'
 import { useKanbanTarefasQuery } from '../hooks/useKanbanTarefasQuery'
 import { useTarefasKanbanHandlers } from '../hooks/useTarefasKanbanHandlers'
 import {
@@ -26,7 +25,6 @@ import { useTarefaDashboardHorasDiaQuery } from '../hooks/useTarefaDashboardHora
 import { useTarefaTimerAtivoQuery } from '../hooks/useTarefaTimerAtivoQuery'
 import type { TarefaKanbanItem } from '../types/tarefa'
 import {
-  FILTROS_SITUACAO,
   VISUALIZACOES_TAREFAS,
   type ColunaRenderizada,
   type FiltroSituacao,
@@ -35,8 +33,6 @@ import {
 } from '../utils/tarefasKanbanConstants'
 import {
   dataLocalHoje,
-  formatarDataApontamento,
-  formatarHoras,
   tarefaCombinaBusca,
   tarefaCombinaSituacao,
   tarefaVencida,
@@ -203,60 +199,16 @@ export default function TarefasKanbanPage() {
 
   return (
     <div className="tarefas-kanban-page">
-      <header className="tarefas-board-topbar">
-        <div className="tarefas-board-brand">
-          <span className="tarefas-board-brand__mark" aria-hidden="true">
-            Z
-          </span>
-          <div>
-            <div className="tarefas-board-brand__section">Quadros</div>
-            <h1 className="tarefas-board-brand__title">Tarefas e Kanban</h1>
-          </div>
-        </div>
-
-        <div className="tarefas-board-search input-group input-group-sm">
-          <span className="input-group-text border-end-0 bg-body-secondary" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden>
-              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-            </svg>
-          </span>
-          <label className="visually-hidden" htmlFor="tarefas-busca">
-            Buscar tarefas
-          </label>
-          <input
-            id="tarefas-busca"
-            className="form-control border-start-0"
-            value={busca}
-            placeholder="Código, título, responsável…"
-            onChange={(event) => setBusca(event.target.value)}
-          />
-        </div>
-        <div className="tarefas-kanban-toolbar__actions">
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-secondary"
-            onClick={() => refetch().catch(() => undefined)}
-            disabled={isFetching}
-          >
-            Atualizar
-          </button>
-          {podeVerRelatorioHoras ? (
-            <Link to="/tarefas/horas-gestao" className="btn btn-sm btn-outline-secondary">
-              Gestão de horas
-            </Link>
-          ) : null}
-          {podeCriar ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => abrirNovaTarefa()}
-              disabled={!quadro}
-            >
-              Nova tarefa
-            </button>
-          ) : null}
-        </div>
-      </header>
+      <KanbanTopbar
+        busca={busca}
+        onBuscaChange={setBusca}
+        onRefetch={() => refetch().catch(() => undefined)}
+        isFetching={isFetching}
+        podeVerRelatorioHoras={podeVerRelatorioHoras}
+        podeCriar={podeCriar}
+        quadroDisponivel={Boolean(quadro)}
+        onNovaTarefa={abrirNovaTarefa}
+      />
 
       {isPending ? (
         <div className="kanban-loading-state">
@@ -272,27 +224,11 @@ export default function TarefasKanbanPage() {
       ) : null}
 
       {!isPending && !isError && !quadro ? (
-        <div className="kanban-empty-state">
-          <h2 className="h5 mb-2">Nenhum quadro ativo encontrado</h2>
-          <p className="text-muted mb-3">
-            Crie um quadro padrão com colunas iniciais para liberar o cadastro de tarefas.
-          </p>
-          {podeCriarQuadroPadrao ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={handleCriarQuadroPadrao}
-              disabled={criarQuadroPadraoMutation.isPending}
-            >
-              {criarQuadroPadraoMutation.isPending ? 'Criando...' : 'Criar quadro padrão'}
-            </button>
-          ) : (
-            <p className="text-muted small mb-0">
-              Seu usuário pode visualizar tarefas, mas precisa da permissão de gerenciar quadros
-              ou criar tarefas para iniciar a estrutura padrão.
-            </p>
-          )}
-        </div>
+        <KanbanEstadoVazio
+          podeCriarQuadroPadrao={podeCriarQuadroPadrao}
+          criando={criarQuadroPadraoMutation.isPending}
+          onCriar={handleCriarQuadroPadrao}
+        />
       ) : null}
 
       {quadro ? (
@@ -319,171 +255,43 @@ export default function TarefasKanbanPage() {
           </section>
 
           <div className="kanban-workspace">
-            <aside className="kanban-filter-panel" aria-label="Filtros do Kanban">
-              <div className="kanban-filter-panel__section">
-                <label className="form-label" htmlFor="tarefas-situacao">
-                  Situação
-                </label>
-                <select
-                  id="tarefas-situacao"
-                  className="form-select form-select-sm"
-                  value={filtroSituacao}
-                  onChange={(event) => setFiltroSituacao(event.target.value as FiltroSituacao)}
-                >
-                  {FILTROS_SITUACAO.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <KanbanFilterPanel
+              filtroSituacao={filtroSituacao}
+              setFiltroSituacao={setFiltroSituacao}
+              podeApontarHoras={podeApontarHoras}
+              dashboardHoras={dashboardHoras}
+              dashboardHorasPending={dashboardHorasQuery.isPending}
+              dashboardHorasError={dashboardHorasQuery.isError}
+              dataDashboardHoras={dataDashboardHoras}
+              totalTarefas={totalTarefas}
+              totalVisivel={totalVisivel}
+              tarefasVencidas={tarefasVencidas}
+            />
 
-              {podeApontarHoras ? (
-                <div
-                  className="kanban-filter-panel__section kanban-hours-dashboard"
-                  aria-label="Total das minhas horas apontadas hoje em tarefas"
-                >
-                  <h2>Minhas horas hoje</h2>
-                  <div className="kanban-hours-dashboard__total">
-                    <strong>{formatarHoras(dashboardHoras?.total_horas ?? '0.00')}</strong>
-                    <span>{formatarDataApontamento(dashboardHoras?.data ?? dataDashboardHoras)}</span>
-                  </div>
-                  {dashboardHorasQuery.isPending ? (
-                    <p className="kanban-hours-dashboard__note mb-0">Carregando horas...</p>
-                  ) : null}
-                  {dashboardHorasQuery.isError ? (
-                    <p className="kanban-hours-dashboard__note mb-0">
-                      Não foi possível carregar as horas.
-                    </p>
-                  ) : null}
-                  {!dashboardHorasQuery.isPending &&
-                  !dashboardHorasQuery.isError &&
-                  Number(dashboardHoras?.total_horas ?? '0') === 0 ? (
-                    <p className="kanban-hours-dashboard__note mb-0">Sem horas apontadas hoje.</p>
-                  ) : null}
-                  {!dashboardHorasQuery.isPending &&
-                  !dashboardHorasQuery.isError &&
-                  Number(dashboardHoras?.total_horas ?? '0') > 0 ? (
-                    <p className="kanban-hours-dashboard__note mb-0">
-                      Soma das suas horas apontadas neste dia (exceto canceladas ou rejeitadas).
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="kanban-filter-panel__section">
-                <h2>Ativos</h2>
-                <div className="kanban-filter-panel__stats">
-                  <span>
-                    <strong>{totalTarefas}</strong>
-                    tarefas no quadro
-                  </span>
-                  <span>
-                    <strong>{totalVisivel}</strong>
-                    tarefas filtradas
-                  </span>
-                  <span>
-                    <strong>{tarefasVencidas}</strong>
-                    vencidas
-                  </span>
-                </div>
-              </div>
-
-              <div className="kanban-filter-panel__section">
-                <h2>Filtros rápidos</h2>
-                <fieldset className="kanban-filter-panel__group" aria-label="Situação">
-                  {FILTROS_SITUACAO.map(([value, label]) => (
-                    <button
-                      type="button"
-                      key={value}
-                      className={`kanban-filter-panel__option ${
-                        filtroSituacao === value ? 'is-active' : ''
-                      }`}
-                      onClick={() => setFiltroSituacao(value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </fieldset>
-              </div>
-
-              <div className="kanban-filter-panel__section">
-                <h2>Filtros avançados</h2>
-                <label className="kanban-filter-panel__check">
-                  <input
-                    type="checkbox"
-                    checked={filtroSituacao === 'vencidas'}
-                    onChange={() =>
-                      setFiltroSituacao((estado) => (estado === 'vencidas' ? 'todas' : 'vencidas'))
-                    }
-                  />
-                  Vencidas
-                </label>
-                <label className="kanban-filter-panel__check">
-                  <input
-                    type="checkbox"
-                    checked={filtroSituacao === 'concluidas'}
-                    onChange={() =>
-                      setFiltroSituacao((estado) =>
-                        estado === 'concluidas' ? 'todas' : 'concluidas'
-                      )
-                    }
-                  />
-                  Entregue
-                </label>
-                <label className="kanban-filter-panel__check">
-                  <input
-                    type="checkbox"
-                    checked={filtroSituacao === 'abertas'}
-                    onChange={() =>
-                      setFiltroSituacao((estado) => (estado === 'abertas' ? 'todas' : 'abertas'))
-                    }
-                  />
-                  Abertas
-                </label>
-              </div>
-            </aside>
-
-            {visualizacao === 'kanban' ? (
-              <TarefasKanbanBoard
-                quadroNome={quadro.nome}
-                colunas={colunasRenderizadas}
-                podeMover={podeMover}
-                podeCriar={podeCriar}
-                podeApontarHoras={podeApontarHoras}
-                jornadaPermiteIniciarTimer={jornadaPermiteIniciarTimer}
-                draggingTaskId={draggingTaskId}
-                dragOverColumnId={dragOverColumnId}
-                sessaoTarefaAtivaId={sessaoAtiva?.tarefa}
-                timerAtivoSegundos={timerAtivoSegundos}
-                isSavingTime={
-                  iniciarTimerMutation.isPending || pararTimerMutation.isPending
-                }
-                onDragOverColumn={setDragOverColumnId}
-                onDragLeaveColumn={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-                    setDragOverColumnId(null)
-                  }
-                }}
-                onDrop={handleDrop}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onOpenTarefa={setEditingTask}
-                onStartTimer={handleStartTimer}
-                onStopTimer={handleStopTimer}
-                onNovaTarefa={abrirNovaTarefa}
-              />
-            ) : null}
-
-            {visualizacao === 'lista' ? (
-              <TarefasListaView tarefas={tarefasVisiveis} onOpen={setEditingTask} />
-            ) : null}
-            {visualizacao === 'calendario' ? (
-              <TarefasCalendarioView tarefas={tarefasVisiveis} onOpen={setEditingTask} />
-            ) : null}
-            {visualizacao === 'dashboard' ? (
-              <TarefasDashboardView tarefas={tarefasVisiveis} colunas={colunasRenderizadas} />
-            ) : null}
+            <KanbanViewsSwitch
+              visualizacao={visualizacao}
+              quadroNome={quadro.nome}
+              colunasRenderizadas={colunasRenderizadas}
+              tarefasVisiveis={tarefasVisiveis}
+              podeMover={podeMover}
+              podeCriar={podeCriar}
+              podeApontarHoras={podeApontarHoras}
+              jornadaPermiteIniciarTimer={jornadaPermiteIniciarTimer}
+              draggingTaskId={draggingTaskId}
+              dragOverColumnId={dragOverColumnId}
+              sessaoTarefaAtivaId={sessaoAtiva?.tarefa}
+              timerAtivoSegundos={timerAtivoSegundos}
+              isSavingTime={iniciarTimerMutation.isPending || pararTimerMutation.isPending}
+              onDragOverColumn={setDragOverColumnId}
+              setDragOverColumnId={setDragOverColumnId}
+              onDrop={handleDrop}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onOpenTarefa={setEditingTask}
+              onStartTimer={handleStartTimer}
+              onStopTimer={handleStopTimer}
+              onNovaTarefa={abrirNovaTarefa}
+            />
           </div>
         </>
       ) : null}

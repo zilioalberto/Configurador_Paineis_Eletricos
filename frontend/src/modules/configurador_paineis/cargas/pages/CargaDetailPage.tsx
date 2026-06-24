@@ -35,7 +35,7 @@ export default function CargaDetailPage() {
   const { data: c, isPending, isError, error } = useCargaDetailQuery(id)
   const { data: projetos = [], isPending: loadingProjetos } = useProjetoListQuery()
   const projetoDaCarga =
-    c != null ? projetos.find((p) => p.id === c.projeto) : undefined
+    c == null ? undefined : projetos.find((p) => p.id === c.projeto)
   const canEditCarga = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const podeEditar =
     !loadingProjetos && c != null && projetoPermiteEdicaoCargas(projetoDaCarga)

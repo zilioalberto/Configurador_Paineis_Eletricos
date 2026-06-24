@@ -84,8 +84,10 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split("
 
 CORS_ALLOW_CREDENTIALS = True
 
+LOCAL_VITE_DEV_URL = "http://localhost:5173"
+
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
+    LOCAL_VITE_DEV_URL,
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
@@ -94,7 +96,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    LOCAL_VITE_DEV_URL,
     "http://127.0.0.1:5173",
     "https://portal.zfw.com.br",
 ]
@@ -234,7 +236,7 @@ FISCAL_EMPRESA_CNPJ = _env_or_dotenv("FISCAL_EMPRESA_CNPJ", "")
 FISCAL_CERT_PATH = os.getenv("FISCAL_CERT_PATH", "")
 FISCAL_CERT_PASSWORD_FILE = _env_or_dotenv("FISCAL_CERT_PASSWORD_FILE", "")
 FISCAL_CERT_PASSWORD = _secret_env_or_file("FISCAL_CERT_PASSWORD", "FISCAL_CERT_PASSWORD_FILE")
-# Código UF IBGE do autor (ex.: 35=SP, 42=SC). Usado em distDFeInt cUFAutor.
+# Código UF IBGE do autor (São Paulo trinta e cinco, Santa Catarina quarenta e dois). Usado em distDFeInt cUFAutor.
 FISCAL_SEFAZ_UF = os.getenv("FISCAL_SEFAZ_UF", "42")
 # 1=produção, 2=homologação
 FISCAL_SEFAZ_AMBIENTE = os.getenv("FISCAL_SEFAZ_AMBIENTE", "2")
@@ -319,5 +321,5 @@ ZFW_WHATSAPP_DISPLAY = os.getenv("ZFW_WHATSAPP_DISPLAY", "+55 47 98402-7016")
 # URL do portal para links públicos da oferta (ex.: https://portal.zfw.com.br)
 OFERTA_PUBLICA_FRONTEND_URL = os.getenv(
     "OFERTA_PUBLICA_FRONTEND_URL",
-    "http://localhost:5173",
+    LOCAL_VITE_DEV_URL,
 )

@@ -11,7 +11,7 @@ type BlocoSegmento =
   | { kind: 'list'; items: string[] }
 
 function segmentarConteudo(conteudo: string): BlocoSegmento[] {
-  const texto = (conteudo || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const texto = (conteudo || '').replaceAll('\r\n', '\n').replaceAll('\r', '\n')
   if (!texto.trim()) {
     return [{ kind: 'paragraph', lines: ['—'] }]
   }

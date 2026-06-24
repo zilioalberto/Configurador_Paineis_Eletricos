@@ -1,7 +1,7 @@
 /** Modal para cadastrar proposta comercial (cliente, contato e título). */
 
 import {
-  type FormEvent,
+  type SyntheticEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
@@ -122,7 +122,7 @@ export function CriarPropostaModal({ show, onClose, onCreated }: Props) {
     e.preventDefault()
   }, [])
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!clienteId || !titulo.trim()) return
     setEnviando(true)

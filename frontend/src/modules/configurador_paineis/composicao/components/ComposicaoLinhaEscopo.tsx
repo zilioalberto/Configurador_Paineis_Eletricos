@@ -35,13 +35,13 @@ export type LinhaItemComposicaoEscopo = {
   parte_painel_display?: string
 }
 
-type Props = {
+type Props = Readonly<{
   item: LinhaItemComposicaoEscopo
   dimensionamento: ResumoDimensionamento | undefined
   projeto: Projeto | undefined
   statusLabel: string
   acoes?: ReactNode
-}
+}>
 
 /** Linha única de item de composição (sugestão ou aprovado) com colunas de escopo. */
 export function ComposicaoLinhaEscopo({

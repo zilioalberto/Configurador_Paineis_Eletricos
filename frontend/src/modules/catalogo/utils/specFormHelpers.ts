@@ -8,6 +8,9 @@ import specFieldsJson from '../data/specFieldList.json'
 
 export type SpecFieldMeta = { name: string; django: string }
 
+/** Valor de um campo de especificação no estado do formulário. */
+export type SpecFieldValue = string | number | boolean
+
 export const SPEC_FIELDS_BY_CATEGORIA = specFieldsJson as Partial<
   Record<CategoriaProdutoNome, SpecFieldMeta[]>
 >
@@ -48,7 +51,7 @@ const LABELS_ESPECIAIS: Record<string, string> = {
 export function labelCampoEspec(name: string): string {
   if (LABELS_ESPECIAIS[name]) return LABELS_ESPECIAIS[name]
   return name
-    .replace(/_/g, ' ')
+    .replaceAll('_', ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
@@ -66,11 +69,10 @@ export function sanitizarEspecificacaoApi(
 }
 
 /** Converte resposta da API para estado editável no formulário (strings nos decimais). */
-export function apiSpecParaFormState(raw: Record<string, unknown>): Record<
-  string,
-  string | number | boolean
-> {
-  const out: Record<string, string | number | boolean> = {}
+export function apiSpecParaFormState(
+  raw: Record<string, unknown>
+): Record<string, SpecFieldValue> {
+  const out: Record<string, SpecFieldValue> = {}
   for (const [k, v] of Object.entries(raw)) {
     if (v === null || v === undefined) {
       out[k] = ''
@@ -99,7 +101,7 @@ function parseDecimalInput(v: unknown): string | null {
 
 function valorCampoParaPayload(
   django: string,
-  raw: string | number | boolean
+  raw: SpecFieldValue
 ): unknown | undefined {
   if (
     django !== 'BooleanField' &&
@@ -130,7 +132,7 @@ function valorCampoParaPayload(
 
 /** Monta payload esparso: só envia chaves presentes no formulário (deixa o backend aplicar defaults). */
 export function especFormParaPayload(
-  estado: Record<string, string | number | boolean>,
+  estado: Record<string, SpecFieldValue>,
   categoria: CategoriaProdutoNome
 ): Record<string, unknown> {
   const fields = SPEC_FIELDS_BY_CATEGORIA[categoria]

@@ -93,9 +93,8 @@ export default function NfesEmitidasListPage() {
 
   const onSolicitarExclusao = useCallback(
     (publicId: string, numero: string, serie: string) => {
-      const rotulo = numero
-        ? `NF-e/NFS-e nº ${numero}${serie ? ` · série ${serie}` : ''}`
-        : 'este documento'
+      const sufixoSerie = serie ? ` · série ${serie}` : ''
+      const rotulo = numero ? `NF-e/NFS-e nº ${numero}${sufixoSerie}` : 'este documento'
       setExcluirAlvo({ publicId, label: rotulo })
     },
     [],
@@ -336,15 +335,17 @@ export default function NfesEmitidasListPage() {
                     Carregando…
                   </td>
                 </tr>
-              ) : items.length === 0 ? (
+              ) : null}
+              {!isPending && items.length === 0 ? (
                 <tr>
                   <td colSpan={colSpanTabela} className="text-muted p-4">
                     Nenhum documento emitido encontrado.{' '}
                     <Link to={fiscalPaths.nfeEmitidaImportar}>Importar XMLs</Link>
                   </td>
                 </tr>
-              ) : (
-                items.map((doc) => (
+              ) : null}
+              {!isPending && items.length > 0
+                ? items.map((doc) => (
                   <tr key={doc.id}>
                     <td>
                       <Link
@@ -393,7 +394,7 @@ export default function NfesEmitidasListPage() {
                     ) : null}
                   </tr>
                 ))
-              )}
+                : null}
             </tbody>
           </table>
         </div>

@@ -143,13 +143,15 @@ export default function ConfiguracoesErpPage() {
 
           {carregando ? (
             <p className="text-muted mb-0">A carregar…</p>
-          ) : aba === 'configurador' ? (
+          ) : null}
+          {!carregando && aba === 'configurador' ? (
             <ConfiguradorPaineisConfigTab
               parametros={parametrosConfigurador}
               podeGerenciar={podeGerenciar}
               onAtualizado={handleParamAtualizado}
             />
-          ) : (
+          ) : null}
+          {!carregando && aba !== 'configurador' ? (
             <ParametrosErpTable
               lista={tabelaGeral}
               podeGerenciar={podeGerenciar}
@@ -163,7 +165,7 @@ export default function ConfiguracoesErpPage() {
               onDescricaoChange={setDescricaoRascunho}
               onGuardar={(chave) => guardarParametro(chave).catch(() => undefined)}
             />
-          )}
+          ) : null}
         </div>
       </div>
     </div>

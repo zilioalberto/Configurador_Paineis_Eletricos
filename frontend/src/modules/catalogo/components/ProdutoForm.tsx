@@ -18,18 +18,17 @@ import {
 import { useFornecedoresAtivosQuery } from '../hooks/useFornecedoresAtivosQuery'
 import { listarProdutos } from '../services/produtoService'
 import EspecificacaoCatalogoFields from './EspecificacaoCatalogoFields'
-import type { CategoriaProduto } from '../types/categoria'
-import type { CategoriaProdutoNome } from '../types/categoria'
+import type { CategoriaProduto, CategoriaProdutoNome } from '../types/categoria'
 import type { EspecificacaoFormState, ProdutoFormData, ProdutoListItem } from '../types/produto'
 import { applyCategoriaChange } from '../utils/produtoFormDefaults'
 
-type ProdutoFormProps = {
+type ProdutoFormProps = Readonly<{
   categorias: CategoriaProduto[]
   initialData: ProdutoFormData
   onSubmit: (data: ProdutoFormData) => Promise<void>
   loading?: boolean
   lockCategoria?: boolean
-}
+}>
 
 function mensagemValidacaoEspecificacao(
   categoriaNome: CategoriaProdutoNome | undefined,
@@ -228,7 +227,7 @@ export default function ProdutoForm({
     setFormData((prev) => ({
       ...prev,
       especificacao: {
-        ...(prev.especificacao ?? {}),
+        ...prev.especificacao,
         ...patch,
       } as EspecificacaoFormState,
     }))
@@ -436,12 +435,12 @@ export default function ProdutoForm({
             </option>
           ))}
         </select>
-        {!canVerCadastro ? (
+        {canVerCadastro ? null : (
           <p className="form-text small text-muted mb-0">
             É necessária a permissão de visualizar cadastros para listar fornecedores/fabricantes. Sem
             ela, o vínculo atual é exibido, mas não pode ser alterado por aqui.
           </p>
-        ) : null}
+        )}
         {formData.fabricante_parceiro.trim() && formData.fabricante_parceiro_nome.trim() ? (
           <p className="form-text small text-muted mb-0">
             Fabricante vinculado:{' '}

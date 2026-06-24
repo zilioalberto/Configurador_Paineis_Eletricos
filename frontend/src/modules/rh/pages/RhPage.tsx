@@ -1,7 +1,7 @@
 import {
   type Dispatch,
-  type FormEventHandler,
   type ReactNode,
+  type SyntheticEvent,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -175,7 +175,7 @@ function colaboradorParaForm(c: ColaboradorDto): ColaboradorForm {
     email: c.email ?? '',
     telefone: c.telefone ?? '',
     documento: c.documento ? aplicarMascaraCpf(c.documento) : '',
-    usuario: c.usuario != null ? String(c.usuario) : '',
+    usuario: c.usuario == null ? '' : String(c.usuario),
     cargo: c.cargo ?? '',
     departamento: c.departamento ?? '',
     equipe: c.equipe ?? '',
@@ -421,7 +421,7 @@ export default function RhPage() {
     jornadas,
   ])
 
-  const aplicarBusca: FormEventHandler<HTMLFormElement> = (event) => {
+  const aplicarBusca: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     setBuscaAplicada(busca.trim())
   }
@@ -490,7 +490,7 @@ export default function RhPage() {
     setMobileDetailOpen(true)
   }
 
-  const salvarColaborador: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarColaborador: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     void salvarColaboradorAsync()
   }
@@ -527,7 +527,7 @@ export default function RhPage() {
     }
   }
 
-  const salvarDepartamento: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarDepartamento: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     void salvarDepartamentoAsync()
   }
@@ -555,7 +555,7 @@ export default function RhPage() {
     }
   }
 
-  const salvarCargo: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarCargo: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     void salvarCargoAsync()
   }
@@ -583,7 +583,7 @@ export default function RhPage() {
     }
   }
 
-  const salvarEquipe: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarEquipe: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     void salvarEquipeAsync()
   }
@@ -611,7 +611,7 @@ export default function RhPage() {
     }
   }
 
-  const salvarJornada: FormEventHandler<HTMLFormElement> = (event) => {
+  const salvarJornada: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     void salvarJornadaAsync()
   }
@@ -692,7 +692,7 @@ export default function RhPage() {
       const dias = exists
         ? state.dias_semana.filter((item) => item !== dia)
         : [...state.dias_semana, dia]
-      return { ...state, dias_semana: dias.sort((a, b) => a - b) }
+      return { ...state, dias_semana: dias.toSorted((a, b) => a - b) }
     })
   }
 
@@ -1067,11 +1067,11 @@ function RhFormularioAtual({
   setJornadaForm: Dispatch<SetStateAction<JornadaForm>>
   toggleDiaSemana: (dia: number) => void
   usuariosVinculo: UsuarioVinculoDto[]
-  onSubmitCargo: FormEventHandler<HTMLFormElement>
-  onSubmitColaborador: FormEventHandler<HTMLFormElement>
-  onSubmitDepartamento: FormEventHandler<HTMLFormElement>
-  onSubmitEquipe: FormEventHandler<HTMLFormElement>
-  onSubmitJornada: FormEventHandler<HTMLFormElement>
+  onSubmitCargo: (event: SyntheticEvent<HTMLFormElement>) => void
+  onSubmitColaborador: (event: SyntheticEvent<HTMLFormElement>) => void
+  onSubmitDepartamento: (event: SyntheticEvent<HTMLFormElement>) => void
+  onSubmitEquipe: (event: SyntheticEvent<HTMLFormElement>) => void
+  onSubmitJornada: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   switch (aba) {
     case 'colaboradores': {
@@ -1359,7 +1359,7 @@ function FormColaborador({
   salvando: boolean
   setForm: Dispatch<SetStateAction<ColaboradorForm>>
   setCpfErro: Dispatch<SetStateAction<string | null>>
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form onSubmit={onSubmit}>
@@ -1471,7 +1471,7 @@ function FormDepartamento({
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<SimplesForm>>
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form onSubmit={onSubmit}>
@@ -1502,7 +1502,7 @@ function FormCargo({
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<SimplesForm>>
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form onSubmit={onSubmit}>
@@ -1536,7 +1536,7 @@ function FormEquipe({
   isEditing: boolean
   salvando: boolean
   setForm: Dispatch<SetStateAction<EquipeForm>>
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form onSubmit={onSubmit}>
@@ -1580,7 +1580,7 @@ function FormJornada({
   salvando: boolean
   setForm: Dispatch<SetStateAction<JornadaForm>>
   toggleDiaSemana: (dia: number) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form onSubmit={onSubmit}>

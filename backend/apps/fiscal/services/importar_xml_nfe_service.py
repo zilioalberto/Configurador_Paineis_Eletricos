@@ -31,6 +31,50 @@ class ResultadoImportacaoNFe(TypedDict):
     message: str
 
 
+def _validar_xml_nfe(xml: str) -> None:
+    if not (xml or "").strip():
+        raise NFeParserError("XML não informado.")
+    if not xml.strip().startswith("<"):
+        raise NFeParserError("Conteúdo não parece ser um arquivo XML válido.")
+
+
+def _resolver_cnpj_destinatario(cnpj_destinatario: str | None, dest: dict) -> str:
+    if not cnpj_destinatario:
+        return dest["cnpj"]
+    cnpj_dest = normalizar_cnpj(cnpj_destinatario)
+    if len(cnpj_dest) != 14:
+        raise NFeParserError("CNPJ do destinatário deve conter 14 dígitos.")
+    return cnpj_dest
+
+
+def _definir_objetivo_nota(objetivo_entrada: str | None, cfop_predominante: str) -> tuple[str, str]:
+    if objetivo_entrada:
+        return objetivo_entrada, ClassificacaoFiscalOrigemChoices.MANUAL
+    if cfop_predominante:
+        objetivo = classificar_cfop_entrada(cfop_predominante).objetivo_entrada
+    else:
+        objetivo = ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS
+    return objetivo, ClassificacaoFiscalOrigemChoices.AUTOMATICA
+
+
+def _montar_item_documento(documento: DocumentoFiscalRecebido, item: dict) -> ItemDocumentoFiscal:
+    return ItemDocumentoFiscal(
+        documento=documento,
+        numero_item=item["numero_item"],
+        codigo_fornecedor=item.get("codigo_fornecedor") or "",
+        gtin=item.get("gtin") or "",
+        descricao=item.get("descricao") or "",
+        ncm=item.get("ncm") or "",
+        cfop=item.get("cfop") or "",
+        unidade=item.get("unidade") or "",
+        quantidade=item["quantidade"],
+        valor_unitario=item["valor_unitario"],
+        valor_total=item["valor_total"],
+        objetivo_entrada=classificar_cfop_entrada(item.get("cfop") or "").objetivo_entrada,
+        classificacao_origem=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
+    )
+
+
 def importar_xml_nfe(
     *,
     xml: str,
@@ -46,10 +90,7 @@ def importar_xml_nfe(
     item é classificada automaticamente pelo CFOP (revisão manual posterior).
     Quando informado, vale como classificação manual da nota.
     """
-    if not (xml or "").strip():
-        raise NFeParserError("XML não informado.")
-    if not xml.strip().startswith("<"):
-        raise NFeParserError("Conteúdo não parece ser um arquivo XML válido.")
+    _validar_xml_nfe(xml)
 
     dados = parse_nfe_xml(xml)
     if origem_importacao != OrigemImportacaoFiscalChoices.SEFAZ_SYNC:
@@ -65,24 +106,14 @@ def importar_xml_nfe(
         }
 
     dest = dados["destinatario"]
-    cnpj_dest = normalizar_cnpj(cnpj_destinatario) if cnpj_destinatario else dest["cnpj"]
-    if cnpj_destinatario and len(cnpj_dest) != 14:
-        raise NFeParserError("CNPJ do destinatário deve conter 14 dígitos.")
-
+    cnpj_dest = _resolver_cnpj_destinatario(cnpj_destinatario, dest)
     nsu_norm = normalizar_nsu(nsu) if nsu else None
     itens_payload: list[dict[str, Any]] = dados.get("itens") or []
 
     cfop_predominante = cfop_predominante_por_itens(itens_payload)
-    if objetivo_entrada:
-        objetivo_nota = objetivo_entrada
-        classificacao_origem = ClassificacaoFiscalOrigemChoices.MANUAL
-    else:
-        objetivo_nota = (
-            classificar_cfop_entrada(cfop_predominante).objetivo_entrada
-            if cfop_predominante
-            else ObjetivoEntradaFiscalChoices.OUTRAS_ENTRADAS
-        )
-        classificacao_origem = ClassificacaoFiscalOrigemChoices.AUTOMATICA
+    objetivo_nota, classificacao_origem = _definir_objetivo_nota(
+        objetivo_entrada, cfop_predominante
+    )
 
     with transaction.atomic():
         documento = DocumentoFiscalRecebido.objects.create(
@@ -106,26 +137,7 @@ def importar_xml_nfe(
             xml_original=xml,
         )
         ItemDocumentoFiscal.objects.bulk_create(
-            [
-                ItemDocumentoFiscal(
-                    documento=documento,
-                    numero_item=item["numero_item"],
-                    codigo_fornecedor=item.get("codigo_fornecedor") or "",
-                    gtin=item.get("gtin") or "",
-                    descricao=item.get("descricao") or "",
-                    ncm=item.get("ncm") or "",
-                    cfop=item.get("cfop") or "",
-                    unidade=item.get("unidade") or "",
-                    quantidade=item["quantidade"],
-                    valor_unitario=item["valor_unitario"],
-                    valor_total=item["valor_total"],
-                    objetivo_entrada=classificar_cfop_entrada(
-                        item.get("cfop") or ""
-                    ).objetivo_entrada,
-                    classificacao_origem=ClassificacaoFiscalOrigemChoices.AUTOMATICA,
-                )
-                for item in itens_payload
-            ]
+            [_montar_item_documento(documento, item) for item in itens_payload]
         )
 
     return {

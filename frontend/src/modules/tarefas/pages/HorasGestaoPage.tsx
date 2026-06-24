@@ -1,4 +1,4 @@
-import { type FormEventHandler, useMemo, useState } from 'react'
+import { type SyntheticEvent, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useColaboradoresRelatorioHorasPeriodoQuery } from '../hooks/useColaboradoresRelatorioHorasPeriodoQuery'
@@ -154,7 +154,7 @@ function HorasGestaoFiltros({
   onDataInicioChange: (value: string) => void
   onOrdemProducaoChange: (value: string) => void
   onPropostaChange: (value: string) => void
-  onSubmit: FormEventHandler<HTMLFormElement>
+  onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }>) {
   return (
     <form
@@ -401,9 +401,9 @@ function ResumoTotalCard({ dados }: Readonly<{ dados: RelatorioHorasGestao }>) {
   const colaboradorNome =
     dados.filtros.colaborador_nome || `Colaborador #${dados.filtros.colaborador_id}`
   const titulo =
-    dados.filtros.colaborador_id != null
-      ? `Total de horas — ${colaboradorNome}`
-      : 'Total no período (todos os colaboradores nos filtros)'
+    dados.filtros.colaborador_id == null
+      ? 'Total no período (todos os colaboradores nos filtros)'
+      : `Total de horas — ${colaboradorNome}`
 
   return (
     <section className="card border-primary mb-4" aria-label="Total de horas no período e filtros">
@@ -426,11 +426,11 @@ function FiltrosAplicados({ dados }: Readonly<{ dados: RelatorioHorasGestao }>) 
       <div>
         Período: {dados.periodo.data_inicio} — {dados.periodo.data_fim}
       </div>
-      {dados.filtros.colaborador_id != null ? (
+      {dados.filtros.colaborador_id == null ? null : (
         <div>
           Colaborador: <strong>{nomeColaborador(dados.filtros)}</strong>
         </div>
-      ) : null}
+      )}
       {dados.filtros.proposta ? (
         <div>
           Filtro proposta: <strong>{dados.filtros.proposta}</strong>
@@ -718,7 +718,7 @@ export default function HorasGestaoPage() {
   const selectColaboradorDesabilitado =
     responsaveisQuery.isPending && opcoesColaborador.length === 0
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+  const handleSubmit: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     setSubmetido({
       data_inicio: dataInicio,

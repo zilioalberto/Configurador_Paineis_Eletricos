@@ -5,13 +5,13 @@ import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/f
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { CargaListItem } from '../types/carga'
 
-type CargaTableProps = {
+type CargaTableProps = Readonly<{
   cargas: CargaListItem[]
   projetoId: string
   onDeleteRequest: (id: string) => void
   onEditRequest: (id: string) => void
   canManage: boolean
-}
+}>
 
 function em(val: string | null | undefined) {
   if (val == null || val === '') return '—'

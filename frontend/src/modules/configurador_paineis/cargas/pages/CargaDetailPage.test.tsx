@@ -51,9 +51,9 @@ const baseProjeto = {
 
 function renderPage(initial = '/cargas/c1', locationState?: { from: string }) {
   const entries =
-    locationState !== undefined
-      ? [{ pathname: initial, state: locationState }]
-      : [initial]
+    locationState === undefined
+      ? [initial]
+      : [{ pathname: initial, state: locationState }]
   return render(
     <MemoryRouter initialEntries={entries}>
       <CargaDetailPage />

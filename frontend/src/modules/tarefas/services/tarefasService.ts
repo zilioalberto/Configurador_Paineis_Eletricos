@@ -230,7 +230,7 @@ export async function criarItemChecklist(
   const response = await apiClient.post<ChecklistTarefaItem>('/tarefas/checklist/', {
     tarefa: tarefaId,
     titulo,
-    ...(ordem !== undefined ? { ordem } : {}),
+    ...(ordem === undefined ? {} : { ordem }),
   })
   return response.data
 }

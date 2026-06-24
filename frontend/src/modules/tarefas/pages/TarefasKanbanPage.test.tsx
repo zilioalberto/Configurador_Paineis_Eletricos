@@ -277,7 +277,7 @@ describe('TarefasKanbanPage', () => {
       isPending: false,
       isError: false,
     })
-    window.localStorage.clear()
+    globalThis.localStorage.clear()
   })
 
   it('mostra estado vazio quando nao ha quadro ativo', () => {

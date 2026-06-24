@@ -133,12 +133,14 @@ export default function OrcamentoCatalogoAutocomplete({
             <li className="list-group-item small text-muted" role="presentation">
               Buscando…
             </li>
-          ) : itens.length === 0 ? (
+          ) : null}
+          {!carregando && itens.length === 0 ? (
             <li className="list-group-item small text-muted" role="presentation">
               Nenhum produto encontrado.
             </li>
-          ) : (
-            itens.map((p, index) => {
+          ) : null}
+          {!carregando && itens.length > 0
+            ? itens.map((p, index) => {
               const ativo = index === indiceAtivo
               return (
                 <li
@@ -163,7 +165,7 @@ export default function OrcamentoCatalogoAutocomplete({
                 </li>
               )
             })
-          )}
+            : null}
         </ul>
       ) : null}
     </div>

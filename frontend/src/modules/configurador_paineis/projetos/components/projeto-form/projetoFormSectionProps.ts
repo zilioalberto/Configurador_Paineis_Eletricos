@@ -11,7 +11,7 @@ export type ProjetoFormFieldChangeHandler = (
   event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
 ) => void
 
-export type ProjetoFormSectionProps = {
+export type ProjetoFormSectionProps = Readonly<{
   formData: ProjetoFormData
   onFieldChange: ProjetoFormFieldChangeHandler
   /** Erros de validação (cliente ou API) por nome do campo. */
@@ -26,4 +26,4 @@ export type ProjetoFormSectionProps = {
    * Com Em andamento, o formulário volta a ser editável e pode ser salvo.
    */
   readOnlyExceptStatus?: boolean
-}
+}>

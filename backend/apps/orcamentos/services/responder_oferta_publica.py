@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import base64
-import binascii
 import hashlib
 import json
 import re
@@ -41,7 +40,7 @@ def _decodificar_assinatura_png(data_url: str) -> bytes:
         raw = match.group(2)
     try:
         return base64.b64decode(raw, validate=True)
-    except (binascii.Error, ValueError) as exc:
+    except ValueError as exc:
         raise ValueError("Formato de assinatura inválido.") from exc
 
 

@@ -2,12 +2,12 @@ import { Link } from 'react-router-dom'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
 import type { Projeto } from '../types/projeto'
 
-type ProjetoTableProps = {
+type ProjetoTableProps = Readonly<{
   projetos: Projeto[]
   onDeleteRequest: (id: string) => void
   canEdit: boolean
   canDelete: boolean
-}
+}>
 
 function formatarNumeroFases(numeroFases: number | null): string {
   if (numeroFases === null) return '-'

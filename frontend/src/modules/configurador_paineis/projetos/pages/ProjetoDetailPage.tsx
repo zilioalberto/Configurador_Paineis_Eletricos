@@ -24,7 +24,7 @@ function formatarTipoCorrente(tipoCorrente: string): string {
   return tipoCorrente
 }
 
-function ProjetoDetalheConteudo({ projeto }: { projeto: Projeto }) {
+function ProjetoDetalheConteudo({ projeto }: Readonly<{ projeto: Projeto }>) {
   return (
     <div className="row g-4">
       <div className="col-12">

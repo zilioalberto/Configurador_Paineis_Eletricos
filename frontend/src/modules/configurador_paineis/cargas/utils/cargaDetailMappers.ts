@@ -83,9 +83,9 @@ export function mapResistenciaDetail(d: CargaDetail) {
 
   const ta = str(d.resistencia.tipo_acionamento, 'CONTATOR')
   const tipo_rele_interface =
-    ta !== 'RELE_INTERFACE'
-      ? ''
-      : str(d.resistencia.tipo_rele_interface, '') || 'ELETROMECANICA'
+    ta === 'RELE_INTERFACE'
+      ? str(d.resistencia.tipo_rele_interface, '') || 'ELETROMECANICA'
+      : ''
 
   return {
     numero_fases: num(d.resistencia.numero_fases, 3),

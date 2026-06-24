@@ -24,7 +24,7 @@ import { CabecalhoGrupoCarga, CelulaTensaoCarga, LinhaSeparadoraGrupoPorTag } fr
 import { ComposicaoTabelaAprovada, ComposicaoTabelaSugestoes } from './ComposicaoTabelasEscopo'
 import { InclusaoManualCatalogoSection } from './InclusaoManualCatalogoSection'
 
-type Props = {
+type Props = Readonly<{
   projetoId: string
   snapshot: ComposicaoSnapshot
   projetoSelecionado: Projeto | undefined
@@ -52,7 +52,7 @@ type Props = {
   onAlterar: (s: SugestaoItem) => void
   onAprovarTodas: () => void
   onReavaliarPendencias: () => void
-}
+}>
 
 function ComposicaoGeracaoAvisos({
   snapshot,
@@ -64,8 +64,8 @@ function ComposicaoGeracaoAvisos({
     <div className="alert alert-warning mb-3" role="status">
       <strong>Avisos na última geração:</strong>
       <ul className="mb-0 mt-1 small">
-        {snapshot.geracao.erros_etapas.map((e, i) => (
-          <li key={i}>
+        {snapshot.geracao.erros_etapas.map((e) => (
+          <li key={`${e.etapa}: ${e.erro}`}>
             {e.etapa}: {e.erro}
           </li>
         ))}

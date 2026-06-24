@@ -26,7 +26,7 @@ export function useCargaListAutoRecalc({
   const [autoRecalcFeedback, setAutoRecalcFeedback] = useState('')
   const autoRecalcKeyRef = useRef('')
   const autoRecalcPendingRef = useRef(false)
-  const autoRecalcFeedbackTimerRef = useRef<number | null>(null)
+  const autoRecalcFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!projetoIdListagem || !podeRecalcular) return
@@ -46,9 +46,9 @@ export function useCargaListAutoRecalc({
         autoRecalcKeyRef.current = key
         setAutoRecalcFeedback('Resumo atualizado automaticamente.')
         if (autoRecalcFeedbackTimerRef.current) {
-          window.clearTimeout(autoRecalcFeedbackTimerRef.current)
+          globalThis.clearTimeout(autoRecalcFeedbackTimerRef.current)
         }
-        autoRecalcFeedbackTimerRef.current = window.setTimeout(() => {
+        autoRecalcFeedbackTimerRef.current = globalThis.setTimeout(() => {
           setAutoRecalcFeedback('')
           autoRecalcFeedbackTimerRef.current = null
         }, 2200)
@@ -72,7 +72,7 @@ export function useCargaListAutoRecalc({
   useEffect(() => {
     return () => {
       if (autoRecalcFeedbackTimerRef.current) {
-        window.clearTimeout(autoRecalcFeedbackTimerRef.current)
+        globalThis.clearTimeout(autoRecalcFeedbackTimerRef.current)
       }
     }
   }, [])

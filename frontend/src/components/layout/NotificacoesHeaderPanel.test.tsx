@@ -89,7 +89,7 @@ describe('NotificacoesHeaderPanel', () => {
     expect(await screen.findByText('Nova oferta')).toBeInTheDocument()
     expect(onContagemChange).toHaveBeenCalled()
 
-    await fireEvent.click(screen.getByRole('link', { name: /Nova oferta/i }))
+    fireEvent.click(screen.getByRole('link', { name: /Nova oferta/i }))
 
     await waitFor(() => expect(marcarLidaMock).toHaveBeenCalledWith('n1'))
     expect(onNavigate).toHaveBeenCalled()

@@ -86,7 +86,7 @@ export function posicoesYCanaletasHorizontais(
 
   const padrao = posicoesYIntermediariasPadrao(alturaPlacaMm, faixasHorizontais, lb)
   const intermediarias =
-    intermediariasYMm && intermediariasYMm.length === padrao.length
+    intermediariasYMm?.length === padrao.length
       ? [...intermediariasYMm].sort((a, b) => a - b)
       : padrao
 
@@ -164,7 +164,7 @@ export function gerarLayoutPlaca(
     lb
   )
   const intermediariasSalvas =
-    intermediariasYMm && intermediariasYMm.length === padraoIntermediarias.length
+    intermediariasYMm?.length === padraoIntermediarias.length
       ? [...intermediariasYMm].sort((a, b) => a - b)
       : padraoIntermediarias
 
@@ -176,8 +176,9 @@ export function gerarLayoutPlaca(
   )
 
   const canaletasHorizontais = posicoesY.map((y, indice) => {
-    const extremidade: ExtremidadeCanaleta =
-      indice === 0 ? 'superior' : indice === posicoesY.length - 1 ? 'inferior' : null
+    let extremidade: ExtremidadeCanaleta = null
+    if (indice === 0) extremidade = 'superior'
+    else if (indice === posicoesY.length - 1) extremidade = 'inferior'
     const larguraTotal = extremidade !== null
     return {
       orientacao: 'horizontal' as const,

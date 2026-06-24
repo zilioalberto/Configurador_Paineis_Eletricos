@@ -1,6 +1,6 @@
 /** Listagem de cargas por projeto com resumo de dimensionamento. */
 
-import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { type ChangeEvent, useCallback, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { ConfirmModal, useToast } from '@/components/feedback'
@@ -14,21 +14,19 @@ import { useProjetoListQuery } from '@/modules/configurador_paineis/projetos/hoo
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
 import { withFluxoOrigem } from '@/modules/configurador_paineis/projetos/utils/fluxoOrigem'
 import { configuradorPaths } from '@/modules/configurador_paineis/configuradorPaths'
-import { extrairMensagemErroApi } from '@/services/http/extrairMensagemErroApi'
-import CargaTable from '../components/CargaTable'
-import { CargasEmptyState } from '../components/CargasEmptyState'
+import { CargasCadastradasPanel } from '../components/CargasCadastradasPanel'
 import { DimensionamentoResumoCard } from '../components/DimensionamentoResumoCard'
 import { EditarCargaModal } from '../components/EditarCargaModal'
 import { NovaCargaModal } from '../components/NovaCargaModal'
 import { useCargaListQuery } from '../hooks/useCargaListQuery'
 import { useDeleteCargaMutation } from '../hooks/useCargaMutations'
 import { useCargaListAutoRecalc } from '../hooks/useCargaListAutoRecalc'
+import { useCargaListDelete } from '../hooks/useCargaListDelete'
+import { useCargaListModais } from '../hooks/useCargaListModais'
 import {
   filtrarProjetosComEdicaoCargas,
   projetoPermiteEdicaoCargas,
 } from '../utils/projetoEdicaoCargas'
-
-type DeleteTarget = { id: string; label: string }
 
 function ProjetoFiltroCard({
   projetoId,
@@ -91,7 +89,6 @@ export default function CargaListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const projetoId = searchParams.get('projeto') ?? ''
   const { showToast } = useToast()
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const canManageCargas = hasPermission(user, PERMISSION_KEYS.MATERIAL_EDITAR_LISTA)
   const canCreateProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_CRIAR)
   const canEditarProjeto = hasPermission(user, PERMISSION_KEYS.PROJETO_EDITAR)
@@ -134,6 +131,10 @@ export default function CargaListPage() {
   const recalcMutation = useRecalcularDimensionamentoMutation(projetoIdListagem)
 
   const deleteMutation = useDeleteCargaMutation(projetoIdListagem)
+  const { deleteTarget, onDeleteRequest, closeModal, confirmDelete } = useCargaListDelete(
+    cargas,
+    deleteMutation
+  )
 
   const podeRecalcularDimensionamento = canEditarProjeto && !projetoFinalizado
   const cargasSignature = useMemo(
@@ -166,96 +167,20 @@ export default function CargaListPage() {
   const onProjetoFilterChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
       const v = e.target.value
-      if (v) {
-        setSearchParams({ projeto: v })
-      } else {
-        setSearchParams({})
-      }
+      setSearchParams(v ? { projeto: v } : {})
     },
     [setSearchParams]
   )
 
-  const onDeleteRequest = useCallback(
-    (id: string) => {
-      const c = cargas.find((x) => x.id === id)
-      setDeleteTarget({
-        id,
-        label: c?.tag?.trim() || c?.descricao?.trim() || 'esta carga',
-      })
-    },
-    [cargas]
-  )
-
-  const closeModal = useCallback(() => {
-    if (!deleteMutation.isPending) setDeleteTarget(null)
-  }, [deleteMutation.isPending])
-
-  const confirmDelete = useCallback(async () => {
-    if (!deleteTarget) return
-    try {
-      await deleteMutation.mutateAsync(deleteTarget.id)
-      setDeleteTarget(null)
-      showToast({ variant: 'success', message: 'Carga excluída com sucesso.' })
-    } catch (err) {
-      console.error(err)
-      setDeleteTarget(null)
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível excluir',
-        message: extrairMensagemErroApi(err) || 'Tente novamente.',
-      })
-    }
-  }, [deleteTarget, deleteMutation, showToast])
-
-  const [novaCargaAberta, setNovaCargaAberta] = useState(() => searchParams.get('novo') === '1')
-  const [cargaEmEdicaoId, setCargaEmEdicaoId] = useState<string | null>(
-    () => searchParams.get('editar') || null
-  )
-
-  useEffect(() => {
-    if (searchParams.get('novo') !== '1') return
-    setNovaCargaAberta(true)
-    setCargaEmEdicaoId(null)
-    const params = new URLSearchParams(searchParams)
-    params.delete('novo')
-    setSearchParams(params, { replace: true })
-  }, [searchParams, setSearchParams])
-
-  useEffect(() => {
-    const editar = searchParams.get('editar')
-    if (!editar) return
-    setCargaEmEdicaoId(editar)
-    setNovaCargaAberta(false)
-    const params = new URLSearchParams(searchParams)
-    params.delete('editar')
-    setSearchParams(params, { replace: true })
-  }, [searchParams, setSearchParams])
-
-  const novaCargaModalAberto = novaCargaAberta && Boolean(projetoIdListagem)
-  const editarCargaModalAberto = Boolean(cargaEmEdicaoId) && Boolean(projetoIdListagem)
-
-  const abrirNovaCargaModal = useCallback(() => {
-    if (!projetoIdListagem) return
-    setCargaEmEdicaoId(null)
-    setNovaCargaAberta(true)
-  }, [projetoIdListagem])
-
-  const fecharNovaCargaModal = useCallback(() => {
-    setNovaCargaAberta(false)
-  }, [])
-
-  const abrirEditarCargaModal = useCallback(
-    (cargaId: string) => {
-      if (!projetoIdListagem) return
-      setNovaCargaAberta(false)
-      setCargaEmEdicaoId(cargaId)
-    },
-    [projetoIdListagem]
-  )
-
-  const fecharEditarCargaModal = useCallback(() => {
-    setCargaEmEdicaoId(null)
-  }, [])
+  const {
+    cargaEmEdicaoId,
+    novaCargaModalAberto,
+    editarCargaModalAberto,
+    abrirNovaCargaModal,
+    fecharNovaCargaModal,
+    abrirEditarCargaModal,
+    fecharEditarCargaModal,
+  } = useCargaListModais(searchParams, setSearchParams, projetoIdListagem)
 
   const toolbarActions = useMemo(() => {
     if (!projetoIdListagem) return null
@@ -361,54 +286,17 @@ export default function CargaListPage() {
       ) : null}
 
       {projetoIdListagem ? (
-        <div className="card carga-list-panel">
-          <div className="card-body">
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-              <div>
-                <h2 className="h6 mb-0">Cargas cadastradas</h2>
-                {!loadingCargas && !isError ? (
-                  <p className="small text-muted mb-0">
-                    {cargas.length} {cargas.length === 1 ? 'carga' : 'cargas'}
-                  </p>
-                ) : null}
-              </div>
-              {canManageCargas ? (
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={abrirNovaCargaModal}
-                >
-                  Nova carga
-                </button>
-              ) : null}
-            </div>
-
-            {loadingCargas ? <p className="mb-0 text-muted">Carregando cargas…</p> : null}
-
-            {!loadingCargas && isError ? (
-              <div className="alert alert-danger mb-0" role="alert">
-                {loadError instanceof Error ? loadError.message : 'Não foi possível carregar as cargas.'}
-              </div>
-            ) : null}
-
-            {!loadingCargas && !isError && cargas.length === 0 ? (
-              <CargasEmptyState
-                canManage={canManageCargas}
-                onNovaCarga={abrirNovaCargaModal}
-              />
-            ) : null}
-
-            {!loadingCargas && !isError && cargas.length > 0 ? (
-              <CargaTable
-                cargas={cargas}
-                projetoId={projetoIdListagem}
-                onDeleteRequest={onDeleteRequest}
-                onEditRequest={abrirEditarCargaModal}
-                canManage={canManageCargas}
-              />
-            ) : null}
-          </div>
-        </div>
+        <CargasCadastradasPanel
+          cargas={cargas}
+          loadingCargas={loadingCargas}
+          isError={isError}
+          loadError={loadError}
+          canManageCargas={canManageCargas}
+          projetoId={projetoIdListagem}
+          onNovaCarga={abrirNovaCargaModal}
+          onDeleteRequest={onDeleteRequest}
+          onEditRequest={abrirEditarCargaModal}
+        />
       ) : null}
 
       {projetoIdListagem ? (

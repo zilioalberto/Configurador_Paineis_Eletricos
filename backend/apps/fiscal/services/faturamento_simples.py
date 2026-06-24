@@ -56,7 +56,7 @@ def agregar_faturamento_mensal(
     por_mes_anexo: dict[str, dict[str, Decimal]] = {
         comp: {} for comp in competencias
     }
-    contagem: dict[str, int] = {comp: 0 for comp in competencias}
+    contagem: dict[str, int] = dict.fromkeys(competencias, 0)
 
     for doc in _documentos_faturamento(cnpj):
         comp = _competencia_de_documento(doc)

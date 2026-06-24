@@ -1,8 +1,7 @@
 /** Valores iniciais e reset de categoria no formulário de produto. */
 
 import { getEspecApiKey } from '../constants/categoriaEspecKey'
-import type { CategoriaProduto } from '../types/categoria'
-import type { CategoriaProdutoNome } from '../types/categoria'
+import type { CategoriaProduto, CategoriaProdutoNome } from '../types/categoria'
 import type { ProdutoFormData } from '../types/produto'
 
 export const produtoFormEmpty = (): ProdutoFormData => ({

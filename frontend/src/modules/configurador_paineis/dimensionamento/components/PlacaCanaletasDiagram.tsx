@@ -30,7 +30,7 @@ import {
 } from '../utils/disposicaoComponentes'
 import { CotaLinear } from './placaCotasSvg'
 
-type Props = {
+type Props = Readonly<{
   layout: LayoutPlaca
   className?: string
   disposicao?: ComponenteDisposicaoItem[]
@@ -38,7 +38,7 @@ type Props = {
   editavel?: boolean
   onDisposicaoChange?: (itens: ComponenteDisposicaoItem[]) => void
   onLayoutChange?: (layout: LayoutPlaca) => void
-}
+}>
 
 const PAD_TOP = 24
 const PAD_LEFT = 108
@@ -63,6 +63,17 @@ const COLORS = {
   componenteManualStroke: '#cc9a06',
   componenteConflito: '#f8d7da',
   componenteConflitoStroke: '#dc3545',
+}
+
+function cursorArrastePlaca(redimensionando: boolean, movendo: boolean): string | undefined {
+  if (redimensionando) return 'ns-resize'
+  if (movendo) return 'grabbing'
+  return undefined
+}
+
+function cursorElementoArrastavel(arrastavel: boolean, ativo: boolean, parado: string): string {
+  if (!arrastavel) return 'default'
+  return ativo ? 'grabbing' : parado
 }
 
 export default function PlacaCanaletasDiagram({
@@ -290,27 +301,27 @@ export default function PlacaCanaletasDiagram({
 
     const onWindowPointerMove = (event: PointerEvent) => {
       const arraste = arrasteRef.current
-      if (!arraste || arraste.pointerId !== event.pointerId) return
+      if (arraste?.pointerId !== event.pointerId) return
       event.preventDefault()
       processarMovimentoArraste(event.clientX, event.clientY)
     }
     const onWindowPointerUp = (event: PointerEvent) => {
       const arraste = arrasteRef.current
-      if (!arraste || arraste.pointerId !== event.pointerId) return
+      if (arraste?.pointerId !== event.pointerId) return
       event.preventDefault()
       finalizarArraste()
     }
     const onWindowBlur = () => finalizarArraste()
 
-    window.addEventListener('pointermove', onWindowPointerMove, { passive: false })
-    window.addEventListener('pointerup', onWindowPointerUp, { passive: false })
-    window.addEventListener('pointercancel', onWindowPointerUp, { passive: false })
-    window.addEventListener('blur', onWindowBlur)
+    globalThis.addEventListener('pointermove', onWindowPointerMove, { passive: false })
+    globalThis.addEventListener('pointerup', onWindowPointerUp, { passive: false })
+    globalThis.addEventListener('pointercancel', onWindowPointerUp, { passive: false })
+    globalThis.addEventListener('blur', onWindowBlur)
     return () => {
-      window.removeEventListener('pointermove', onWindowPointerMove)
-      window.removeEventListener('pointerup', onWindowPointerUp)
-      window.removeEventListener('pointercancel', onWindowPointerUp)
-      window.removeEventListener('blur', onWindowBlur)
+      globalThis.removeEventListener('pointermove', onWindowPointerMove)
+      globalThis.removeEventListener('pointerup', onWindowPointerUp)
+      globalThis.removeEventListener('pointercancel', onWindowPointerUp)
+      globalThis.removeEventListener('blur', onWindowBlur)
     }
   }, [editavel, finalizarArraste, processarMovimentoArraste])
 
@@ -319,7 +330,7 @@ export default function PlacaCanaletasDiagram({
   }
 
   return (
-    <div className={`app-diagram-scroll${className ? ` ${className}` : ''}`}>
+    <div className={className ? `app-diagram-scroll ${className}` : 'app-diagram-scroll'}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${svgW} ${svgH}`}
@@ -328,8 +339,7 @@ export default function PlacaCanaletasDiagram({
           maxHeight: 620,
           touchAction: editavel ? 'none' : undefined,
           userSelect: editavel ? 'none' : undefined,
-          cursor:
-            arrastandoCanaleta !== null ? 'ns-resize' : arrastandoId ? 'grabbing' : undefined,
+          cursor: cursorArrastePlaca(arrastandoCanaleta !== null, Boolean(arrastandoId)),
         }}
         role="img"
         aria-label="Diagrama da placa com canaletas e cotas"
@@ -364,8 +374,8 @@ export default function PlacaCanaletasDiagram({
         />
 
         {/* Canaletas verticais */}
-        {layout.canaletas_verticais.map((c, i) => (
-          <g key={`v-${i}`}>
+        {layout.canaletas_verticais.map((c) => (
+          <g key={`v-${c.x_mm}-${c.y_mm}`}>
             <title>{tituloCanaleta(c, layout)}</title>
             <rect
               x={tx(c.x_mm)}
@@ -393,8 +403,8 @@ export default function PlacaCanaletasDiagram({
         ))}
 
         {/* Trilhos DIN (entre canaletas horizontais) */}
-        {trilhosVisiveis.map((t, i) => (
-          <g key={`t-${i}`}>
+        {trilhosVisiveis.map((t) => (
+          <g key={`t-${t.y_mm}-${t.x_mm}`}>
             <rect
               x={tx(t.x_mm)}
               y={ty(t.y_mm)}
@@ -436,11 +446,11 @@ export default function PlacaCanaletasDiagram({
         ))}
 
         {/* Canaletas horizontais */}
-        {layout.canaletas_horizontais.map((c, i) => {
+        {layout.canaletas_horizontais.map((c) => {
           const arrastavel = Boolean(c.arrastavel && editavel && onLayoutChange)
           const ativo = arrastandoCanaleta === c.indice_faixa
           return (
-            <g key={`h-${i}`}>
+            <g key={`h-${c.y_mm}-${c.x_mm}`}>
               <title>{tituloCanaleta(c, layout)}</title>
               <rect
                 x={tx(c.x_mm)}
@@ -451,7 +461,7 @@ export default function PlacaCanaletasDiagram({
                 fillOpacity={arrastavel ? 0.92 : 0.8}
                 stroke={ativo ? '#664d03' : '#cc9a06'}
                 strokeWidth={ativo ? 2 : 1}
-                style={{ cursor: arrastavel ? (ativo ? 'grabbing' : 'ns-resize') : 'default' }}
+                style={{ cursor: cursorElementoArrastavel(arrastavel, ativo, 'ns-resize') }}
                 onPointerDown={
                   arrastavel && c.indice_faixa != null
                     ? (event) => onPointerDownCanaleta(event, c.indice_faixa!, c.y_mm)
@@ -479,16 +489,12 @@ export default function PlacaCanaletasDiagram({
           const manual = comp.manual
           const ativo = arrastandoId === comp.instancia_id
           const conflito = idsConflito.has(comp.instancia_id)
-          const fill = conflito
-            ? COLORS.componenteConflito
-            : manual
-              ? COLORS.componenteManual
-              : COLORS.componente
-          const stroke = conflito
-            ? COLORS.componenteConflitoStroke
-            : manual
-              ? COLORS.componenteManualStroke
-              : COLORS.componenteStroke
+          let fill = COLORS.componente
+          if (conflito) fill = COLORS.componenteConflito
+          else if (manual) fill = COLORS.componenteManual
+          let stroke = COLORS.componenteStroke
+          if (conflito) stroke = COLORS.componenteConflitoStroke
+          else if (manual) stroke = COLORS.componenteManualStroke
           const tooltip = montarTooltipComponenteDisposicao(
             comp,
             mapaEscopo.get(comp.composicao_item_id)
@@ -504,10 +510,10 @@ export default function PlacaCanaletasDiagram({
                 fill={fill}
                 fillOpacity={ativo ? 0.95 : 0.85}
                 stroke={stroke}
-                strokeWidth={conflito ? 2 : ativo ? 2 : 1.2}
+                strokeWidth={conflito || ativo ? 2 : 1.2}
                 rx={2}
                 style={{
-                  cursor: editavel ? (ativo ? 'grabbing' : 'grab') : 'default',
+                  cursor: cursorElementoArrastavel(editavel, ativo, 'grab'),
                 }}
                 onPointerDown={
                   editavel ? (event) => onPointerDownComponente(event, comp) : undefined
@@ -530,9 +536,9 @@ export default function PlacaCanaletasDiagram({
         })}
 
         {/* Cotas entre faixas horizontais */}
-        {cotasFaixas.map((seg, i) => (
+        {cotasFaixas.map((seg) => (
           <CotaLinear
-            key={`cf-${i}`}
+            key={`cf-${seg.inicio_mm}-${seg.fim_mm}`}
             x1={xCotaIntermediaria}
             y1={ty(seg.inicio_mm)}
             x2={xCotaIntermediaria}
@@ -577,21 +583,21 @@ export default function PlacaCanaletasDiagram({
           <span
             className="d-inline-block rounded-1 me-1"
             style={{ width: 12, height: 12, background: COLORS.vertical, opacity: 0.75 }}
-          />
+          />{' '}
           Verticais — {descricaoCanaletaVerticalLegenda(layout)}
         </span>
         <span>
           <span
             className="d-inline-block rounded-1 me-1"
             style={{ width: 12, height: 12, background: COLORS.horizontal, opacity: 0.8 }}
-          />
+          />{' '}
           Horizontais — {descricaoCanaletaHorizontalLegenda(layout)}
         </span>
         <span>
           <span
             className="d-inline-block rounded-1 me-1"
             style={{ width: 12, height: 12, background: COLORS.trilho }}
-          />
+          />{' '}
           Trilho DIN ({trilhosBase.length}) — comp. {layout.comprimento_canaleta_horizontal_mm} mm
           {trilhosVisiveis.length > trilhosBase.length
             ? ` · ${trilhosVisiveis.length} trechos visíveis`
@@ -601,25 +607,25 @@ export default function PlacaCanaletasDiagram({
           <span
             className="d-inline-block rounded-1 me-1 border"
             style={{ width: 12, height: 12, background: COLORS.zona }}
-          />
+          />{' '}
           Zona componentes
         </span>
         {disposicao.length > 0 ? (
           <span>
             <span
               className="d-inline-block rounded-1 me-1 border"
-              style={{ width: 12, height: 12, background: COLORS.componenteConflito }}
-            />
-            Conflito (canaleta ou sobreposição)
+            style={{ width: 12, height: 12, background: COLORS.componenteConflito }}
+          />{' '}
+          Conflito (canaleta ou sobreposição)
           </span>
         ) : null}
         {disposicao.length > 0 ? (
           <span>
             <span
               className="d-inline-block rounded-1 me-1 border"
-              style={{ width: 12, height: 12, background: COLORS.componente }}
-            />
-            Componentes ({disposicao.length})
+            style={{ width: 12, height: 12, background: COLORS.componente }}
+          />{' '}
+          Componentes ({disposicao.length})
             {editavel ? ' — arraste para ajustar; passe o mouse para detalhes' : ' — passe o mouse para detalhes'}
           </span>
         ) : null}

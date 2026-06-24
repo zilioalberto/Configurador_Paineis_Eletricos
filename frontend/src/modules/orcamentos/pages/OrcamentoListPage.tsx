@@ -165,7 +165,8 @@ export default function OrcamentoListPage() {
         <div className="card-body">
           {carregando ? (
             <p className="text-muted mb-0">A carregar…</p>
-          ) : lista.length === 0 ? (
+          ) : null}
+          {!carregando && lista.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-muted mb-3">Nenhum orçamento ainda.</p>
               {canCreateOrcamento ? (
@@ -178,9 +179,11 @@ export default function OrcamentoListPage() {
                 </button>
               ) : null}
             </div>
-          ) : listaFiltrada.length === 0 ? (
+          ) : null}
+          {!carregando && lista.length > 0 && listaFiltrada.length === 0 ? (
             <p className="text-muted mb-0">Nenhum orçamento encontrado com os filtros atuais.</p>
-          ) : (
+          ) : null}
+          {!carregando && lista.length > 0 && listaFiltrada.length > 0 ? (
             <div className="table-responsive">
               <table className="table table-sm align-middle">
                 <thead>
@@ -230,7 +233,7 @@ export default function OrcamentoListPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import { useMediaQuery } from './useMediaQuery'
 function mockMatchMedia(initialMatches: boolean) {
   const listeners = new Set<EventListenerOrEventListenerObject>()
   let currentMatches = initialMatches
-  vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+  vi.spyOn(globalThis, 'matchMedia').mockImplementation((query: string) => ({
     get matches() {
       return currentMatches
     },

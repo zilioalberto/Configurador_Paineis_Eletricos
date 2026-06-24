@@ -91,7 +91,7 @@ export function NovaCargaModal({ show, projetoId, onClose, onCreated }: Props) {
     }
     const prefix = PREFIX_BY_TIPO[formDraft.tipo]
     if (!prefix) return ''
-    const matcher = new RegExp(`^${prefix}(\\d+)$`, 'i')
+    const matcher = new RegExp(String.raw`^${prefix}(\d+)$`, 'i')
     const maxSeq = cargasProjetoAtual.reduce((acc, carga) => {
       const match = matcher.exec((carga.tag ?? '').trim())
       if (!match) return acc

@@ -119,7 +119,7 @@ def _inicializar_acumuladores(meses_periodo: list[str]) -> dict:
     return {
         "valor_total": Decimal("0"),
         "por_mes_valor": {m: Decimal("0") for m in meses_periodo},
-        "por_mes_qtd": {m: 0 for m in meses_periodo},
+        "por_mes_qtd": dict.fromkeys(meses_periodo, 0),
         "por_mes_anexo": {m: {} for m in meses_periodo},
         "por_cliente": {},
         "por_anexo": defaultdict(lambda: Decimal("0")),
@@ -127,7 +127,7 @@ def _inicializar_acumuladores(meses_periodo: list[str]) -> dict:
     }
 
 
-def _acumular_documento(doc: DocumentoFiscalEmitido, acum: dict, meses_periodo: list[str]) -> None:
+def _acumular_documento(doc: DocumentoFiscalEmitido, acum: dict) -> None:
     valor = doc.valor_total or Decimal("0")
     acum["valor_total"] += valor
     comp = _competencia_de_documento(doc)
@@ -260,7 +260,7 @@ def montar_relatorio_faturamento(
 
     acum = _inicializar_acumuladores(meses_periodo)
     for doc in documentos:
-        _acumular_documento(doc, acum, meses_periodo)
+        _acumular_documento(doc, acum)
 
     ajustes_map = {
         a.competencia: a

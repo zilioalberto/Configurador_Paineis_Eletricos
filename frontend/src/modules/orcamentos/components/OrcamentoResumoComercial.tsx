@@ -47,7 +47,7 @@ export default function OrcamentoResumoComercial({
               type="checkbox"
               checked={descontoAtivo}
               onChange={(e) => onDescontoAtivoChange(e.target.checked)}
-            />
+            />{' '}
             Aplicar desconto comercial na oferta ao cliente
           </label>
 

@@ -18,10 +18,21 @@ export function badgeClass(done: boolean, active: boolean): string {
   return 'badge bg-secondary'
 }
 
+function badgeLabelEtapa(done: boolean, active: boolean): string {
+  if (done) return 'Concluída'
+  return active ? 'Atual' : 'Pendente'
+}
+
 export function checklistBadgeClass(status: ChecklistStatus): string {
   if (status === 'done') return 'badge bg-success'
   if (status === 'blocked') return 'badge bg-secondary'
   return 'badge bg-warning text-dark'
+}
+
+function checklistBadgeLabel(status: ChecklistStatus): string {
+  if (status === 'done') return 'Concluído'
+  if (status === 'blocked') return 'Bloqueado'
+  return 'Pendente'
 }
 
 export function ProjetoWizardResumoHeader({
@@ -30,13 +41,13 @@ export function ProjetoWizardResumoHeader({
   ultimoEvento,
   ultimaAcaoComUsuarioIdentificado,
   proxima,
-}: {
+}: Readonly<{
   projetoId: string
   projeto: Projeto | undefined
   ultimoEvento: ProjetoEvento | undefined
   ultimaAcaoComUsuarioIdentificado: boolean
   proxima: WizardStep | null | undefined
-}) {
+}>) {
   const [searchParams] = useSearchParams()
   return (
     <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -93,10 +104,10 @@ export function ProjetoWizardResumoHeader({
 export function ProjetoWizardStepsGrid({
   steps,
   etapaAtual,
-}: {
+}: Readonly<{
   steps: WizardStep[]
   etapaAtual: WizardStepId
-}) {
+}>) {
   const [searchParams] = useSearchParams()
   return (
     <div className="row g-3 mb-4">
@@ -109,7 +120,7 @@ export function ProjetoWizardStepsGrid({
                 <div className="d-flex justify-content-between align-items-center gap-2">
                   <h2 className="h5 mb-0">{step.title}</h2>
                   <span className={badgeClass(step.done, active)}>
-                    {step.done ? 'Concluída' : active ? 'Atual' : 'Pendente'}
+                    {badgeLabelEtapa(step.done, active)}
                   </span>
                 </div>
                 <p className="text-muted small mb-0">{step.description}</p>
@@ -147,7 +158,7 @@ export function ProjetoWizardAcoesRapidas({
   onRecalcular,
   onGerarSugestoes,
   onReavaliarPendencias,
-}: {
+}: Readonly<{
   projetoId: string
   cargas: CargaListItem[]
   temCargas: boolean
@@ -160,7 +171,7 @@ export function ProjetoWizardAcoesRapidas({
   onRecalcular: () => void
   onGerarSugestoes: () => void
   onReavaliarPendencias: () => void
-}) {
+}>) {
   const [searchParams] = useSearchParams()
   return (
     <div className="card mb-4">
@@ -244,11 +255,11 @@ export function ProjetoWizardChecklistCard({
   checklist,
   projetoId,
   prontoParaExportar,
-}: {
+}: Readonly<{
   checklist: ChecklistItem[]
   projetoId: string
   prontoParaExportar: boolean
-}) {
+}>) {
   const [searchParams] = useSearchParams()
   return (
     <div className="card mb-4">
@@ -262,11 +273,7 @@ export function ProjetoWizardChecklistCard({
             >
               <span>{item.label}</span>
               <span className={checklistBadgeClass(item.status)}>
-                {item.status === 'done'
-                  ? 'Concluído'
-                  : item.status === 'blocked'
-                    ? 'Bloqueado'
-                    : 'Pendente'}
+                {checklistBadgeLabel(item.status)}
               </span>
             </li>
           ))}
@@ -292,7 +299,7 @@ export function ProjetoWizardChecklistCard({
   )
 }
 
-export function ProjetoWizardHistoricoCard({ historico }: { historico: ProjetoEvento[] }) {
+export function ProjetoWizardHistoricoCard({ historico }: Readonly<{ historico: ProjetoEvento[] }>) {
   return (
     <div className="card">
       <div className="card-body">

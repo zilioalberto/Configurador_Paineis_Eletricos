@@ -20,6 +20,150 @@ function formatarData(iso: string | null | undefined): string {
   return d.toLocaleDateString('pt-BR')
 }
 
+type Socio = CnpjConsultaDto['socios'][number]
+
+function QuadroSocietarioCnpj({ socios }: Readonly<{ socios: readonly Socio[] }>) {
+  if (socios.length === 0) {
+    return <p className="small text-muted mb-3">Nenhum sócio retornado na consulta.</p>
+  }
+  return (
+    <div className="mb-3">
+      <h3 className="h6">Quadro societário (QSA)</h3>
+      <div className="table-responsive">
+        <table className="table table-sm table-bordered bg-white mb-0">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Qualificação</th>
+              <th>Entrada</th>
+              <th>Faixa etária</th>
+            </tr>
+          </thead>
+          <tbody>
+            {socios.map((s) => (
+              <tr key={`${s.nome}-${s.qualificacao}-${s.data_entrada ?? ''}`}>
+                <td>{s.nome}</td>
+                <td>{s.qualificacao || '—'}</td>
+                <td>{formatarData(s.data_entrada)}</td>
+                <td>{s.faixa_etaria || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+type ClassificacaoAcoesProps = Readonly<{
+  modoAtualizar: boolean
+  ehCliente: boolean
+  ehFornecedor: boolean
+  ehParceiro: boolean
+  podeSalvar: boolean
+  podeAtualizar: boolean
+  salvando: boolean
+  atualizando: boolean
+  onAplicar: () => void
+  onSalvar: () => void
+  onAtualizar: () => void
+  setEhCliente: (v: boolean) => void
+  setEhFornecedor: (v: boolean) => void
+  setEhParceiro: (v: boolean) => void
+}>
+
+function ClassificacaoEAcoesCnpj({
+  modoAtualizar,
+  ehCliente,
+  ehFornecedor,
+  ehParceiro,
+  podeSalvar,
+  podeAtualizar,
+  salvando,
+  atualizando,
+  onAplicar,
+  onSalvar,
+  onAtualizar,
+  setEhCliente,
+  setEhFornecedor,
+  setEhParceiro,
+}: ClassificacaoAcoesProps) {
+  return (
+    <>
+      <div className="mb-3">
+        <div className="small text-muted mb-2">
+          {modoAtualizar ? 'Classificação no cadastro:' : 'Ao salvar, classificar como:'}
+        </div>
+        <div className="d-flex flex-wrap gap-3">
+          <div className="form-check">
+            <input
+              id="cnpj-save-cliente"
+              type="checkbox"
+              className="form-check-input"
+              checked={ehCliente}
+              onChange={(e) => setEhCliente(e.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="cnpj-save-cliente">
+              Cliente
+            </label>
+          </div>
+          <div className="form-check">
+            <input
+              id="cnpj-save-fornecedor"
+              type="checkbox"
+              className="form-check-input"
+              checked={ehFornecedor}
+              onChange={(e) => setEhFornecedor(e.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="cnpj-save-fornecedor">
+              Fornecedor
+            </label>
+          </div>
+          <div className="form-check">
+            <input
+              id="cnpj-save-parceiro"
+              type="checkbox"
+              className="form-check-input"
+              checked={ehParceiro}
+              onChange={(e) => setEhParceiro(e.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="cnpj-save-parceiro">
+              Parceiro comercial
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="d-flex flex-wrap gap-2">
+        {modoAtualizar ? null : (
+          <button type="button" className="btn btn-outline-secondary" onClick={onAplicar}>
+            Usar no formulário
+          </button>
+        )}
+        {modoAtualizar ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!podeAtualizar || atualizando}
+            onClick={onAtualizar}
+          >
+            {atualizando ? 'Atualizando…' : 'Atualizar dados da Receita'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!podeSalvar || salvando}
+            onClick={onSalvar}
+          >
+            {salvando ? 'Salvando…' : 'Salvar no cadastro'}
+          </button>
+        )}
+      </div>
+    </>
+  )
+}
+
 type Props = Readonly<{
   consulta: CnpjConsultaDto
   canEdit: boolean
@@ -124,109 +268,25 @@ export default function CnpjPreview({
         </p>
       ) : null}
 
-      {consulta.socios.length > 0 ? (
-        <div className="mb-3">
-          <h3 className="h6">Quadro societário (QSA)</h3>
-          <div className="table-responsive">
-            <table className="table table-sm table-bordered bg-white mb-0">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Qualificação</th>
-                  <th>Entrada</th>
-                  <th>Faixa etária</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consulta.socios.map((s) => (
-                  <tr key={`${s.nome}-${s.qualificacao}-${s.data_entrada ?? ''}`}>
-                    <td>{s.nome}</td>
-                    <td>{s.qualificacao || '—'}</td>
-                    <td>{formatarData(s.data_entrada)}</td>
-                    <td>{s.faixa_etaria || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <p className="small text-muted mb-3">Nenhum sócio retornado na consulta.</p>
-      )}
+      <QuadroSocietarioCnpj socios={consulta.socios} />
 
       {canEdit ? (
-        <>
-          <div className="mb-3">
-            <div className="small text-muted mb-2">
-              {modoAtualizar ? 'Classificação no cadastro:' : 'Ao salvar, classificar como:'}
-            </div>
-            <div className="d-flex flex-wrap gap-3">
-              <div className="form-check">
-                <input
-                  id="cnpj-save-cliente"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={ehCliente}
-                  onChange={(e) => setEhCliente(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="cnpj-save-cliente">
-                  Cliente
-                </label>
-              </div>
-              <div className="form-check">
-                <input
-                  id="cnpj-save-fornecedor"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={ehFornecedor}
-                  onChange={(e) => setEhFornecedor(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="cnpj-save-fornecedor">
-                  Fornecedor
-                </label>
-              </div>
-              <div className="form-check">
-                <input
-                  id="cnpj-save-parceiro"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={ehParceiro}
-                  onChange={(e) => setEhParceiro(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="cnpj-save-parceiro">
-                  Parceiro comercial
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="d-flex flex-wrap gap-2">
-            {modoAtualizar ? null : (
-              <button type="button" className="btn btn-outline-secondary" onClick={onAplicar}>
-                Usar no formulário
-              </button>
-            )}
-            {modoAtualizar ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!podeAtualizar || atualizando}
-                onClick={onAtualizar}
-              >
-                {atualizando ? 'Atualizando…' : 'Atualizar dados da Receita'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!podeSalvar || salvando}
-                onClick={onSalvar}
-              >
-                {salvando ? 'Salvando…' : 'Salvar no cadastro'}
-              </button>
-            )}
-          </div>
-        </>
+        <ClassificacaoEAcoesCnpj
+          modoAtualizar={modoAtualizar}
+          ehCliente={ehCliente}
+          ehFornecedor={ehFornecedor}
+          ehParceiro={ehParceiro}
+          podeSalvar={podeSalvar}
+          podeAtualizar={podeAtualizar}
+          salvando={salvando}
+          atualizando={atualizando}
+          onAplicar={onAplicar}
+          onSalvar={onSalvar}
+          onAtualizar={onAtualizar}
+          setEhCliente={setEhCliente}
+          setEhFornecedor={setEhFornecedor}
+          setEhParceiro={setEhParceiro}
+        />
       ) : null}
     </div>
   )

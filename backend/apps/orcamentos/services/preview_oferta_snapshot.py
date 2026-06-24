@@ -46,22 +46,38 @@ def _conteudo_bloco_preview(tipo: str, conteudo: str) -> str:
     return conteudo
 
 
+def _bloco_preview_tem_conteudo(bloco: dict) -> bool:
+    return bool((bloco.get("titulo") or "").strip() or (bloco.get("conteudo") or "").strip())
+
+
+def _secoes_preview_snapshot(blocos_raw: list) -> list[dict]:
+    secoes = []
+    for bloco in blocos_raw:
+        if not _bloco_preview_tem_conteudo(bloco):
+            continue
+        tipo = bloco.get("tipo", "")
+        secoes.append(
+            {
+                "tipo": tipo,
+                "titulo": bloco.get("titulo", ""),
+                "conteudo": _conteudo_bloco_preview(tipo, bloco.get("conteudo", "")),
+            }
+        )
+    return secoes
+
+
+def _codigo_base_snapshot(dados: dict, codigo: str | None) -> str:
+    base = (dados.get("codigo_base") or "").strip()
+    if base:
+        return base
+    return (codigo or "").split(" Rev ", 1)[0].strip()
+
+
 def montar_preview_oferta_snapshot(snapshot: OrcamentoSnapshot) -> dict:
     dados = snapshot.dados or {}
     itens_json = snapshot.itens or []
     blocos_raw = dados.get("oferta_blocos") or []
-    secoes = [
-        {
-            "tipo": b.get("tipo", ""),
-            "titulo": b.get("titulo", ""),
-            "conteudo": _conteudo_bloco_preview(
-                b.get("tipo", ""),
-                b.get("conteudo", ""),
-            ),
-        }
-        for b in blocos_raw
-        if (b.get("titulo") or "").strip() or (b.get("conteudo") or "").strip()
-    ]
+    secoes = _secoes_preview_snapshot(blocos_raw)
     desconto_ativo = bool(dados.get("desconto_comercial_ativo"))
     desconto_pct = Decimal(str(dados.get("desconto_percentual") or "0"))
     totais = calcular_resumo_financeiro_snapshot_itens(
@@ -73,8 +89,7 @@ def montar_preview_oferta_snapshot(snapshot: OrcamentoSnapshot) -> dict:
     validade = dados.get("valido_ate")
     return {
         "codigo": snapshot.codigo,
-        "codigo_base": (dados.get("codigo_base") or "").strip()
-        or (snapshot.codigo or "").split(" Rev ", 1)[0].strip(),
+        "codigo_base": _codigo_base_snapshot(dados, snapshot.codigo),
         "revisao": dados.get("revisao") or "",
         "titulo": dados.get("titulo") or "",
         "perfil_oferta": dados.get("perfil_oferta") or "MATERIAIS",

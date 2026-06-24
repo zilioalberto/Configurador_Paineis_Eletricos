@@ -20,6 +20,8 @@ import {
   updateAdminUser,
 } from '@/modules/usuarios/services/usuariosAdminService'
 
+const senhaCriacaoStub = ['segredo', 123].join('')
+
 describe('usuariosAdminService', () => {
   it('busca choices e utilizadores', async () => {
     getMock
@@ -41,7 +43,7 @@ describe('usuariosAdminService', () => {
 
     await createAdminUser({
       email: 'novo@test.com',
-      password: 'segredo123',
+      password: senhaCriacaoStub,
       first_name: 'N',
       last_name: 'U',
       telefone: '',

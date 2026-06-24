@@ -372,7 +372,7 @@ def _blocos_solucao_completa(orcamento: Orcamento) -> list[dict]:
     ]
 
 
-def _blocos_materiais(orcamento: Orcamento) -> list[dict]:
+def _blocos_materiais(_orcamento: Orcamento) -> list[dict]:
     return [
         {
             "tipo": TipoBlocoOfertaChoices.INTRODUCAO,

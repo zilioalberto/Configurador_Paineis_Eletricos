@@ -448,6 +448,30 @@ def _linhas_descricao(descricao: str) -> tuple[str, str]:
     return titulo.strip() or "-", detalhe.strip()
 
 
+def _linha_investimento(
+    linha: dict,
+    *,
+    item_title: ParagraphStyle,
+    item_detail: ParagraphStyle,
+    center_style: ParagraphStyle,
+    num_style: ParagraphStyle,
+) -> list:
+    titulo, detalhe = _linhas_descricao(linha.get("descricao") or "")
+    desc = [Paragraph(_safe(titulo), item_title)]
+    if detalhe:
+        desc.append(Paragraph(_safe(detalhe), item_detail))
+    if linha.get("codigo"):
+        desc.append(Paragraph(_safe(linha.get("codigo")), item_detail))
+    return [
+        _stack(desc),
+        Paragraph(_safe(re.sub(r"\D", "", linha.get("ncm") or "") or "-"), center_style),
+        Paragraph(_safe(linha.get("quantidade") or "1"), num_style),
+        Paragraph(_safe((linha.get("unidade") or "un").strip() or "un"), center_style),
+        Paragraph(_fmt_brl(linha.get("preco_unitario") or "0"), num_style),
+        Paragraph(_fmt_brl(linha.get("subtotal") or "0"), num_style),
+    ]
+
+
 def _investimento(preview: dict, styles: dict[str, ParagraphStyle]) -> list:
     inv = preview.get("investimento") or {}
     itens = inv.get("itens") or []
@@ -486,21 +510,14 @@ def _investimento(preview: dict, styles: dict[str, ParagraphStyle]) -> list:
         ]
     ]
     for linha in itens:
-        titulo, detalhe = _linhas_descricao(linha.get("descricao") or "")
-        desc = [Paragraph(_safe(titulo), item_title)]
-        if detalhe:
-            desc.append(Paragraph(_safe(detalhe), item_detail))
-        if linha.get("codigo"):
-            desc.append(Paragraph(_safe(linha.get("codigo")), item_detail))
         data.append(
-            [
-                _stack(desc),
-                Paragraph(_safe(re.sub(r"\D", "", linha.get("ncm") or "") or "-"), center_style),
-                Paragraph(_safe(linha.get("quantidade") or "1"), num_style),
-                Paragraph(_safe((linha.get("unidade") or "un").strip() or "un"), center_style),
-                Paragraph(_fmt_brl(linha.get("preco_unitario") or "0"), num_style),
-                Paragraph(_fmt_brl(linha.get("subtotal") or "0"), num_style),
-            ]
+            _linha_investimento(
+                linha,
+                item_title=item_title,
+                item_detail=item_detail,
+                center_style=center_style,
+                num_style=num_style,
+            )
         )
 
     table = Table(data, colWidths=[70 * mm, 17 * mm, 14 * mm, 13 * mm, 25 * mm, 26 * mm], repeatRows=1)
@@ -674,7 +691,7 @@ def _apendice(preview: dict, styles: dict[str, ParagraphStyle]) -> list:
     return story
 
 
-def _footer(canvas, doc, preview: dict, styles: dict[str, ParagraphStyle]) -> None:
+def _footer(canvas, doc, preview: dict) -> None:
     canvas.saveState()
     canvas.setFillColor(DOC_FUNDO)
     canvas.rect(0, 0, A4[0], A4[1], stroke=0, fill=1)
@@ -736,7 +753,7 @@ def gerar_pdf_oferta_bytes(preview: dict) -> bytes:
     story.extend(_aceite(preview, styles))
     story.extend(_apendice(preview, styles))
 
-    footer = lambda canvas, doc_obj: _footer(canvas, doc_obj, preview, styles)
+    footer = lambda canvas, doc_obj: _footer(canvas, doc_obj, preview)
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     pdf = buffer.getvalue()
     buffer.close()

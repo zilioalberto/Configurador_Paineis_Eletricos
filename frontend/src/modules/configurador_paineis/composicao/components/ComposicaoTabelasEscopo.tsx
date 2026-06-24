@@ -21,7 +21,7 @@ const COLUNAS_ESCOPO = [
   'Status',
 ] as const
 
-function CabecalhoTabelaEscopo({ comAcoes }: { comAcoes: boolean }) {
+function CabecalhoTabelaEscopo({ comAcoes }: Readonly<{ comAcoes: boolean }>) {
   return (
     <thead>
       <tr>
@@ -43,7 +43,7 @@ export function ComposicaoTabelaAprovada({
   projeto,
   reabrirPending,
   onReabrir,
-}: {
+}: Readonly<{
   grupos: GrupoItensPorTag<ComposicaoItem>[]
   vazio: boolean
   podeEditar: boolean
@@ -51,7 +51,7 @@ export function ComposicaoTabelaAprovada({
   projeto: Projeto | undefined
   reabrirPending: boolean
   onReabrir: (item: ComposicaoItem) => void
-}) {
+}>) {
   if (vazio) {
     return (
       <p className="text-muted small mb-0">
@@ -112,7 +112,7 @@ export function ComposicaoTabelaSugestoes({
   aprovandoTodas,
   onAprovar,
   onAlterar,
-}: {
+}: Readonly<{
   grupos: GrupoItensPorTag<SugestaoItem>[]
   vazio: boolean
   podeEditar: boolean
@@ -122,7 +122,7 @@ export function ComposicaoTabelaSugestoes({
   aprovandoTodas: boolean
   onAprovar: (id: string) => void
   onAlterar: (s: SugestaoItem) => void
-}) {
+}>) {
   if (vazio) {
     return (
       <p className="text-muted small mb-0">

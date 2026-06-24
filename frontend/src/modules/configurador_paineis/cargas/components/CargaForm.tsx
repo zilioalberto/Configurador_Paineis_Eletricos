@@ -5,7 +5,7 @@
 
 import {
   type ChangeEvent,
-  type FormEvent,
+  type SyntheticEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
@@ -13,25 +13,6 @@ import {
   useState,
 } from 'react'
 import type { Projeto } from '@/modules/configurador_paineis/projetos/types/projeto'
-import {
-  numeroFasesOptions,
-  tensaoOptions,
-  tipoAcionamentoResistenciaOptions,
-  getTipoAcionamentoValvulaSelectOptions,
-  tipoReleInterfaceValvulaOptions,
-  tipoConexaoCargaPainelOptions,
-  tipoCorrenteOptions,
-  getTipoPartidaMotorSelectOptions,
-  tipoProtecaoMotorOptions,
-  tipoProtecaoResistenciaOptions,
-  tipoProtecaoValvulaOptions,
-  tipoSensorOptions,
-  tipoSinalAnalogicoOptions,
-  tipoSinalOptions,
-  tipoTransdutorOptions,
-  tipoValvulaOptions,
-  unidadePotenciaCorrenteOptions,
-} from '../constants/cargaChoiceOptions'
 import { applyTipoChange, tipoCargaOptions } from '../utils/cargaFormDefaults'
 import {
   calcularOcupacaoIoCarga,
@@ -40,10 +21,11 @@ import {
 import type { CargaFormData, TipoCarga } from '../types/carga'
 import { CargaFormPanelExtras } from './CargaFormPanelExtras'
 import { CargaFormParametrosShell } from './CargaFormParametrosShell'
+import { CargaParametrosPorTipo } from './CargaParametrosPorTipo'
 import { CargaTipoPills } from './CargaTipoPills'
 import { renderCargaSelectOptions } from './renderCargaSelectOptions'
 
-type CargaFormProps = {
+type CargaFormProps = Readonly<{
   projetos: Projeto[]
   onSubmit: (data: CargaFormData) => Promise<void>
   onChange?: (data: CargaFormData) => void
@@ -61,12 +43,18 @@ type CargaFormProps = {
   hideFooterSubmit?: boolean
   /** Oculta local/observações (ex.: drawer com bloco opcional separado). */
   hideOptionalFields?: boolean
-}
+}>
 
 function gridColSm(isPanel: boolean, compact: boolean): string {
   if (isPanel) return 'col-6 col-lg-4 col-xl-3'
   if (compact) return 'col-sm-6 col-lg-4'
   return 'col-md-4'
+}
+
+function classeFormularioCarga(isPanel: boolean, compact: boolean): string {
+  if (isPanel) return 'carga-form carga-form--panel'
+  if (compact) return 'carga-form carga-form--compact'
+  return 'carga-form'
 }
 
 function gridColMd(isPanel: boolean, compact: boolean): string {
@@ -79,6 +67,43 @@ function gridColMd3(isPanel: boolean, compact: boolean): string {
   if (isPanel) return 'col-6 col-lg-4 col-xl-3'
   if (compact) return 'col-6 col-md-4 col-lg-3'
   return 'col-md-3'
+}
+
+const CAMPOS_QUANTIDADE_IO = new Set([
+  'quantidade_entradas_digitais',
+  'quantidade_entradas_analogicas',
+  'quantidade_saidas_digitais',
+  'quantidade_saidas_analogicas',
+  'quantidade_entradas_rapidas',
+])
+
+type MudancaCampoCarga = {
+  name: string
+  value: string
+  type: string
+  checked: boolean
+}
+
+/** Aplica a alteração de um campo base do formulário sobre o estado anterior. */
+function aplicarMudancaCampoCarga(
+  prev: CargaFormData,
+  { name, value, type, checked }: MudancaCampoCarga
+): CargaFormData {
+  if (type === 'checkbox') {
+    return { ...prev, [name]: checked }
+  }
+  if (name === 'quantidade') {
+    const n = Number(value)
+    return { ...prev, quantidade: Number.isFinite(n) && n >= 1 ? n : 1 }
+  }
+  if (CAMPOS_QUANTIDADE_IO.has(name)) {
+    const n = Number(value)
+    return { ...prev, [name]: Number.isFinite(n) && n >= 0 ? n : 0 }
+  }
+  if (name === 'tipo') {
+    return applyTipoChange(prev, value as TipoCarga)
+  }
+  return { ...prev, [name]: value }
 }
 
 export default function CargaForm({
@@ -178,38 +203,15 @@ export default function CargaForm({
   const handleBaseChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const t = e.target
-      const { name, value, type } = t
-      if (type === 'checkbox' && t instanceof HTMLInputElement) {
-        setFormData((prev) => ({ ...prev, [name]: t.checked }))
-        return
-      }
-      if (name === 'quantidade') {
-        const n = Number(value)
-        setFormData((prev) => ({
-          ...prev,
-          quantidade: Number.isFinite(n) && n >= 1 ? n : 1,
-        }))
-        return
-      }
-      if (
-        name === 'quantidade_entradas_digitais' ||
-        name === 'quantidade_entradas_analogicas' ||
-        name === 'quantidade_saidas_digitais' ||
-        name === 'quantidade_saidas_analogicas' ||
-        name === 'quantidade_entradas_rapidas'
-      ) {
-        const n = Number(value)
-        setFormData((prev) => ({
-          ...prev,
-          [name]: Number.isFinite(n) && n >= 0 ? n : 0,
-        }))
-        return
-      }
-      if (name === 'tipo') {
-        setFormData((prev) => applyTipoChange(prev, value as TipoCarga))
-        return
-      }
-      setFormData((prev) => ({ ...prev, [name]: value }))
+      const checked = t instanceof HTMLInputElement ? t.checked : false
+      setFormData((prev) =>
+        aplicarMudancaCampoCarga(prev, {
+          name: t.name,
+          value: t.value,
+          type: t.type,
+          checked,
+        })
+      )
     },
     []
   )
@@ -267,7 +269,7 @@ export default function CargaForm({
   }, [])
 
   const handleSubmit = useCallback(
-    async (e: FormEvent<HTMLFormElement>) => {
+    async (e: SyntheticEvent<HTMLFormElement>) => {
       e.preventDefault()
       await onSubmit(formData)
     },
@@ -280,24 +282,6 @@ export default function CargaForm({
 
   const tipoCargaLabel =
     tipoCargaOptions.find((o) => o.value === formData.tipo)?.label ?? formData.tipo
-
-  const m = formData.motor
-  const tipoPartidaMotorSelectOptions = useMemo(
-    () => getTipoPartidaMotorSelectOptions(m?.tipo_partida ?? ''),
-    [m?.tipo_partida]
-  )
-  const motorMostraRendimentoFp = Boolean(m && m.potencia_corrente_unidade !== 'A')
-  const motorMostraTempoPartida = Boolean(
-    m &&
-      (m.tipo_partida === 'ESTRELA_TRIANGULO' ||
-        m.tipo_partida === 'SOFT_STARTER' ||
-        m.tipo_partida === 'INVERSOR' ||
-        m.tipo_partida === 'SERVO_DRIVE')
-  )
-  const v = formData.valvula
-  const r = formData.resistencia
-  const s = formData.sensor
-  const t = formData.transdutor
 
   const exibirRequisitosIo = mostrarOcupacaoIo
 
@@ -464,13 +448,7 @@ export default function CargaForm({
   return (
     <form
       id={formId}
-      className={
-        isPanel
-          ? 'carga-form carga-form--panel'
-          : compact
-            ? 'carga-form carga-form--compact'
-            : 'carga-form'
-      }
+      className={classeFormularioCarga(isPanel, compact)}
       onSubmit={(e) => void handleSubmit(e)}
       onKeyDown={handleFormKeyDown}
     >
@@ -482,8 +460,8 @@ export default function CargaForm({
           <CargaTipoPills value={formData.tipo} onSelect={handleTipoSelect} />
           <div className="carga-form-panel__ident-fields mt-2">
             <div>
-              <label className="form-label">Tag</label>
-              <input
+              <label className="form-label" htmlFor="cform-f1">Tag</label>
+              <input id="cform-f1"
                 type="text"
                 name="tag"
                 className={controlClass}
@@ -494,8 +472,8 @@ export default function CargaForm({
               />
             </div>
             <div>
-              <label className="form-label">Descrição</label>
-              <input
+              <label className="form-label" htmlFor="cform-f2">Descrição</label>
+              <input id="cform-f2"
                 type="text"
                 name="descricao"
                 className={controlClass}
@@ -506,8 +484,8 @@ export default function CargaForm({
               />
             </div>
             <div>
-              <label className="form-label">Qtd.</label>
-              <input
+              <label className="form-label" htmlFor="cform-f3">Qtd.</label>
+              <input id="cform-f3"
                 type="number"
                 name="quantidade"
                 className={controlClass}
@@ -522,10 +500,10 @@ export default function CargaForm({
       ) : null}
 
       <div className={isPanel ? 'carga-form-panel__grid' : `row ${rowGap}`}>
-        {!isPanel && !hideProjetoField ? (
+        {isPanel || hideProjetoField ? null : (
           <div className={colMd6}>
-            <label className="form-label">Projeto</label>
-            <select
+            <label className="form-label" htmlFor="cform-f4">Projeto</label>
+            <select id="cform-f4"
               name="projeto"
               className={selectClass}
               value={formData.projeto}
@@ -541,13 +519,13 @@ export default function CargaForm({
               ))}
             </select>
           </div>
-        ) : null}
+        )}
 
-        {!isPanel ? (
+        {isPanel ? null : (
           <>
             <div className={colMd3}>
-              <label className="form-label">Tipo de carga</label>
-              <select
+              <label className="form-label" htmlFor="cform-f5">Tipo de carga</label>
+              <select id="cform-f5"
                 name="tipo"
                 className={selectClass}
                 value={formData.tipo}
@@ -558,8 +536,8 @@ export default function CargaForm({
             </div>
 
             <div className={colMd3}>
-              <label className="form-label">Quantidade</label>
-              <input
+              <label className="form-label" htmlFor="cform-f6">Quantidade</label>
+              <input id="cform-f6"
                 type="number"
                 name="quantidade"
                 className={controlClass}
@@ -571,8 +549,8 @@ export default function CargaForm({
             </div>
 
             <div className={colMd}>
-              <label className="form-label">Tag</label>
-              <input
+              <label className="form-label" htmlFor="cform-f7">Tag</label>
+              <input id="cform-f7"
                 type="text"
                 name="tag"
                 className={controlClass}
@@ -601,8 +579,8 @@ export default function CargaForm({
             {hideOptionalFields ? null : (
               <>
                 <div className={colMd6}>
-                  <label className="form-label">Local de instalação</label>
-                  <input
+                  <label className="form-label" htmlFor="cform-f8">Local de instalação</label>
+                  <input id="cform-f8"
                     type="text"
                     name="local_instalacao"
                     className={controlClass}
@@ -613,8 +591,8 @@ export default function CargaForm({
                 </div>
 
                 <div className="col-12">
-                  <label className="form-label">Observações</label>
-                  <textarea
+                  <label className="form-label" htmlFor="cform-f9">Observações</label>
+                  <textarea id="cform-f9"
                     name="observacoes"
                     className={controlClass}
                     rows={2}
@@ -625,593 +603,23 @@ export default function CargaForm({
               </>
             )}
           </>
-        ) : null}
+        )}
 
         <CargaFormParametrosShell
           isPanel={isPanel}
           title={`Parâmetros — ${tipoCargaLabel}`}
         >
-        {formData.tipo === 'MOTOR' && m && (
-          <>
-            {tipoSectionHeader('Motor')}
-            <div className="col-6 col-md-3">
-              <label className="form-label">Potência / corrente (valor)</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={m.potencia_corrente_valor}
-                onChange={(e) =>
-                  patchMotor({ potencia_corrente_valor: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="col-6 col-md-3">
-              <label className="form-label">Unidade</label>
-              <select
-                className={selectClass}
-                value={m.potencia_corrente_unidade}
-                onChange={(e) =>
-                  patchMotor({
-                    potencia_corrente_unidade: e.target.value as 'CV' | 'KW' | 'A',
-                  })
-                }
-              >
-                {renderCargaSelectOptions(unidadePotenciaCorrenteOptions)}
-              </select>
-            </div>
-            {motorMostraRendimentoFp && (
-              <>
-                <div className="col-6 col-md-3">
-                  <label className="form-label">Rendimento (%)</label>
-                  <input
-                    type="text"
-                    className={controlClass}
-                    value={m.rendimento_percentual}
-                    onChange={(e) =>
-                      patchMotor({ rendimento_percentual: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="col-6 col-md-3">
-                  <label className="form-label">Fator de potência</label>
-                  <input
-                    type="text"
-                    className={controlClass}
-                    value={m.fator_potencia}
-                    onChange={(e) =>
-                      patchMotor({ fator_potencia: e.target.value })
-                    }
-                  />
-                </div>
-              </>
-            )}
-            <div className={colMd}>
-              <label className="form-label">Tipo de partida</label>
-              <select
-                className={selectClass}
-                value={m.tipo_partida}
-                onChange={(e) => patchMotor({ tipo_partida: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoPartidaMotorSelectOptions)}
-              </select>
-            </div>
-            <div className={compact ? 'col-12 col-md-6' : colMd}>
-              <label className="form-label">Tipo de proteção</label>
-              <select
-                className={selectClass}
-                value={m.tipo_protecao}
-                onChange={(e) => patchMotor({ tipo_protecao: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoProtecaoMotorOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Número de fases</label>
-              <select
-                className={selectClass}
-                value={m.numero_fases}
-                onChange={(e) =>
-                  patchMotor({ numero_fases: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(numeroFasesOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tensão do motor</label>
-              <select
-                className={selectClass}
-                value={m.tensao_motor}
-                onChange={(e) =>
-                  patchMotor({ tensao_motor: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(tensaoOptions)}
-              </select>
-            </div>
-            <div className={compact ? 'col-12 col-md-6' : colMd}>
-              <label className="form-label">Conexão ao painel</label>
-              <select
-                className={selectClass}
-                value={m.tipo_conexao_painel}
-                onChange={(e) =>
-                  patchMotor({ tipo_conexao_painel: e.target.value })
-                }
-              >
-                {renderCargaSelectOptions(tipoConexaoCargaPainelOptions)}
-              </select>
-            </div>
-            {motorMostraTempoPartida && <div className={colMd} />}
-            <div className={colMd}>
-              <div className="form-check mt-4">
-                <input
-                  id="reversivel"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={m.reversivel}
-                  onChange={(e) => patchMotor({ reversivel: e.target.checked })}
-                />
-                <label className="form-check-label" htmlFor="reversivel">
-                  Reversível
-                </label>
-              </div>
-            </div>
-            <div className={colMd}>
-              <div className="form-check mt-4">
-                <input
-                  id="freio_motor"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={m.freio_motor}
-                  onChange={(e) => patchMotor({ freio_motor: e.target.checked })}
-                />
-                <label className="form-check-label" htmlFor="freio_motor">
-                  Motor tem freio?
-                </label>
-              </div>
-            </div>
-          </>
-        )}
-
-
-        {formData.tipo === 'VALVULA' && v && (
-          <>
-            {tipoSectionHeader('Válvula')}
-            <div className={colMd}>
-              <label className="form-label">Tipo de válvula</label>
-              <select
-                className={selectClass}
-                value={v.tipo_valvula}
-                onChange={(e) => patchValvula({ tipo_valvula: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoValvulaOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Qtd. solenoides</label>
-              <input
-                type="number"
-                min={1}
-                className={controlClass}
-                value={v.quantidade_solenoides}
-                onChange={(e) =>
-                  patchValvula({
-                    quantidade_solenoides: Math.max(1, Number(e.target.value) || 1),
-                  })
-                }
-              />
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tensão de alimentação</label>
-              <select
-                className={selectClass}
-                value={v.tensao_alimentacao}
-                onChange={(e) =>
-                  patchValvula({ tensao_alimentacao: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(tensaoOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de corrente</label>
-              <select
-                className={selectClass}
-                value={v.tipo_corrente}
-                onChange={(e) =>
-                  patchValvula({ tipo_corrente: e.target.value as 'CA' | 'CC' })
-                }
-              >
-                {renderCargaSelectOptions(tipoCorrenteOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Corrente consumida (mA)</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={v.corrente_consumida_ma}
-                onChange={(e) =>
-                  patchValvula({ corrente_consumida_ma: e.target.value })
-                }
-              />
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de proteção</label>
-              <select
-                className={selectClass}
-                value={v.tipo_protecao}
-                onChange={(e) => patchValvula({ tipo_protecao: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoProtecaoValvulaOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de acionamento</label>
-              <select
-                className={selectClass}
-                value={v.tipo_acionamento}
-                onChange={(e) => {
-                  const nv = e.target.value
-                  if (nv === 'RELE_INTERFACE') {
-                    patchValvula({
-                      tipo_acionamento: nv,
-                      tipo_rele_interface: v.tipo_rele_interface || 'ELETROMECANICA',
-                    })
-                  } else {
-                    patchValvula({ tipo_acionamento: nv, tipo_rele_interface: '' })
-                  }
-                }}
-              >
-                {renderCargaSelectOptions(
-                  getTipoAcionamentoValvulaSelectOptions(v.tipo_acionamento)
-                )}
-              </select>
-            </div>
-            {v.tipo_acionamento === 'RELE_INTERFACE' && (
-              <div className={colMd}>
-                <label className="form-label">Tipo de relé de interface</label>
-                <select
-                  className={selectClass}
-                  value={v.tipo_rele_interface || 'ELETROMECANICA'}
-                  onChange={(e) =>
-                    patchValvula({ tipo_rele_interface: e.target.value })
-                  }
-                >
-                  {renderCargaSelectOptions(tipoReleInterfaceValvulaOptions)}
-                </select>
-              </div>
-            )}
-            <div className={colMd}>
-              <div className="form-check mt-2">
-                <input
-                  id="possui_feedback"
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={v.possui_feedback}
-                  onChange={(e) =>
-                    patchValvula({ possui_feedback: e.target.checked })
-                  }
-                />
-                <label className="form-check-label" htmlFor="possui_feedback">
-                  Possui feedback
-                </label>
-              </div>
-            </div>
-          </>
-        )}
-
-        {formData.tipo === 'RESISTENCIA' && r && (
-          <>
-            {tipoSectionHeader('Resistência')}
-            <div className={colMd}>
-              <label className="form-label">Número de fases</label>
-              <select
-                className={selectClass}
-                value={r.numero_fases}
-                onChange={(e) =>
-                  patchResistencia({ numero_fases: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(numeroFasesOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tensão da resistência</label>
-              <select
-                className={selectClass}
-                value={r.tensao_resistencia}
-                onChange={(e) =>
-                  patchResistencia({ tensao_resistencia: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(tensaoOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Conexão ao painel</label>
-              <select
-                className={selectClass}
-                value={r.tipo_conexao_painel}
-                onChange={(e) =>
-                  patchResistencia({ tipo_conexao_painel: e.target.value })
-                }
-              >
-                {renderCargaSelectOptions(tipoConexaoCargaPainelOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Potência (kW)</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={r.potencia_kw}
-                onChange={(e) =>
-                  patchResistencia({ potencia_kw: e.target.value })
-                }
-              />
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de proteção</label>
-              <select
-                className={selectClass}
-                value={r.tipo_protecao}
-                onChange={(e) => patchResistencia({ tipo_protecao: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoProtecaoResistenciaOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de acionamento</label>
-              <select
-                className={selectClass}
-                value={r.tipo_acionamento}
-                onChange={(e) => {
-                  const nv = e.target.value
-                  if (nv === 'RELE_INTERFACE') {
-                    patchResistencia({
-                      tipo_acionamento: nv,
-                      tipo_rele_interface: r.tipo_rele_interface || 'ELETROMECANICA',
-                    })
-                  } else {
-                    patchResistencia({ tipo_acionamento: nv, tipo_rele_interface: '' })
-                  }
-                }}
-              >
-                {renderCargaSelectOptions(tipoAcionamentoResistenciaOptions)}
-              </select>
-            </div>
-            {r.tipo_acionamento === 'RELE_INTERFACE' && (
-              <div className={colMd}>
-                <label className="form-label">Tipo de relé de interface</label>
-                <select
-                  className={selectClass}
-                  value={r.tipo_rele_interface || 'ELETROMECANICA'}
-                  onChange={(e) =>
-                    patchResistencia({ tipo_rele_interface: e.target.value })
-                  }
-                >
-                  {renderCargaSelectOptions(tipoReleInterfaceValvulaOptions)}
-                </select>
-              </div>
-            )}
-          </>
-        )}
-
-        {formData.tipo === 'SENSOR' && s && (
-          <>
-            {tipoSectionHeader('Sensor')}
-            <div className={colMd}>
-              <label className="form-label">Tipo de sensor</label>
-              <select
-                className={selectClass}
-                value={s.tipo_sensor}
-                onChange={(e) => patchSensor({ tipo_sensor: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoSensorOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de sinal</label>
-              <select
-                className={selectClass}
-                value={s.tipo_sinal}
-                onChange={(e) => patchSensor({ tipo_sinal: e.target.value })}
-              >
-                {renderCargaSelectOptions(tipoSinalOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Sinal analógico</label>
-              <select
-                className={selectClass}
-                value={s.tipo_sinal_analogico}
-                onChange={(e) =>
-                  patchSensor({ tipo_sinal_analogico: e.target.value })
-                }
-                disabled={s.tipo_sinal !== 'ANALOGICO'}
-              >
-                <option value="">Selecione</option>
-                {renderCargaSelectOptions(tipoSinalAnalogicoOptions)}
-              </select>
-            </div>
-            <div className={colMd3}>
-              <label className="form-label">Tensão de alimentação</label>
-              <select
-                className={selectClass}
-                value={s.tensao_alimentacao}
-                onChange={(e) =>
-                  patchSensor({ tensao_alimentacao: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(tensaoOptions)}
-              </select>
-            </div>
-            <div className={colMd3}>
-              <label className="form-label">Tipo de corrente</label>
-              <select
-                className={selectClass}
-                value={s.tipo_corrente}
-                onChange={(e) =>
-                  patchSensor({ tipo_corrente: e.target.value as 'CA' | 'CC' })
-                }
-              >
-                {renderCargaSelectOptions(tipoCorrenteOptions)}
-              </select>
-            </div>
-            <div className={colMd3}>
-              <label className="form-label">Corrente consumida (mA)</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={s.corrente_consumida_ma}
-                onChange={(e) =>
-                  patchSensor({ corrente_consumida_ma: e.target.value })
-                }
-              />
-            </div>
-            <div className={colMd3}>
-              <label className="form-label">Quantidade de fios</label>
-              <input
-                type="number"
-                min={0}
-                className={controlClass}
-                value={s.quantidade_fios}
-                onChange={(e) =>
-                  patchSensor({
-                    quantidade_fios: e.target.value === '' ? '' : Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-            {(['pnp', 'npn', 'normalmente_aberto', 'normalmente_fechado'] as const).map(
-              (k) => (
-                <div key={k} className="col-md-3">
-                  <div className="form-check mt-2">
-                    <input
-                      id={k}
-                      type="checkbox"
-                      className="form-check-input"
-                      checked={s[k]}
-                      onChange={(e) => patchSensor({ [k]: e.target.checked })}
-                    />
-                    <label className="form-check-label" htmlFor={k}>
-                      {k === 'pnp'
-                        ? 'PNP'
-                        : k === 'npn'
-                          ? 'NPN'
-                          : k === 'normalmente_aberto'
-                            ? 'Normalmente aberto'
-                            : 'Normalmente fechado'}
-                    </label>
-                  </div>
-                </div>
-              )
-            )}
-          </>
-        )}
-
-        {formData.tipo === 'TRANSDUTOR' && t && (
-          <>
-            {tipoSectionHeader('Transdutor')}
-            <div className={colMd}>
-              <label className="form-label">Tipo</label>
-              <select
-                className={selectClass}
-                value={t.tipo_transdutor}
-                onChange={(e) =>
-                  patchTransdutor({ tipo_transdutor: e.target.value })
-                }
-              >
-                {renderCargaSelectOptions(tipoTransdutorOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Sinal analógico</label>
-              <select
-                className={selectClass}
-                value={t.tipo_sinal_analogico}
-                onChange={(e) =>
-                  patchTransdutor({ tipo_sinal_analogico: e.target.value })
-                }
-              >
-                <option value="">Selecione</option>
-                {renderCargaSelectOptions(tipoSinalAnalogicoOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Faixa de medição</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={t.faixa_medicao}
-                onChange={(e) =>
-                  patchTransdutor({ faixa_medicao: e.target.value })
-                }
-              />
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tensão de alimentação</label>
-              <select
-                className={selectClass}
-                value={t.tensao_alimentacao}
-                onChange={(e) =>
-                  patchTransdutor({ tensao_alimentacao: Number(e.target.value) })
-                }
-              >
-                {renderCargaSelectOptions(tensaoOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Tipo de corrente</label>
-              <select
-                className={selectClass}
-                value={t.tipo_corrente}
-                onChange={(e) =>
-                  patchTransdutor({ tipo_corrente: e.target.value as 'CA' | 'CC' })
-                }
-              >
-                {renderCargaSelectOptions(tipoCorrenteOptions)}
-              </select>
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Corrente consumida (mA)</label>
-              <input
-                type="text"
-                className={controlClass}
-                value={t.corrente_consumida_ma}
-                onChange={(e) =>
-                  patchTransdutor({ corrente_consumida_ma: e.target.value })
-                }
-              />
-            </div>
-            <div className={colMd}>
-              <label className="form-label">Quantidade de fios</label>
-              <input
-                type="number"
-                min={0}
-                className={controlClass}
-                value={t.quantidade_fios}
-                onChange={(e) =>
-                  patchTransdutor({
-                    quantidade_fios: e.target.value === '' ? '' : Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-          </>
-        )}
-
-        {(formData.tipo === 'TRANSMISSOR' || formData.tipo === 'OUTRO') && (
-          <div className="col-12">
-            {!isPanel ? <hr /> : null}
-            <p className="text-muted small mb-0">
-              Não há parâmetros específicos adicionais para este tipo no sistema.
-              {hideOptionalFields ? null : ' Use observações para detalhar a carga.'}
-            </p>
-          </div>
-        )}
+        <CargaParametrosPorTipo
+          formData={formData}
+          classes={{ colMd, colMd3, compact, controlClass, selectClass, isPanel }}
+          hideOptionalFields={hideOptionalFields}
+          renderSectionHeader={tipoSectionHeader}
+          patchMotor={patchMotor}
+          patchValvula={patchValvula}
+          patchResistencia={patchResistencia}
+          patchSensor={patchSensor}
+          patchTransdutor={patchTransdutor}
+        />
         </CargaFormParametrosShell>
 
         {isPanel ? (
@@ -1231,13 +639,13 @@ export default function CargaForm({
         </div>
       ) : null}
 
-      {!hideFooterSubmit ? (
+      {hideFooterSubmit ? null : (
         <div className="mt-4 d-flex gap-2">
           <button type="submit" className="btn btn-success" disabled={loading}>
             {loading ? 'Salvando...' : 'Salvar carga'}
           </button>
         </div>
-      ) : null}
+      )}
     </form>
   )
 }

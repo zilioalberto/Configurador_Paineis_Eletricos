@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
-import type { ProdutoAlternativa } from '../types/composicao'
-import type { SugestaoItem } from '../types/composicao'
+import type { ProdutoAlternativa, SugestaoItem } from '../types/composicao'
 import { em } from '../utils/composicaoDisplay'
 
-type Props = {
+type Props = Readonly<{
   sugestao: SugestaoItem
   alternativas: ProdutoAlternativa[]
   loadingAlternativas: boolean
@@ -14,7 +13,7 @@ type Props = {
   aprovarPending: boolean
   onClose: () => void
   onAprovar: (sugestaoId: string, produtoId: string) => void
-}
+}>
 
 /** Modal para escolher produto alternativo antes de aprovar sugestão. */
 export function ComposicaoAlterarSugestaoModal({
@@ -37,10 +36,10 @@ export function ComposicaoAlterarSugestaoModal({
       if (e.key === 'Escape' && !aprovarPending) onClose()
     }
 
-    window.addEventListener('keydown', onKeyDown)
+    globalThis.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKeyDown)
+      globalThis.removeEventListener('keydown', onKeyDown)
     }
   }, [aprovarPending, onClose])
 
@@ -76,18 +75,21 @@ export function ComposicaoAlterarSugestaoModal({
               </p>
               {loadingAlternativas ? (
                 <p className="small text-muted mb-0">Carregando alternativas…</p>
-              ) : erroAlternativas ? (
+              ) : null}
+              {!loadingAlternativas && erroAlternativas ? (
                 <p className="text-danger small mb-0">
                   {loadErroAlternativas instanceof Error
                     ? loadErroAlternativas.message
                     : 'Não foi possível carregar as alternativas.'}
                 </p>
-              ) : alternativas.length === 0 ? (
+              ) : null}
+              {!loadingAlternativas && !erroAlternativas && alternativas.length === 0 ? (
                 <p className="small text-muted mb-0">
                   Nenhuma alternativa listada. Você pode fechar e usar &quot;Aprovar&quot; na linha
                   para manter o produto sugerido.
                 </p>
-              ) : (
+              ) : null}
+              {!loadingAlternativas && !erroAlternativas && alternativas.length > 0 ? (
                 <div className="table-responsive app-data-table">
                   <table className="table table-sm table-hover align-middle">
                     <thead>
@@ -135,7 +137,7 @@ export function ComposicaoAlterarSugestaoModal({
                     </tbody>
                   </table>
                 </div>
-              )}
+              ) : null}
             </div>
             <div className="modal-footer">
               <button
@@ -158,10 +160,11 @@ export function ComposicaoAlterarSugestaoModal({
           </div>
         </div>
       </div>
-      <div
-        className="modal-backdrop fade show"
+      <button
+        type="button"
+        className="modal-backdrop fade show border-0 p-0"
         style={{ zIndex: 1055 }}
-        aria-hidden="true"
+        aria-label="Fechar"
         onClick={() => {
           if (!aprovarPending) onClose()
         }}

@@ -9,7 +9,7 @@ type SortableTableHeaderProps = {
   readonly className?: string
 }
 
-function SortIndicator({ field, ordering }: { field: NfesEmitidasOrdenacaoCampo; ordering: string }) {
+function SortIndicator({ field, ordering }: Readonly<{ field: NfesEmitidasOrdenacaoCampo; ordering: string }>) {
   if (ordering === field) {
     return (
       <span className="text-primary ms-1" aria-hidden>

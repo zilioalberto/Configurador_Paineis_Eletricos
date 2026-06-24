@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -46,11 +45,8 @@ type AppPageToolbarContextValue = {
 const AppPageToolbarContext = createContext<AppPageToolbarContextValue | null>(null)
 
 export function AppPageToolbarProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [toolbar, setToolbarState] = useState<AppPageToolbarConfig | null>(null)
-  const setToolbar = useCallback((config: AppPageToolbarConfig | null) => {
-    setToolbarState(config)
-  }, [])
-  const value = useMemo(() => ({ toolbar, setToolbar }), [toolbar, setToolbar])
+  const [toolbar, setToolbar] = useState<AppPageToolbarConfig | null>(null)
+  const value = useMemo(() => ({ toolbar, setToolbar }), [toolbar])
   return (
     <AppPageToolbarContext.Provider value={value}>{children}</AppPageToolbarContext.Provider>
   )

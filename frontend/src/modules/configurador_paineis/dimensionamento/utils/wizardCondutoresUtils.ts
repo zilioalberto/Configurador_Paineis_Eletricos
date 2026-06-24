@@ -11,8 +11,6 @@ export type OverridesCircuito = {
   pe: string
 }
 
-export type OverridesAg = OverridesCircuito
-
 export function parseNum(s: string | null | undefined): number {
   if (s == null || s === '') return 0
   return Number(String(s).replace(',', '.'))

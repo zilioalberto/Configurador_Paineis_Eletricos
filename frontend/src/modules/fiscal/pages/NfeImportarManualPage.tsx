@@ -23,6 +23,12 @@ import type { ObjetivoEntradaFiscal } from '../types/documentoFiscalRecebido'
 import { formatCnpjExibicao } from '../utils/fiscalDisplay'
 import { validarXmlRecebidoParaImportacao } from '../utils/validarXmlRecebido'
 
+function rotuloBotaoImportarXml(importando: boolean, isLote: boolean, quantidade: number): string {
+  if (importando) return 'A importar…'
+  if (isLote) return `Importar ${quantidade} XMLs`
+  return 'Importar'
+}
+
 type ResultadoStatus = 'pendente' | 'enviando' | 'novo' | 'duplicado' | 'erro'
 
 type XmlArquivoSelecionado = {
@@ -545,7 +551,7 @@ export default function NfeImportarManualPage() {
             </output>
           ) : null}
 
-          {!isLote ? (
+          {isLote ? null : (
             <div>
               <label className="form-label" htmlFor="nfe-xml-texto">
                 Ou cole o XML
@@ -565,7 +571,7 @@ export default function NfeImportarManualPage() {
                 spellCheck={false}
               />
             </div>
-          ) : null}
+          )}
 
           <div className="row g-3">
             <div className="col-12">
@@ -624,7 +630,12 @@ export default function NfeImportarManualPage() {
             </div>
           </div>
 
-          {!isLote ? (
+          {isLote ? (
+            <div className="alert alert-secondary small mb-0">
+              Em lote, os XMLs são registrados apenas no Fiscal. Para catalogar produtos, abra uma
+              NF-e importada e use <strong>Importar itens no catálogo</strong>.
+            </div>
+          ) : (
             <div className="form-check border rounded p-3 ps-5 bg-light">
               <input
                 id="nfe-revisar-catalogo"
@@ -641,11 +652,6 @@ export default function NfeImportarManualPage() {
                 fornecedor, fabricante e conflitos por código.
               </div>
             </div>
-          ) : (
-            <div className="alert alert-secondary small mb-0">
-              Em lote, os XMLs são registrados apenas no Fiscal. Para catalogar produtos, abra uma
-              NF-e importada e use <strong>Importar itens no catálogo</strong>.
-            </div>
           )}
 
           <div className="d-flex flex-wrap gap-2 pt-2">
@@ -654,7 +660,7 @@ export default function NfeImportarManualPage() {
               className="btn btn-primary"
               disabled={importando || (!xml.trim() && arquivos.length === 0) || !objetivoEntrada}
             >
-              {importando ? 'A importar…' : isLote ? `Importar ${arquivos.length} XMLs` : 'Importar'}
+              {rotuloBotaoImportarXml(importando, isLote, arquivos.length)}
             </button>
             <Link to={fiscalPaths.nfes} className="btn btn-outline-secondary">
               Cancelar

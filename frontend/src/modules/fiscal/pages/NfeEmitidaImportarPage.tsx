@@ -428,9 +428,9 @@ export default function NfeEmitidaImportarPage() {
                             <span className="text-truncate">{arquivo.nome}</span>
                             <small>{formatBytes(arquivo.tamanho)}</small>
                           </div>
-                          {arquivo.caminho !== arquivo.nome ? (
+                          {arquivo.caminho === arquivo.nome ? null : (
                             <small className="d-block text-truncate">{arquivo.caminho}</small>
-                          ) : null}
+                          )}
                           <small>{arquivo.visualizacao.tipo}</small>
                         </button>
                       ))}

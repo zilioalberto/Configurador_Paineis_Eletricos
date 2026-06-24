@@ -31,6 +31,168 @@ type Props = Readonly<{
 
 type DrawerTab = 'modelo' | 'dados'
 
+/** Mescla o payload de um modelo salvo sobre o rascunho atual do formulário. */
+function aplicarPayloadModeloCarga(formDraft: CargaFormData, modelo: CargaModelo): CargaFormData {
+  const next = applyTipoChange(formDraft, modelo.tipo)
+  const payload = modelo.payload as Record<string, unknown>
+  if (typeof payload.quantidade === 'number') {
+    next.quantidade = payload.quantidade
+  }
+  if (payload.motor && next.motor) next.motor = payload.motor as typeof next.motor
+  if (payload.valvula && next.valvula) next.valvula = payload.valvula as typeof next.valvula
+  if (payload.resistencia && next.resistencia) {
+    next.resistencia = payload.resistencia as typeof next.resistencia
+  }
+  if (payload.sensor && next.sensor) next.sensor = payload.sensor as typeof next.sensor
+  if (payload.transdutor && next.transdutor) {
+    next.transdutor = payload.transdutor as typeof next.transdutor
+  }
+  next.descricao = modelo.nome
+  return next
+}
+
+type PodeEditarCargaArgs = {
+  carregando: boolean
+  isLoadError: boolean
+  temFormSeed: boolean
+  qtdProjetosEditaveis: number
+  edicaoBloqueada: boolean
+  cargaProjeto: string | undefined
+  projetoId: string
+}
+
+function calcularPodeEditarCarga({
+  carregando,
+  isLoadError,
+  temFormSeed,
+  qtdProjetosEditaveis,
+  edicaoBloqueada,
+  cargaProjeto,
+  projetoId,
+}: PodeEditarCargaArgs): boolean {
+  return (
+    !carregando &&
+    !isLoadError &&
+    temFormSeed &&
+    qtdProjetosEditaveis > 0 &&
+    !edicaoBloqueada &&
+    cargaProjeto === projetoId
+  )
+}
+
+type EditarCargaBodyProps = Readonly<{
+  carregando: boolean
+  isLoadError: boolean
+  loadQueryError: unknown
+  edicaoBloqueada: boolean
+  carga: { projeto?: string } | null | undefined
+  projetoId: string
+  cargaId: string
+  podeEditar: boolean
+  activeTab: DrawerTab
+  formSeed: CargaFormData | null
+  projetosEditaveis: ReturnType<typeof filtrarProjetosComEdicaoCargas>
+  hrefGerenciarModelos: string
+  updatePending: boolean
+  onAplicarModelo: (modelo: CargaModelo) => void
+  onSubmit: (data: CargaFormData) => Promise<void>
+  onChangeDraft: (data: CargaFormData) => void
+  onClose: () => void
+  onRefetch: () => void
+}>
+
+function EditarCargaBody({
+  carregando,
+  isLoadError,
+  loadQueryError,
+  edicaoBloqueada,
+  carga,
+  projetoId,
+  cargaId,
+  podeEditar,
+  activeTab,
+  formSeed,
+  projetosEditaveis,
+  hrefGerenciarModelos,
+  updatePending,
+  onAplicarModelo,
+  onSubmit,
+  onChangeDraft,
+  onClose,
+  onRefetch,
+}: EditarCargaBodyProps) {
+  const mensagemErroCarga =
+    loadQueryError instanceof Error
+      ? loadQueryError.message
+      : 'Não foi possível carregar esta carga.'
+  const cargaDeOutroProjeto = Boolean(carga) && carga?.projeto !== projetoId
+
+  return (
+    <div className="nova-carga-drawer__body">
+      {carregando ? <p className="text-muted small mb-0">Carregando…</p> : null}
+
+      {!carregando && isLoadError ? (
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <p className="text-danger small mb-0">{mensagemErroCarga}</p>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            onClick={onRefetch}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : null}
+
+      {!carregando && !isLoadError && edicaoBloqueada ? (
+        <div className="alert alert-secondary mb-0 py-2 small" role="alert">
+          Esta carga pertence a um projeto finalizado e não pode ser alterada.{' '}
+          <Link to={configuradorPaths.cargaDetalhe(cargaId)} onClick={onClose}>
+            Ver detalhes
+          </Link>
+        </div>
+      ) : null}
+
+      {!carregando && !isLoadError && cargaDeOutroProjeto ? (
+        <div className="alert alert-warning mb-0 py-2 small" role="alert">
+          A carga não pertence à configuração selecionada na listagem.
+        </div>
+      ) : null}
+
+      {podeEditar && activeTab === 'modelo' ? (
+        <div className="nova-carga-drawer__modelo-pane">
+          <p className="small text-muted mb-3">
+            Busque um modelo pré-cadastrado para preencher o formulário automaticamente.
+          </p>
+          <CargaModeloOpcionalSection
+            modeloQueryScope="edit"
+            onAplicarModelo={onAplicarModelo}
+            compact
+            gerenciarModelosHref={hrefGerenciarModelos}
+          />
+        </div>
+      ) : null}
+
+      {podeEditar && activeTab === 'dados' && formSeed ? (
+        <CargaForm
+          key={`${cargaId}-form`}
+          projetos={projetosEditaveis}
+          initialData={formSeed}
+          onChange={onChangeDraft}
+          onSubmit={onSubmit}
+          loading={updatePending}
+          lockProjeto
+          hideProjetoField
+          hideOptionalFields
+          layout="panel"
+          formId={EDITAR_CARGA_FORM_ID}
+          hideFooterSubmit
+        />
+      ) : null}
+    </div>
+  )
+}
+
 export function EditarCargaModal({ show, cargaId, projetoId, onClose, onUpdated }: Props) {
   const { showToast } = useToast()
   const [searchParams] = useSearchParams()
@@ -107,21 +269,7 @@ export function EditarCargaModal({ show, cargaId, projetoId, onClose, onUpdated 
   const aplicarModelo = useCallback(
     (modelo: CargaModelo) => {
       if (!formDraft) return
-      const next = applyTipoChange(formDraft, modelo.tipo)
-      const payload = modelo.payload as Record<string, unknown>
-      if (typeof payload.quantidade === 'number') {
-        next.quantidade = payload.quantidade
-      }
-      if (payload.motor && next.motor) next.motor = payload.motor as typeof next.motor
-      if (payload.valvula && next.valvula) next.valvula = payload.valvula as typeof next.valvula
-      if (payload.resistencia && next.resistencia) {
-        next.resistencia = payload.resistencia as typeof next.resistencia
-      }
-      if (payload.sensor && next.sensor) next.sensor = payload.sensor as typeof next.sensor
-      if (payload.transdutor && next.transdutor) {
-        next.transdutor = payload.transdutor as typeof next.transdutor
-      }
-      next.descricao = modelo.nome
+      const next = aplicarPayloadModeloCarga(formDraft, modelo)
       setFormSeed({ ...next })
       setFormDraft(next)
       setActiveTab('dados')
@@ -163,13 +311,15 @@ export function EditarCargaModal({ show, cargaId, projetoId, onClose, onUpdated 
   if (!show) return null
 
   const carregando = loadingProjetos || loadingCarga
-  const podeEditar =
-    !carregando &&
-    !isLoadError &&
-    Boolean(formSeed) &&
-    projetosEditaveis.length > 0 &&
-    !edicaoBloqueada &&
-    carga?.projeto === projetoId
+  const podeEditar = calcularPodeEditarCarga({
+    carregando,
+    isLoadError,
+    temFormSeed: Boolean(formSeed),
+    qtdProjetosEditaveis: projetosEditaveis.length,
+    edicaoBloqueada,
+    cargaProjeto: carga?.projeto,
+    projetoId,
+  })
 
   return (
     <div className="nova-carga-drawer" role="presentation">
@@ -246,72 +396,26 @@ export function EditarCargaModal({ show, cargaId, projetoId, onClose, onUpdated 
           </div>
         ) : null}
 
-        <div className="nova-carga-drawer__body">
-          {carregando ? <p className="text-muted small mb-0">Carregando…</p> : null}
-
-          {!carregando && isLoadError ? (
-            <div className="d-flex flex-wrap align-items-center gap-2">
-              <p className="text-danger small mb-0">
-                {loadQueryError instanceof Error
-                  ? loadQueryError.message
-                  : 'Não foi possível carregar esta carga.'}
-              </p>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => void refetch()}
-              >
-                Tentar novamente
-              </button>
-            </div>
-          ) : null}
-
-          {!carregando && !isLoadError && edicaoBloqueada ? (
-            <div className="alert alert-secondary mb-0 py-2 small" role="alert">
-              Esta carga pertence a um projeto finalizado e não pode ser alterada.{' '}
-              <Link to={configuradorPaths.cargaDetalhe(cargaId)} onClick={onClose}>
-                Ver detalhes
-              </Link>
-            </div>
-          ) : null}
-
-          {!carregando && !isLoadError && carga && carga.projeto !== projetoId ? (
-            <div className="alert alert-warning mb-0 py-2 small" role="alert">
-              A carga não pertence à configuração selecionada na listagem.
-            </div>
-          ) : null}
-
-          {podeEditar && activeTab === 'modelo' ? (
-            <div className="nova-carga-drawer__modelo-pane">
-              <p className="small text-muted mb-3">
-                Busque um modelo pré-cadastrado para preencher o formulário automaticamente.
-              </p>
-              <CargaModeloOpcionalSection
-                modeloQueryScope="edit"
-                onAplicarModelo={aplicarModelo}
-                compact
-                gerenciarModelosHref={hrefGerenciarModelos}
-              />
-            </div>
-          ) : null}
-
-          {podeEditar && activeTab === 'dados' && formSeed ? (
-            <CargaForm
-              key={`${cargaId}-form`}
-              projetos={projetosEditaveis}
-              initialData={formSeed}
-              onChange={setFormDraft}
-              onSubmit={handleSubmit}
-              loading={updateMutation.isPending}
-              lockProjeto
-              hideProjetoField
-              hideOptionalFields
-              layout="panel"
-              formId={EDITAR_CARGA_FORM_ID}
-              hideFooterSubmit
-            />
-          ) : null}
-        </div>
+        <EditarCargaBody
+          carregando={carregando}
+          isLoadError={isLoadError}
+          loadQueryError={loadQueryError}
+          edicaoBloqueada={edicaoBloqueada}
+          carga={carga}
+          projetoId={projetoId}
+          cargaId={cargaId}
+          podeEditar={podeEditar}
+          activeTab={activeTab}
+          formSeed={formSeed}
+          projetosEditaveis={projetosEditaveis}
+          hrefGerenciarModelos={hrefGerenciarModelos}
+          updatePending={updateMutation.isPending}
+          onAplicarModelo={aplicarModelo}
+          onSubmit={handleSubmit}
+          onChangeDraft={setFormDraft}
+          onClose={onClose}
+          onRefetch={() => void refetch()}
+        />
       </aside>
     </div>
   )

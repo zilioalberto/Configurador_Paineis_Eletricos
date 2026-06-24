@@ -1,6 +1,6 @@
 import type { ProjetoFormFieldChangeHandler } from './projetoFormSectionProps'
 
-type ProjetoFormCheckboxFieldProps = {
+type ProjetoFormCheckboxFieldProps = Readonly<{
   name: string
   label: string
   checked: boolean
@@ -9,7 +9,7 @@ type ProjetoFormCheckboxFieldProps = {
   /** Alinha verticalmente com selects na mesma linha (Bootstrap `mt-2`). */
   alignTop?: boolean
   disabled?: boolean
-}
+}>
 
 /** Checkbox padronizado para flags booleanas do formulário de projeto. */
 export function ProjetoFormCheckboxField({

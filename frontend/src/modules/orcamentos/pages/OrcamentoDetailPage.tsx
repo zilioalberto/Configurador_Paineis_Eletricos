@@ -3,7 +3,7 @@
  */
 import {
   type Dispatch,
-  type FormEventHandler,
+  type SyntheticEvent,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -82,6 +82,16 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
 ]
 
 const ORCAMENTO_DADOS_FORM_ID = 'orcamento-dados-form'
+
+function rotuloBotaoRevisarPreco(salvando: boolean, manterAtual: boolean): string {
+  if (salvando) return 'Revisando...'
+  return manterAtual ? 'Renovar revisão' : 'Revisar preço'
+}
+
+function rotuloBotaoMarcarEnviada(marcandoEnviada: boolean, ofertaEnviada: boolean): string {
+  if (marcandoEnviada) return 'Registrando...'
+  return ofertaEnviada ? 'Oferta enviada' : 'Marcar como enviada'
+}
 
 function itensParaLinhas(itens: OrcamentoItemDto[]): LinhaEditavelOrcamento[] {
   return [...itens]
@@ -198,11 +208,15 @@ export default function OrcamentoDetailPage() {
 
   const [orcamento, setOrcamento] = useState<OrcamentoDto | null>(null)
   const podeEditar = podeEditarPerm && (orcamento?.editavel !== false)
-  const motivoBloqueioEdicao = !podeEditarPerm
-    ? 'Seu utilizador não possui permissão para editar orçamentos.'
-    : orcamento?.editavel === false
-      ? 'Esta proposta não está em rascunho. Apenas propostas em rascunho podem ser alteradas.'
-      : null
+  let motivoBloqueioEdicao: string | null = null
+  if (podeEditarPerm) {
+    if (orcamento?.editavel === false) {
+      motivoBloqueioEdicao =
+        'Esta proposta não está em rascunho. Apenas propostas em rascunho podem ser alteradas.'
+    }
+  } else {
+    motivoBloqueioEdicao = 'Seu utilizador não possui permissão para editar orçamentos.'
+  }
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [atualizandoOferta, setAtualizandoOferta] = useState(false)
@@ -359,7 +373,7 @@ export default function OrcamentoDetailPage() {
 
   useAppPageToolbar(toolbarConfig)
 
-  const handleSalvarProposta: FormEventHandler<HTMLFormElement> = (event) => {
+  const handleSalvarProposta: (event: SyntheticEvent<HTMLFormElement>) => void = (event) => {
     event.preventDefault()
     salvarPropostaAsync().catch(() => undefined)
   }
@@ -1032,7 +1046,7 @@ type OrcamentoDetalheConteudoProps = {
   ultimoLinkPublico: string
   onReabrirOferta: () => void
   onRevisarPrecoCatalogo: (linha: LinhaEditavelOrcamento) => void
-  onSalvarProposta: FormEventHandler<HTMLFormElement>
+  onSalvarProposta: (event: SyntheticEvent<HTMLFormElement>) => void
   onOrcamentoAtualizado: (orcamento: OrcamentoDto) => void
   baixandoDocxOferta: boolean
   uploadingArquivoOferta: string | null
@@ -1226,7 +1240,7 @@ function RevisarPrecoCatalogoModal({
                 onClick={onConfirm}
                 disabled={salvando || !podeConfirmar}
               >
-                {salvando ? 'Revisando...' : manterAtual ? 'Renovar revisão' : 'Revisar preço'}
+                {rotuloBotaoRevisarPreco(salvando, manterAtual)}
               </button>
             </div>
           </div>
@@ -1759,7 +1773,7 @@ function OrcamentoOfertaAnexosFinal({
               onClick={onMarcarEnviada}
               disabled={!pdfFinal || marcandoEnviada || ofertaEnviada}
             >
-              {marcandoEnviada ? 'Registrando...' : ofertaEnviada ? 'Oferta enviada' : 'Marcar como enviada'}
+              {rotuloBotaoMarcarEnviada(marcandoEnviada, ofertaEnviada)}
             </button>
           ) : null}
         </div>
@@ -2222,49 +2236,87 @@ function OrcamentoItensSecao({
           onDescontoPercentualChange={setDescontoPercentual}
         />
 
-        {podeEditar || (podeEditarPerm && orcamento.status === 'FINALIZADO') ? (
-          <div className="orcamento-doc__actions mt-3" aria-label="Ações da oferta">
-            {podeEditar ? (
-              <>
-                <button
-                  type="submit"
-                  className="btn btn-sm btn-primary"
-                  disabled={salvando || linhasComCustoZero.length > 0}
-                >
-                  {salvando ? 'Salvando...' : 'Salvar proposta'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={onAtualizarOferta}
-                  disabled={salvando || atualizandoOferta || finalizandoOferta}
-                >
-                  {atualizandoOferta ? 'Atualizando oferta...' : 'Atualizar oferta'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={onFinalizarOferta}
-                  disabled={
-                    salvando ||
-                    atualizandoOferta ||
-                    finalizandoOferta ||
-                    linhasComCustoZero.length > 0
-                  }
-                >
-                  {finalizandoOferta ? 'Finalizando...' : 'Finalizar oferta'}
-                </button>
-                {ofertaBlocosDirty ? (
-                  <span className="badge bg-warning text-dark ms-2" title="Há alterações de oferta não salvas">
-                    Alterações locais
-                  </span>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-        ) : null}
+        <OrcamentoOfertaAcoes
+          podeEditar={podeEditar}
+          podeEditarPerm={podeEditarPerm}
+          statusFinalizado={orcamento.status === 'FINALIZADO'}
+          salvando={salvando}
+          atualizandoOferta={atualizandoOferta}
+          finalizandoOferta={finalizandoOferta}
+          temCustoZero={linhasComCustoZero.length > 0}
+          ofertaBlocosDirty={ofertaBlocosDirty}
+          onAtualizarOferta={onAtualizarOferta}
+          onFinalizarOferta={onFinalizarOferta}
+        />
       </div>
     </section>
+  )
+}
+
+type OrcamentoOfertaAcoesProps = Readonly<{
+  podeEditar: boolean
+  podeEditarPerm: boolean
+  statusFinalizado: boolean
+  salvando: boolean
+  atualizandoOferta: boolean
+  finalizandoOferta: boolean
+  temCustoZero: boolean
+  ofertaBlocosDirty: boolean
+  onAtualizarOferta: () => void
+  onFinalizarOferta: () => void
+}>
+
+function OrcamentoOfertaAcoes({
+  podeEditar,
+  podeEditarPerm,
+  statusFinalizado,
+  salvando,
+  atualizandoOferta,
+  finalizandoOferta,
+  temCustoZero,
+  ofertaBlocosDirty,
+  onAtualizarOferta,
+  onFinalizarOferta,
+}: OrcamentoOfertaAcoesProps) {
+  const mostrarContainer = podeEditar || (podeEditarPerm && statusFinalizado)
+  if (!mostrarContainer) return null
+
+  const ocupado = salvando || atualizandoOferta || finalizandoOferta
+  return (
+    <div className="orcamento-doc__actions mt-3" aria-label="Ações da oferta">
+      {podeEditar ? (
+        <>
+          <button
+            type="submit"
+            className="btn btn-sm btn-primary"
+            disabled={salvando || temCustoZero}
+          >
+            {salvando ? 'Salvando...' : 'Salvar proposta'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary"
+            onClick={onAtualizarOferta}
+            disabled={ocupado}
+          >
+            {atualizandoOferta ? 'Atualizando oferta...' : 'Atualizar oferta'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            onClick={onFinalizarOferta}
+            disabled={ocupado || temCustoZero}
+          >
+            {finalizandoOferta ? 'Finalizando...' : 'Finalizar oferta'}
+          </button>
+          {ofertaBlocosDirty ? (
+            <span className="badge bg-warning text-dark ms-2" title="Há alterações de oferta não salvas">
+              Alterações locais
+            </span>
+          ) : null}
+        </>
+      ) : null}
+    </div>
   )
 }
 
@@ -2313,11 +2365,11 @@ function OrcamentoItensTable({
             <th className="orc-col-compact-hide" style={{ width: '7rem' }}>
               Origem
             </th>
-            {!tabelaServicos ? (
+            {tabelaServicos ? null : (
               <th className="orc-col-compact-hide" style={{ width: '3.5rem' }}>
                 Painel
               </th>
-            ) : null}
+            )}
             <th className="orc-col-compact-hide" style={{ width: '8rem' }}>
               Tipo
             </th>
@@ -2397,6 +2449,86 @@ function OrcamentoItensTable({
   )
 }
 
+function classeLinhaItemOrcamento(
+  custoZero: boolean,
+  historico: boolean,
+  precoCatalogoDesatualizado: boolean
+): string | undefined {
+  if (custoZero) return 'table-danger'
+  if (historico) return 'table-secondary'
+  if (precoCatalogoDesatualizado) return 'table-warning'
+  return undefined
+}
+
+function montarPatchMudancaTipoLinha(
+  tipo: 'PRODUTO' | 'SERVICO',
+  linha: LinhaEditavelOrcamento,
+  orcamento: OrcamentoDto
+): Partial<LinhaEditavelOrcamento> {
+  const ehServico = tipo === 'SERVICO'
+  const margem = ehServico
+    ? orcamento.margem_servicos_percentual
+    : orcamento.margem_produtos_percentual
+  return {
+    tipo,
+    margem_percentual: margem,
+    margem_minima: margem,
+    aliquota_ipi: ehServico ? null : linha.aliquota_ipi,
+    produtoNcm: ehServico ? undefined : linha.produtoNcm,
+    produtoId: ehServico ? undefined : linha.produtoId,
+    produtoCodigo: ehServico ? undefined : linha.produtoCodigo,
+    servicoId: tipo === 'PRODUTO' ? undefined : linha.servicoId,
+    servicoCodigo: tipo === 'PRODUTO' ? undefined : linha.servicoCodigo,
+  }
+}
+
+type CelulaOrigemLinhaProps = Readonly<{
+  linha: LinhaEditavelOrcamento
+  podeEditar: boolean
+  podeRevisarPrecoCatalogo: boolean
+  precoCatalogoDesatualizado: boolean
+  revisandoPreco: boolean
+  salvando: boolean
+  onRevisarPrecoCatalogo: (linha: LinhaEditavelOrcamento) => void
+}>
+
+function CelulaOrigemLinha({
+  linha,
+  podeEditar,
+  podeRevisarPrecoCatalogo,
+  precoCatalogoDesatualizado,
+  revisandoPreco,
+  salvando,
+  onRevisarPrecoCatalogo,
+}: CelulaOrigemLinhaProps) {
+  const podeRevisar = podeEditar && podeRevisarPrecoCatalogo && Boolean(linha.id)
+  return (
+    <td className="small text-muted orc-col-compact-hide">
+      {rotuloOrigemLinhaOrcamento(linha.origem)}
+      {precoCatalogoDesatualizado ? (
+        <>
+          <span
+            className="d-block small fw-semibold text-warning-emphasis"
+            title="Preço de catálogo sem revisão dentro do prazo configurado."
+          >
+            Preço vencido
+          </span>
+          {podeRevisar ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-0 text-decoration-none"
+              onClick={() => onRevisarPrecoCatalogo(linha)}
+              disabled={salvando || revisandoPreco}
+            >
+              {revisandoPreco ? 'Revisando...' : 'Revisar preço'}
+            </button>
+          ) : null}
+        </>
+      ) : null}
+    </td>
+  )
+}
+
 function OrcamentoItemRow({
   atualizarLinha,
   index,
@@ -2429,39 +2561,19 @@ function OrcamentoItemRow({
   const historico = linha.origem === 'HERANCA_REVISAO'
   const custoZero = produtoComCustoZero(linha)
   const precoCatalogoDesatualizado = linha.catalogoPrecoDesatualizado === true
-  const rowClass = custoZero
-    ? 'table-danger'
-    : historico
-      ? 'table-secondary'
-      : precoCatalogoDesatualizado
-        ? 'table-warning'
-        : undefined
+  const rowClass = classeLinhaItemOrcamento(custoZero, historico, precoCatalogoDesatualizado)
   return (
     <tr className={rowClass}>
       <td className="text-muted">{numeroLinha}</td>
-      <td className="small text-muted orc-col-compact-hide">
-        {rotuloOrigemLinhaOrcamento(linha.origem)}
-        {precoCatalogoDesatualizado ? (
-          <>
-            <span
-              className="d-block small fw-semibold text-warning-emphasis"
-              title="Preço de catálogo sem revisão dentro do prazo configurado."
-            >
-              Preço vencido
-            </span>
-            {podeEditar && podeRevisarPrecoCatalogo && linha.id ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-link p-0 text-decoration-none"
-                onClick={() => onRevisarPrecoCatalogo(linha)}
-                disabled={salvando || revisandoPreco}
-              >
-                {revisandoPreco ? 'Revisando...' : 'Revisar preço'}
-              </button>
-            ) : null}
-          </>
-        ) : null}
-      </td>
+      <CelulaOrigemLinha
+        linha={linha}
+        podeEditar={podeEditar}
+        podeRevisarPrecoCatalogo={podeRevisarPrecoCatalogo}
+        precoCatalogoDesatualizado={precoCatalogoDesatualizado}
+        revisandoPreco={revisandoPreco}
+        salvando={salvando}
+        onRevisarPrecoCatalogo={onRevisarPrecoCatalogo}
+      />
       {tabelaServicos ? null : (
         <td
           className="small text-center fw-semibold text-primary orc-col-compact-hide"
@@ -2477,21 +2589,7 @@ function OrcamentoItemRow({
             value={linha.tipo}
             onChange={(e) => {
               const tipo = e.target.value as 'PRODUTO' | 'SERVICO'
-              const margem =
-                tipo === 'SERVICO'
-                  ? orcamento.margem_servicos_percentual
-                  : orcamento.margem_produtos_percentual
-              atualizarLinha(index, {
-                tipo,
-                margem_percentual: margem,
-                margem_minima: margem,
-                aliquota_ipi: tipo === 'SERVICO' ? null : linha.aliquota_ipi,
-                produtoNcm: tipo === 'SERVICO' ? undefined : linha.produtoNcm,
-                produtoId: tipo === 'SERVICO' ? undefined : linha.produtoId,
-                produtoCodigo: tipo === 'SERVICO' ? undefined : linha.produtoCodigo,
-                servicoId: tipo === 'PRODUTO' ? undefined : linha.servicoId,
-                servicoCodigo: tipo === 'PRODUTO' ? undefined : linha.servicoCodigo,
-              })
+              atualizarLinha(index, montarPatchMudancaTipoLinha(tipo, linha, orcamento))
             }}
             disabled={salvando}
           >

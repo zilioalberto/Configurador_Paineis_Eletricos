@@ -1,7 +1,9 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
+  type ComponentProps,
   type Dispatch,
   type SetStateAction,
 } from 'react'
@@ -86,6 +88,182 @@ function subtotalLinha(linha: LinhaEditavelOrcamento): number {
   return qtd * preco
 }
 
+type InvestimentoOfertaSectionProps = Readonly<{
+  perfil: PerfilOferta
+  podeEditar: boolean
+  ncmInvestimento: string
+  setNcmInvestimento?: (v: string) => void
+  investimentoDescricao: string
+  setInvestimentoDescricao?: (v: string) => void
+  linhasItens: LinhaEditavelOrcamento[]
+  totalInvestimento: number
+}>
+
+function InvestimentoOfertaSection({
+  perfil,
+  podeEditar,
+  ncmInvestimento,
+  setNcmInvestimento,
+  investimentoDescricao,
+  setInvestimentoDescricao,
+  linhasItens,
+  totalInvestimento,
+}: InvestimentoOfertaSectionProps) {
+  const ehSolucaoCompleta = perfil === 'SOLUCAO_COMPLETA'
+  return (
+    <section
+      className="orcamento-oferta-secao-card orcamento-oferta-secao-card--investimento"
+      id="orc-oferta-secao-investimento"
+    >
+      <h3 className="orcamento-oferta-secao-card__titulo">Investimento (itens do orçamento)</h3>
+      <p className="orcamento-oferta-secao-card__dica">
+        {ehSolucaoCompleta
+          ? 'Após «Serviços considerados» na proposta. Valores na aba Itens; NCM e descrição abaixo.'
+          : 'Valores definidos na aba Itens. Não faz parte do texto das seções acima.'}
+      </p>
+      {ehSolucaoCompleta && podeEditar ? (
+        <div className="orcamento-oferta-secao-card__investimento-params">
+          <div className="orcamento-doc__field">
+            <label htmlFor="orc-ncm-investimento">NCM (investimento)</label>
+            <input
+              id="orc-ncm-investimento"
+              type="text"
+              inputMode="numeric"
+              className="form-control form-control-sm"
+              style={{ maxWidth: '9rem' }}
+              value={ncmInvestimento}
+              disabled={!podeEditar}
+              onChange={(e) => setNcmInvestimento?.(formatarNcmInvestimentoInput(e.target.value))}
+              placeholder="85371090"
+              maxLength={8}
+            />
+          </div>
+          <div className="orcamento-doc__field" style={{ flex: '1 1 16rem', minWidth: '14rem' }}>
+            <label htmlFor="orc-inv-descricao">Descrição (investimento)</label>
+            <input
+              id="orc-inv-descricao"
+              type="text"
+              className="form-control form-control-sm"
+              value={investimentoDescricao}
+              disabled={!podeEditar}
+              onChange={(e) => setInvestimentoDescricao?.(e.target.value)}
+              placeholder={INVESTIMENTO_DESCRICAO_DEMAIS_PADRAO}
+              maxLength={255}
+            />
+          </div>
+        </div>
+      ) : null}
+      {linhasItens.length === 0 ? (
+        <p className="text-muted small mb-0">Nenhum item na proposta.</p>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-sm align-middle mb-2 orcamento-oferta-secao-card__tabela">
+            <thead>
+              <tr>
+                <th>Nº</th>
+                <th>Descrição</th>
+                <th className="text-end">Qtd</th>
+                <th className="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhasItens.map((linha, index) => (
+                <tr key={linha.id || `linha-${linha.ordem}`}>
+                  <td>{index + 1}</td>
+                  <td>{linha.descricao || '—'}</td>
+                  <td className="text-end">{linha.quantidade}</td>
+                  <td className="text-end fw-semibold">
+                    R$ {valorMonetarioTabela(subtotalLinha(linha))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="orcamento-oferta-secao-card__total">
+            Total: R$ {valorMonetarioTabela(totalInvestimento)}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+type PreviewPaneProps = Readonly<{
+  preview: ComponentProps<typeof PropostaClienteDocument>['preview']
+  edicao: PropostaClienteEdicao | undefined
+}>
+
+function PreviewPane({ preview, edicao }: PreviewPaneProps) {
+  return (
+    <div className="orcamento-oferta-editor__preview">
+      <p className="orcamento-oferta-editor__preview-label">
+        Prévia ao cliente
+        {edicao ? (
+          <span className="orcamento-oferta-editor__preview-hint">
+            — edite nos campos destacados
+          </span>
+        ) : null}
+      </p>
+      <div className="orcamento-oferta-editor__preview-scroll">
+        <PropostaClienteDocument preview={preview} edicao={edicao} />
+      </div>
+    </div>
+  )
+}
+
+type EditorMarkdownPaneProps = Readonly<{
+  documento: string
+  podeEditar: boolean
+  onAplicarDocumento: (texto: string) => void
+  onInserirModelo: () => void
+  preview: ComponentProps<typeof PropostaClienteDocument>['preview']
+  edicao: PropostaClienteEdicao | undefined
+}>
+
+function EditorMarkdownPane({
+  documento,
+  podeEditar,
+  onAplicarDocumento,
+  onInserirModelo,
+  preview,
+  edicao,
+}: EditorMarkdownPaneProps) {
+  return (
+    <div className="orcamento-oferta-editor__split">
+      <div className="orcamento-oferta-editor__markdown">
+        <p className="small text-muted mb-2">
+          Use <code>## Nome da seção</code> (ex.: <code>## Escopo de fornecimento</code>). Apague
+          um bloco inteiro para retirá-lo da proposta. Títulos personalizados são agrupados em{' '}
+          <strong>Observações</strong>.
+          {podeEditar ? (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 align-baseline"
+                onClick={onInserirModelo}
+              >
+                Inserir todas as seções do perfil
+              </button>
+            </>
+          ) : null}
+        </p>
+        <textarea
+          id="orc-oferta-documento"
+          className="orcamento-oferta-editor__markdown-area"
+          value={documento}
+          onChange={(e) => onAplicarDocumento(e.target.value)}
+          disabled={!podeEditar}
+          rows={24}
+          aria-label="Documento da oferta em markdown"
+          spellCheck
+        />
+      </div>
+      <PreviewPane preview={preview} edicao={edicao} />
+    </div>
+  )
+}
+
 export default function OrcamentoOfertaDocumentoEditor({
   blocos,
   setBlocos,
@@ -123,6 +301,15 @@ export default function OrcamentoOfertaDocumentoEditor({
     [blocos, perfil]
   )
 
+  const atualizarConteudoBloco = useCallback(
+    (tipo: OrcamentoOfertaBlocoDto['tipo'], conteudo: string) => {
+      setBlocos((atuais) =>
+        atuais.map((b) => (b.tipo === tipo ? { ...b, conteudo } : b))
+      )
+    },
+    [setBlocos]
+  )
+
   const edicaoPrevia = useMemo((): PropostaClienteEdicao | undefined => {
     if (!podeEditar || !setTitulo) {
       return undefined
@@ -132,13 +319,9 @@ export default function OrcamentoOfertaDocumentoEditor({
       perfil,
       titulo,
       onTituloChange: setTitulo,
-      onBlocoConteudoChange: (tipo: TipoBlocoOferta, conteudo: string) => {
-        setBlocos((atuais) =>
-          atuais.map((b) => (b.tipo === tipo ? { ...b, conteudo } : b))
-        )
-      },
+      onBlocoConteudoChange: atualizarConteudoBloco,
     }
-  }, [perfil, podeEditar, setBlocos, setTitulo, titulo])
+  }, [atualizarConteudoBloco, perfil, podeEditar, setTitulo, titulo])
 
   const previewLocal = useMemo(
     () =>
@@ -179,12 +362,6 @@ export default function OrcamentoOfertaDocumentoEditor({
   )
 
   const totalInvestimento = linhasItens.reduce((acc, linha) => acc + subtotalLinha(linha), 0)
-
-  const atualizarConteudoBloco = (tipo: OrcamentoOfertaBlocoDto['tipo'], conteudo: string) => {
-    setBlocos((atuais) =>
-      atuais.map((b) => (b.tipo === tipo ? { ...b, conteudo } : b))
-    )
-  }
 
   const aplicarDocumento = (texto: string) => {
     setDocumento(texto)
@@ -284,12 +461,12 @@ export default function OrcamentoOfertaDocumentoEditor({
             ? 'Arraste ⠿ para reordenar seções (exceto Apresentação e Investimento). A ordem vale na prévia/PDF. Vazio = fora da proposta.'
             : 'Edite com ## Título por seção; títulos do perfil atualizam os blocos. Seções sem ## somem da proposta. Prévia à direita.'}{' '}
           Salve a proposta para persistir.
-          {!podeEditar ? (
+          {podeEditar ? null : (
             <>
               {' '}
               <strong className="text-warning">Proposta bloqueada para edição.</strong>
             </>
-          ) : null}
+          )}
         </p>
       </div>
 
@@ -340,82 +517,16 @@ export default function OrcamentoOfertaDocumentoEditor({
               renderCardSecao(bloco, 'corpo', blocosAgrupados.corpo.length)
             )}
 
-            <section
-              className="orcamento-oferta-secao-card orcamento-oferta-secao-card--investimento"
-              id="orc-oferta-secao-investimento"
-            >
-              <h3 className="orcamento-oferta-secao-card__titulo">Investimento (itens do orçamento)</h3>
-              <p className="orcamento-oferta-secao-card__dica">
-                {perfil === 'SOLUCAO_COMPLETA'
-                  ? 'Após «Serviços considerados» na proposta. Valores na aba Itens; NCM e descrição abaixo.'
-                  : 'Valores definidos na aba Itens. Não faz parte do texto das seções acima.'}
-              </p>
-              {perfil === 'SOLUCAO_COMPLETA' && podeEditar ? (
-                <div className="orcamento-oferta-secao-card__investimento-params">
-                  <div className="orcamento-doc__field">
-                    <label htmlFor="orc-ncm-investimento">NCM (investimento)</label>
-                    <input
-                      id="orc-ncm-investimento"
-                      type="text"
-                      inputMode="numeric"
-                      className="form-control form-control-sm"
-                      style={{ maxWidth: '9rem' }}
-                      value={ncmInvestimento}
-                      disabled={!podeEditar}
-                      onChange={(e) =>
-                        setNcmInvestimento?.(formatarNcmInvestimentoInput(e.target.value))
-                      }
-                      placeholder="85371090"
-                      maxLength={8}
-                    />
-                  </div>
-                  <div className="orcamento-doc__field" style={{ flex: '1 1 16rem', minWidth: '14rem' }}>
-                    <label htmlFor="orc-inv-descricao">Descrição (investimento)</label>
-                    <input
-                      id="orc-inv-descricao"
-                      type="text"
-                      className="form-control form-control-sm"
-                      value={investimentoDescricao}
-                      disabled={!podeEditar}
-                      onChange={(e) => setInvestimentoDescricao?.(e.target.value)}
-                      placeholder={INVESTIMENTO_DESCRICAO_DEMAIS_PADRAO}
-                      maxLength={255}
-                    />
-                  </div>
-                </div>
-              ) : null}
-              {linhasItens.length === 0 ? (
-                <p className="text-muted small mb-0">Nenhum item na proposta.</p>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-sm align-middle mb-2 orcamento-oferta-secao-card__tabela">
-                    <thead>
-                      <tr>
-                        <th>Nº</th>
-                        <th>Descrição</th>
-                        <th className="text-end">Qtd</th>
-                        <th className="text-end">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {linhasItens.map((linha, index) => (
-                        <tr key={linha.id || `linha-${linha.ordem}`}>
-                          <td>{index + 1}</td>
-                          <td>{linha.descricao || '—'}</td>
-                          <td className="text-end">{linha.quantidade}</td>
-                          <td className="text-end fw-semibold">
-                            R$ {valorMonetarioTabela(subtotalLinha(linha))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div className="orcamento-oferta-secao-card__total">
-                    Total: R$ {valorMonetarioTabela(totalInvestimento)}
-                  </div>
-                </div>
-              )}
-            </section>
+            <InvestimentoOfertaSection
+              perfil={perfil}
+              podeEditar={podeEditar}
+              ncmInvestimento={ncmInvestimento}
+              setNcmInvestimento={setNcmInvestimento}
+              investimentoDescricao={investimentoDescricao}
+              setInvestimentoDescricao={setInvestimentoDescricao}
+              linhasItens={linhasItens}
+              totalInvestimento={totalInvestimento}
+            />
 
             {blocosAgrupados.aposInvestimento.map((bloco) =>
               renderCardSecao(bloco, 'apos', blocosAgrupados.aposInvestimento.length)
@@ -425,65 +536,17 @@ export default function OrcamentoOfertaDocumentoEditor({
             )}
           </div>
 
-          <div className="orcamento-oferta-editor__preview">
-            <p className="orcamento-oferta-editor__preview-label">
-              Prévia ao cliente
-              {edicaoPrevia ? (
-                <span className="orcamento-oferta-editor__preview-hint">
-                  — edite nos campos destacados
-                </span>
-              ) : null}
-            </p>
-            <div className="orcamento-oferta-editor__preview-scroll">
-              <PropostaClienteDocument preview={previewLocal} edicao={edicaoPrevia} />
-            </div>
-          </div>
+          <PreviewPane preview={previewLocal} edicao={edicaoPrevia} />
         </div>
       ) : (
-        <div className="orcamento-oferta-editor__split">
-          <div className="orcamento-oferta-editor__markdown">
-            <p className="small text-muted mb-2">
-              Use <code>## Nome da seção</code> (ex.: <code>## Escopo de fornecimento</code>). Apague
-              um bloco inteiro para retirá-lo da proposta. Títulos personalizados são agrupados em{' '}
-              <strong>Observações</strong>.
-              {podeEditar ? (
-                <>
-                  {' '}
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm p-0 align-baseline"
-                    onClick={inserirModelo}
-                  >
-                    Inserir todas as seções do perfil
-                  </button>
-                </>
-              ) : null}
-            </p>
-            <textarea
-              id="orc-oferta-documento"
-              className="orcamento-oferta-editor__markdown-area"
-              value={documento}
-              onChange={(e) => aplicarDocumento(e.target.value)}
-              disabled={!podeEditar}
-              rows={24}
-              aria-label="Documento da oferta em markdown"
-              spellCheck
-            />
-          </div>
-          <div className="orcamento-oferta-editor__preview">
-            <p className="orcamento-oferta-editor__preview-label">
-              Prévia ao cliente
-              {edicaoPrevia ? (
-                <span className="orcamento-oferta-editor__preview-hint">
-                  — edite nos campos destacados
-                </span>
-              ) : null}
-            </p>
-            <div className="orcamento-oferta-editor__preview-scroll">
-              <PropostaClienteDocument preview={previewLocal} edicao={edicaoPrevia} />
-            </div>
-          </div>
-        </div>
+        <EditorMarkdownPane
+          documento={documento}
+          podeEditar={podeEditar}
+          onAplicarDocumento={aplicarDocumento}
+          onInserirModelo={inserirModelo}
+          preview={previewLocal}
+          edicao={edicaoPrevia}
+        />
       )}
     </div>
   )

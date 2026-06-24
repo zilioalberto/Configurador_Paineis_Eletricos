@@ -12,7 +12,7 @@ describe('orcamentoOrigemLinha', () => {
     expect(rotuloOrigemLinhaOrcamento('CATALOGO')).toBe('Catálogo')
     expect(rotuloOrigemLinhaOrcamento('MANUAL')).toBe('Manual')
     expect(rotuloOrigemLinhaOrcamento('HERANCA_REVISAO')).toBe('Revisão')
-    expect(rotuloOrigemLinhaOrcamento(undefined)).toBe('—')
+    expect(rotuloOrigemLinhaOrcamento()).toBe('—')
   })
 
   it('formata referência curta do painel', () => {

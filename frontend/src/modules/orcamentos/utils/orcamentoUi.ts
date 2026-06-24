@@ -40,10 +40,10 @@ export function valorMonetarioTabela(valor: number): string {
 export function parseDecimalPt(valor: string): number {
   const semEspacos = valor.trim().replace(/\s/g, '')
   const normalizado = semEspacos.includes(',')
-    ? semEspacos.replace(/\./g, '').replace(',', '.')
+    ? semEspacos.replaceAll('.', '').replace(',', '.')
     : semEspacos
   const n = Number(normalizado)
-  return Number.isFinite(n) ? n : NaN
+  return Number.isFinite(n) ? n : Number.NaN
 }
 
 /** Percentual para rótulos (ex.: 10, 5.25, 1.42) — não remove o zero de "10". */

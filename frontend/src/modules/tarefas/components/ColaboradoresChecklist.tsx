@@ -26,8 +26,13 @@ export function ColaboradoresChecklist({
       {responsaveis.map((responsavel) => {
         const value = String(responsavel.id)
         return (
-          <label className="tarefa-collaborators-picker__option" key={responsavel.id}>
+          <label
+            className="tarefa-collaborators-picker__option"
+            key={responsavel.id}
+            htmlFor={`colaborador-${value}`}
+          >
             <input
+              id={`colaborador-${value}`}
               type="checkbox"
               checked={colaboradores.includes(value)}
               disabled={disabled}

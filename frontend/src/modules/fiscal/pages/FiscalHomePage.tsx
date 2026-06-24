@@ -55,8 +55,8 @@ export default function FiscalHomePage() {
   const podeEditar = hasPermission(user, PERMISSION_KEYS.FISCAL_EDITAR)
 
   useEffect(() => {
-    const t = window.setTimeout(() => setBuscaDebounced(buscaInput.trim()), 350)
-    return () => window.clearTimeout(t)
+    const t = globalThis.setTimeout(() => setBuscaDebounced(buscaInput.trim()), 350)
+    return () => globalThis.clearTimeout(t)
   }, [buscaInput])
 
   const {

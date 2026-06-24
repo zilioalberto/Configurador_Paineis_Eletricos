@@ -14,7 +14,7 @@ import { formatSefazSyncToast } from '../utils/sefazSyncFeedback'
 type Props = {
   readonly cnpj?: string
   readonly className?: string
-  readonly size?: 'sm' | undefined
+  readonly size?: 'sm'
   readonly disabled?: boolean
 }
 

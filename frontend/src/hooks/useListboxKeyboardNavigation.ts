@@ -46,7 +46,7 @@ export function useListboxKeyboardNavigation<T>(
       }
       if (event.key === 'Enter') {
         event.preventDefault()
-        const idx = activeIndex >= 0 ? activeIndex : 0
+        const idx = Math.max(activeIndex, 0)
         const item = items[idx]
         if (item !== undefined) {
           onCommit(item)

@@ -91,7 +91,7 @@ export function formatarNomeEmpresaExibicao(nome: string | null | undefined): st
 
 function removerCaracteresControle(texto: string): string {
   return Array.from(texto)
-    .filter((char) => char.charCodeAt(0) >= 32)
+    .filter((char) => (char.codePointAt(0) ?? 0) >= 32)
     .join('')
 }
 
