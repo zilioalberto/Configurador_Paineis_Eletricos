@@ -6,7 +6,7 @@ Checklist mínimo para avaliação do **MVP** conforme [RFC](rfc.pdf). Foco no *
 > Projeto piloto: `06001-26` (`ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa`)  
 > Evidências: [docs/portfolio/evidencias-producao](portfolio/evidencias-producao/README.md)
 
-Testes automatizados **não substituem** walkthrough manual na UI antes da demo (M7).
+Testes automatizados **não substituem** walkthrough manual na UI antes da apresentação final (M7).
 
 ---
 
@@ -14,7 +14,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 
 - [x] Ambiente documentado — [setup-local](desenvolvimento/setup-local.md)
 - [x] Usuário de teste criado: `demopac@zfw.com.br`
-- [x] Catálogo suficiente para gerar 6 itens aprovados e registrar as ressalvas abertas no projeto piloto
+- [x] Catálogo suficiente para fechar a BoM do projeto piloto com 29 itens aprovados, sem pendências
 
 ---
 
@@ -56,7 +56,7 @@ Testes automatizados **não substituem** walkthrough manual na UI antes da demo 
 - [x] Snapshot composição — `test_get_snapshot_estrutura`
 - [x] Totais no wizard — `useProjetoWizardFluxo` (testes indiretos via `ProjetoWizardPage`)
 - [ ] Totais/preços comerciais integrados ao orçamento (RF-07 parcial)
-- [x] Walkthrough em produção: composição do projeto `06001-26` com 6 itens aprovados na BoM
+- [x] Walkthrough em produção: composição do projeto `06001-26` com 29 itens aprovados na BoM, sem pendências
 
 ---
 
@@ -106,7 +106,7 @@ npm test -- configurador_paineis catalogo auth
 
 | Data | Ambiente | Executor | Automatizado | Manual UI | Observações |
 |------|----------|----------|--------------|-----------|-------------|
-| 2026-06-23 | produção / VPS | portal público + API | Sim (fluxo API produção) | Sim (prints em `docs/portfolio/evidencias-producao/`) | Projeto `06001-26`; 6 itens BoM; PDF/XLSX gerados; 21 pendências documentadas |
+| 2026-06-23 | produção / VPS | portal público + API | Sim (fluxo API produção) | Sim (prints em `docs/portfolio/evidencias-producao/`) | Projeto `06001-26`; 29 itens BoM; PDF/XLSX gerados; sem pendências nem sugestões abertas |
 
 ---
 

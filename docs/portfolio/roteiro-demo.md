@@ -80,16 +80,16 @@ Evidência correspondente: [07-fluxo-dimensionamento.png](evidencias-producao/sc
 | 1 | Abrir `/configurador/composicao?projeto=ffd2df39-6c05-4c69-9f22-bfea9ef5f4fa` |
 | 2 | Mostrar os itens aprovados na BoM |
 | 3 | Explicar que as sugestões foram geradas a partir das regras e do catálogo |
-| 4 | Mencionar as ressalvas: existem 21 pendências abertas e 1 sugestão ainda pendente no catálogo/composição |
+| 4 | Destacar que a composição foi fechada sem pendências nem sugestões abertas, com o catálogo complementado |
 
 Totais da execução em produção:
 
 | Métrica | Valor |
 |---------|-------|
-| Sugestões abertas | 1 |
-| Sugestões aprovadas / itens incorporados | 6 |
-| Itens aprovados na BoM | 6 |
-| Pendências abertas | 21 |
+| Sugestões abertas | 0 |
+| Sugestões aprovadas / itens incorporados | 29 |
+| Itens aprovados na BoM | 29 |
+| Pendências abertas | 0 |
 
 Evidência correspondente: [08-composicao.png](evidencias-producao/screenshots/08-composicao.png).
 
@@ -114,11 +114,11 @@ Abrir [relatorio-conformidade-PRJ-PILOTO-01.md](exemplos/relatorio-conformidade-
 - projeto `06001-26`;
 - usuário `demopac@zfw.com.br`;
 - validações automáticas;
-- ressalvas abertas de catálogo/composição e revisão manual IEC 61439.
+- composição fechada sem pendências e revisão manual IEC 61439.
 
 ## 4. Fala de encerramento
 
-“O roteiro foi reproduzido no servidor remoto em 2026-06-23. A entrega inclui aplicação pública, usuário de demonstração, evidências de tela, metadados do projeto, BoM exportada em PDF/XLSX, documentação técnica, CI/CD, SonarCloud e observabilidade. As ressalvas funcionais registradas no piloto são as pendências abertas de catálogo/composição, documentadas no relatório de conformidade.”
+“O roteiro foi reproduzido no servidor remoto em 2026-06-23. A entrega inclui aplicação pública, usuário de demonstração, evidências de tela, metadados do projeto, BoM exportada em PDF/XLSX, documentação técnica, CI/CD, SonarCloud e observabilidade. Após a complementação do catálogo, a composição do piloto foi fechada com 29 itens aprovados, sem sugestões nem pendências abertas. Permanece apenas a revisão técnica manual prevista para a IEC 61439, registrada no relatório de conformidade.”
 
 ## 5. Plano B
 

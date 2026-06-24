@@ -56,18 +56,18 @@ Cenário de painel BT trifásico 380 V, alimentação com neutro/terra em bornes
 | Corrente total do painel | 1,55 A |
 | Dimensionamento recalculado | Sim |
 | Condutores confirmados | Sim |
-| Sugestões abertas | 1 |
-| Sugestões aprovadas / itens incorporados | 6 |
-| Itens aprovados na BoM | 6 |
-| Pendências abertas | 21 |
+| Sugestões abertas | 0 |
+| Sugestões aprovadas / itens incorporados | 29 |
+| Itens aprovados na BoM | 29 |
+| Pendências abertas | 0 |
 
 Totais atuais registrados em `metadata-producao.json` após a complementação do catálogo e reconfiguração do piloto:
 
 ```json
 {
-  "sugestoes": 1,
-  "pendencias": 21,
-  "composicao_itens": 6,
+  "sugestoes": 0,
+  "pendencias": 0,
+  "composicao_itens": 29,
   "inclusoes_manuais": 0
 }
 ```
@@ -93,9 +93,9 @@ Totais atuais registrados em `metadata-producao.json` após a complementação d
 | 2 | Carga cadastrada | `demopac@zfw.com.br` | Motor `M1` |
 | 3 | Dimensionamento recalculado | Sistema | Corrente total 1,55 A |
 | 4 | Condutores confirmados | `demopac@zfw.com.br` | Revisão confirmada via API/fluxo |
-| 5 | Composição reavaliada | Sistema | 1 sugestão permanece aberta após a reconfiguração |
-| 6 | Itens aprovados | `demopac@zfw.com.br` | 6 itens consolidados na BoM |
-| 7 | Ressalvas abertas | Sistema | 21 pendências permanecem documentadas para revisão de catálogo/composição |
+| 5 | Composição reavaliada | Sistema | Nenhuma sugestão pendente após a complementação do catálogo |
+| 6 | Itens aprovados | `demopac@zfw.com.br` | 29 itens consolidados na BoM |
+| 7 | Pendências | Sistema | Nenhuma pendência aberta - todas as categorias auxiliares resolvidas com itens de catálogo |
 
 ---
 
@@ -119,9 +119,9 @@ Conferência do export:
 
 ## 6. Conclusão
 
-| Classificação | Apto com ressalvas |
-|---------------|--------------------|
-| Motivo | O fluxo principal foi executado em produção, com projeto, carga, dimensionamento, composição, 6 itens aprovados na BoM e exports atualizados. As ressalvas são as 21 pendências abertas indicadas pela composição e a revisão manual IEC 61439. |
+| Classificação | Apto |
+|---------------|------|
+| Motivo | O fluxo principal foi executado em produção, com projeto, carga, dimensionamento, composição, 29 itens aprovados na BoM e exports atualizados, sem pendências nem sugestões abertas. Permanece apenas a verificação manual da IEC 61439 (coordenação do conjunto), conforme item 1.2. |
 
 **Assinatura / validação humana:** _________________________  
 Declaro que revisei os itens de verificação manual e assumo responsabilidade técnica conforme NR-10.

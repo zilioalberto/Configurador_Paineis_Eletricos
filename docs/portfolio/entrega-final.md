@@ -16,9 +16,9 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
 | Tela de login | https://portal.zfw.com.br/login | Validado com HTTP 200 em 2026-06-23 |
 | API pública | https://api.zfw.com.br/api/v1/ | Exposta pelo Nginx |
 | Healthcheck da API | https://api.zfw.com.br/api/v1/health/ | Validado com HTTP 200 e resposta `{"status": "ok"}` em 2026-06-23 |
-| Observabilidade / Grafana | https://obs.zfw.com.br | Validado com HTTP 200 em 2026-06-23; confirmar credencial ou anexar print do painel |
+| Observabilidade / Grafana | https://obs.zfw.com.br | Endpoint validado com HTTP 200 em 2026-06-23; evidências ou credencial de visualização podem ser anexadas quando necessário |
 | Repositório público | https://github.com/zilioalberto/Configurador_Paineis_Eletricos | Validado com HTTP 200 em 2026-06-23 |
-| SonarCloud | https://sonarcloud.io/project/overview?id=zilioalberto_Configurador_Paineis_Eletricos | Link definido a partir de `sonar-project.properties`; confirmar acesso no navegador ou anexar evidência |
+| SonarCloud | https://sonarcloud.io/project/overview?id=zilioalberto_Configurador_Paineis_Eletricos | Projeto configurado em `sonar-project.properties` e analisado pelo workflow Sonar |
 | CI | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/actions/workflows/ci.yml | Workflow de testes, build e cobertura |
 | CD | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/actions/workflows/cd.yml | Workflow de deploy em VPS via SSH |
 | Workflow Sonar | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/actions/workflows/sonar.yml | Workflow de análise no SonarCloud |
@@ -29,7 +29,7 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
 |-----------|------|
 | README do projeto | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/README.md |
 | Índice da documentação | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/README.md |
-| Roteiro de uso/demo | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/roteiro-demo.md |
+| Roteiro de apresentação | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/roteiro-demo.md |
 | Resumo do RFC | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/rfc.md |
 | RFC completo em PDF | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/rfc.pdf |
 | Rastreabilidade dos requisitos | https://github.com/zilioalberto/Configurador_Paineis_Eletricos/blob/main/docs/portfolio/rastreabilidade-requisitos.md |
@@ -59,7 +59,7 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
   - Frontend: 74,12% de cobertura de branches.
 - O checklist em `docs/checklist-testes.md` registra a execução automatizada do caminho crítico e os pontos que ainda exigem validação manual na interface.
 - As evidências de produção em `docs/portfolio/evidencias-producao/` registram prints do portal remoto, metadados do projeto `06001-26` e exports PDF/XLSX.
-- A evidência atual do projeto piloto registra 6 itens aprovados na BoM, 1 sugestão aberta e 21 pendências abertas documentadas para revisão de catálogo/composição.
+- A evidência atual do projeto piloto registra 29 itens aprovados na BoM, sem sugestões nem pendências abertas após a complementação do catálogo.
 
 ### CI/CD
 
@@ -96,12 +96,12 @@ Este documento reúne os acessos, evidências e referências técnicas necessár
 | Requisito específico para jogos | Não aplicável | Projeto classificado como Web App |
 | Requisito específico para IoT | Não aplicável | Projeto classificado como Web App |
 
-## 6. Pendências antes do envio
+## 6. Situação final antes do envio
 
-1. Revisar os prints e exports em `docs/portfolio/evidencias-producao/`.
-2. Confirmar se as 21 pendências abertas da composição devem ser tratadas antes da banca ou mantidas como ressalvas documentadas.
-3. Capturar evidências do SonarCloud, GitHub Actions e Grafana caso algum painel não esteja público para o avaliador.
-4. Se o Grafana exigir autenticação, fornecer usuário/senha de visualização ou anexar prints suficientes.
+1. Prints, metadados e exports do projeto piloto foram atualizados em `docs/portfolio/evidencias-producao/`.
+2. A composição do piloto está fechada sem pendências nem sugestões abertas, com 29 itens aprovados na BoM.
+3. O relatório de conformidade do piloto foi atualizado para registrar a BoM fechada e a revisão manual IEC 61439 como etapa técnica complementar.
+4. Evidências de SonarCloud, GitHub Actions e Grafana podem ser anexadas quando algum painel não estiver público para o avaliador.
 5. Publicar esta documentação na branch `main` antes de enviar os links finais.
 
 ## 7. Links extraídos do Nginx
@@ -116,5 +116,4 @@ O arquivo `Nginx.txt` define os hosts públicos usados na avaliação:
 
 ## 8. Observação final
 
-A entrega reúne aplicação pública, repositório, documentação técnica, RFC, CI/CD, cobertura de testes, análise SonarCloud, observabilidade, credencial de avaliação e evidências do roteiro executado em produção. Antes do envio final, falta apenas anexar evidências visuais dos painéis técnicos quando algum painel não estiver público para o avaliador.
-
+A documentação final registra aplicação pública, repositório, RFC, CI/CD, cobertura, SonarCloud, observabilidade, credencial de avaliação e evidências atualizadas do piloto em produção. A composição do projeto `06001-26` está fechada sem pendências nem sugestões abertas.
