@@ -1,5 +1,5 @@
 {
-  "data": "2026-06-23 14:23:46",
+  "data": "2026-06-23 21:53:02",
   "ambiente": "producao",
   "portal": "https://portal.zfw.com.br",
   "api": "https://api.zfw.com.br/api/v1",
@@ -14,9 +14,9 @@
   "circuitos_carga": 1,
   "condutores_revisao_confirmada": true,
   "totais": {
-    "sugestoes": 1,
-    "pendencias": 21,
-    "composicao_itens": 6,
+    "sugestoes": 0,
+    "pendencias": 0,
+    "composicao_itens": 29,
     "inclusoes_manuais": 0
   },
   "itens_bom": [
@@ -61,36 +61,171 @@
       "codigo": "1521680000",
       "descricao": "#CONECTOR DE PASSAGEM A2C 2.5 PE (1521680000)",
       "quantidade": "1.00"
-    }
-  ],
-  "sugestoes_abertas": [
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Terminais",
+      "codigo": "TE.IS.AZ.0025.08",
+      "descricao": "TERMINAL TUBOLAR SIMPLES AZUL 2,5 MM C8 - 100 PC - E2508 BLUE -",
+      "quantidade": "6.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Cabo",
+      "codigo": "W0107-PT",
+      "descricao": "CABO FLEXIVEL 750V 2,5MM2 - PRETO",
+      "quantidade": "1.05"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Cabo",
+      "codigo": "W0506-VD/AM",
+      "descricao": "CABO FLEXIVEL 750V 1,5MM2 - VERDE/AMARELO",
+      "quantidade": "0.35"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "290",
+      "descricao": "SLZ 2/15, SUPORTE LUVA TRANSPARENTE PARA FIOS E CABOS DE 2,5 A 6,0 MM², COMPRIMENTO DE 15 MM, DIAMETRO DE 3,4 A 4,5 MM",
+      "quantidade": "3.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Cabo",
+      "codigo": "W0107-AZ",
+      "descricao": "CABO FLEXIVEL 750V 2,5MM2 - AZUL",
+      "quantidade": "0.35"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "326",
+      "descricao": "SLZ 1/15, SUPORTE LUVA TRANSPARENTE PARA FIOS E CABOS DE 0,75 A 1,5 MM², COMPRIMENTO DE 15 MM, DIAMETRO DE 2,3 A 2,9 MM",
+      "quantidade": "3.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Terminais",
+      "codigo": "TE.IS.AZ.0025.08",
+      "descricao": "TERMINAL TUBOLAR SIMPLES AZUL 2,5 MM C8 - 100 PC - E2508 BLUE -",
+      "quantidade": "2.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "359",
+      "descricao": "ETA 7X15 960 211, ETIQUETA PARA APARELHOS, CANTO ARREDONDADO, 7X15 MM, BRANCO, PVC FLEXIVEL ADESIVO, 7500 ETIQUETAS",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "290",
+      "descricao": "SLZ 2/15, SUPORTE LUVA TRANSPARENTE PARA FIOS E CABOS DE 2,5 A 6,0 MM², COMPRIMENTO DE 15 MM, DIAMETRO DE 3,4 A 4,5 MM",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Cabo",
+      "codigo": "W0507-VD/AM",
+      "descricao": "CABO FLEXIVEL 750V 2,5MM2 - VERDE/AMARELO",
+      "quantidade": "0.35"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "326",
+      "descricao": "SLZ 1/15, SUPORTE LUVA TRANSPARENTE PARA FIOS E CABOS DE 0,75 A 1,5 MM², COMPRIMENTO DE 15 MM, DIAMETRO DE 2,3 A 2,9 MM",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Terminais",
+      "codigo": "TE.IS.AZ.0025.08",
+      "descricao": "TERMINAL TUBOLAR SIMPLES AZUL 2,5 MM C8 - 100 PC - E2508 BLUE -",
+      "quantidade": "2.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Cabo",
+      "codigo": "W0106-PT",
+      "descricao": "CABO FLEXIVEL 750V 1,5MM2 - PRETO",
+      "quantidade": "1.05"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "359",
+      "descricao": "ETA 7X15 960 211, ETIQUETA PARA APARELHOS, CANTO ARREDONDADO, 7X15 MM, BRANCO, PVC FLEXIVEL ADESIVO, 7500 ETIQUETAS",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "290",
+      "descricao": "SLZ 2/15, SUPORTE LUVA TRANSPARENTE PARA FIOS E CABOS DE 2,5 A 6,0 MM², COMPRIMENTO DE 15 MM, DIAMETRO DE 3,4 A 4,5 MM",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "359",
+      "descricao": "ETA 7X15 960 211, ETIQUETA PARA APARELHOS, CANTO ARREDONDADO, 7X15 MM, BRANCO, PVC FLEXIVEL ADESIVO, 7500 ETIQUETAS",
+      "quantidade": "3.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "359",
+      "descricao": "ETA 7X15 960 211, ETIQUETA PARA APARELHOS, CANTO ARREDONDADO, 7X15 MM, BRANCO, PVC FLEXIVEL ADESIVO, 7500 ETIQUETAS",
+      "quantidade": "3.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Terminais",
+      "codigo": "TE.IS.AZ.0025.08",
+      "descricao": "TERMINAL TUBOLAR SIMPLES AZUL 2,5 MM C8 - 100 PC - E2508 BLUE -",
+      "quantidade": "2.00"
+    },
+    {
+      "parte": "Identificação",
+      "categoria": "Identificação",
+      "codigo": "359",
+      "descricao": "ETA 7X15 960 211, ETIQUETA PARA APARELHOS, CANTO ARREDONDADO, 7X15 MM, BRANCO, PVC FLEXIVEL ADESIVO, 7500 ETIQUETAS",
+      "quantidade": "1.00"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Terminais",
+      "codigo": "TE.IS.AZ.0025.08",
+      "descricao": "TERMINAL TUBOLAR SIMPLES AZUL 2,5 MM C8 - 100 PC - E2508 BLUE -",
+      "quantidade": "6.00"
+    },
+    {
+      "parte": "Estrutura",
+      "categoria": "Trilho DIN",
+      "codigo": "C038340.0000",
+      "descricao": "#TRILHO TS35 X 7,5 ACO S/FURO (C038340.0000)",
+      "quantidade": "0.58"
+    },
     {
       "parte": "Canaletas",
       "categoria": "Canaleta",
       "codigo": "19270",
       "descricao": "DND30030 660, CANALETA (RECORTE ABERTO), 30X30MM (ALTURA X BASE), PVC RIGIDO, AZUL PETROLEO, BASE PERFURADA/DIN",
-      "quantidade": "0.12",
-      "status": "Pendente"
+      "quantidade": "1.57"
+    },
+    {
+      "parte": "Acessórios",
+      "categoria": "Acessórios Gerais",
+      "codigo": "ZFW-KIT-PAINEL_PEQUENO",
+      "descricao": "KIT ACESSORIOS PAINEL PEQUENO",
+      "quantidade": "1.00"
     }
   ],
-  "pendencias_resumo": [
-    {
-      "grupo": "Identificação, Identificação",
-      "quantidade": 10
-    },
-    {
-      "grupo": "Acessórios, Cabo",
-      "quantidade": 5
-    },
-    {
-      "grupo": "Acessórios, Terminais",
-      "quantidade": 5
-    },
-    {
-      "grupo": "Acessórios, Acessórios Gerais",
-      "quantidade": 1
-    }
-  ],
+  "sugestoes_abertas": [],
+  "pendencias_resumo": [],
   "export_xlsx": "exports/composicao-06001-26.xlsx",
   "export_pdf": "exports/composicao-06001-26.pdf"
 }
