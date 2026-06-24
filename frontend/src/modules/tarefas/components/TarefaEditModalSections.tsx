@@ -259,9 +259,9 @@ export function TarefaCamposPrincipais({
           </div>
         ) : null}
         <div className="col-12">
-          <label className="form-label" id="tarefa-edit-colaboradores-label">
+          <span className="form-label" id="tarefa-edit-colaboradores-label">
             Colaboradores
-          </label>
+          </span>
           <ColaboradoresChecklist
             labelId="tarefa-edit-colaboradores-label"
             colaboradores={form.colaboradores}

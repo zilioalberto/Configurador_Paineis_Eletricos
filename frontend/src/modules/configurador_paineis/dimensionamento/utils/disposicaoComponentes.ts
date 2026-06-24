@@ -468,15 +468,7 @@ function grupoCabeNoTrilho(
   return x + larguraTotalGrupoTrilho(instancias, gapMm) <= trilho.x_mm + trilho.largura_mm
 }
 
-function ordenarDisjuntoresAgrupados(insts: InstanciaComponente[]): InstanciaComponente[] {
-  return [...insts].sort(
-    (a, b) =>
-      a.produto_codigo.localeCompare(b.produto_codigo) ||
-      a.instancia_id.localeCompare(b.instancia_id)
-  )
-}
-
-function ordenarContatorasAgrupadas(insts: InstanciaComponente[]): InstanciaComponente[] {
+function ordenarPorCodigoEInstancia(insts: InstanciaComponente[]): InstanciaComponente[] {
   return [...insts].sort(
     (a, b) =>
       a.produto_codigo.localeCompare(b.produto_codigo) ||
@@ -846,8 +838,8 @@ function classificarInstanciasDisposicao(instancias: InstanciaComponente[]): Gru
   return {
     bornes,
     disjuntoresSuperiores,
-    disjuntores: ordenarDisjuntoresAgrupados(restoTrilho.filter(ehDisjuntor)),
-    contatoras: ordenarContatorasAgrupadas(restoTrilho.filter(ehContatora)),
+    disjuntores: ordenarPorCodigoEInstancia(restoTrilho.filter(ehDisjuntor)),
+    contatoras: ordenarPorCodigoEInstancia(restoTrilho.filter(ehContatora)),
     outrosTrilho: restoTrilho.filter((i) => !ehDisjuntor(i) && !ehContatora(i)),
     placaItens: instancias.filter((i) => i.modo_montagem !== 'TRILHO_DIN'),
   }

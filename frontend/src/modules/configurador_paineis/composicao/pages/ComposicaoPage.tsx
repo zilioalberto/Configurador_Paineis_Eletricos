@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppPageToolbar } from '@/components/layout/AppPageToolbarContext'
 import { ConfirmModal, useToast } from '@/components/feedback'
@@ -114,6 +114,82 @@ function redirecionamentoComposicao(
       : configuradorPaths.composicao(projetoId)
   }
   return null
+}
+
+type ComposicaoModalHandlersOptions = {
+  modalComposicao: ModalComposicaoState
+  confirmExportFmt: ComposicaoExportFormat | null
+  setConfirmExportFmt: Dispatch<SetStateAction<ComposicaoExportFormat | null>>
+  onReabrirItemAprovado: () => Promise<unknown>
+  executarExportacao: (fmt: ComposicaoExportFormat) => Promise<unknown>
+  orcamentoId: string
+  vinculoId: string
+  pendenciasAbertas: number
+  sugestoesPendentes: number
+  setSincronizandoOrcamento: Dispatch<SetStateAction<boolean>>
+  showToast: ReturnType<typeof useToast>['showToast']
+  navigate: ReturnType<typeof useNavigate>
+}
+
+/** Handlers de confirmação do modal e de retorno para a proposta. */
+function useComposicaoModalHandlers(opts: ComposicaoModalHandlersOptions) {
+  const {
+    modalComposicao,
+    confirmExportFmt,
+    setConfirmExportFmt,
+    onReabrirItemAprovado,
+    executarExportacao,
+    orcamentoId,
+    vinculoId,
+    pendenciasAbertas,
+    sugestoesPendentes,
+    setSincronizandoOrcamento,
+    showToast,
+    navigate,
+  } = opts
+
+  const confirmarModalComposicao = useCallback(() => {
+    if (!modalComposicao) return
+    if (modalComposicao.tipo === 'reabrir') {
+      onReabrirItemAprovado().catch(() => undefined)
+      return
+    }
+    if (!confirmExportFmt) return
+    const fmt = confirmExportFmt
+    setConfirmExportFmt(null)
+    executarExportacao(fmt).catch(() => undefined)
+  }, [confirmExportFmt, executarExportacao, modalComposicao, onReabrirItemAprovado, setConfirmExportFmt])
+
+  const onRetornarOrcamento = useCallback(async () => {
+    if (!orcamentoId || !vinculoId || pendenciasAbertas > 0 || sugestoesPendentes > 0) return
+    try {
+      setSincronizandoOrcamento(true)
+      const resultado = await sincronizarComposicaoPainel(orcamentoId, vinculoId)
+      showToast({
+        variant: 'success',
+        message: `${resultado.itens_sincronizados} item(ns) sincronizado(s) com a proposta.`,
+      })
+      navigate(orcamentoDetalhePath(orcamentoId))
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: 'Não foi possível exportar para a proposta',
+        message: extrairMensagemErroApi(err) || 'Revise as pendências e tente novamente.',
+      })
+    } finally {
+      setSincronizandoOrcamento(false)
+    }
+  }, [
+    navigate,
+    orcamentoId,
+    pendenciasAbertas,
+    setSincronizandoOrcamento,
+    showToast,
+    sugestoesPendentes,
+    vinculoId,
+  ])
+
+  return { confirmarModalComposicao, onRetornarOrcamento }
 }
 
 function ComposicaoRetornoOrcamentoMonitor({
@@ -364,38 +440,20 @@ export default function ComposicaoPage() {
     [confirmExportFmt, exportando, itemReabrir, reabrirComposicaoItemMutation.isPending]
   )
 
-  const confirmarModalComposicao = useCallback(() => {
-    if (!modalComposicao) return
-    if (modalComposicao.tipo === 'reabrir') {
-      onReabrirItemAprovado().catch(() => undefined)
-      return
-    }
-    if (!confirmExportFmt) return
-    const fmt = confirmExportFmt
-    setConfirmExportFmt(null)
-    executarExportacao(fmt).catch(() => undefined)
-  }, [confirmExportFmt, executarExportacao, modalComposicao, onReabrirItemAprovado])
-
-  const onRetornarOrcamento = useCallback(async () => {
-    if (!orcamentoId || !vinculoId || pendenciasAbertas > 0 || sugestoesPendentes > 0) return
-    try {
-      setSincronizandoOrcamento(true)
-      const resultado = await sincronizarComposicaoPainel(orcamentoId, vinculoId)
-      showToast({
-        variant: 'success',
-        message: `${resultado.itens_sincronizados} item(ns) sincronizado(s) com a proposta.`,
-      })
-      navigate(orcamentoDetalhePath(orcamentoId))
-    } catch (err) {
-      showToast({
-        variant: 'danger',
-        title: 'Não foi possível exportar para a proposta',
-        message: extrairMensagemErroApi(err) || 'Revise as pendências e tente novamente.',
-      })
-    } finally {
-      setSincronizandoOrcamento(false)
-    }
-  }, [navigate, orcamentoId, pendenciasAbertas, showToast, sugestoesPendentes, vinculoId])
+  const { confirmarModalComposicao, onRetornarOrcamento } = useComposicaoModalHandlers({
+    modalComposicao,
+    confirmExportFmt,
+    setConfirmExportFmt,
+    onReabrirItemAprovado,
+    executarExportacao,
+    orcamentoId,
+    vinculoId,
+    pendenciasAbertas,
+    sugestoesPendentes,
+    setSincronizandoOrcamento,
+    showToast,
+    navigate,
+  })
 
   const toolbarActions = useMemo(
     () => (

@@ -97,7 +97,10 @@ export function CircuitosAprovadosTable({
   canEditar,
   patchPending,
   onRevisar,
-}: PanelSlice & { lista: CircuitoCargaCondutores[]; onRevisar: (c: CircuitoCargaCondutores) => void }) {
+}: Pick<PanelSlice, 'canEditar' | 'patchPending'> & {
+  lista: CircuitoCargaCondutores[]
+  onRevisar: (c: CircuitoCargaCondutores) => void
+}) {
   if (lista.length === 0) {
     return <p className="text-muted small mb-3">Nenhum circuito aprovado ainda.</p>
   }
@@ -367,7 +370,6 @@ export function WizardCondutoresCircuitosBlock({
         lista={aprovados}
         canEditar={panel.canEditar}
         patchPending={panel.patchPending}
-        bloquearEdicao={panel.bloquearEdicao}
         onRevisar={actions.onRevisar}
       />
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">

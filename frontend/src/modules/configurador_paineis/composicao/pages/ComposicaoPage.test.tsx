@@ -159,6 +159,31 @@ function LocationProbe() {
   return <div data-testid="location-path">{location.pathname}</div>
 }
 
+function userComPermissaoSeparar() {
+  return {
+    email: 'u@test.com',
+    first_name: '',
+    last_name: '',
+    tipo_usuario: 'USUARIO',
+    permissoes: ['almoxarifado.separar_material'],
+  }
+}
+
+function userComPermissoesCompletas() {
+  return {
+    email: 'u@test.com',
+    first_name: '',
+    last_name: '',
+    tipo_usuario: 'USUARIO',
+    permissoes: [
+      'almoxarifado.separar_material',
+      'material.editar_lista',
+      'material.visualizar_lista',
+      'projeto.visualizar',
+    ],
+  }
+}
+
 describe('ComposicaoPage', () => {
   beforeEach(() => {
     useProjetoFluxoGatesMock.mockReset()
@@ -231,31 +256,6 @@ describe('ComposicaoPage', () => {
     pendencias: [],
     inclusoes_manuais: [],
     totais: { sugestoes: 0, pendencias: 0, composicao_itens: 0, inclusoes_manuais: 0 },
-  }
-
-  function userComPermissaoSeparar() {
-    return {
-      email: 'u@test.com',
-      first_name: '',
-      last_name: '',
-      tipo_usuario: 'USUARIO',
-      permissoes: ['almoxarifado.separar_material'],
-    }
-  }
-
-  function userComPermissoesCompletas() {
-    return {
-      email: 'u@test.com',
-      first_name: '',
-      last_name: '',
-      tipo_usuario: 'USUARIO',
-      permissoes: [
-        'almoxarifado.separar_material',
-        'material.editar_lista',
-        'material.visualizar_lista',
-        'projeto.visualizar',
-      ],
-    }
   }
 
   const cargaMotor = {

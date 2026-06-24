@@ -139,11 +139,7 @@ function filtrosSefazDistribuicaoParaParams(
 
 function relatorioFiltrosParaParams(filtros: RelatorioNFeFiltros): Record<string, string> {
   const params: Record<string, string> = {}
-  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
-    const v = (raw ?? '').trim()
-    if (!v) return
-    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
-  }
+  const add = criarAdicionadorParams(params)
   add('tipo_movimento', filtros.tipo_movimento || 'ENTRADA')
   const periodoCompetencia = filtros.competencia ? periodoDaCompetencia(filtros.competencia) : null
   add('data_inicio', filtros.data_inicio || periodoCompetencia?.data_inicio)
@@ -322,11 +318,7 @@ export type ImportarDocumentoEmitidoPayload = {
 
 function filtrosEmitidasParaParams(filtros: NfesEmitidasFiltros): Record<string, string> {
   const params: Record<string, string> = {}
-  const add = (key: string, raw: string | undefined, digitsOnly = false) => {
-    const v = (raw ?? '').trim()
-    if (!v) return
-    params[key] = digitsOnly ? v.replace(/\D/g, '') : v
-  }
+  const add = criarAdicionadorParams(params)
   const periodoCompetencia = filtros.competencia ? periodoDaCompetencia(filtros.competencia) : null
   add('tipo_documento', filtros.tipo_documento)
   add('data_inicio', filtros.data_inicio || periodoCompetencia?.data_inicio)

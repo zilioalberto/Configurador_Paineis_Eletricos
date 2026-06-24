@@ -155,7 +155,7 @@ describe('PlacaCanaletasDiagram', () => {
       buttons: 1,
     })
 
-    fireEvent.pointerMove(window, {
+    fireEvent.pointerMove(globalThis.window, {
       pointerId: 1,
       clientX: 180,
       clientY: 140,
@@ -166,7 +166,7 @@ describe('PlacaCanaletasDiagram', () => {
     const ultima = onDisposicaoChange.mock.calls.at(-1)?.[0] as ComponenteDisposicaoItem[]
     expect(ultima[0].manual).toBe(true)
 
-    fireEvent.pointerUp(window, { pointerId: 1, buttons: 0 })
+    fireEvent.pointerUp(globalThis.window, { pointerId: 1, buttons: 0 })
   })
 
   it('permite arrastar canaleta intermediária em modo editável', () => {
@@ -198,7 +198,7 @@ describe('PlacaCanaletasDiagram', () => {
       buttons: 1,
     })
 
-    fireEvent.pointerMove(window, {
+    fireEvent.pointerMove(globalThis.window, {
       pointerId: 2,
       clientX: 120,
       clientY: 170,
@@ -207,7 +207,7 @@ describe('PlacaCanaletasDiagram', () => {
 
     expect(onLayoutChange).toHaveBeenCalled()
 
-    fireEvent.pointerUp(window, { pointerId: 2, buttons: 0 })
+    fireEvent.pointerUp(globalThis.window, { pointerId: 2, buttons: 0 })
   })
 
   it('indica instrução de arraste apenas quando editável', () => {
